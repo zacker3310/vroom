@@ -19,8 +19,9 @@ only currency. There is still no way to lose stars or fail a level.
 
 Kid assembles a vehicle from big picture buttons:
 
-- **Body** (tap cycles, 11): dump truck, digger, cement mixer, fire truck, monster truck + unlockable police car, race car, tractor, ice cream truck, rocket car, UFO
-- **Wheels** (tap cycles, 6): normal, monster, racing + unlockable gold, flower, tank
+- **Body** (tap cycles, 15): dump truck, digger, cement mixer, fire truck, monster truck + unlockable police car, race car, tractor, ice cream truck, rocket car, UFO + premium limo (250), dragon (300), train (350), royal carriage (400)
+- **Wheels** (tap cycles, 8): normal, monster, racing + unlockable gold, flower, tank + premium glow (90), star (120)
+- **Extras** (6 toggles): horn, beacon, flag free + purchasable wings (40), rocket booster (60), party hat (25)
 - **Paint**: 12 color swatches (6 free + purple, teal, lime, white, black, rainbow unlockable), instant repaint with splat sound
 - **Extras** (toggles): horn, spinning beacon light, flag
 - Tapping the vehicle honks (per-body honk voice)
@@ -30,11 +31,20 @@ Kid assembles a vehicle from big picture buttons:
 
 Any owned combination is valid. Vehicle preview updates live with bounce + pop.
 
-## Scene 2: Level map
+## Scene 2: World map (v5)
 
-30 levels in a 6x5 grid of big round buttons. Finished level N unlocks N+1.
-Locked = gray + padlock. Unlocked = number. Done = number + 1-3 star rating.
-Tap an unlocked level to drive it. House button returns to garage.
+80 levels across 8 themed worlds of 10: construction day, sunset, night, rain,
+snow, desert, beach, space. A row of 8 themed world tabs (locked until the
+previous world's last level is beaten) selects a page of 10 big level buttons.
+Finished level N unlocks N+1. Locked = gray + padlock. Done = number + 1-3 star
+rating + S/A/B/C medal badge. Free-drive button up top. House returns to garage.
+
+World flavor: rain (particles, puddles everywhere), snow (flakes, ice slicks,
+snowmen, slush), desert (giant sun, cacti, rolling tumbleweeds), beach (waves,
+palms, sandcastles, lane-hopping crabs), space (starfield, moon road, craters,
+friendly aliens, LOW GRAVITY floaty jumps, headlights). Tumbleweeds and crabs
+MOVE — the first moving obstacles. First clear of a world's last level banks a
++25 star trophy bonus.
 
 ## Scene 3: Road
 

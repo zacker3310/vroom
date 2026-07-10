@@ -149,13 +149,13 @@
   }
   .lockDot svg { width: 16px; height: 16px; }
 
-  #extras { display: grid; grid-template-columns: repeat(2, 92px); gap: 9px; }
+  #extras { display: grid; grid-template-columns: repeat(3, 76px); gap: 7px; }
   .extraBtn {
-    width: 92px; height: 92px; border-radius: 22px; background: #457b9d; opacity: .55;
+    position: relative; width: 76px; height: 76px; border-radius: 20px; background: #457b9d; opacity: .55;
     border: 5px solid rgba(255,255,255,.5);
   }
   .extraBtn.on { background: #2a9d8f; opacity: 1; border-color: #ffb703; }
-  .extraBtn svg { width: 60px; height: 60px; }
+  .extraBtn svg { width: 48px; height: 48px; }
 
   #mapBtn { width: 118px; height: 118px; border-radius: 50%; background: #219ebc; border: 8px solid #bde0fe; }
   #mapBtn svg { width: 70px; height: 70px; }
@@ -174,12 +174,22 @@
     border-radius: 26px; background: #38b000; border: 6px solid #d8f3dc;
   }
   #freeBtn svg { width: 170px; height: 62px; }
+  #worldTabs {
+    position: absolute; left: 50%; top: 118px; transform: translateX(-50%);
+    display: flex; gap: 10px; z-index: 5;
+  }
+  .worldTab { width: 88px; height: 88px; border-radius: 24px; background: #219ebc; position: relative; }
+  .worldTab.sel { outline: 6px solid #ffb703; }
+  .worldTab.locked { background: #6c757d; opacity: .75; }
+  .worldTab.deny { animation: denyShake .4s ease; }
+  .worldTab svg { width: 58px; height: 58px; }
+  .worldTab span { font: 900 40px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #fff; }
   #mapGrid {
-    position: absolute; left: 50%; top: 120px; transform: translateX(-50%);
-    display: grid; grid-template-columns: repeat(6, 100px); grid-template-rows: repeat(5, 100px); gap: 12px;
+    position: absolute; left: 50%; top: 258px; transform: translateX(-50%);
+    display: grid; grid-template-columns: repeat(5, 110px); grid-template-rows: repeat(2, 110px); gap: 16px;
   }
   .lvlBtn {
-    position: relative; width: 100px; height: 100px; border-radius: 28px;
+    position: relative; width: 110px; height: 110px; border-radius: 28px;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
     font: 900 40px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #fff;
   }
@@ -210,6 +220,12 @@
   .cloud::after { width: 45%; height: 130%; right: 12%; bottom: 30%; }
   #skyStars { display: none; position: absolute; inset: 0; }
   #road.night #skyStars { display: block; }
+  #weather { position: absolute; inset: 0; pointer-events: none; z-index: 17; }
+  /* snow world: mud reads wrong on white — puddles become blue-gray slush */
+  #road.w5 .puddle ellipse { fill: #9db4c0; }
+  #road.w5 .puddle ellipse + ellipse { fill: #c3d5de; }
+  #road.w5 .puddle .splash path { stroke: #c3d5de; }
+  #road.w5 .mudSpots circle { fill: #9db4c0; }
 
   #roadStrip {
     position: absolute; left: 0; width: 100%; top: 460px; height: 230px;
@@ -384,8 +400,8 @@
   }
   #iris.go { animation: irisReveal .45s ease-out; }
   @keyframes irisReveal {
-    0% { clip-path: circle(8% at 50% 50%); opacity: 1; }
-    100% { clip-path: circle(120% at 50% 50%); opacity: 1; }
+    0% { clip-path: circle(120% at 50% 50%); opacity: 1; }
+    100% { clip-path: circle(0% at 50% 50%); opacity: 1; }
   }
   #rotateOverlay {
     position: fixed; inset: 0; background: #1a2634; z-index: 100;
@@ -467,6 +483,7 @@
       <svg viewBox="0 0 100 100"><path d="M50 12 L92 50 H78 V88 H22 V50 H8 Z" fill="#023047"/><rect x="40" y="58" width="20" height="30" fill="#ffb703"/></svg>
     </button>
     <div class="chip" id="mapWallet" aria-label="star wallet"></div>
+    <div id="worldTabs"></div>
     <button class="bigBtn" id="freeBtn" aria-label="free drive, no finish line">
       <svg viewBox="0 0 160 60"><path d="M8 52 Q40 10 80 30 Q120 50 152 8" stroke="#fff" stroke-width="16" fill="none" stroke-linecap="round"/><path d="M8 52 Q40 10 80 30 Q120 50 152 8" stroke="#ffd60a" stroke-width="4" fill="none" stroke-dasharray="10 14" stroke-linecap="round"/></svg>
     </button>
@@ -476,6 +493,7 @@
   <div id="road" class="scene">
     <div id="sun"></div>
     <div id="skyStars"></div>
+    <div id="weather"></div>
     <div class="cloud" style="left:180px; top:70px; width:130px; height:44px;"></div>
     <div class="cloud" style="left:620px; top:120px; width:170px; height:52px;"></div>
     <div class="cloud" style="left:980px; top:55px; width:110px; height:38px;"></div>
@@ -572,15 +590,22 @@ const UPG = {
 };
 const MAX_DAMAGE = 9, REPAIR_RATE = 2;
 
-const MAX_LEVEL = 30;
+const MAX_LEVEL = 80;
+const WORLD_COUNT = 8, WORLD_SIZE = 10;
+/* world-specific hazards; the art + specs are filled in by the worlds pack below */
+const WORLD_ITEMS = { 5: ["ice", "snowman"], 6: ["cactus", "tumbleweed"], 7: ["sandcastle", "crab"], 8: ["crater", "alien"] };
+const EXTRA_PROPS = {};   /* type -> { svg, xOff, yOff, hard, mv } */
+function worldOf(n) { return Math.min(WORLD_COUNT, Math.ceil(n / WORLD_SIZE)); }
+/* level length climbs steeply through world 2, then gently — runs stay under ~25s */
+function levelLen(n) { return 3500 + Math.min(n, 20) * 250 + Math.max(0, n - 20) * 100; }
 
 /* time-trial medals: S needs a near-clean full-throttle run (upgrades help late game) */
 const TIER_RANK = { S: 3, A: 2, B: 1, C: 0 };
 const TIER_COLOR = { S: "#ffd60a", A: "#cfd8dc", B: "#cd7f32", C: "#90a4ae" };
 /* forgiving early (a wobbly level-1 run can still S), mastery-tuned late
-   (level 25+ S assumes engine upgrades and a near-clean line) */
+   (deep worlds assume engine upgrades and a near-clean line) */
 function timeTier(n, t) {
-  const len = 3500 + n * 250;
+  const len = levelLen(n);
   if (t <= len / (500 + n * 8)) return "S";
   if (t <= len / (400 + n * 6)) return "A";
   if (t <= len / (300 + n * 4)) return "B";
@@ -593,7 +618,7 @@ function medalSVG(tier) {
 
 /* ============ STATE (vroom.v2, migrates v1 build) ============ */
 let state = { body: "dump", wheels: "normal", color: "#fdd835", extras: { horn: false, beacon: false, flag: false } };
-let progress = { wallet: 0, owned: { body: [], wheels: [], color: [] }, levels: {}, current: 1,
+let progress = { wallet: 0, owned: { body: [], wheels: [], color: [], extras: [] }, levels: {}, current: 1,
                  damage: 0, upgrades: { engine: 0, armor: 0, magnet: 0 } };
 
 function loadState() {
@@ -610,7 +635,7 @@ function loadState() {
   if (COLORS.includes(b.color)) state.color = b.color;
   for (const k in state.extras) state.extras[k] = !!(b.extras && b.extras[k]);
   if (Number.isFinite(saved.wallet) && saved.wallet >= 0) progress.wallet = Math.floor(saved.wallet);
-  if (saved.owned) for (const kind of ["body", "wheels", "color"]) {
+  if (saved.owned) for (const kind of ["body", "wheels", "color", "extras"]) {
     if (Array.isArray(saved.owned[kind])) progress.owned[kind] = saved.owned[kind].filter(id => priceOf(kind, id) > 0);
   }
   if (saved.levels) for (const n in saved.levels) {
@@ -1021,6 +1046,11 @@ function extrasSVG(body, extras) {
       <path d="M0 0 V-52" stroke="#6c757d" stroke-width="5" stroke-linecap="round"/>
       <path d="M2 -50 L38 -42 L2 -30 Z" fill="#e63946"/>
     </g>`;
+  if (typeof NEW_EXTRAS_SVG !== "undefined") {
+    if (extras.wings) out += NEW_EXTRAS_SVG.wings(fx, fy);
+    if (extras.booster) out += NEW_EXTRAS_SVG.booster(fx, fy);
+    if (extras.partyhat) out += NEW_EXTRAS_SVG.partyhat(rx, ry);
+  }
   return out;
 }
 let svgUid = 0;
@@ -1068,6 +1098,614 @@ const starIcon = `<svg viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L
 const lockIcon = `<svg viewBox="0 0 64 64"><rect x="12" y="28" width="40" height="30" rx="7" fill="#fff"/><path d="M20 28 V20 a12 12 0 0 1 24 0 V28" stroke="#fff" stroke-width="8" fill="none"/></svg>`;
 const wrenchIcon = `<svg viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#6c757d"/></svg>`;
 
+
+/* ============ T5 CONTENT PACKS (agent-generated: worlds, premium vehicles, extras) ============ */
+/* ============================================================
+   VROOM — world themes 4-8 (rain, snow, desert, beach, space)
+   Drop-in design assets. Conventions match index.html:
+   - mid scenery tiles every 900px, groups at translate(x,462)
+   - far hills tile every 520px, two-hump quad paths to y=465
+   - props: { type, svg, w, h, xOff, yOff } with xOff ~ -w/2 and
+     yOff ~ -(h-2) so the art's bottom sits on the lane ground y
+   - flat chunky SVG, no gradients/ids/filters
+   ============================================================ */
+
+/* ---------- 1. WORLD_CSS — #road.w4 .. #road.w8 ---------- */
+/* worlds 1-3 keep the existing #road / .sunset / .night rules untouched */
+const WORLD_CSS = `
+  /* ----- world 4: RAIN — gray wet city, sun hiding behind the clouds ----- */
+  #road.w4 { background: linear-gradient(#5c677d 0%, #7d8597 45%, #a9b4c2 62%); }
+  #road.w4 #sun { display: none; }
+  #road.w4 .cloud { background: #adb5bd; opacity: 1; }
+  #road.w4 .cloud::before, #road.w4 .cloud::after { background: #adb5bd; }
+  #road.w4 #roadStrip { background: #3d434b; border-top-color: #2b3038; }
+  #road.w4 #dirt { background: #5e503f; }
+
+  /* ----- world 5: SNOW — pale low sun, white road with plowed edges ----- */
+  #road.w5 { background: linear-gradient(#9db8d2 0%, #c3d9ea 45%, #e9f2f9 62%); }
+  #road.w5 #sun { background: #f8f9fa; box-shadow: 0 0 30px 10px rgba(248,249,250,.4); }
+  #road.w5 .cloud { opacity: 1; }
+  #road.w5 #roadStrip { background: #e8edf2; border-top-color: #cfd8dc; }
+  /* yellow dashes vanish on a white road — restripe in steel blue */
+  #road.w5 #roadStrip::before, #road.w5 #roadStrip::after {
+    background: repeating-linear-gradient(90deg, #457b9d 0 60px, transparent 60px 120px);
+  }
+  #road.w5 #dirt { background: #cfd8dc; }
+
+  /* ----- world 6: DESERT — big orange sun, sandy shoulders ----- */
+  #road.w6 { background: linear-gradient(#f4a24c 0%, #ffc971 45%, #ffe8c2 62%); }
+  #road.w6 #sun { background: #fb8500; width: 150px; height: 150px; box-shadow: 0 0 80px 30px rgba(251,133,0,.5); }
+  #road.w6 .cloud { opacity: .45; }
+  #road.w6 #dirt { background: #c98f4e; }
+
+  /* ----- world 7: BEACH — tropical sky, sand under the boardwalk road ----- */
+  #road.w7 { background: linear-gradient(#00b4d8 0%, #48cae4 45%, #ade8f4 62%); }
+  #road.w7 .cloud { opacity: .95; }
+  #road.w7 #roadStrip { border-top-color: #b08968; }
+  #road.w7 #dirt { background: #e9c46a; }
+
+  /* ----- world 8: SPACE — night-plus, tiny far-away sun, moon road ----- */
+  #road.w8 { background: linear-gradient(#000814 0%, #001d3d 45%, #003566 62%); }
+  #road.w8 #sun { background: #caf0f8; width: 64px; height: 64px; box-shadow: 0 0 30px 10px rgba(202,240,248,.45); }
+  #road.w8 .cloud { opacity: 0; }
+  #road.w8 #skyStars { display: block; }
+  #road.w8 #roadStrip { background: #343a40; border-top-color: #212529; }
+  #road.w8 #roadStrip::before, #road.w8 #roadStrip::after {
+    background: repeating-linear-gradient(90deg, #adb5bd 0 60px, transparent 60px 120px);
+  }
+  #road.w8 #dirt { background: #495057; }
+`;
+
+/* ---------- 2a. WORLD_SCENERY — one mid group per 900px tile ----------
+   Usage in buildScenery(): for (let x = 150; x < w; x += 900) mid += WORLD_SCENERY.w4(x);
+   Each returns ONE <g> at translate(x,462) replacing the crane+building pair. */
+const WORLD_SCENERY = {
+  /* rain: two gray city blocks with lit windows + two sidewalk umbrellas */
+  w4: x => `
+    <g transform="translate(${x},462)">
+      <rect x="0" y="-160" width="110" height="160" fill="#6c757d"/>
+      <rect x="14" y="-144" width="24" height="24" fill="#ffd60a"/><rect x="56" y="-144" width="24" height="24" fill="#ffd60a"/>
+      <rect x="14" y="-104" width="24" height="24" fill="#adb5bd"/><rect x="56" y="-104" width="24" height="24" fill="#ffd60a"/>
+      <rect x="150" y="-118" width="92" height="118" fill="#495057"/>
+      <rect x="163" y="-102" width="20" height="20" fill="#ffd60a"/><rect x="199" y="-102" width="20" height="20" fill="#ffd60a"/>
+      <rect x="163" y="-68" width="20" height="20" fill="#ffd60a"/><rect x="199" y="-68" width="20" height="20" fill="#adb5bd"/>
+      <path d="M300 -64 Q336 -104 372 -64 Z" fill="#e63946"/>
+      <rect x="333" y="-64" width="6" height="64" fill="#343a40"/>
+      <path d="M430 -50 Q458 -82 486 -50 Z" fill="#4cc9f0"/>
+      <rect x="455" y="-50" width="5" height="50" fill="#343a40"/>
+    </g>`,
+
+  /* snow: two snow-capped pines + a snowman with stick arms */
+  w5: x => `
+    <g transform="translate(${x},462)">
+      <rect x="56" y="-22" width="16" height="22" fill="#6b4423"/>
+      <path d="M64 -158 L104 -84 H24 Z" fill="#2d6a4f"/>
+      <path d="M64 -118 L112 -22 H16 Z" fill="#2d6a4f"/>
+      <path d="M64 -158 L84 -121 H44 Z" fill="#f1faee"/>
+      <rect x="196" y="-16" width="12" height="16" fill="#6b4423"/>
+      <path d="M202 -110 L234 -52 H170 Z" fill="#40916c"/>
+      <path d="M202 -80 L240 -16 H164 Z" fill="#40916c"/>
+      <path d="M202 -110 L217 -83 H187 Z" fill="#f1faee"/>
+      <circle cx="360" cy="-24" r="26" fill="#fff"/>
+      <circle cx="360" cy="-60" r="18" fill="#fff"/>
+      <circle cx="360" cy="-86" r="13" fill="#fff"/>
+      <circle cx="355" cy="-89" r="2.5" fill="#023047"/><circle cx="365" cy="-89" r="2.5" fill="#023047"/>
+      <path d="M360 -85 L378 -81 L360 -79 Z" fill="#f77f00"/>
+      <path d="M342 -62 L322 -74 M378 -62 L398 -74" stroke="#6b4423" stroke-width="4" stroke-linecap="round"/>
+    </g>`,
+
+  /* desert: flat-top mesa + big saguaro with a flower + baby saguaro */
+  w6: x => `
+    <g transform="translate(${x},462)">
+      <path d="M0 0 L26 -120 H190 L216 0 Z" fill="#b5651d"/>
+      <rect x="26" y="-120" width="164" height="16" fill="#d68c45"/>
+      <path d="M56 -66 H120 M90 -38 H166" stroke="#8f4a12" stroke-width="5" stroke-linecap="round"/>
+      <rect x="312" y="-128" width="22" height="128" rx="11" fill="#588157"/>
+      <rect x="290" y="-96" width="14" height="42" rx="7" fill="#588157"/>
+      <rect x="290" y="-62" width="28" height="14" rx="7" fill="#588157"/>
+      <rect x="342" y="-108" width="14" height="40" rx="7" fill="#588157"/>
+      <rect x="328" y="-76" width="28" height="14" rx="7" fill="#588157"/>
+      <circle cx="323" cy="-128" r="7" fill="#e76f51"/>
+      <rect x="434" y="-70" width="16" height="70" rx="8" fill="#6a994e"/>
+      <rect x="420" y="-52" width="10" height="26" rx="5" fill="#6a994e"/>
+      <rect x="420" y="-32" width="20" height="10" rx="5" fill="#6a994e"/>
+    </g>`,
+
+  /* beach: palm with coconuts + beach umbrella + sailboat on a water strip */
+  w7: x => `
+    <g transform="translate(${x},462)">
+      <path d="M96 0 Q88 -60 106 -110" stroke="#b08968" stroke-width="14" fill="none" stroke-linecap="round"/>
+      <path d="M106 -108 Q70 -124 46 -104 Q72 -142 110 -120 Z" fill="#2a9d8f"/>
+      <path d="M106 -108 Q142 -124 166 -104 Q140 -142 102 -120 Z" fill="#2a9d8f"/>
+      <path d="M106 -112 Q92 -148 66 -152 Q98 -162 114 -126 Z" fill="#2a9d8f"/>
+      <path d="M106 -112 Q124 -148 148 -150 Q116 -162 100 -126 Z" fill="#2a9d8f"/>
+      <circle cx="100" cy="-106" r="7" fill="#6b4423"/><circle cx="114" cy="-104" r="7" fill="#6b4423"/>
+      <path d="M196 -70 Q244 -128 292 -70 Z" fill="#e63946"/>
+      <path d="M218 -70 Q244 -116 270 -70 Z" fill="#f1faee"/>
+      <rect x="241" y="-70" width="6" height="70" fill="#8d99ae"/>
+      <circle cx="244" cy="-101" r="6" fill="#ffd60a"/>
+      <rect x="330" y="-150" width="240" height="10" fill="#0096c7"/>
+      <path d="M398 -150 L446 -150 L436 -136 L408 -136 Z" fill="#e63946"/>
+      <rect x="420" y="-192" width="4" height="42" fill="#6b4423"/>
+      <path d="M426 -190 L452 -154 L426 -154 Z" fill="#f1faee"/>
+    </g>`,
+
+  /* space: crater dome base + antenna dish + little rocket on a landing pad */
+  w8: x => `
+    <g transform="translate(${x},462)">
+      <path d="M20 0 Q90 -140 160 0 Z" fill="#adb5bd"/>
+      <rect x="74" y="-56" width="32" height="56" rx="6" fill="#4cc9f0"/>
+      <circle cx="90" cy="-92" r="6" fill="#ffd60a"/>
+      <ellipse cx="200" cy="-6" rx="24" ry="7" fill="#495057"/>
+      <rect x="256" y="-80" width="10" height="80" fill="#6c757d"/>
+      <path d="M226 -96 Q261 -56 296 -96 Z" fill="#e9ecef"/>
+      <path d="M261 -78 V-112" stroke="#adb5bd" stroke-width="4"/>
+      <circle cx="261" cy="-114" r="5" fill="#e63946"/>
+      <rect x="400" y="-14" width="120" height="14" rx="4" fill="#6c757d"/>
+      <path d="M460 -140 Q478 -112 478 -76 L478 -24 H442 L442 -76 Q442 -112 460 -140 Z" fill="#e63946"/>
+      <circle cx="460" cy="-88" r="9" fill="#4cc9f0"/>
+      <path d="M442 -50 L422 -14 L442 -26 Z" fill="#f77f00"/>
+      <path d="M478 -50 L498 -14 L478 -26 Z" fill="#f77f00"/>
+      <rect x="452" y="-24" width="16" height="10" fill="#6c757d"/>
+    </g>`
+};
+
+/* ---------- 2b. WORLD_FAR — one far hill variant per 520px tile ----------
+   Same two-hump quad structure as the existing #74c69d hills. */
+const WORLD_FAR = {
+  /* rainy hills: desaturated wet green */
+  w4: x => `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#617d70" opacity=".8"/>`,
+
+  /* snow-capped hills: icy blue base + white caps sitting on each apex */
+  w5: x => `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#c9dcea" opacity=".9"/>` +
+           `<path d="M${x + 95} 412 Q${x + 130} 382 ${x + 165} 412 Q${x + 130} 398 ${x + 95} 412 Z" fill="#fff"/>` +
+           `<path d="M${x + 355} 420 Q${x + 390} 392 ${x + 425} 420 Q${x + 390} 404 ${x + 355} 420 Z" fill="#fff"/>`,
+
+  /* dunes: the same humps, lower and sandier */
+  w6: x => `<path d="M${x} 465 Q${x + 130} 370 ${x + 260} 465 Q${x + 390} 385 ${x + 520} 465" fill="#d4a373" opacity=".85"/>`,
+
+  /* ocean swell: four small wave humps across the tile */
+  w7: x => `<path d="M${x} 465 Q${x + 65} 420 ${x + 130} 465 Q${x + 195} 425 ${x + 260} 465 Q${x + 325} 420 ${x + 390} 465 Q${x + 455} 425 ${x + 520} 465" fill="#0096c7" opacity=".8"/>`,
+
+  /* crater ridge: dark humps with shadowed crater dents */
+  w8: x => `<path d="M${x} 465 Q${x + 130} 330 ${x + 260} 465 Q${x + 390} 350 ${x + 520} 465" fill="#495057" opacity=".9"/>` +
+           `<ellipse cx="${x + 130}" cy="430" rx="30" ry="9" fill="#343a40"/>` +
+           `<ellipse cx="${x + 390}" cy="438" rx="24" ry="7" fill="#343a40"/>`
+};
+
+/* ---------- 3. WORLD_WEATHER — particle div specs ----------
+   Spawn `count` divs into #road (behind HUD, z 15), each with the returned
+   className + cssText. rng is a seeded mulberry32 so runs are reproducible. */
+const WORLD_WEATHER = {
+  /* rain: thin fast streaks */
+  w4: {
+    count: 22,
+    make: (i, rng) => ({
+      className: "rainDrop",
+      cssText: `left:${Math.floor(rng() * 1200)}px; top:${-60 - Math.floor(rng() * 80)}px; ` +
+               `height:${22 + Math.floor(rng() * 10)}px; ` +
+               `animation-duration:${(0.5 + rng() * 0.3).toFixed(2)}s; ` +
+               `animation-delay:${(rng() * 0.8).toFixed(2)}s;`
+    })
+  },
+  /* snow: soft circles drifting down with a side-to-side sway */
+  w5: {
+    count: 26,
+    make: (i, rng) => {
+      const s = 7 + Math.floor(rng() * 8);
+      return {
+        className: "snowFlake",
+        cssText: `left:${Math.floor(rng() * 1200)}px; top:${-30 - Math.floor(rng() * 60)}px; ` +
+                 `width:${s}px; height:${s}px; ` +
+                 `animation-duration:${(3 + rng() * 3).toFixed(2)}s; ` +
+                 `animation-delay:${(rng() * 3).toFixed(2)}s;`
+      };
+    }
+  },
+  w6: null,   /* desert: no particles — the big sun and dunes carry it */
+  w7: null,   /* beach: no particles */
+  w8: null    /* space: reuse #skyStars (enabled by #road.w8 CSS) */
+};
+
+const WORLD_WEATHER_CSS = {
+  w4: `
+  .rainDrop {
+    position: absolute; width: 3px; border-radius: 2px; background: #4cc9f0;
+    opacity: .75; pointer-events: none; z-index: 15;
+    animation: rainFall linear infinite;
+  }
+  @keyframes rainFall {
+    from { transform: translateY(0); }
+    to   { transform: translateY(760px); }
+  }`,
+  w5: `
+  .snowFlake {
+    position: absolute; border-radius: 50%; background: #fff;
+    opacity: .9; pointer-events: none; z-index: 15;
+    animation: snowFall linear infinite;
+  }
+  @keyframes snowFall {
+    0%   { transform: translate(0, 0); }
+    25%  { transform: translate(26px, 190px); }
+    50%  { transform: translate(-14px, 380px); }
+    75%  { transform: translate(22px, 570px); }
+    100% { transform: translate(0, 760px); }
+  }`,
+  w6: null,
+  w7: null,
+  w8: null
+};
+
+/* ---------- 4. WORLD_PROPS — two new prop types per world 5-8 ----------
+   kinds: soft = fun knock (cone-style), hard = stop + damage (hardHit),
+   slick = oil physics (v *= 0.45 + spin), mover-soft = soft but the prop
+   moves each tick per moveSpec. xOff/yOff follow addProp() conventions. */
+const WORLD_PROPS = {
+  w5: [
+    {
+      type: "ice", w: 150, h: 40, xOff: -75, yOff: -34, kind: "slick",
+      /* feel: reuse oil exactly — sfx.slip() + carWrap .spin, v *= 0.45 */
+      svg: `<svg width="150" height="40" viewBox="0 0 150 40"><ellipse cx="75" cy="26" rx="70" ry="12" fill="#bde0fe"/><ellipse cx="75" cy="22" rx="54" ry="8" fill="#e3f2fd"/><path d="M38 22 L52 18 M70 24 L88 19 M104 22 L118 18" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".9"/></svg>`
+    },
+    {
+      type: "snowman", w: 70, h: 90, xOff: -35, yOff: -88, kind: "soft",
+      /* feel: sfx.splat() then sfx.boink() 120ms later — a poof, then the head pops off via .hit/propAway */
+      svg: `<svg width="70" height="90" viewBox="0 0 70 90"><circle cx="35" cy="66" r="22" fill="#fff"/><circle cx="35" cy="36" r="16" fill="#fff"/><circle cx="35" cy="14" r="11" fill="#fff"/><circle cx="31" cy="11" r="2" fill="#023047"/><circle cx="39" cy="11" r="2" fill="#023047"/><path d="M35 15 L50 18 L35 20 Z" fill="#f77f00"/><rect x="24" y="22" width="22" height="6" rx="3" fill="#e63946"/><circle cx="35" cy="32" r="2.5" fill="#023047"/><circle cx="35" cy="40" r="2.5" fill="#023047"/><path d="M20 34 L4 26 M50 34 L66 26" stroke="#6b4423" stroke-width="4" stroke-linecap="round"/></svg>`
+    }
+  ],
+  w6: [
+    {
+      type: "cactus", w: 60, h: 95, xOff: -30, yOff: -93, kind: "hard",
+      /* feel: hardHit(p, d, 1) — sfx.thud() + shakeCar(), spiky things stop trucks */
+      svg: `<svg width="60" height="95" viewBox="0 0 60 95"><rect x="21" y="4" width="18" height="91" rx="9" fill="#588157"/><rect x="2" y="26" width="12" height="34" rx="6" fill="#588157"/><rect x="2" y="48" width="24" height="12" rx="6" fill="#588157"/><rect x="46" y="16" width="12" height="30" rx="6" fill="#588157"/><rect x="36" y="34" width="22" height="12" rx="6" fill="#588157"/><path d="M27 20 V30 M33 40 V52" stroke="#3a5a40" stroke-width="3" stroke-linecap="round"/><circle cx="30" cy="7" r="5" fill="#e76f51"/></svg>`
+    },
+    {
+      type: "tumbleweed", w: 64, h: 64, xOff: -32, yOff: -62, kind: "mover-soft",
+      moveSpec: { vx: -130, spin: true },   /* rolls toward the car; rotate el by vx-proportional angle */
+      /* feel: sfx.boink() + noiseBurst(0.12, 1500, 0.2) — a dry crunchy bounce, v *= 0.9 */
+      svg: `<svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="none" stroke="#b08968" stroke-width="5"/><circle cx="32" cy="32" r="17" fill="none" stroke="#b08968" stroke-width="4"/><path d="M32 4 V60 M4 32 H60 M13 13 L51 51 M51 13 L13 51" stroke="#b08968" stroke-width="3" stroke-linecap="round"/></svg>`
+    }
+  ],
+  w7: [
+    {
+      type: "sandcastle", w: 76, h: 70, xOff: -38, yOff: -68, kind: "soft",
+      /* feel: sfx.splat() + tone("sine", 260, 90, 0.2, 0.2) — crumbles (swap art or .hit fling), v *= 0.9 */
+      svg: `<svg width="76" height="70" viewBox="0 0 76 70"><rect x="8" y="34" width="60" height="34" fill="#e9c46a"/><rect x="2" y="26" width="20" height="42" fill="#e9c46a"/><rect x="54" y="26" width="20" height="42" fill="#e9c46a"/><rect x="2" y="20" width="6" height="8" fill="#e9c46a"/><rect x="16" y="20" width="6" height="8" fill="#e9c46a"/><rect x="54" y="20" width="6" height="8" fill="#e9c46a"/><rect x="68" y="20" width="6" height="8" fill="#e9c46a"/><rect x="28" y="18" width="20" height="50" fill="#f4a261"/><path d="M32 68 V52 Q38 44 44 52 V68 Z" fill="#b08968"/><path d="M38 18 V4" stroke="#6b4423" stroke-width="3"/><path d="M38 4 L52 8 L38 13 Z" fill="#e63946"/></svg>`
+    },
+    {
+      type: "crab", w: 70, h: 50, xOff: -35, yOff: -48, kind: "mover-soft",
+      moveSpec: { laneHop: 1.4 },   /* hops one lane every 1.4s, bouncing between lanes 0 and 2 */
+      /* feel: sfx.boink() + tone("sine", 1000, 1400, 0.12, 0.2) — a happy startled squeak, no slow-down */
+      svg: `<svg width="70" height="50" viewBox="0 0 70 50"><path d="M27 22 V10 M43 22 V10" stroke="#e63946" stroke-width="4" stroke-linecap="round"/><circle cx="27" cy="8" r="5" fill="#fff"/><circle cx="27" cy="8" r="2.5" fill="#023047"/><circle cx="43" cy="8" r="5" fill="#fff"/><circle cx="43" cy="8" r="2.5" fill="#023047"/><circle cx="7" cy="26" r="6" fill="#d1495b"/><circle cx="63" cy="26" r="6" fill="#d1495b"/><path d="M18 44 L10 49 M28 46 L24 50 M42 46 L46 50 M52 44 L60 49" stroke="#d1495b" stroke-width="4" stroke-linecap="round"/><ellipse cx="35" cy="34" rx="22" ry="14" fill="#e63946"/><path d="M28 36 Q35 42 42 36" stroke="#8d0801" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`
+    }
+  ],
+  w8: [
+    {
+      type: "crater", w: 90, h: 50, xOff: -45, yOff: -46, kind: "hard",
+      /* feel: hardHit(p, d, 1) — sfx.thud() + shakeCar(); jumpable like rocks */
+      svg: `<svg width="90" height="50" viewBox="0 0 90 50"><path d="M6 48 L14 22 L30 12 L60 12 L76 22 L84 48 Z" fill="#8d99ae"/><ellipse cx="45" cy="18" rx="26" ry="8" fill="#495057"/><path d="M20 34 L30 30 M62 32 L72 36" stroke="#6c757d" stroke-width="4" stroke-linecap="round"/></svg>`
+    },
+    {
+      type: "alien", w: 64, h: 76, xOff: -32, yOff: -74, kind: "soft",
+      /* feel: tone("sine", 600, 1800, 0.3, 0.2) + sfx.chime() — teleport zip; fade el opacity to 0 over .3s instead of .hit */
+      svg: `<svg width="64" height="76" viewBox="0 0 64 76"><path d="M26 7 Q22 2 18 4 M38 7 Q42 2 46 4" stroke="#43a047" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M32 4 Q56 4 56 40 Q56 68 32 74 Q8 68 8 40 Q8 4 32 4 Z" fill="#74c69d"/><path d="M10 44 Q0 36 4 28" stroke="#74c69d" stroke-width="7" fill="none" stroke-linecap="round"/><circle cx="32" cy="32" r="13" fill="#fff"/><circle cx="32" cy="32" r="6" fill="#023047"/><path d="M25 50 Q32 56 39 50" stroke="#1b4332" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="22" cy="72" rx="7" ry="3" fill="#43a047"/><ellipse cx="42" cy="72" rx="7" ry="3" fill="#43a047"/></svg>`
+    }
+  ]
+};
+
+/* ---------- 5. WORLD_ICONS — 100x100 map/button icons, white-on-color ---------- */
+const WORLD_ICONS = {
+  /* construction crane */
+  w1: `<svg viewBox="0 0 100 100"><rect x="20" y="14" width="10" height="72" fill="#fff"/><rect x="12" y="10" width="76" height="9" fill="#fff"/><path d="M74 19 V44" stroke="#fff" stroke-width="5"/><rect x="64" y="44" width="20" height="16" rx="3" fill="#ffd60a"/><rect x="8" y="84" width="36" height="8" rx="4" fill="#fff"/></svg>`,
+  /* setting sun over the horizon */
+  w2: `<svg viewBox="0 0 100 100"><path d="M22 58 A28 28 0 0 1 78 58 Z" fill="#fff"/><rect x="10" y="60" width="80" height="8" rx="4" fill="#fff"/><path d="M50 14 V26 M22 26 L30 34 M78 26 L70 34" stroke="#fff" stroke-width="6" stroke-linecap="round"/></svg>`,
+  /* crescent moon + star */
+  w3: `<svg viewBox="0 0 100 100"><path d="M56 10 A36 36 0 1 0 84 60 A28 28 0 0 1 56 10 Z" fill="#fff"/><path d="M76 18 L80 28 L90 29 L82 36 L85 46 L76 40 L67 46 L70 36 L62 29 L72 28 Z" fill="#ffd60a"/></svg>`,
+  /* rain cloud with drops */
+  w4: `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="44" rx="30" ry="18" fill="#fff"/><circle cx="36" cy="34" r="14" fill="#fff"/><circle cx="60" cy="30" r="17" fill="#fff"/><path d="M34 68 L28 84 M52 68 L46 84 M70 68 L64 84" stroke="#4cc9f0" stroke-width="7" stroke-linecap="round"/></svg>`,
+  /* snowflake */
+  w5: `<svg viewBox="0 0 100 100"><g stroke="#fff" stroke-width="7" stroke-linecap="round"><path d="M50 10 V90 M15 30 L85 70 M85 30 L15 70"/><path d="M42 20 L50 28 L58 20 M42 80 L50 72 L58 80"/></g><circle cx="50" cy="50" r="8" fill="#fff"/></svg>`,
+  /* saguaro cactus */
+  w6: `<svg viewBox="0 0 100 100"><rect x="41" y="12" width="18" height="76" rx="9" fill="#fff"/><rect x="20" y="30" width="13" height="34" rx="6.5" fill="#fff"/><rect x="20" y="52" width="27" height="12" rx="6" fill="#fff"/><rect x="67" y="22" width="13" height="30" rx="6.5" fill="#fff"/><rect x="55" y="40" width="25" height="12" rx="6" fill="#fff"/><circle cx="50" cy="12" r="6" fill="#ffd60a"/></svg>`,
+  /* palm tree */
+  w7: `<svg viewBox="0 0 100 100"><path d="M48 88 Q46 58 52 36" stroke="#fff" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M52 34 Q28 22 14 34 Q30 16 54 28 Z" fill="#fff"/><path d="M52 34 Q76 22 86 34 Q70 16 50 28 Z" fill="#fff"/><path d="M52 32 Q40 12 24 10 Q44 4 56 24 Z" fill="#fff"/><path d="M52 32 Q64 12 80 12 Q58 4 48 24 Z" fill="#fff"/><circle cx="52" cy="34" r="6" fill="#ffd60a"/></svg>`,
+  /* rocket blasting off */
+  w8: `<svg viewBox="0 0 100 100"><path d="M50 6 Q68 26 68 52 L68 70 H32 L32 52 Q32 26 50 6 Z" fill="#fff"/><circle cx="50" cy="42" r="9" fill="#4cc9f0"/><path d="M32 56 L16 78 L32 74 Z" fill="#fff"/><path d="M68 56 L84 78 L68 74 Z" fill="#fff"/><path d="M42 74 Q50 92 58 74 Z" fill="#ff9f1c"/></svg>`
+};
+
+/* ---------- 6. WORLD_TINT — accent per world for map tabs / buttons ---------- */
+const WORLD_TINT = {
+  w1: "#f77f00",   /* construction orange */
+  w2: "#e76f51",   /* sunset coral */
+  w3: "#3d5a80",   /* night blue */
+  w4: "#457b9d",   /* rain steel */
+  w5: "#56cfe1",   /* snow ice */
+  w6: "#d68c45",   /* desert clay */
+  w7: "#2a9d8f",   /* beach teal */
+  w8: "#7b2cbf"    /* space purple */
+};
+
+/* keep node --check happy about unused consts if this file is ever imported */
+if (typeof module !== "undefined") {
+  module.exports = { WORLD_CSS, WORLD_SCENERY, WORLD_FAR, WORLD_WEATHER, WORLD_WEATHER_CSS, WORLD_PROPS, WORLD_ICONS, WORLD_TINT };
+}
+
+/* ============ PREMIUM VEHICLES ============ */
+/* Endgame unlocks (250-400 stars). Same conventions as BODIES / WHEELS /
+   WHEEL_DECOR / HONKS in index.html: viewBox 0 0 320 230, ground y=200,
+   axles x=85/235, var(--paint) main color, #bde0fe glass, eye(cx,cy,r),
+   #495057 chassis bar, brightness() filters only. */
+
+const PREMIUM_BODIES = {
+  /* limo: super-stretched low sedan spanning nearly the full frame — long
+     hood + trunk, extra-long cabin with a row of 4 windows (eye up front),
+     gold trim line down the flank, tiny black chauffeur cap on the roof */
+  limo: {
+    roof: [150, 90], rear: [26, 118],
+    svg: () => `
+      <path d="M14 130 Q14 118 28 118 L64 118 L78 96 Q82 90 90 90 L242 90 Q250 90 254 96 L268 118 L292 118 Q306 118 306 130 L306 158 L14 158 Z" fill="var(--paint)"/>
+      <rect x="92" y="98" width="31" height="26" rx="5" fill="#bde0fe"/>
+      <rect x="131" y="98" width="31" height="26" rx="5" fill="#bde0fe"/>
+      <rect x="170" y="98" width="31" height="26" rx="5" fill="#bde0fe"/>
+      <rect x="209" y="98" width="31" height="26" rx="5" fill="#bde0fe"/>
+      ${eye(225, 111, 8)}
+      <path d="M22 132 L298 132" stroke="#ffd700" stroke-width="5" stroke-linecap="round"/>
+      <rect x="205" y="84" width="40" height="7" rx="3.5" fill="#212529"/>
+      <path d="M213 84 Q213 70 225 70 Q237 70 237 84 Z" fill="#212529"/>
+      <rect x="213" y="78" width="24" height="4" fill="#ffd700"/>
+      <circle cx="298" cy="126" r="6" fill="#ffd60a"/>
+      <circle cx="22" cy="126" r="5" fill="#e63946"/>
+      <rect x="20" y="156" width="284" height="14" rx="6" fill="#495057"/>`
+  },
+  /* dragon: scaly paint-colored beast-car — curling tail off the rear with a
+     spade tip, spiky darker back ridge, folded pale wing on the flank, big
+     round head up front with yellow horns, huge friendly eye, snout and a
+     tiny orange flame-breath puff */
+  dragon: {
+    roof: [148, 84], rear: [64, 110],
+    svg: () => `
+      <path d="M70 138 Q34 142 28 118 Q24 100 40 98 Q52 96 50 108" stroke="var(--paint)" stroke-width="13" fill="none" stroke-linecap="round"/>
+      <path d="M50 116 L40 94 L62 102 Z" fill="var(--paint)" filter="brightness(.8)"/>
+      <path d="M78 112 L90 84 L104 112 Z M112 110 L124 80 L138 110 Z M146 108 L158 78 L172 108 Z M180 108 L192 82 L206 108 Z" fill="var(--paint)" filter="brightness(.75)"/>
+      <rect x="62" y="104" width="172" height="64" rx="26" fill="var(--paint)"/>
+      <path d="M84 126 Q92 116 100 126 Q108 116 116 126 Q124 116 132 126 Q140 116 148 126 Q156 116 164 126 Q172 116 180 126 Q188 116 196 126 Q204 116 212 126" stroke="#00000026" stroke-width="5" fill="none"/>
+      <rect x="76" y="140" width="144" height="22" rx="11" fill="var(--paint)" filter="brightness(1.35)"/>
+      <path d="M92 136 Q88 102 146 100 L136 114 L148 120 L134 128 Q114 142 92 136 Z" fill="var(--paint)" filter="brightness(1.15)"/>
+      <path d="M100 130 L138 106 M104 133 L142 116" stroke="#00000022" stroke-width="3" fill="none"/>
+      <rect x="222" y="76" width="80" height="66" rx="28" fill="var(--paint)"/>
+      <path d="M232 80 L224 58 L246 74 Z" fill="#ffd60a"/>
+      <path d="M256 78 L256 56 L274 72 Z" fill="#ffd60a"/>
+      <rect x="262" y="104" width="44" height="34" rx="14" fill="var(--paint)" filter="brightness(1.15)"/>
+      <circle cx="294" cy="114" r="3.5" fill="#00000055"/>
+      <path d="M278 128 Q288 134 298 128" stroke="#00000055" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      ${eye(254, 100, 12)}
+      <circle cx="303" cy="130" r="5" fill="#ff9f1c"/>
+      <circle cx="307" cy="124" r="7" fill="#ff9f1c"/>
+      <circle cx="309" cy="124" r="3.5" fill="#ffd60a"/>
+      <rect x="54" y="158" width="224" height="14" rx="6" fill="#495057"/>`
+  },
+  /* train: chunky locomotive — tall cab at the rear with window + eye, long
+     boiler barrel with darker bands and front cap, brass-ish dome, black
+     chimney puffing a white steam cloud, red cow-catcher at the front,
+     silver side-rod hint running between the wheels */
+  train: {
+    roof: [78, 66], rear: [40, 80],
+    svg: () => `
+      <circle cx="237" cy="36" r="11" fill="#fff" opacity=".95"/>
+      <circle cx="252" cy="28" r="8" fill="#fff" opacity=".9"/>
+      <circle cx="223" cy="26" r="7" fill="#fff" opacity=".9"/>
+      <circle cx="238" cy="16" r="6" fill="#fff" opacity=".85"/>
+      <rect x="228" y="62" width="18" height="42" rx="3" fill="#343a40"/>
+      <rect x="222" y="54" width="30" height="12" rx="5" fill="#343a40"/>
+      <path d="M168 100 Q168 84 184 84 Q200 84 200 100 Z" fill="var(--paint)" filter="brightness(1.15)"/>
+      <rect x="36" y="74" width="84" height="92" rx="10" fill="var(--paint)"/>
+      <rect x="28" y="66" width="100" height="14" rx="6" fill="var(--paint)" filter="brightness(.8)"/>
+      <rect x="50" y="90" width="56" height="34" rx="6" fill="#bde0fe"/>
+      ${eye(78, 107, 9)}
+      <rect x="112" y="100" width="156" height="62" rx="28" fill="var(--paint)"/>
+      <rect x="150" y="100" width="9" height="62" fill="var(--paint)" filter="brightness(.8)"/>
+      <rect x="196" y="100" width="9" height="62" fill="var(--paint)" filter="brightness(.8)"/>
+      <rect x="252" y="100" width="20" height="62" rx="10" fill="var(--paint)" filter="brightness(.8)"/>
+      <circle cx="268" cy="112" r="6" fill="#ffd60a"/>
+      <path d="M268 134 L306 168 L268 168 Z" fill="#e63946"/>
+      <path d="M281 146 L281 168 M293 158 L293 168" stroke="#f8f9fa" stroke-width="4"/>
+      <rect x="44" y="160" width="240" height="14" rx="6" fill="#495057"/>
+      <rect x="66" y="165" width="188" height="7" rx="3.5" fill="#adb5bd"/>
+      <circle cx="85" cy="168" r="5" fill="#6c757d"/>
+      <circle cx="235" cy="168" r="5" fill="#6c757d"/>`
+  },
+  /* royal: rounded parade coach — big jeweled gold crown on a red cushion up
+     top, curtained front window with the eye peeking out, gold swirl on the
+     flank, gold scalloped bead skirt along the bottom, waving red pennant
+     at the front corner */
+  royal: {
+    roof: [226, 90], rear: [72, 96],
+    svg: () => `
+      <path d="M258 96 L258 54" stroke="#6c757d" stroke-width="4" stroke-linecap="round"/>
+      <path d="M260 56 L296 62 L284 68 L296 74 L260 78 Z" fill="#e63946"/>
+      <rect x="58" y="92" width="204" height="74" rx="28" fill="var(--paint)"/>
+      <ellipse cx="150" cy="92" rx="36" ry="10" fill="#e63946"/>
+      <path d="M122 70 L122 44 L136 58 L150 36 L164 58 L178 44 L178 70 Z" fill="#ffd700"/>
+      <rect x="122" y="68" width="56" height="22" rx="5" fill="#ffd700"/>
+      <circle cx="122" cy="42" r="4.5" fill="#ffd700"/>
+      <circle cx="150" cy="33" r="4.5" fill="#ffd700"/>
+      <circle cx="178" cy="42" r="4.5" fill="#ffd700"/>
+      <circle cx="134" cy="79" r="4" fill="#e63946"/>
+      <circle cx="150" cy="79" r="4" fill="#1e88e5"/>
+      <circle cx="166" cy="79" r="4" fill="#43a047"/>
+      <rect x="186" y="104" width="58" height="46" rx="12" fill="#bde0fe"/>
+      ${eye(215, 128, 9)}
+      <path d="M190 104 Q202 128 190 150 L186 150 L186 104 Z" fill="#e63946"/>
+      <path d="M240 104 Q228 128 240 150 L244 150 L244 104 Z" fill="#e63946"/>
+      <rect x="184" y="100" width="62" height="10" rx="5" fill="#e63946"/>
+      <rect x="184" y="102" width="62" height="50" rx="12" fill="none" stroke="#ffd700" stroke-width="4"/>
+      <path d="M84 122 Q104 112 112 128 Q118 140 104 138 Q96 136 102 128" stroke="#ffd700" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <rect x="66" y="146" width="188" height="8" fill="#ffd700"/>
+      <circle cx="80" cy="156" r="8" fill="#ffd700"/>
+      <circle cx="112" cy="156" r="8" fill="#ffd700"/>
+      <circle cx="144" cy="156" r="8" fill="#ffd700"/>
+      <circle cx="176" cy="156" r="8" fill="#ffd700"/>
+      <circle cx="208" cy="156" r="8" fill="#ffd700"/>
+      <circle cx="240" cy="156" r="8" fill="#ffd700"/>
+      <rect x="52" y="158" width="216" height="14" rx="6" fill="#495057"/>`
+  }
+};
+
+const PREMIUM_WHEELS = {
+  glow: { r: 30, hub: "#7b68ee" },
+  star: { r: 28, hub: "#ffd60a" }
+};
+
+const PREMIUM_WHEEL_DECOR = {
+  /* neon ring: wide low-opacity stroke as the glow halo, then a bright
+     violet ring and a thin white ring inside it */
+  glow: (r) => `
+    <circle r="${r - 4}" fill="none" stroke="#b388ff" stroke-width="9" opacity=".3"/>
+    <circle r="${r - 4}" fill="none" stroke="#b388ff" stroke-width="3.5"/>
+    <circle r="${r - 9}" fill="none" stroke="#fff" stroke-width="2.5"/>`,
+  /* 5 small white stars around the rim; they orbit as the wheel rotates */
+  star: (r) => [0, 1, 2, 3, 4].map(a =>
+    `<path d="M0 -5.5 L1.7 -1.9 L5.6 -1.6 L2.7 1 L3.5 5 L0 2.9 L-3.5 5 L-2.7 1 L-5.6 -1.6 L-1.7 -1.9 Z" fill="#fff" transform="rotate(${a * 72}) translate(0,${-r + 8})"/>`
+  ).join("")
+};
+
+const PREMIUM_HONKS = {
+  limo() { /* posh 3-note doorbell chime: E6 C6 G5, soft shimmer on the tail */
+    tone("sine", 1319, 1319, 0.3, 0.2);
+    tone("sine", 1047, 1047, 0.3, 0.2, 0.24);
+    tone("sine", 784, 784, 0.55, 0.2, 0.48);
+    tone("sine", 1568, 1568, 0.4, 0.07, 0.5);
+  },
+  dragon() { /* descending roar: two detuned low saws sliding down + rumble */
+    tone("sawtooth", 240, 55, 0.75, 0.32);
+    tone("sawtooth", 170, 40, 0.75, 0.22, 0.04);
+    noiseBurst(0.6, 800, 0.22, 0.06);
+  },
+  train() { /* two-tone steam whistle: 620+780 held, then a short answer */
+    tone("triangle", 620, 620, 0.5, 0.22);
+    tone("triangle", 780, 780, 0.5, 0.16);
+    noiseBurst(0.45, 2600, 0.05);
+    tone("triangle", 620, 620, 0.3, 0.22, 0.62);
+    tone("triangle", 780, 780, 0.3, 0.16, 0.62);
+  },
+  royal() { /* regal fanfare: G4 C5 E5 then G5 held with a bright overtone */
+    [392, 523, 659].forEach((f, i) => tone("square", f, f, 0.16, 0.14, i * 0.15));
+    tone("square", 784, 784, 0.5, 0.16, 0.45);
+    tone("triangle", 1568, 1568, 0.4, 0.08, 0.5);
+  }
+};
+
+// Vroom extras pack: wings, booster, partyhat
+// Anchors match extrasSVG() in index.html:
+//   roof [rx,ry] = roof surface point (horn/beacon style), rear [fx,fy] = rear mount (flag style).
+// Anchor ranges across all bodies: rear x 42..80 y 78..128, roof x 104..250 y 56..100 —
+// every group stays within ~40px of its anchor so nothing clips the 320x230 viewBox.
+
+const NEW_EXTRAS_SVG = {
+  // Feathered white wings at the rear mount. Two wings (big + small), each a
+  // .flapWing group rotating -8/8deg around its base (right edge = mount side).
+  wings: (fx, fy) => `
+    <g transform="translate(${fx},${fy})">
+      <g class="flapWing">
+        <path d="M2 -4 Q-12 -22 -32 -18 L-25 -12 Q-33 -9 -38 -4 L-28 -1 Q-34 4 -37 10 Q-16 11 2 4 Z"
+          fill="#fff" stroke="#023047" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M-6 -8 Q-17 -10 -24 -8 M-7 -1 Q-16 0 -23 2" stroke="#adb5bd" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      </g>
+      <g class="flapWing" style="animation-delay:.25s" transform="translate(0,12) scale(.6)">
+        <path d="M2 -4 Q-12 -22 -32 -18 L-25 -12 Q-33 -9 -38 -4 L-28 -1 Q-34 4 -37 10 Q-16 11 2 4 Z"
+          fill="#fff" stroke="#023047" stroke-width="4" stroke-linejoin="round"/>
+      </g>
+    </g>`,
+
+  // Little rocket booster at the rear mount: silver cone + rim, always-on
+  // .boosterFlame (orange + yellow) pulsing from the nozzle exit.
+  booster: (fx, fy) => `
+    <g transform="translate(${fx},${fy})">
+      <g class="boosterFlame">
+        <path d="M-19 -7 Q-33 -5 -37 0 Q-33 5 -19 7 Z" fill="#ff9f1c"/>
+        <path d="M-19 -3.5 Q-28 -2 -31 0 Q-28 2 -19 3.5 Z" fill="#ffd60a"/>
+      </g>
+      <path d="M3 -13 L-13 -8 L-13 8 L3 13 Z" fill="#ced4da" stroke="#023047" stroke-width="3" stroke-linejoin="round"/>
+      <rect x="-19" y="-10" width="7" height="20" rx="3" fill="#868e96" stroke="#023047" stroke-width="3"/>
+    </g>`,
+
+  // Striped cone party hat with a pom-pom, jaunty tilt, base sitting on the roof point.
+  partyhat: (rx, ry) => `
+    <g transform="translate(${rx},${ry}) rotate(-12)">
+      <path d="M-15 2 L0 -34 L15 2 Z" fill="#e63946" stroke="#023047" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M-12.9 -3 L12.9 -3 L14.5 1 L-14.5 1 Z" fill="#ffd60a"/>
+      <path d="M-8.3 -14 L8.3 -14 L10.8 -8 L-10.8 -8 Z" fill="#ffd60a"/>
+      <circle cx="0" cy="-36" r="6" fill="#fff" stroke="#023047" stroke-width="3"/>
+    </g>`
+};
+
+// Companion keyframes/classes (add next to .spinner in the <style> block).
+const NEW_EXTRAS_CSS = `
+  .flapWing { animation: flapWing .9s ease-in-out infinite; transform-box: fill-box; transform-origin: 100% 40%; }
+  @keyframes flapWing { 0%,100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+  .boosterFlame { animation: boosterFlame .22s ease-in-out infinite; transform-box: fill-box; transform-origin: 100% 50%; }
+  @keyframes boosterFlame { 0%,100% { transform: scale(1); } 50% { transform: scale(1.35,.8); } }
+`;
+
+// 100x100 garage button icons, same flat white-stroke style as the horn/beacon/flag buttons.
+const NEW_EXTRAS_BTN = {
+  wings: `<svg viewBox="0 0 100 100">
+    <path d="M50 62 Q46 28 20 22 Q6 20 5 31 L18 35 Q9 41 7 50 L20 53 Q13 59 11 68 Q36 73 50 62 Z" fill="#fff"/>
+    <path d="M50 62 Q46 28 20 22 Q6 20 5 31 L18 35 Q9 41 7 50 L20 53 Q13 59 11 68 Q36 73 50 62 Z" fill="#fff" transform="translate(100 0) scale(-1 1)"/>
+    <path d="M40 48 Q30 42 22 42 M60 48 Q70 42 78 42" stroke="#023047" stroke-width="4" fill="none" stroke-linecap="round"/>
+  </svg>`,
+  booster: `<svg viewBox="0 0 100 100">
+    <path d="M36 14 L64 14 L72 50 L28 50 Z" fill="#ced4da" stroke="#fff" stroke-width="4" stroke-linejoin="round"/>
+    <rect x="24" y="50" width="52" height="11" rx="5" fill="#868e96" stroke="#fff" stroke-width="3"/>
+    <path d="M36 61 Q50 94 64 61 Z" fill="#ff9f1c" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M43 61 Q50 78 57 61 Z" fill="#ffd60a"/>
+  </svg>`,
+  partyhat: `<svg viewBox="0 0 100 100">
+    <path d="M50 14 L76 82 L24 82 Z" fill="#e63946" stroke="#fff" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M31 64 L69 64 L74 76 L26 76 Z" fill="#ffd60a"/>
+    <path d="M41 38 L59 38 L64 50 L36 50 Z" fill="#ffd60a"/>
+    <circle cx="50" cy="14" r="9" fill="#fff"/>
+  </svg>`
+};
+
+const NEW_EXTRAS_PRICES = { wings: 40, booster: 60, partyhat: 25 };
+
+// Fired when the booster toggles on (uses the existing tone() helper).
+const NEW_EXTRAS_SFX = {
+  boosterWhoosh() {
+    tone("sawtooth", 110, 55, 0.4, 0.24);          // low rumble
+    tone("sine", 220, 980, 0.32, 0.18, 0.04);      // rising whoosh
+    tone("triangle", 660, 1320, 0.18, 0.14, 0.24); // sparkly tail
+  }
+};
+
+
+/* ---- wire the packs into the live registries (must run before loadState) ---- */
+document.head.insertAdjacentHTML("beforeend",
+  `<style>${WORLD_CSS}\n${Object.values(WORLD_WEATHER_CSS).filter(Boolean).join("\n")}\n${NEW_EXTRAS_CSS}</style>`);
+for (const wk in WORLD_PROPS) for (const wp of WORLD_PROPS[wk]) {
+  EXTRA_PROPS[wp.type] = { svg: wp.svg, xOff: wp.xOff, yOff: wp.yOff, hard: wp.kind === "hard", mv: wp.moveSpec || null };
+}
+Object.assign(BODIES, PREMIUM_BODIES);
+BODY_ORDER.push("limo", "dragon", "train", "royal");
+Object.assign(WHEELS, PREMIUM_WHEELS);
+Object.assign(WHEEL_DECOR, PREMIUM_WHEEL_DECOR);
+Object.assign(HONKS, PREMIUM_HONKS);
+Object.assign(PRICES.body, { limo: 250, dragon: 300, train: 350, royal: 400 });
+Object.assign(PRICES.wheels, { glow: 90, star: 120 });
+WHEEL_ORDER.push("glow", "star");
+PRICES.extras = NEW_EXTRAS_PRICES;
+for (const exName in NEW_EXTRAS_SVG) {
+  state.extras[exName] = false;
+  const exBtn = document.createElement("button");
+  exBtn.className = "bigBtn extraBtn";
+  exBtn.dataset.extra = exName;
+  exBtn.setAttribute("aria-label", exName);
+  exBtn.innerHTML = NEW_EXTRAS_BTN[exName];
+  document.getElementById("extras").appendChild(exBtn);
+}
+
+
 loadState();
 
 /* ============ WALLET UI ============ */
@@ -1096,6 +1734,7 @@ function lockedParts() {
   if (!owns("body", state.body)) out.push(["body", state.body]);
   if (!owns("wheels", state.wheels)) out.push(["wheels", state.wheels]);
   if (!owns("color", state.color)) out.push(["color", state.color]);
+  for (const k in state.extras) if (state.extras[k] && !owns("extras", k)) out.push(["extras", k]);
   return out;
 }
 function renderShop() {
@@ -1125,7 +1764,7 @@ priceTag.addEventListener("pointerdown", e => {
   if (progress.wallet >= cost) {
     progress.wallet -= cost;
     locked.forEach(([k, id]) => progress.owned[k].push(id));
-    save(); renderWallets(true); renderPreview(); renderSwatchLocks(); renderUpgrades();
+    save(); renderWallets(true); renderPreview(); renderSwatchLocks(); renderExtrasLocks(); renderUpgrades();
     sfx.buy(); confettiBurst(garageScene, 40);
   } else {
     walletDeny();
@@ -1173,9 +1812,18 @@ document.querySelectorAll(".extraBtn").forEach(btn => {
     btn.classList.toggle("on", state.extras[name]);
     save(); renderPreview();
     if (name === "horn" && state.extras.horn) sfx.honk(state.body);
+    else if (name === "booster" && state.extras.booster && typeof NEW_EXTRAS_SFX !== "undefined") NEW_EXTRAS_SFX.boosterWhoosh();
     else sfx.clank();
   });
 });
+function renderExtrasLocks() {
+  document.querySelectorAll(".extraBtn").forEach(b => {
+    const locked = !owns("extras", b.dataset.extra);
+    let dot = b.querySelector(".lockDot");
+    if (locked && !dot) { dot = document.createElement("span"); dot.className = "lockDot"; dot.innerHTML = lockIcon; b.appendChild(dot); }
+    if (!locked && dot) dot.remove();
+  });
+}
 preview.addEventListener("pointerdown", () => { sfx.honk(state.body); renderPreview(); });
 
 /* ---- upgrades + repair ---- */
@@ -1226,6 +1874,7 @@ renderPreview();
 preview.classList.remove("bounce");
 renderWallets(false);
 renderSwatchLocks();
+renderExtrasLocks();
 renderUpgrades();
 renderRepair();
 
@@ -1259,7 +1908,7 @@ function showScene(el) {
   document.querySelectorAll(".confetti, .flyStar, .gagWrap, .dust").forEach(c => c.remove());
 }
 function showGarage() { bankFreeRun(); showScene(garageScene); renderPreview(); renderWallets(false); renderUpgrades(); renderRepair(); }
-function showMap() { showScene(mapScene); renderMap(); renderWallets(false); }
+function showMap() { selectedWorld = worldOf(progress.current); showScene(mapScene); renderMap(); renderWallets(false); }
 
 document.getElementById("goBtn").addEventListener("pointerdown", () => {
   if (goBtn.classList.contains("locked")) { walletDeny(); return; }
@@ -1276,22 +1925,37 @@ document.getElementById("nextBtn").addEventListener("pointerdown", e => { e.stop
 /* ============ LEVEL MAP ============ */
 const mapGrid = document.getElementById("mapGrid");
 function levelUnlocked(n) { return n === 1 || !!progress.levels[n - 1]; }
-const BAND_ICONS = {
-  day: `<svg class="bandIcon" viewBox="0 0 64 64"><circle cx="32" cy="32" r="14" fill="#ffd60a"/><g stroke="#ffd60a" stroke-width="5" stroke-linecap="round"><path d="M32 6 V14 M32 50 V58 M6 32 H14 M50 32 H58 M13 13 L19 19 M45 45 L51 51 M51 13 L45 19 M19 45 L13 51"/></g></svg>`,
-  sunset: `<svg class="bandIcon" viewBox="0 0 64 64"><path d="M14 38 A18 18 0 0 1 50 38 Z" fill="#ff9e00"/><rect x="8" y="38" width="48" height="6" rx="3" fill="#e76f51"/></svg>`,
-  night: `<svg class="bandIcon" viewBox="0 0 64 64"><path d="M40 8 A24 24 0 1 0 56 42 A19 19 0 0 1 40 8 Z" fill="#f1faee"/></svg>`
-};
+function worldUnlocked(w) { return w === 1 || !!progress.levels[(w - 1) * WORLD_SIZE]; }
+let selectedWorld = 1;
 function renderMap() {
+  /* world tabs: one themed button per world, locked until the previous world is finished */
+  const tabs = document.getElementById("worldTabs");
+  tabs.innerHTML = "";
+  for (let w = 1; w <= WORLD_COUNT; w++) {
+    const b = document.createElement("button");
+    const open = worldUnlocked(w);
+    b.className = "bigBtn worldTab" + (w === selectedWorld ? " sel" : "") + (open ? "" : " locked");
+    if (open && typeof WORLD_TINT !== "undefined" && WORLD_TINT[w]) b.style.background = WORLD_TINT[w];
+    b.innerHTML = open
+      ? ((typeof WORLD_ICONS !== "undefined" && WORLD_ICONS["w" + w]) || `<span>${w}</span>`)
+      : lockIcon;
+    b.setAttribute("aria-label", "world " + w);
+    b.addEventListener("pointerdown", () => {
+      if (open) { sfx.pop(); selectedWorld = w; renderMap(); }
+      else { sfx.deny(); b.classList.remove("deny"); void b.offsetWidth; b.classList.add("deny"); }
+    });
+    tabs.appendChild(b);
+  }
+
   mapGrid.innerHTML = "";
-  for (let n = 1; n <= MAX_LEVEL; n++) {
+  const first = (selectedWorld - 1) * WORLD_SIZE + 1;
+  for (let n = first; n < first + WORLD_SIZE; n++) {
     const b = document.createElement("button");
     b.className = "bigBtn lvlBtn";
-    const band = n > 20 ? "night" : n > 10 ? "sunset" : "day";
-    const bandIcon = (n === 1 || n === 11 || n === 21) ? BAND_ICONS[band] : "";
     const done = progress.levels[n];
     if (!levelUnlocked(n)) {
-      b.classList.add("locked", band);
-      b.innerHTML = lockIcon + bandIcon;
+      b.classList.add("locked");
+      b.innerHTML = lockIcon;
       /* dead taps break the instant-feedback rule — locked levels wiggle and grumble */
       b.addEventListener("pointerdown", () => {
         sfx.deny();
@@ -1306,7 +1970,7 @@ function renderMap() {
           `<svg viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="${i <= done.rating ? "#ffd60a" : "#00000033"}"/></svg>`).join("") + `</span>`;
         if (done.tier) tierBadge = `<span class="tierBadge">${medalSVG(done.tier)}</span>`;
       }
-      b.innerHTML = `<span>${n}</span>` + stars + bandIcon + tierBadge;
+      b.innerHTML = `<span>${n}</span>` + stars + tierBadge;
       b.addEventListener("pointerdown", () => { sfx.pop(); progress.current = n; save(); drive(n); });
     }
     b.setAttribute("aria-label", "level " + n);
@@ -1409,10 +2073,11 @@ function buildLevel(n) {
   RAMPS = [];
   totalStars = 0;
   const rng = mulberry32(n * 7919 + 13);
-  LEVEL_LEN = 3500 + n * 250;
+  LEVEL_LEN = levelLen(n);
+  const w = worldOf(n);
 
-  /* ramps: 1-3, spread across the level, spanning all lanes (drawn per lane) */
-  const nRamps = 1 + (n > 8 ? 1 : 0) + (n > 20 ? 1 : 0);
+  /* ramps: 1-4, spread across the level, spanning all lanes (drawn per lane) */
+  const nRamps = 1 + (n > 8 ? 1 : 0) + (n > 20 ? 1 : 0) + (n > 50 ? 1 : 0);
   for (let i = 0; i < nRamps; i++) {
     const rx = Math.floor(LEVEL_LEN * (i + 1) / (nRamps + 1) + (rng() - 0.5) * 400);
     RAMPS.push({ x: rx, w: 250, h: 95 });
@@ -1424,18 +2089,24 @@ function buildLevel(n) {
   }
   const inRampZone = x => RAMPS.some(rp => x > rp.x - 200 && x < rp.x + rp.w + 420);
 
-  /* slots along the road — density and hard-obstacle share both climb with the level */
-  const nObs = 3 + Math.floor(n * 0.75);
-  const nStars = 6 + Math.floor(n / 3);
+  /* slots along the road — density and hard-obstacle share climb with the level (capped) */
+  const nObs = 3 + Math.floor(Math.min(n, 40) * 0.75) + Math.floor(Math.max(0, n - 40) * 0.3);
+  const nStars = 6 + Math.floor(Math.min(n, 45) / 3);
   const items = [];
   for (let i = 0; i < nObs; i++) {
     const roll = rng();
     let t = "cone";
-    if (n >= 3 && roll > 0.6 - n * 0.008) t = "barrel";
-    if (n >= 8 && roll > 0.85 - n * 0.006) t = "rock";
-    if (n >= 12 && roll > 0.95 - n * 0.004) t = "tnt";
+    if (n >= 3 && roll > Math.max(0.35, 0.6 - n * 0.008)) t = "barrel";
+    if (n >= 8 && roll > Math.max(0.6, 0.85 - n * 0.006)) t = "rock";
+    if (n >= 12 && roll > Math.max(0.8, 0.95 - n * 0.004)) t = "tnt";
     if (n >= 5 && roll > 0.42 && roll <= 0.52) t = "oil";
     if (n >= 2 && roll < 0.18) t = "puddle";
+    /* world flavor: rain doubles down on puddles; later worlds bring their own hazards */
+    if (w === 4 && roll < 0.3) t = "puddle";
+    if (WORLD_ITEMS[w]) {
+      if (roll > 0.3 && roll <= 0.42) t = WORLD_ITEMS[w][0];
+      if (roll > 0.18 && roll <= 0.3) t = WORLD_ITEMS[w][1];
+    }
     items.push(t);
   }
   for (let i = 0; i < nStars; i++) items.push("star");
@@ -1464,7 +2135,7 @@ function buildLevel(n) {
     while (inRampZone(x) && t !== "star") x += 300;
     if (x > endX) continue;
     let lane = Math.floor(rng() * 3);
-    const hard = t === "barrel" || t === "rock" || t === "tnt";
+    const hard = t === "barrel" || t === "rock" || t === "tnt" || (EXTRA_PROPS[t] && EXTRA_PROPS[t].hard);
     if (hard) {
       const near = recentHard.filter(h => Math.abs(h.x - x) < 260);
       if (near.length >= 2) continue;                       /* never block all 3 lanes */
@@ -1481,25 +2152,79 @@ function buildLevel(n) {
     if (t === "rock")   addProp(t, x, lane, gy, rockSVG, -42, -64);
     if (t === "puddle") addProp(t, x, lane, gy, puddleSVG, -115, -22);
     if (t === "star") { addProp(t, x, lane, gy - 85, starSVG, -32, -32); totalStars++; }
+    if (EXTRA_PROPS[t]) addWorldProp(t, x, lane);
   }
 
   addProp("finish", LEVEL_LEN, 0, 690, finishSVG, 0, -360);
 
-  buildScenery(LEVEL_LEN + 1600);
-  roadScene.classList.toggle("sunset", n > 10 && n <= 20);
-  roadScene.classList.toggle("night", n > 20);
+  buildScenery(LEVEL_LEN + 1600, w);
+  applyTheme(w);
 }
 
-function buildScenery(w) {
+/* world plumbing: themes, movers */
+function addWorldProp(t, x, lane) {
+  const ep = EXTRA_PROPS[t];
+  const p = addProp(t, x, lane, LANE_Y[lane], ep.svg, ep.xOff, ep.yOff);
+  if (ep.mv) { p.mv = { ...ep.mv }; p.baseX = x; p.xOff = ep.xOff; p.yOff = ep.yOff; }
+  return p;
+}
+function applyTheme(w) {
+  const cl = roadScene.classList;
+  cl.remove("sunset", "night", "w4", "w5", "w6", "w7", "w8");
+  if (w === 2) cl.add("sunset");
+  else if (w === 3) cl.add("night");
+  else if (w >= 4) cl.add("w" + w);
+  buildWeather(w);
+}
+function buildWeather(w) {
+  const el = document.getElementById("weather");
+  el.innerHTML = "";
+  const spec = (typeof WORLD_WEATHER !== "undefined") && WORLD_WEATHER["w" + w];
+  if (!spec) return;
+  const rng = mulberry32(w * 131);
+  for (let i = 0; i < spec.count; i++) {
+    const d = document.createElement("div");
+    const conf = spec.make(i, rng);
+    d.className = conf.className;
+    d.style.cssText += conf.cssText;
+    el.appendChild(d);
+  }
+}
+function tickMovers(dt) {
+  for (const p of props) {
+    if (p.done || !p.mv) continue;
+    if (p.mv.vx) {   /* tumbleweed: rolls toward the car */
+      p.x += p.mv.vx * dt;
+      p.mvSpin = (p.mvSpin || 0) - dt * 260;
+      p.el.style.transform = `translateX(${p.x - p.baseX}px) rotate(${p.mvSpin}deg)`;
+    }
+    if (p.mv.laneHop) {   /* crab: scuttles between lanes */
+      p.mvT = (p.mvT || 0) + dt;
+      if (p.mvT >= p.mv.laneHop) {
+        p.mvT = 0;
+        p.mvDir = p.mvDir || 1;
+        if (p.lane + p.mvDir > 2 || p.lane + p.mvDir < 0) p.mvDir *= -1;
+        p.lane += p.mvDir;
+        p.el.style.top = (LANE_Y[p.lane] + p.yOff) + "px";
+        laneLayers[p.lane].appendChild(p.el);   /* keep depth order: car z sits between lane layers */
+      }
+    }
+  }
+}
+
+function buildScenery(w, world = 1) {
+  const farFn = (typeof WORLD_FAR !== "undefined") && WORLD_FAR["w" + world];
+  const midFn = (typeof WORLD_SCENERY !== "undefined") && WORLD_SCENERY["w" + world];
   let far = "";
   for (let x = 0; x < w; x += 520) {
-    far += `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#74c69d" opacity=".8"/>`;
+    far += farFn ? farFn(x)
+      : `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#74c69d" opacity=".8"/>`;
   }
   farLayer.style.width = w + "px";
   farLayer.innerHTML = `<svg width="${w}" height="700" viewBox="0 0 ${w} 700">${far}</svg>`;
   let mid = "";
   for (let x = 150; x < w; x += 900) {
-    mid += `
+    mid += midFn ? midFn(x) : `
       <g transform="translate(${x},462)">
         <rect x="0" y="-190" width="14" height="190" fill="#e76f51"/>
         <rect x="-70" y="-196" width="200" height="12" fill="#e76f51"/>
@@ -1586,7 +2311,7 @@ function startDrive() {
   if (freeMode) buildFree(); else buildLevel(level);
   carWrap.classList.remove("wobble", "spin");   /* a leftover class would replay on the fresh svg */
   carWrap.innerHTML = vehicleSVG(state);
-  setHeadlights(roadScene.classList.contains("night"));
+  setHeadlights(roadScene.classList.contains("night") || roadScene.classList.contains("w8"));
   carWrap.style.top = CAR_BASE_TOP + "px";
   wheelEls = carWrap.querySelectorAll(".wheelrot");
   mudEl = carWrap.querySelector(".mudSpots");
@@ -1616,8 +2341,8 @@ function buildFree() {
   laneLayers.forEach(l => l.innerHTML = "");
   props = []; RAMPS = []; totalStars = 0;
   freeSpawnX = 1000; freeThemeIdx = 0;
-  roadScene.classList.remove("sunset", "night");
-  buildScenery(FREE_W);
+  applyTheme(1);
+  buildScenery(FREE_W, 1);
 }
 function freeHard(t, x, lane) {
   const near = props.filter(p => (p.type === "barrel" || p.type === "rock" || p.type === "tnt") && Math.abs(p.x - x) < 260);
@@ -1635,6 +2360,9 @@ function spawnFreeItem() {
   const x = freeSpawnX;
   if (r < 0.38) { addProp("star", x, lane, gy - 85, starSVG, -32, -32); totalStars++; }
   else if (r < 0.46) addProp("capsule", x, lane, gy, capsuleSVG, -35, -74);
+  else if (r < 0.52 && WORLD_ITEMS[freeThemeIdx + 1] && EXTRA_PROPS[WORLD_ITEMS[freeThemeIdx + 1][0]]) {
+    addWorldProp(WORLD_ITEMS[freeThemeIdx + 1][r < 0.49 ? 1 : 0], x, lane);
+  }
   else if (r < 0.56) addProp("cone", x, lane, gy, coneSVG, -32, -78);
   else if (r < 0.64 && pos > 2500) addProp("oil", x, lane, gy, oilSVG, -75, -36);
   else if (r < 0.74 && pos > 3500) freeHard("barrel", x, lane);
@@ -1657,12 +2385,12 @@ function tickFree() {
     if (props[i].x < pos - 700) { props[i].el.remove(); props.splice(i, 1); }
   }
   RAMPS = RAMPS.filter(rp => rp.x > pos - 900);
-  const themeIdx = Math.floor(pos / 7000) % 3;        /* day -> sunset -> night, forever */
+  const themeIdx = Math.floor(pos / 7000) % WORLD_COUNT;   /* tour all 8 worlds, forever */
   if (themeIdx !== freeThemeIdx) {
     freeThemeIdx = themeIdx;
-    roadScene.classList.toggle("sunset", themeIdx === 1);
-    roadScene.classList.toggle("night", themeIdx === 2);
-    setHeadlights(themeIdx === 2);
+    applyTheme(themeIdx + 1);
+    buildScenery(FREE_W, themeIdx + 1);
+    setHeadlights(themeIdx === 2 || themeIdx === 7);
   }
 }
 function renderHudStars(pop) {
@@ -1674,6 +2402,7 @@ function renderHudStars(pop) {
 const PRIZE_TABLE = [
   { kind: "stars",    weight: 5, amount: 3 },
   { kind: "bigstars", weight: 2, amount: 8 },
+  { kind: "bigstars", weight: 1, amount: 20 },   /* the rare golden jackpot */
   { kind: "gag",      weight: 3 }
 ];
 const GAGS = [
@@ -1854,6 +2583,33 @@ function hardHit(p, d, dmg) {
     shakeCar();
   }
 }
+function gravityNow() {
+  const w = freeMode ? freeThemeIdx + 1 : worldOf(level);
+  return w === 8 ? 640 : 1500;
+}
+/* world-prop collisions: same personalities, new costumes */
+function softBonk(p, d) {
+  if (Math.round(laneVis) !== p.lane) return;
+  if (d > -30 && d < 90 && v > 30) {
+    p.done = true;
+    if (p.mv) { p.el.style.left = (p.x + (p.xOff || 0)) + "px"; p.el.style.transform = ""; }
+    p.el.classList.add("hit"); sfx.boink(); v *= 0.9;
+  }
+}
+PROP_HIT.cactus = (p, d) => hardHit(p, d, 1);
+PROP_HIT.crater = (p, d) => hardHit(p, d, 1);
+PROP_HIT.ice = PROP_HIT.oil;
+PROP_HIT.snowman = softBonk;
+PROP_HIT.sandcastle = softBonk;
+PROP_HIT.tumbleweed = softBonk;
+PROP_HIT.crab = softBonk;
+PROP_HIT.alien = (p, d) => {
+  if (Math.round(laneVis) !== p.lane) return;
+  if (Math.abs(d) < 80 && v > 30) {
+    p.done = true; p.el.classList.add("collected");   /* teleports away with a wobble */
+    tone("sine", 620, 980, 0.18, 0.22); tone("sine", 980, 500, 0.22, 0.2, 0.18);
+  }
+};
 function shakeCar() {
   freezeUntil = performance.now() + 90;   /* hit-stop: a comedy beat before the wobble */
   /* drop both hit classes: the later .spin rule would shadow .wobble in the cascade */
@@ -1950,9 +2706,11 @@ function tick(now) {
   const laneRound = Math.round(laneVis);
   carWrap.style.zIndex = 11 + laneRound * 2;
 
+  tickMovers(dt);
+
   /* ramp + jump */
   if (airborne) {
-    vy -= 1500 * dt;
+    vy -= gravityNow() * dt;   /* space world: floaty low-gravity jumps */
     jumpY += vy * dt;
     if (jumpY <= 0) {
       jumpY = 0; airborne = false; sfx.clank();
@@ -2118,15 +2876,18 @@ function finishLevel() {
   roadScene.classList.add("celebrating");   /* run HUD steps aside: one star number at a time */
 
   const clean = runDamage === 0;
-  const bonus = 3 + (clean ? 2 : 0);        /* clean-run bonus: no new dings this run */
+  const prev = progress.levels[level];
+  /* first time beating a world's last level = big trophy bonus */
+  const worldBonus = (level % WORLD_SIZE === 0 && !prev) ? 25 : 0;
+  const bonus = 3 + (clean ? 2 : 0) + worldBonus;   /* clean-run bonus: no new dings this run */
   const banked = runStars + bonus;
   const frac = totalStars ? runStars / totalStars : 1;
   const rating = frac >= 0.65 ? 3 : frac >= 0.34 ? 2 : 1;
+  if (worldBonus) { confettiBurst(roadScene, 160); setTimeout(() => sfx.tada(), 600); }
 
   const walletStart = progress.wallet;
   progress.wallet += banked;
   const tier = timeTier(level, runTime);
-  const prev = progress.levels[level];
   progress.levels[level] = {
     best: Math.max(prev ? prev.best : 0, runStars),
     rating: Math.max(prev ? prev.rating : 0, rating),
@@ -2179,7 +2940,7 @@ function finishLevel() {
           document.getElementById("celebrateRow").classList.add("ready");
         }, 250 + rating * 350 + 450));
       }
-    }, 120);
+    }, banked > 15 ? 60 : 120);   /* long tallies (world bonus) tick twice as fast */
   }, 700);
 }
 </script>
