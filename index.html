@@ -97,6 +97,32 @@
   #priceTag.deny { animation: denyShake .4s ease, tagWiggle 1.6s ease .4s infinite; }
   @keyframes tagWiggle { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
 
+  /* ---------- DICE + QUIET + EASTER EGGS ---------- */
+  #diceBtn, #quietBtn {
+    position: absolute; width: 96px; height: 96px; border-radius: 26px;
+    background: #fff; border: 6px solid #023047; z-index: 5;
+  }
+  #diceBtn { left: 84px; top: 374px; }
+  #quietBtn { right: 200px; top: 24px; background: #e9ecef; z-index: 20; }
+  #diceBtn svg, #quietBtn svg { width: 60px; height: 60px; }
+  #diceBtn.rolling { animation: diceShake .12s linear infinite; }
+  @keyframes diceShake { 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+  .vEye { transform-box: fill-box; transform-origin: center; }
+  #preview.blink .vEye { animation: eyeBlink .5s ease; }
+  @keyframes eyeBlink { 15%, 35% { transform: scaleY(.08); } 55% { transform: scaleY(1.05); } }
+  #sun { cursor: pointer; pointer-events: auto; }
+  #sun.cool { animation: sunWiggle .8s ease; }
+  @keyframes sunWiggle { 25% { transform: rotate(-6deg); } 55% { transform: rotate(6deg); } }
+  #sun .shades { animation: shadesDrop .5s cubic-bezier(.2,2,.4,1); }
+  @keyframes shadesDrop { 0% { transform: translateY(-46px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+  .cloud { cursor: pointer; pointer-events: auto; }
+  .cloud.puffed { animation: cloudPuff 1.2s ease; }
+  @keyframes cloudPuff { 30% { transform: scale(1.28, .7); opacity: .55; } 60% { transform: scale(.75, 1.2); } }
+  #garageSign { cursor: pointer; }
+  #garageSign span { display: inline-block; }
+  #garageSign.bouncy span { animation: signHop .5s ease; }
+  @keyframes signHop { 40% { transform: translateY(-16px) scale(1.15); } }
+
   /* ---------- UPGRADES + REPAIR ---------- */
   #upgrades { position: absolute; left: 84px; top: 48px; display: flex; flex-direction: column; gap: 14px; z-index: 5; }
   .upgBtn {
@@ -442,6 +468,10 @@
       <svg viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#fff"/></svg>
       <span class="upgPrice"></span>
     </button>
+    <button class="bigBtn" id="diceBtn" aria-label="surprise me: random truck">
+      <svg viewBox="0 0 100 100"><rect x="12" y="12" width="76" height="76" rx="18" fill="#fff" stroke="#023047" stroke-width="5"/><circle cx="32" cy="32" r="9" fill="#e63946"/><circle cx="68" cy="32" r="9" fill="#ff9f1c"/><circle cx="50" cy="50" r="9" fill="#ffd60a"/><circle cx="32" cy="68" r="9" fill="#74c69d"/><circle cx="68" cy="68" r="9" fill="#4cc9f0"/></svg>
+    </button>
+    <button class="bigBtn" id="quietBtn" aria-label="quiet mode for the car"></button>
     <div id="preview"></div>
     <button id="priceTag" aria-label="unlock with stars"></button>
     <div id="previewLock">
@@ -619,7 +649,7 @@ function medalSVG(tier) {
 /* ============ STATE (vroom.v2, migrates v1 build) ============ */
 let state = { body: "dump", wheels: "normal", color: "#fdd835", extras: { horn: false, beacon: false, flag: false } };
 let progress = { wallet: 0, owned: { body: [], wheels: [], color: [], extras: [] }, levels: {}, current: 1,
-                 damage: 0, upgrades: { engine: 0, armor: 0, magnet: 0 } };
+                 damage: 0, upgrades: { engine: 0, armor: 0, magnet: 0 }, quiet: false };
 
 function loadState() {
   let saved = null;
@@ -647,6 +677,7 @@ function loadState() {
     }
   }
   if (Number.isFinite(saved.current) && saved.current >= 1 && saved.current <= MAX_LEVEL) progress.current = Math.floor(saved.current);
+  progress.quiet = !!saved.quiet;
   if (Number.isFinite(saved.damage)) progress.damage = Math.min(MAX_DAMAGE, Math.max(0, Math.floor(saved.damage)));
   if (saved.upgrades) for (const k of ["engine", "armor", "magnet"]) {
     if (Number.isFinite(saved.upgrades[k])) progress.upgrades[k] = Math.min(3, Math.max(0, Math.floor(saved.upgrades[k])));
@@ -678,8 +709,11 @@ function unlockAudio() {
 }
 addEventListener("pointerdown", unlockAudio, { capture: true });
 
+/* quiet mode: parent toggle scales every synthesized voice (car-friendly volume) */
+function volScale() { return progress.quiet ? 0.22 : 1; }
 function tone(type, f0, f1, dur, vol = 0.25, delay = 0) {
   if (!actx) return;
+  vol *= volScale();
   const t = actx.currentTime + delay;
   const o = actx.createOscillator(), g = actx.createGain();
   o.type = type;
@@ -692,6 +726,7 @@ function tone(type, f0, f1, dur, vol = 0.25, delay = 0) {
 }
 function noiseBurst(dur, freq, vol = 0.3, delay = 0) {
   if (!actx) return;
+  vol *= volScale();
   const t = actx.currentTime + delay;
   const len = Math.max(1, Math.floor(actx.sampleRate * dur));
   const buf = actx.createBuffer(1, len, actx.sampleRate);
@@ -806,9 +841,9 @@ function engineSet(v) {
   engine.o.frequency.setTargetAtTime(fr, t, 0.06);
   engine.o2.frequency.setTargetAtTime(fr, t, 0.06);
   engine.f.frequency.setTargetAtTime(260 + (v / 700) * 1100, t, 0.08);
-  engine.g.gain.setTargetAtTime(v > 5 ? 0.055 : 0, t, 0.06);
+  engine.g.gain.setTargetAtTime((v > 5 ? 0.055 : 0) * volScale(), t, 0.06);
   /* wind fades in over the top 40% of the speed range */
-  const wind = Math.max(0, (v / vmaxEff()) - 0.6) * 0.11;
+  const wind = Math.max(0, (v / vmaxEff()) - 0.6) * 0.11 * volScale();
   engine.wg.gain.setTargetAtTime(wind, t, 0.12);
 }
 function engineStop() {
@@ -861,7 +896,7 @@ function wheelSVG(type, cx) {
   </g></g>`;
 }
 function eye(cx, cy, r) {
-  return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff"/><circle cx="${cx + r * 0.25}" cy="${cy}" r="${r * 0.45}" fill="#1d3557"/>`;
+  return `<g class="vEye"><circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff"/><circle cx="${cx + r * 0.25}" cy="${cy}" r="${r * 0.45}" fill="#1d3557"/></g>`;
 }
 const BODIES = {
   dump: {
@@ -1868,6 +1903,75 @@ repairBtn.addEventListener("pointerdown", () => {
   } else {
     walletDeny();
   }
+});
+
+/* ---- magic dice: drumroll shuffle through OWNED parts, land on a surprise ---- */
+const diceBtn = document.getElementById("diceBtn");
+let diceTimer = null;
+function ownedList(kind, all) { return all.filter(id => owns(kind, id)); }
+diceBtn.addEventListener("pointerdown", () => {
+  if (diceTimer) return;
+  for (let i = 0; i < 12; i++) tone("square", 150, 150, 0.05, 0.18, i * 0.066);
+  noiseBurst(0.5, 5000, 0.28, 0.8);
+  diceBtn.classList.add("rolling");
+  const bodies = ownedList("body", BODY_ORDER), wheels = ownedList("wheels", WHEEL_ORDER), colors = ownedList("color", COLORS);
+  let spins = 0;
+  diceTimer = setInterval(() => {
+    state.body = bodies[Math.floor(Math.random() * bodies.length)];
+    state.wheels = wheels[Math.floor(Math.random() * wheels.length)];
+    state.color = colors[Math.floor(Math.random() * colors.length)];
+    renderPreview();
+    if (++spins >= 8) {
+      clearInterval(diceTimer); diceTimer = null;
+      diceBtn.classList.remove("rolling");
+      swatchesEl.querySelectorAll(".swatch").forEach(s => s.classList.toggle("selected", s.dataset.color === state.color));
+      save(); sfx.tada();
+    }
+  }, 110);
+});
+
+/* ---- quiet mode: one wordless toggle, persists ---- */
+const quietBtn = document.getElementById("quietBtn");
+function renderQuiet() {
+  quietBtn.innerHTML = progress.quiet
+    ? `<svg viewBox="0 0 100 100"><path d="M14 40 H32 L52 22 V78 L32 60 H14 Z" fill="#6c757d"/><path d="M78 30 A22 22 0 1 0 92 62 A17 17 0 0 1 78 30 Z" fill="#023047"/></svg>`
+    : `<svg viewBox="0 0 100 100"><path d="M14 40 H32 L52 22 V78 L32 60 H14 Z" fill="#023047"/><path d="M62 34 Q74 50 62 66 M72 24 Q90 50 72 76" stroke="#023047" stroke-width="7" fill="none" stroke-linecap="round"/></svg>`;
+}
+quietBtn.addEventListener("pointerdown", () => {
+  progress.quiet = !progress.quiet;
+  save(); renderQuiet();
+  sfx.pop();   /* audible confirmation at the NEW volume */
+});
+renderQuiet();
+
+/* ---- tap-anything easter eggs ---- */
+document.getElementById("sun").addEventListener("pointerdown", () => {
+  const sun = document.getElementById("sun");
+  const night = roadScene.classList.contains("night") || roadScene.classList.contains("w8");
+  sun.classList.remove("cool"); void sun.offsetWidth; sun.classList.add("cool");
+  const old = sun.querySelector(".shades"); if (old) old.remove();
+  if (!night) {
+    sun.insertAdjacentHTML("beforeend",
+      `<svg class="shades" width="90" height="34" viewBox="0 0 90 34" style="position:absolute;left:10px;top:32px;"><rect x="4" y="8" width="34" height="22" rx="10" fill="#023047"/><rect x="52" y="8" width="34" height="22" rx="10" fill="#023047"/><path d="M38 14 Q45 8 52 14 M4 12 L0 6 M86 12 L90 6" stroke="#023047" stroke-width="5" fill="none" stroke-linecap="round"/></svg>`);
+    sfx.chime();
+    gagTimer(() => { const sh = sun.querySelector(".shades"); if (sh) sh.remove(); }, 2200);
+  } else {
+    tone("sine", 700, 1000, 0.18, 0.2); tone("sine", 1000, 700, 0.18, 0.2, 0.2);
+  }
+});
+document.querySelectorAll(".cloud").forEach(c => c.addEventListener("pointerdown", () => {
+  c.classList.remove("puffed"); void c.offsetWidth; c.classList.add("puffed");
+  sfx.pop(); setTimeout(() => sfx.whoosh(), 500);
+}));
+const signEl = document.getElementById("garageSign");
+signEl.innerHTML = "VROOM".split("").map((ch, i) => `<span style="animation-delay:${i * 80}ms">${ch}</span>`).join("");
+signEl.addEventListener("pointerdown", () => {
+  signEl.classList.remove("bouncy"); void signEl.offsetWidth; signEl.classList.add("bouncy");
+  sfx.whee();
+});
+/* the preview's eye blinks when honked */
+preview.addEventListener("pointerdown", () => {
+  preview.classList.remove("blink"); void preview.offsetWidth; preview.classList.add("blink");
 });
 
 renderPreview();
