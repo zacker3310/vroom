@@ -83,6 +83,17 @@ Side-scrolling construction site, now 3 lanes. The exact vehicle built in the ga
 - State `vroom.v2` = `{build, wallet, owned, levels, current}` persisted to localStorage; v1 build migrated.
 - Levels generated from a seeded PRNG (level number = seed) so each level is stable across plays.
 
+## Feel (v4.5)
+
+- The car is a character: leans back accelerating, dives braking, banks through lane
+  changes, squashes + kicks dust on landing. Crashes hit-stop for 90ms then shake on
+  both axes. Speed lines at ~top speed. Star streaks climb a coin-combo pitch ladder.
+- Engine = two detuned saws through a speed-swept filter + wind layer at speed; every
+  sound routes through one master compressor so stacked sfx never clip iPad speakers.
+- Scene changes iris-reveal. Celebrations pace the payoff: tally, rating stars, time
+  medal, then the buttons slide in.
+- Portrait shows a rotate-me overlay (the 64px touch floor only holds in landscape).
+
 ## Verify
 
 - `python3 -m http.server 4173` and open http://localhost:4173

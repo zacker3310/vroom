@@ -4,9 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a2634">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z' fill='%23ffd60a'/%3E%3C/svg%3E">
 <title>Vroom</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #1a2634; touch-action: none; }
   svg { display: block; pointer-events: none; }
 
@@ -236,7 +239,11 @@
     100% { transform: translate(110px, 60px) rotate(330deg); opacity: 0; }
   }
   #road.quake { animation: quake .3s ease; }
-  @keyframes quake { 25% { transform: translateY(7px); } 50% { transform: translateY(-6px); } 75% { transform: translateY(3px); } }
+  @keyframes quake {
+    15% { transform: translate(5px, 7px); } 30% { transform: translate(-6px, -5px); }
+    45% { transform: translate(4px, -3px); } 60% { transform: translate(-3px, 4px); }
+    75% { transform: translate(2px, -2px); } 90% { transform: translate(-1px, 1px); }
+  }
 
   #carWrap { position: absolute; left: 135px; width: 330px; will-change: transform; cursor: pointer; touch-action: none; transform-origin: 50% 90%; }
   #carWrap svg { width: 100%; height: auto; overflow: visible; }
@@ -345,6 +352,54 @@
   .spinner { animation: spin 1.2s linear infinite; transform-box: fill-box; transform-origin: center; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .wheelrot { transform-box: fill-box; transform-origin: center; }
+
+  /* ---------- GAME FEEL (T4.5) ---------- */
+  #carWrap svg.land { animation: landSquash .4s ease; }
+  @keyframes landSquash {
+    0% { transform: scale(1.07, .86); }
+    45% { transform: scale(.96, 1.05); }
+    100% { transform: scale(1, 1); }
+  }
+  .dust {
+    position: absolute; width: 22px; height: 22px; border-radius: 50%;
+    background: #d9c8a9; pointer-events: none; z-index: 16;
+    animation: dustPuff .55s ease-out forwards;
+  }
+  @keyframes dustPuff {
+    0% { transform: translate(0,0) scale(.5); opacity: .85; }
+    100% { transform: translate(-46px,-30px) scale(1.9); opacity: 0; }
+  }
+  #speedLines { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .35s; z-index: 16; }
+  #speedLines div {
+    position: absolute; height: 5px; border-radius: 3px; width: 190px;
+    background: #ffffffbb; animation: streak .32s linear infinite;
+  }
+  #speedLines div:nth-child(1) { top: 470px; animation-delay: 0s; }
+  #speedLines div:nth-child(2) { top: 560px; animation-delay: .12s; }
+  #speedLines div:nth-child(3) { top: 640px; animation-delay: .22s; }
+  @keyframes streak { from { transform: translateX(1300px); } to { transform: translateX(-400px); } }
+  #iris {
+    position: absolute; inset: 0; background: #023047; z-index: 60;
+    pointer-events: none; opacity: 0;
+  }
+  #iris.go { animation: irisReveal .45s ease-out; }
+  @keyframes irisReveal {
+    0% { clip-path: circle(8% at 50% 50%); opacity: 1; }
+    100% { clip-path: circle(120% at 50% 50%); opacity: 1; }
+  }
+  #rotateOverlay {
+    position: fixed; inset: 0; background: #1a2634; z-index: 100;
+    display: none; align-items: center; justify-content: center;
+  }
+  @media (orientation: portrait) { #rotateOverlay { display: flex; } }
+  #rotateOverlay svg { width: 200px; height: 200px; animation: rotateHint 1.6s ease infinite; }
+  @keyframes rotateHint { 0%,100% { transform: rotate(0); } 55%,75% { transform: rotate(90deg); } }
+  #goBtn.nudge { animation: pulse 1.1s ease infinite; }
+  #celebrateTime { position: static; }
+  #celebrateTime .medal { display: flex; }
+  #celebrateTime .medal svg { width: 68px; height: 68px; animation: medalPop .5s cubic-bezier(.2,2,.4,1) .4s backwards; }
+  #celebrateRow { opacity: 0; pointer-events: none; transform: translateY(30px); transition: opacity .35s, transform .35s; }
+  #celebrateRow.ready { opacity: 1; pointer-events: auto; transform: none; }
 </style>
 </head>
 <body>
@@ -431,6 +486,7 @@
     <div id="lane0" class="layer laneLayer" style="z-index:10"></div>
     <div id="lane1" class="layer laneLayer" style="z-index:12"></div>
     <div id="lane2" class="layer laneLayer" style="z-index:14"></div>
+    <div id="speedLines"><div></div><div></div><div></div></div>
     <div id="carWrap"></div>
     <button class="bigBtn" id="homeBtn" aria-label="back to garage">
       <svg viewBox="0 0 100 100"><path d="M50 12 L92 50 H78 V88 H22 V50 H8 Z" fill="#023047"/><rect x="40" y="58" width="20" height="30" fill="#ffb703"/></svg>
@@ -459,6 +515,7 @@
       <div class="chip" id="celebrateWallet" aria-label="star wallet"></div>
       <div class="chip" id="tallyChip"></div>
       <div id="ratingRow"></div>
+      <div class="chip" id="celebrateTime" aria-label="run time and medal"></div>
       <div class="chip" id="celebrateDamage" aria-label="damage taken"></div>
       <div id="celebrateRow">
         <button class="bigBtn" id="replayBtn" aria-label="drive this road again">
@@ -474,6 +531,10 @@
     </div>
   </div>
 
+  <div id="iris"></div>
+</div>
+<div id="rotateOverlay" aria-label="turn the tablet sideways">
+  <svg viewBox="0 0 100 100"><rect x="26" y="12" width="48" height="76" rx="8" fill="none" stroke="#ffd60a" stroke-width="6"/><circle cx="50" cy="78" r="4" fill="#ffd60a"/><path d="M14 50 Q14 24 38 18 M86 50 Q86 76 62 82" stroke="#4cc9f0" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M34 10 L40 20 L28 22 Z" fill="#4cc9f0"/><path d="M66 90 L60 80 L72 78 Z" fill="#4cc9f0"/></svg>
 </div>
 
 <script>
@@ -516,11 +577,13 @@ const MAX_LEVEL = 30;
 /* time-trial medals: S needs a near-clean full-throttle run (upgrades help late game) */
 const TIER_RANK = { S: 3, A: 2, B: 1, C: 0 };
 const TIER_COLOR = { S: "#ffd60a", A: "#cfd8dc", B: "#cd7f32", C: "#90a4ae" };
+/* forgiving early (a wobbly level-1 run can still S), mastery-tuned late
+   (level 25+ S assumes engine upgrades and a near-clean line) */
 function timeTier(n, t) {
   const len = 3500 + n * 250;
-  if (t <= len / 620 + n * 0.15) return "S";
-  if (t <= len / 520 + n * 0.2) return "A";
-  if (t <= len / 400 + n * 0.3) return "B";
+  if (t <= len / (500 + n * 8)) return "S";
+  if (t <= len / (400 + n * 6)) return "A";
+  if (t <= len / (300 + n * 4)) return "B";
   return "C";
 }
 const stopwatchIcon = `<svg viewBox="0 0 64 64"><circle cx="32" cy="36" r="24" fill="#fff" stroke="#023047" stroke-width="6"/><path d="M32 36 V22 M32 36 L42 42" stroke="#e63946" stroke-width="5" stroke-linecap="round"/><path d="M26 8 H38 M32 8 V12" stroke="#023047" stroke-width="6" stroke-linecap="round"/></svg>`;
@@ -573,10 +636,18 @@ function save() {
 }
 
 /* ============ AUDIO (all synthesized) ============ */
-let actx = null;
+let actx = null, masterBus = null;
 function unlockAudio() {
   try {
-    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!actx) {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      /* one compressor on the way out so stacked sfx can't clip iPad speakers */
+      masterBus = actx.createDynamicsCompressor();
+      masterBus.threshold.value = -14;
+      masterBus.knee.value = 20;
+      masterBus.ratio.value = 8;
+      masterBus.connect(actx.destination);
+    }
     if (actx.state === "suspended") actx.resume();
   } catch (e) { /* stay silent for the session */ }
 }
@@ -591,7 +662,7 @@ function tone(type, f0, f1, dur, vol = 0.25, delay = 0) {
   o.frequency.exponentialRampToValueAtTime(Math.max(f1, 1), t + dur);
   g.gain.setValueAtTime(vol, t);
   g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-  o.connect(g).connect(actx.destination);
+  o.connect(g).connect(masterBus);
   o.start(t); o.stop(t + dur + 0.02);
 }
 function noiseBurst(dur, freq, vol = 0.3, delay = 0) {
@@ -606,7 +677,7 @@ function noiseBurst(dur, freq, vol = 0.3, delay = 0) {
   const g = actx.createGain();
   g.gain.setValueAtTime(vol, t);
   g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-  src.connect(f).connect(g).connect(actx.destination);
+  src.connect(f).connect(g).connect(masterBus);
   src.start(t);
 }
 const sfx = {
@@ -681,25 +752,45 @@ const HONKS = {
 let engine = null;
 function engineStart() {
   if (!actx || engine) return;
-  const o = actx.createOscillator(), g = actx.createGain(), f = actx.createBiquadFilter();
+  /* two detuned saws through a speed-swept lowpass, plus a wind-noise layer at speed */
+  const o = actx.createOscillator(), o2 = actx.createOscillator();
+  const g = actx.createGain(), f = actx.createBiquadFilter();
   o.type = "sawtooth"; o.frequency.value = 45;
+  o2.type = "sawtooth"; o2.frequency.value = 45; o2.detune.value = 9;
   f.type = "lowpass"; f.frequency.value = 260;
   g.gain.value = 0;
-  o.connect(f).connect(g).connect(actx.destination);
-  o.start();
-  engine = { o, g };
+  o.connect(f); o2.connect(f);
+  f.connect(g).connect(masterBus);
+  o.start(); o2.start();
+  const wlen = actx.sampleRate;
+  const wbuf = actx.createBuffer(1, wlen, actx.sampleRate);
+  const wd = wbuf.getChannelData(0);
+  for (let i = 0; i < wlen; i++) wd[i] = Math.random() * 2 - 1;
+  const wsrc = actx.createBufferSource(); wsrc.buffer = wbuf; wsrc.loop = true;
+  const wf = actx.createBiquadFilter(); wf.type = "bandpass"; wf.frequency.value = 1100; wf.Q.value = 0.6;
+  const wg = actx.createGain(); wg.gain.value = 0;
+  wsrc.connect(wf).connect(wg).connect(masterBus);
+  wsrc.start();
+  engine = { o, o2, g, f, wsrc, wg };
 }
 function engineSet(v) {
   if (!engine) return;
   /* smooth ramps instead of per-frame .value writes (audible zipper otherwise) */
   const t = actx.currentTime;
-  engine.o.frequency.setTargetAtTime(45 + (v / 700) * 100, t, 0.06);
-  engine.g.gain.setTargetAtTime(v > 5 ? 0.07 : 0, t, 0.06);
+  const fr = 45 + (v / 700) * 100;
+  engine.o.frequency.setTargetAtTime(fr, t, 0.06);
+  engine.o2.frequency.setTargetAtTime(fr, t, 0.06);
+  engine.f.frequency.setTargetAtTime(260 + (v / 700) * 1100, t, 0.08);
+  engine.g.gain.setTargetAtTime(v > 5 ? 0.055 : 0, t, 0.06);
+  /* wind fades in over the top 40% of the speed range */
+  const wind = Math.max(0, (v / vmaxEff()) - 0.6) * 0.11;
+  engine.wg.gain.setTargetAtTime(wind, t, 0.12);
 }
 function engineStop() {
   if (!engine) return;
   engine.g.gain.cancelScheduledValues(actx.currentTime);
-  engine.g.gain.value = 0; engine.o.stop();
+  engine.g.gain.value = 0; engine.o.stop(); engine.o2.stop();
+  engine.wg.gain.value = 0; engine.wsrc.stop();
   engine = null;
 }
 
@@ -1138,17 +1229,34 @@ renderSwatchLocks();
 renderUpgrades();
 renderRepair();
 
+/* first-timer attract: after 8 idle seconds in the garage, the big green GO breathes */
+const garageEl = document.getElementById("garage");
+let garageTouchT = performance.now();
+garageEl.addEventListener("pointerdown", () => {
+  garageTouchT = performance.now();
+  goBtn.classList.remove("nudge");
+}, true);
+setInterval(() => {
+  if (garageEl.classList.contains("active") && performance.now() - garageTouchT > 8000 && !goBtn.classList.contains("locked")) {
+    goBtn.classList.add("nudge");
+  }
+}, 1000);
+
 /* ============ SCENE SWITCHING ============ */
 const garageScene = document.getElementById("garage");
 const mapScene = document.getElementById("map");
 const roadScene = document.getElementById("road");
+const iris = document.getElementById("iris");
 function showScene(el) {
   stopDrive();
   document.querySelectorAll(".scene").forEach(s => s.classList.remove("active"));
   el.classList.add("active");
+  /* iris reveal: cover instantly, shrink away over the new scene */
+  iris.classList.remove("go"); void iris.offsetWidth; iris.classList.add("go");
   document.getElementById("celebrate").classList.remove("active");
+  document.getElementById("celebrateRow").classList.remove("ready");
   roadScene.classList.remove("celebrating");
-  document.querySelectorAll(".confetti, .flyStar, .gagWrap").forEach(c => c.remove());
+  document.querySelectorAll(".confetti, .flyStar, .gagWrap, .dust").forEach(c => c.remove());
 }
 function showGarage() { bankFreeRun(); showScene(garageScene); renderPreview(); renderWallets(false); renderUpgrades(); renderRepair(); }
 function showMap() { showScene(mapScene); renderMap(); renderWallets(false); }
@@ -1216,6 +1324,7 @@ const hudLevel = document.getElementById("hudLevel");
 const hudDamage = document.getElementById("hudDamage");
 const progDot = document.getElementById("progDot");
 const hudTime = document.getElementById("hudTime");
+const speedLines = document.getElementById("speedLines");
 
 /* 3 lanes: ground stage-Y per lane, depth scale, z stacking (car sits between lane layers) */
 const LANE_Y = [520, 585, 650];
@@ -1422,6 +1531,7 @@ const VMAX = 700, ACCEL = 900, COAST = 350, BRAKE = 1600;
 let pos = 0, v = 0, jumpY = 0, vy = 0, airborne = false, finished = false;
 let rafId = null, lastT = 0, wheelAngle = 0;
 let targetLane = 1, laneVis = 1, idleT = 0, nearFinish = false;
+let bodyTilt = 0, prevV = 0, freezeUntil = 0, starCombo = 0, lastStarT = 0, lastShownTime = -1;
 let wheelEls = [], mudEl = null;
 let celebrateTimer = null, tallyTimer = null, rateTimers = [];
 const roadPointers = new Map();   /* pointerId -> last y (for swipe lane changes) */
@@ -1466,10 +1576,13 @@ function startDrive() {
   pos = 0; v = 0; jumpY = 0; vy = 0; airborne = false; finished = false;
   gasKey = false; brakeKey = false;
   targetLane = 1; laneVis = 1; runStars = 0; runDamage = 0; runTime = 0; idleT = 0; nearFinish = false;
+  bodyTilt = 0; prevV = 0; freezeUntil = 0; starCombo = 0; lastStarT = 0; lastShownTime = -1;
+  speedLines.style.opacity = 0;
   roadPointers.clear(); gasPointers.clear(); brakePointers.clear();
   document.getElementById("celebrate").classList.remove("active");
+  document.getElementById("celebrateRow").classList.remove("ready");
   roadScene.classList.remove("celebrating");
-  document.querySelectorAll(".confetti, .flyStar, .gagWrap").forEach(c => c.remove());
+  document.querySelectorAll(".confetti, .flyStar, .gagWrap, .dust").forEach(c => c.remove());
   if (freeMode) buildFree(); else buildLevel(level);
   carWrap.classList.remove("wobble", "spin");   /* a leftover class would replay on the fresh svg */
   carWrap.innerHTML = vehicleSVG(state);
@@ -1713,7 +1826,13 @@ const PROP_HIT = {
     const dy = carCY - p.y;
     if (near && Math.abs(d) < 75 + mag * 20 && Math.abs(dy) < 125 + mag * 15) {
       p.el.style.transform = "";
-      p.done = true; p.el.classList.add("collected"); sfx.chime();
+      p.done = true; p.el.classList.add("collected");
+      /* rising coin-combo pitch: streaks within 1.5s climb the ladder */
+      const nw = performance.now();
+      starCombo = nw - lastStarT < 1500 ? Math.min(starCombo + 1, 8) : 0;
+      lastStarT = nw;
+      const f = 880 * Math.pow(1.12, starCombo);
+      tone("sine", f, f, 0.15, 0.22); tone("sine", f * 1.5, f * 1.5, 0.25, 0.18, 0.08);
       runStars++; renderHudStars(true);
     } else if (near && d > -(150 + mag * 40) && d < 75 && Math.abs(dy) < 160 + mag * 20) {
       p.el.style.transform = `translate(${d * 0.3}px, ${dy * 0.25}px)`;
@@ -1736,9 +1855,22 @@ function hardHit(p, d, dmg) {
   }
 }
 function shakeCar() {
+  freezeUntil = performance.now() + 90;   /* hit-stop: a comedy beat before the wobble */
   /* drop both hit classes: the later .spin rule would shadow .wobble in the cascade */
   carWrap.classList.remove("wobble", "spin"); void carWrap.offsetWidth; carWrap.classList.add("wobble");
   roadScene.classList.remove("quake"); void roadScene.offsetWidth; roadScene.classList.add("quake");
+}
+function spawnDust() {
+  const baseY = CAR_BASE_TOP + (laneVis - 1) * 65 + 200;
+  for (let i = 0; i < 3; i++) {
+    const dEl = document.createElement("div");
+    dEl.className = "dust";
+    dEl.style.left = (170 + i * 90 + Math.random() * 30) + "px";
+    dEl.style.top = (baseY + Math.random() * 8) + "px";
+    dEl.style.animationDelay = (i * 0.05) + "s";
+    roadScene.appendChild(dEl);
+    gagTimer(() => dEl.remove(), 700);
+  }
 }
 
 /* ---- damage: cosmetic tiers + mild speed cost, never a fail state ---- */
@@ -1767,6 +1899,12 @@ function renderHudDamage(pop) {
 }
 
 function tick(now) {
+  /* hit-stop: freeze the world for a beat after a crash */
+  if (now < freezeUntil) {
+    lastT = now;
+    rafId = requestAnimationFrame(tick);
+    return;
+  }
   const dt = Math.min(0.05, (now - lastT) / 1000);
   lastT = now;
 
@@ -1796,7 +1934,8 @@ function tick(now) {
   } else {
     if (!finished) {
       runTime += dt;
-      hudTime.textContent = Math.floor(runTime);
+      const shown = Math.floor(runTime);
+      if (shown !== lastShownTime) { lastShownTime = shown; hudTime.textContent = shown; }
     }
     /* almost there! */
     if (!nearFinish && pos > LEVEL_LEN - 900) { nearFinish = true; sfx.almost(); }
@@ -1815,7 +1954,13 @@ function tick(now) {
   if (airborne) {
     vy -= 1500 * dt;
     jumpY += vy * dt;
-    if (jumpY <= 0) { jumpY = 0; airborne = false; sfx.clank(); }
+    if (jumpY <= 0) {
+      jumpY = 0; airborne = false; sfx.clank();
+      /* landing: suspension squash + a kick of dust */
+      const svg = carWrap.querySelector("svg");
+      if (svg) { svg.classList.remove("land"); void carWrap.offsetWidth; svg.classList.add("land"); gagTimer(() => svg.classList.remove("land"), 450); }
+      spawnDust();
+    }
   } else {
     const wasOn = jumpY > 0;
     const onRamp = rampElev(carX);
@@ -1837,10 +1982,21 @@ function tick(now) {
   wheelAngle += (v * dt) / r * (180 / Math.PI);
   wheelEls.forEach(w => w.style.transform = `rotate(${wheelAngle}deg)`);
 
+  /* body dynamics: lean back on the gas, dive on the brake, bank through lane changes */
+  const accel = dt > 0 ? (v - prevV) / dt : 0;
+  prevV = v;
+  const targetBody = Math.max(-8, Math.min(8, accel * 0.006)) + (targetLane - laneVis) * 4;
+  bodyTilt += (targetBody - bodyTilt) * Math.min(1, dt * 10);
+
+  /* speed lines when flying along at (near) top speed */
+  speedLines.style.opacity = v > 0.9 * vmaxEff() ? 1 : 0;
+
   /* layers + car */
   let tilt = 0;
   if (airborne) tilt = Math.max(-16, Math.min(20, -vy * 0.035));
   else if (jumpY > 0) tilt = -14;
+  tilt -= bodyTilt;   /* negative rotation = nose up (car faces right) */
+  tilt = Math.max(-24, Math.min(28, tilt));   /* air + dive + bank can stack to 36: keep it cartoon, not crash-test */
   if (freeMode) {
     /* wrap the finite scenery tiles seamlessly (wrap lengths are tile-period multiples) */
     farLayer.style.transform = `translateX(${-((pos * 0.25) % FAR_WRAP)}px)`;
@@ -1985,11 +2141,14 @@ function finishLevel() {
   tally.innerHTML = starIcon + `<span>0</span>`;
   const cWallet = document.getElementById("celebrateWallet");
   cWallet.innerHTML = starIcon + `<span>${walletStart}</span>`;
-  const cDamage = document.getElementById("celebrateDamage");
-  cDamage.innerHTML = wrenchIcon + `<span>${progress.damage}</span>` +
-    stopwatchIcon + `<span>${Math.floor(runTime)}</span>` +
+  const cTime = document.getElementById("celebrateTime");
+  cTime.innerHTML = stopwatchIcon + `<span>${Math.floor(runTime)}</span>` +
     `<span class="medal">${medalSVG(tier)}</span>`;
+  const cDamage = document.getElementById("celebrateDamage");
+  cDamage.innerHTML = wrenchIcon + `<span>${progress.damage}</span>`;
   cDamage.classList.toggle("clean", clean);
+  /* the wrench is garage business — only show it on the victory screen if this run got dinged */
+  cDamage.style.display = runDamage > 0 ? "" : "none";
   const ratingRow = document.getElementById("ratingRow");
   ratingRow.innerHTML = [1, 2, 3].map(() =>
     `<svg class="rateStar" viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/></svg>`).join("");
@@ -2015,6 +2174,10 @@ function finishLevel() {
         for (let i = 0; i < rating; i++) {
           rateTimers.push(setTimeout(() => { rs[i].classList.add("lit"); sfx.chime(); }, 250 + i * 350));
         }
+        /* Nintendo pacing: the payoff plays out first, THEN the buttons slide in */
+        rateTimers.push(setTimeout(() => {
+          document.getElementById("celebrateRow").classList.add("ready");
+        }, 250 + rating * 350 + 450));
       }
     }, 120);
   }, 700);

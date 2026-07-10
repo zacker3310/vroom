@@ -144,3 +144,22 @@ Audited the uncommitted T4.3 diff on index.html (vs 2736785) against the AUDIT_P
 - doubt-t43.cjs (scratchpad, ad-hoc): wrap-seam pixel probes + control, long-run 60k/1e6, dt clamp, tier table, capsule spawn/jump/idle, medal legibility shots, double-bank, free HUD — **23/23 PASS**
 
 No HIGH/MED findings; no source changes made this round.
+
+## Game-feel Doubt (T4.5)
+
+Audited the uncommitted T4.5 diff (game-feel + iPad shell, index.html vs e124815). All manifest claims verified against the diff: master compressor bus (-14/20/8) with tone/noiseBurst/engine/wind all routed through it, dual detuned saws (+9c) + speed-swept lowpass (260->1360) + looping bandpass wind above 60% vmaxEff, bodyTilt lerp folded into carWrap rotate, 90ms hit-stop, 2-axis quake, landSquash + spawnDust, starCombo 0-8 @1.5s window, speed lines >0.9 vmaxEff, celebrateTime chip + gated celebrateRow.ready, iris on every showScene, rotate overlay, shell metas + favicon, hudTime integer-gated writes, garage GO nudge @8s, retuned timeTier.
+
+Findings and probes (feel-doubt.cjs / feel-doubt2.cjs, scratchpad):
+
+- **MED (fixed): landing-squash restart was a no-op reflow.** `void svg.getBBox` reads the method reference without calling it — no layout flush, so a landing 400-450ms after the previous one would not restart the squash animation. Changed to the file's own idiom `void carWrap.offsetWidth` (index.html:1961).
+- **MED (fixed): stacked tilt could reach 36 deg.** Airborne descent clamp (20) + brake dive (8) + two-lane bank (8) stack after `tilt -= bodyTilt`. Probe measured 25.7 deg in a forced worst case (acceptable), but the full stack would pierce the road. Added final clamp `Math.max(-24, Math.min(28, tilt))` (index.html:1999).
+- Hit-stop: early-return only delays engineSet/visuals 90ms; input is listener-driven; celebrate path uses setTimeout — unaffected. freezeUntil unreachable while finished (v forced to 0 before the prop loop; hardHit/tnt need v>25; hazards end 600px before the finish line). PASS.
+- Landing at level start: no spurious .land/.dust in the first 600ms of startDrive (probed). Dust ground-accuracy: lane 0 puffs at y=516-518 vs ground 520, lane 2 at 644-652 vs 650 — on the road at both extremes. PASS.
+- Engine wind leak: drive(1) hammered 10x with instrumented Oscillator/BufferSource start/stop — 20 osc started/18 stopped, 10 buf/9 stopped = exactly one live engine (2 saws + 1 wind loop), engine singular, zero errors. PASS.
+- Iris: mid-anim clip-path circle(73%) w/ opacity 1, settles to opacity 0; 6 rapid showScene calls restart cleanly (offsetWidth flush), no errors. finishLevel never calls showScene, so the z-60 iris never covers the z-30 celebrate overlay. PASS.
+- Combo ladder: capsule bigstars path bypasses combo (intended); startDrive resets combo state; combo-8 chime = 2179Hz + 3268Hz overtone, 0.15s sine through the compressor — bright but short; judged acceptable, no change.
+- Rotate overlay at exactly square viewport (800x800): CSS `orientation: portrait` matches height >= width, so the overlay SHOWS at square — the "hidden at square" premise is inverted. Harmless (iPads are never square); noted, no change.
+- timeTier margins (computed in-page): L30 engine-3 perfect run 12.22s vs S cutoff 14.86s = **2.64s margin** (~2-3 full-stop crashes of headroom); stock L30 perfect 16.10s — misses S (14.86) but clears A (18.97). Matches the "stock near-perfect = A, engine-3 = S" claim.
+- LOW (noted, not changed): dead CSS — `#celebrateDamage .medal` rules (index.html:315-316) are orphaned now that the medal lives in #celebrateTime; celebrate screenshot confirms time chip + medal render and the damage chip hides on clean runs.
+
+Verification after fixes: verify 35/35, polish-check 14/14, damage-check 20/20, free-check 14/14, feel-check 12/12 — **95/95 PASS**, no console errors. Screenshots: doubt2-brake-bank.png, doubt2-air-brake.png, doubt2-celebrate.png (scratchpad/shots).

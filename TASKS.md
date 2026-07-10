@@ -16,7 +16,13 @@
 - [x] T4.3a: Surprise capsules (weighted star/gag prizes, 4 gag animations), free-drive endless cruise (map button, seamless parallax wrap, distance-gated difficulty, theme cycling, bank-on-exit), S/A/B/C time-trial medals (HUD timer, celebrate medal, map badges), steeper difficulty curve. [SPI-]
 - [ ] T4.3b: Remaining longevity round A: tap-everything Easter eggs, magic dice randomizer, quiet mode, idle attract (assets ready in scratchpad/delight-assets.js).
 - [ ] T4.4: Roadtrip longevity round B: finish-line photo keepsakes, sticker album scene, passenger buddies, decal slots, car wash.
-- [ ] T4.5: Nintendo-quality pre-release pass (game-feel critique agent findings).
+- [x] T4.5: Nintendo-quality game-feel pass: body dynamics (accel lean / brake dive / lane bank), hit-stop + 2-axis quake, landing squash + dust, rising star-combo chimes, layered engine (detuned saws + swept filter + wind), speed lines at vmax, celebrate choreography (payoff first, buttons last, medal beat, damage only when relevant), iris scene transitions, iPad shell (rotate overlay, master compressor, touch-callout, metas, favicon), retuned medal curve (forgiving early, upgrade-tuned late), garage GO attract. [SPI-]
+
+## v5 (2026-07-10, user-directed: "go wild" worlds expansion)
+
+- [ ] T5.1: 80 levels across 8 themed worlds (construction/sunset/night/rain/snow/desert/beach/space): shared levelLen(), world-select map (8 tabs + 10-level pages), sequential world unlock, per-world CSS themes + scenery + weather particles (rain/snow), world-specific hazards incl. MOVING obstacles (tumbleweed, crab), low-gravity space physics, world-clear 25-star bonus, golden capsules, free-drive cycles all 8 themes.
+- [ ] T5.2: Premium content: 4 endgame bodies (limo, dragon, train, royal 250-400 stars), 2 wheels (glow, star), 3 purchasable extras (wings, booster, party hat), capsule prize table v2.
+- [ ] T5.3: Suite updates (80-level invariants, worlds map, movers) + mega Doubt + docs.
 
 ## Backlog (v2 candidates, from kid-testing)
 
