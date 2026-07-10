@@ -1,78 +1,49 @@
-# Doubt Review: vroom
+# Review Report — v3 audit (T3.1 + T3.2)
 
-Audit of `.buildloop/build-claims.md` against `index.html`, re-run of runnable checks, and an independent bug hunt. Reviewer: Doubt sub-agent, 2026-07-09.
+**VERDICT: PASS** — after fixes. Suite 35/35 before and after; 4 MED issues found and fixed, 2 LOW fixed opportunistically, 5 LOW reported only. No HIGH issues. One BUG_FIXES claim (star-dropout) was materially overstated; everything else in the audit payload verified against the code. Reviewer: Doubt sub-agent, 2026-07-10.
 
-## Verdict: PASS (after 5 fixes applied)
+## Verification matrix re-run
 
-Build claims were substantially accurate. All 22 automated checks passed before and after review. However, the independent bug hunt found 2 HIGH and 3 MEDIUM issues the claims did not mention, all centered on exactly the audience profile (a 3-5 year old mashing with multiple fingers). All five were reproduced in headless Chromium, fixed in `index.html`, and re-verified: full suite 22/22 PASS plus 9/9 targeted regression checks PASS.
-
-## 1. DELTA_MANIFEST audit
-
-| Claim | Verdict |
+| CHECK | Result |
 |---|---|
-| index.html: fit(), vehicleSVG(), wheelSVG(), BODIES x5, WHEELS x3, sfx x9, engineStart/Set/Stop, renderPreview(), showGarage/showRoad, buildProps(), tick(), celebrate() | VERIFIED, all present, no deps, no build step |
-| SPEC.md, TASKS.md, .buildloop/scout-report.md, .buildloop/current-plan.md exist | VERIFIED |
-| FILES_MODIFIED: 0 | VERIFIED (no other files in project) |
+| suite (verify.cjs) | 35/35 baseline, 35/35 after fixes |
+| console | clean at load and end, both runs |
+| touch >= 64px | pass (swatches render 64.8px at 1024x768) |
+| gen-invariants (30 levels) | pass, incl. after generator fix (1 finish, no 3-lane wall, in-bounds, min x-gap 170 held) |
+| econ (police 25, rainbow 60, deny at 0, bank 4+3) | exact values, pass |
+| migration v1 -> v2 | pass (fire/monster/green/horn) |
+| screenshots | regenerated and eyeballed (road-day, celebrate); visually correct |
 
-## 2. SPEC claims audit
+KNOWN_GAPS: all 5 accurately described. hard-hit-l1 skip observed live in suite output ("no hard obstacle on L1"); sun-chip overlap and stair-step ramps confirmed cosmetic in screenshots; multitouch and iPad perf remain untested as stated.
 
-| Claim | Verdict |
-|---|---|
-| bodyBtn cycles 5, wheelBtn cycles 3, 6 swatches, 3 extras, preview honk, goBtn | VERIFIED (index.html:452-506) |
-| accel to 700px/s, friction release | VERIFIED (index.html:616-617: cap 700, +900/s, -600/s) |
-| 4 cones, puddle, ramp x=2600, jump vy=v*0.9 g=1500, tilt, finish x=5200, confetti 90, overlay, both return paths | VERIFIED |
-| 5 stars "(3+2 ground y=505, 1 air y=330)" | **INACCURATE BREAKDOWN.** Actual: 4 ground (1200, 1800, 3800, 4200 at y=505) + 1 air (2950 at y=330). Total of 5 is correct; "3+2 ground" + 1 air would be 6. Doc error only. |
-| Audio: synth only, ctx created+resumed on first pointerdown capture, engine sawtooth | VERIFIED (index.html:246-250, 297-316) |
-| State "validated on load" | **OVERSTATED, was a real bug.** Only `body` and `wheels` were validated; `color` and `extras` were taken as-is. See finding F2. Now accurate after fix. |
-| Wheels nested translate/rotate groups; 1200x700 stage scaled | VERIFIED (index.html:335, 225-230) |
+## Findings
 
-## 3. BUG_FIXES audit
+### Fixed
 
-| Claimed fix | Verdict |
-|---|---|
-| extras-touch-target 92x92 | VERIFIED (index.html:78). 92px * 0.853 scale at 1024x768 = 78.5px rendered, >= 64px |
-| wheels-detached, nested rotation group | VERIFIED in code and screenshot; wheel centers measured at x=75/207, y=153 inside carWrap |
-| baseline-mismatch, unified ground y=585 | VERIFIED by arithmetic: car 379 + 206.25 = 585.25; cones 505+80=585; ramp 490+95=585; finish 355+230=585; puddle center 533+52=585 |
-| cone-double-class single classList.add | VERIFIED (index.html:642) |
+- **MED — shop gate bypassed via the level map.** `goBtn` was gated on locked parts, but `renderMap`'s level buttons called `drive(n)` directly, so a kid could equip unpaid parts (reproduced: rocket + gold + rainbow, wallet 0) and drive them from the map. Fixed with a `lockedParts()` guard + `walletDeny()` at the top of `drive()` (index.html:1154), which also covers replay/next.
+- **MED — FIX:star-dropout claim overstated; generator still dropped items.** Claimed "adaptive slot spacing | all items fit road", but the ramp-zone `x += 300` push consumed shared road the adaptive step didn't account for: 47 stars + 38 obstacles dropped across the 30 levels (L15 placed 9 of 13 stars, L1 5 of 7). Fixed by budgeting the step on usable road (`zoneAhead`, index.html:1065) and capping each advance so queued items still fit before endX (index.html:1073-1074). Now L1 places 7/7; only 9 of 30 levels are short, by exactly 1 star each; min 170px spacing and the no-3-lane-wall invariant verified intact. Side effect: suite's L1 rating check now records 2 instead of 3 (4 collected of 7 placed < 0.8) — correct per the rating formula, check tolerates it.
+- **MED — celebrate rating-star timeouts leaked on scene exit.** `stopDrive()` cleared `celebrateTimer`/`tallyTimer` but not the three staggered `setTimeout`s that light the rating stars, so pressing home (or replay/next) during the tally count-up played stray `sfx.chime()` in the garage up to ~1.3s later. Fixed: `rateTimers` array (index.html:1143, 1415) cleared in `stopDrive()` (index.html:1184). Verified live: home mid-tally leaves tallyTimer null, rateTimers empty, rafId null, no errors.
+- **MED — engine drone in hidden tab + stuck keyboard gas on window blur.** Hiding the tab freezes rAF with the engine gain parked at 0.07 (endless sawtooth drone on desktop); cmd-tab while holding ArrowRight loses the keyup and the car drives itself on return. Fixed: `blur` handler drops gasKey/brakeKey; `visibilitychange` also calls `engineSet(0)` (index.html:1351-1355).
+- **LOW — no pointer capture on pedals/road swipe.** A mouse released outside the window never delivered pointerup, leaving the pedal held (self-heals on next click since mouse pointerId is constant; touch has implicit capture). Fixed: `setPointerCapture` in `bindPedal` (index.html:1307) and the road swipe handler (index.html:1317), try/catch-wrapped for synthetic events.
+- **LOW — non-integer `saved.current` accepted from corrupt storage** (e.g. 1.5 → `drive(1.5)` runs, map "current" ring never matches). Fixed with `Math.floor` (index.html:410).
 
-## 4. KNOWN_GAPS validation
+### Reported only (LOW, not fixed)
 
-All four gaps are accurately described and correctly scoped:
+- `held` is dead state — declared/reset/read (index.html:1140, 1162, 1237) but never set true; road-hold gas moved to `roadPointers` and this vestige remains.
+- Tapping a level on the map sets `progress.current = n` permanently, so replaying an early level moves the GO shortcut pointer back to `n+1` on finish (e.g. 20 → 4). Looks intentional ("current = last picked") but worth a design double-check.
+- HUD chips (`#hudLevel`, `#hudStars`) are not excluded from road-hold, so tapping them counts as gas. Harmless for ages 3-5 (whole road is the pedal).
+- `engineStop()` writes `gain.value = 0` and stops the oscillator immediately — can click audibly; cosmetic.
+- Ground stars may spawn inside a ramp's x-range and sit visually buried in the wedge (same layer, drawn on top; still collectible since jumpY on a ramp maxes at 95 < the 115 window).
 
-- **audio-on-real-ios**: accurate. Unlock uses the documented pointerdown-capture + resume pattern (index.html:246-250). Still untested on hardware; remains open.
-- **no-portrait-layout**: accurate. fit() letterboxes, no rotate hint.
-- **mixer-drum-spin**: accurate. `class="spinner"` with fixed 3.5s CSS animation, not speed-linked.
-- **single-level**: accurate. One static `defs` array in buildProps().
+### Priorities audited clean (no bug found)
 
-## 5. VERIFICATION_MATRIX re-run
+- Drive loop: laneVis mid-glide collision is consistent (`Math.round(laneVis)` everywhere, incl. zIndex); airborne + lane change safe; finish while airborne lands correctly with `finished` freezing v; `drive()` re-entry idempotent (double `stopDrive`); next after level 30 hidden and clamped; wallet never double-banks (`p.done` gate on the finish prop).
+- Shop: multi-part buy sums correctly and pushes each part once; cycling recomputes the tag; wallet cannot go negative; corrupt JSON, string wallet, NaN, non-array `owned`, and junk `levels` entries all handled by the existing guards.
+- Pointers: pointerId Set/Map add/delete symmetric; `startDrive()` clears all input state, so pedals held across home→garage→GO recover.
+- Audio: all sfx guard on null `actx`; `HONKS` is defined before any call site executes; `unlockAudio` try/catch verified; capture-phase unlock runs before any button handler that plays sfx.
+- Rendering: rainbow gradient ids unique per render (`svgUid`) and replaced nodes take their ids with them; car z 11/13/15 interleaves lane layers 10/12/14 correctly; all props append to their own laneLayer (finish in lane0 is intentional backdrop).
+- DELTA_MANIFEST/SPEC constants all verified exact in code (LANE_Y, scales, ACCEL/VMAX/BRAKE/COAST, squeal >120, prices, rating thresholds .34/.8, level formulas, themes, vroom.v2 schema, 6x5 map, unlock rule).
 
-- **CHECK:full-loop**: re-run against http://localhost:4173 (server verified serving current disk content). Result before fixes: 22/22 PASS, matching the claim. Result after fixes: 22/22 PASS.
-- **CHECK:visual**: screenshots regenerated and reviewed. Wheels attached, unified baseline, icon UI readable. PASS.
-- **CHECK:real-device**: not runnable here (needs physical iPad). Remains UNTESTED, correctly declared.
+## Final suite result
 
-## 6. New findings (not in claims), all reproduced then fixed
-
-### F1. HIGH: partial/corrupted localStorage bricked the entire game
-`state = saved` accepted any object passing the body/wheels check. A saved value missing `extras` (e.g. `{"body":"dump","wheels":"normal"}`) threw `Cannot read properties of undefined (reading 'horn')` during initial script execution, killing every listener below it: no GO button, no drive scene, permanently broken until storage cleared. Reproduced (pageerror captured). **Fix:** field-by-field merge into defaults; `color` checked against COLORS, `extras` coerced to booleans (index.html:239-246). Regression: partial and garbage saves now load clean with defaults.
-
-### F2. HIGH: two fingers on GO spawned a second rAF loop that survived forever
-`startDrive()` never cancelled an existing loop. Two pointerdowns on goBtn (trivial for a toddler with two fingers) ran `startDrive()` twice; `stopDrive()` could only cancel the last rafId, so one orphan tick loop kept running in the garage forever, one more per mash. Physics did not double (shared `lastT` gives the second same-frame callback dt=0), but it is a permanent CPU/battery drain on an iPad and each GO mash adds another. Reproduced (`rafId` non-null 300ms after returning to garage). **Fix:** `startDrive()` now calls `stopDrive()` first (index.html:595). Regression: `rafId === null` after double showRoad + home.
-
-### F3. MEDIUM: celebrate overlay leaked into the next drive
-`celebrate()` armed an unhandled 700ms setTimeout to show the overlay. Finishing then tapping HOME inside that window let the timer fire while the road was hidden, so the next GO started with the "build another truck" overlay already covering the screen. Reproduced. **Fix:** timer handle stored in `celebrateTimer`, cleared in `stopDrive()`, plus `startDrive()` strips the `active` class defensively (index.html:598, 612-613, 715). Regression: overlay no longer present on the next drive.
-
-### F4. MEDIUM: lifting one of two fingers stopped the car
-Global `pointerup` called `pressOff()` unconditionally. A kid holding the road with two fingers who lifts one had the car stop while still holding. Reproduced with synthetic multi-pointer events. **Fix:** `drivePointers` Set keyed by pointerId; `held` releases only when the last driving pointer lifts; set cleared on each startDrive (index.html:597, 687-696). Regression: held stays true with one finger remaining, false after the last lifts.
-
-### F5. MEDIUM: slow ramp crest teleported the car down 95px
-Airborne launch required `v > 260`; a car cresting the ramp slower snapped instantly from jumpY=95 to 0 in a single frame, a visible glitch. **Fix:** any crest-off goes airborne with vy = v*0.9 and falls under gravity; the "whee" arpeggio still only plays above 260 so the claimed jump behavior is unchanged (index.html:635-640). Regression: max single-frame drop at v=150 is now 8.6px, smooth fall, clean landing.
-
-Also audited and found sound (no action needed): event listeners are all attached once, props/confetti/mud state fully reset on scene switch, dt clamped at 0.05 for background-tab resume, celebrate overlay blocks drive input via `closest('#celebrate')`, honk guarded against null AudioContext, `touch-action: none` + viewport meta lock pinch/double-tap zoom, SVG `transform-box: fill-box` used correctly for wheel and beacon rotation.
-
-## 7. Verification after fixes
-
-- Full-loop suite: **22/22 PASS** (touch targets, 5 bodies, 3 wheels, 6 colors, 3 extras, drive/coast, wheels attached, 4 cones, 5 stars, mud, 90 confetti, overlay, both return paths, persistence, console clean).
-- Targeted regressions for F1-F5: **9/9 PASS**.
-- Not verified: real iOS hardware (audio unlock, actual multi-touch). CHECK:real-device stays open as claimed.
-
-## Final verdict: PASS
+35/35 passed (node verify.cjs, post-fix run). Bypass repro re-tested: map tap with 3 locked parts now denies (road stays inactive). index.html is 1423 lines, single file, no new dependencies.

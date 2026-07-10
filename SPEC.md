@@ -4,37 +4,56 @@ Build-a-car garage game for a 3-5 year old. Browser, single `index.html`, no dep
 
 ## Design rules (non-negotiable)
 
-- Zero required reading. Icons and pictures only.
-- No fail states, no scores, no timers. Nothing to lose.
+- Zero required reading. Icons, pictures, and numerals only.
+- No fail states, no timers. Nothing to lose: stars only go up, obstacles bonk-and-stop but never end a run.
 - Every interactive element >= 64px rendered at iPad landscape (1024x768).
 - Every tap gives instant feedback: animation + synthesized sound.
-- Loop: build -> drive -> celebrate -> build again.
+- Loop: build -> drive -> collect stars -> celebrate -> unlock cooler stuff -> build again.
+
+## v3 amendment (2026-07-10, user-directed)
+
+v1's "no scores" rule is amended: stars are now collected and kept as the game's
+only currency. There is still no way to lose stars or fail a level.
 
 ## Scene 1: Garage
 
 Kid assembles a vehicle from big picture buttons:
 
-- **Body** (tap cycles): dump truck, digger, cement mixer, fire truck, monster truck
-- **Wheels** (tap cycles): normal, monster, racing
-- **Paint**: 6 color swatches, instant repaint with splat sound
+- **Body** (tap cycles, 11): dump truck, digger, cement mixer, fire truck, monster truck + unlockable police car, race car, tractor, ice cream truck, rocket car, UFO
+- **Wheels** (tap cycles, 6): normal, monster, racing + unlockable gold, flower, tank
+- **Paint**: 12 color swatches (6 free + purple, teal, lime, white, black, rainbow unlockable), instant repaint with splat sound
 - **Extras** (toggles): horn, spinning beacon light, flag
 - Tapping the vehicle honks (per-body honk voice)
-- Big green GO arrow -> drive scene
+- **Shop, no reading**: locked parts show grayed in the cycle with a star price tag under the preview. Tap the tag: enough stars = fanfare + confetti unlock; not enough = boink + wallet shake. GO is disabled while a locked part is selected.
+- Star wallet chip always visible
+- Big green GO arrow -> drive current level. Map button -> level map.
 
-Any combination is valid. Vehicle preview updates live with bounce + pop.
+Any owned combination is valid. Vehicle preview updates live with bounce + pop.
 
-## Scene 2: Road
+## Scene 2: Level map
 
-Side-scrolling construction site. The exact vehicle built in the garage drives it.
+30 levels in a 6x5 grid of big round buttons. Finished level N unlocks N+1.
+Locked = gray + padlock. Unlocked = number. Done = number + 1-3 star rating.
+Tap an unlocked level to drive it. House button returns to garage.
 
-- Hold anywhere = drive. Release = coast to stop. Only control.
+## Scene 3: Road
+
+Side-scrolling construction site, now 3 lanes. The exact vehicle built in the garage drives it.
+
+- **Gas pedal** (green, bottom-right): hold to drive. **Brake pedal** (red): squeal stop.
+  Holding anywhere on the road also drives (v1 muscle memory).
+- **Lanes**: swipe up/down (or side arrow buttons, or arrow keys) to change lane.
+  Steer INTO stars, AWAY from obstacles.
 - Tap vehicle = honk
-- Mud puddle -> splash, muddy wheels
-- Ramp -> jump with "whee" arpeggio
-- Traffic cones -> tumble with boinks
-- Stars -> chime + burst (no score kept)
-- Finish flag -> confetti, celebration, big button back to garage
+- Mud puddle -> splash, muddy wheels (lane-specific)
+- Ramp -> jump with "whee" arpeggio (spans all lanes; high stars float over ramps)
+- Traffic cones -> tumble with boinks (soft: fun, no penalty)
+- Barrels / rocks -> bonk, car stops and wobbles (hard: never a fail, just a stop)
+- Stars -> chime + burst, +1 to run counter, banked to wallet at the finish (+3 finish bonus)
+- Finish flag -> confetti, star tally, next level unlocked; buttons: replay / next / garage
 - House button (top-left) returns to garage anytime
+- Levels are seeded-random: longer and denser as the number grows. Day sky 1-10,
+  sunset 11-20, night 21-30.
 
 ## Tech
 
@@ -42,7 +61,8 @@ Side-scrolling construction site. The exact vehicle built in the garage drives i
 - Web Audio API, all sounds synthesized. Audio unlocked on first pointer event (iOS).
 - Pointer events only (touch + mouse unified). `touch-action: none`, pinch-zoom locked.
 - Fixed 1200x700 stage, scaled to fit viewport (letterbox). Landscape-first.
-- State `{body, wheels, color, extras}` in one object, persisted to localStorage.
+- State `vroom.v2` = `{build, wallet, owned, levels, current}` persisted to localStorage; v1 build migrated.
+- Levels generated from a seeded PRNG (level number = seed) so each level is stable across plays.
 
 ## Verify
 

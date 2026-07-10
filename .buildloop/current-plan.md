@@ -1,35 +1,41 @@
-# Current Plan — T1.1 + T1.2 (single file)
+# Plan — Vroom v3: lanes, pedals, points, 30 levels, unlock shop
 
 ## Dependencies
-None. Vanilla HTML/CSS/JS, Web Audio API, SVG.
+None (zero-dep single file). Agent deliverable: scratchpad/new-vehicles.js (6 bodies, 3 wheels, honks) — integrate when ready.
 
-## File Operations (in order)
-1. CREATE `index.html`:
-   - `<head>`: viewport locked (`user-scalable=no`), all CSS inline.
-   - `#stage` (1200x700, absolute-centered, JS `fit()` scales on resize).
-   - `#garage` scene: preview area + bottom control bar:
-     - `cycleBody()`, `cycleWheels()` — advance index, `renderVehicle()`, pop sound, bounce class.
-     - `setColor(c)` — 6 swatches, splat sound.
-     - `toggleExtra(name)` — horn/beacon/flag, clank sound, `.on` class.
-     - `#goBtn` — green circle, play-arrow SVG, switches to road.
-   - Vehicle system:
-     - `BODIES` map: `{svg(): string, roof:[x,y], rear:[x,y], honk: fn}` for dump/digger/mixer/fire/monster.
-     - `WHEELS` map: normal r26 / monster r40 / racing r22; `wheelSVG(type, cx)`.
-     - `vehicleSVG(state)` — viewBox 0 0 320 230, ground y=200, axles x=85/235, body group lifted by `max(0, r-26)`, `--paint` CSS var, hidden `.mudSpots` group, `.wheelSpin` groups.
-   - Audio module: lazy `AudioContext`, `unlock()` on first pointerdown; `pop, clank, splat, chime, boink, whee, splash, tada, honk(body)`, engine loop (`engineStart/engineSet(v)/engineStop`).
-   - `#road` scene: sky/far/mid/ground layers; props from `PROPS` array (cones x3, puddle, ramp, stars x5 incl. one airborne, finish flag at 5200); car wrap at screen x=300.
-     - rAF loop: hold accel 900/s to vmax 700, friction 600/s; `pos += v*dt`; layers translate at 0.25/0.55/1.0.
-     - Ramp: y follows slope over footprint; leaving end with v>260 sets vy, projectile until ground; whee sound.
-     - Cones: knock when passed (CSS tumble + boink). Puddle: splash + show mudSpots. Stars: chime + collect anim.
-     - Finish: stop, tada, confetti (~90 divs), celebrate overlay with giant garage button.
-     - `#homeBtn` top-left (72px) back to garage. Tap car = honk. Hold anywhere else = drive.
-   - State `{body,wheels,color,extras}` -> localStorage `vroom.v1`.
+## Design decisions
+- **No fail states preserved**: hitting a hard obstacle = bonk + stop + wobble, never game-over. Cones stay knockable-for-fun (soft). Points only go up. SPEC amended: stars ARE now kept (user-directed v3 change).
+- **Currency = stars.** Collected stars bank into a persistent wallet. +3 finish bonus per run. Level rating 1-3 by % of placed stars collected (≥34% → 2, ≥80% → 3).
+- **Economy**: bodies police 25 / race 40 / tractor 60 / icecream 80 / rocket 120 / ufo 200; wheels gold 30 / flower 50 / tank 70; colors purple 10 / teal 10 / lime 15 / white 15 / black 20 / rainbow 60. Starters (5 bodies, 3 wheels, 6 colors) free.
+- **Shop is implicit in the garage**: cycling includes locked items; locked selection = grayed preview + price-tag button under it, GO disabled. Tap tag: enough stars → unlock (fanfare + confetti), else boink + wallet shake.
+- **Flow**: garage → GO drives `current` level. Map button (next to GO) → level-map scene (6x5 grid of 30). Win → next level unlocks and becomes current; celebrate offers replay / next / garage.
+- **Lanes**: 3 lanes on a widened road. Lane ground Y = 520/585/650, car scale .88/1/1.12, zIndex by lane. Swipe up/down on road OR side arrow buttons OR arrow keys. Collision uses rounded visual lane.
+- **Pedals**: green gas (bottom right), red brake (left of it, squeal + fast decel). Hold-road-to-drive kept; vertical drag ≥45px mid-hold = lane change.
+- **Levels**: seeded mulberry32(level). length = 3500 + level*250. hard/soft obstacles = 3 + floor(level*.8) from {cone(soft), barrel(hard), rock(hard), puddle(splash)}, stars = 6 + floor(level/2), 1-3 all-lane ramps, high stars over ramps. Guarantee: within any 260px window ≤2 lanes hard-blocked. Themes: day (1-10), sunset (11-20), night (21-30) via CSS class on #road.
+- **Persistence**: `vroom.v2` = { build, wallet, owned{body[],wheels[],color[]}, levels{n:{best,rating}}, current }. Migrate v1 build.
+
+## Review fixes folded in (from mini-review)
+- engineSet: setTargetAtTime ramps, no per-frame .value writes
+- fit(): + orientationchange + visualViewport resize
+- unlockAudio: try/catch
+- whee on every airborne launch (no speed gate)
+- prop collision → handler registry keyed by type
+- comment magic hitbox constants
+
+## File operations (all MODIFY /Users/zacker/Documents/dev/vroom/index.html; MODIFY SPEC.md, TASKS.md)
+1. CSS: 3-lane road strip (two dashed separators), lane arrow buttons, gas/brake pedals, HUD (wallet chip, level badge), map scene grid, price tag, locked preview, theme classes, star-row celebrate, garage wallet chip.
+2. HTML: #map scene, HUD in #road, brake pedal, lane arrows, price tag in garage, wallet chips, map button, celebrate 3-button row.
+3. JS state: PRICES, owned defaults, wallet, levels progress, current; load/save v2 + v1 migration.
+4. JS vehicles: merge NEW_BODIES/NEW_WHEELS/NEW_WHEEL_DECOR/NEW_HONKS; rainbow paint via per-SVG unique gradient id; wheelSVG decoration hook.
+5. JS garage: cycle-through-locked, locked preview + price tag, buy flow, GO gating, wallet render.
+6. JS map: render 30 buttons (lock / number / rating); tap unlocked → currentLevel + showRoad.
+7. JS road: buildLevel(n) seeded gen; scenery width from level length; barrel/rock SVGs; car lane lerp + scale + z; swipe/arrows/keys; gas+brake; per-lane collision soft/hard; HUD star counter; finish → bank, rating, unlock next, celebrate.
+8. JS audio: brake squeal, buy fanfare, sad-bonk (soft), new honks.
 
 ## Verification
-- `python3 -m http.server 4173` in project dir.
-- Playwright at 1024x768 (touch): cycle every part, paint, toggle extras, GO, hold-drive to finish, confetti visible, return to garage. Console: zero errors.
-- Touch-target audit: measure rendered bounding boxes of all buttons/swatches >= 64px.
+- `python3 -m http.server 4173` + Playwright: cycle all 11 bodies incl locked, buy flow (seeded wallet), GO, lane change hits star / barrel stops car, brake works, finish level 1, wallet banked, level 2 unlocked, console clean, targets ≥64px.
+- Doubt sub-agent audit per build-loop skill.
 
 ## Constraints
-- No text required for play (decorative sign only). No external assets. No dependencies.
-- All sounds synthesized. Everything must work with pointer events (mouse + touch).
+- SPEC design rules stay: zero required reading (numerals OK), ≥64px targets, instant feedback, no fail states.
+- Single file, no deps, section banners kept.

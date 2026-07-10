@@ -19,6 +19,19 @@
   .scene { position: absolute; inset: 0; display: none; }
   .scene.active { display: block; }
 
+  /* ---------- SHARED CHIPS ---------- */
+  .chip {
+    position: absolute; height: 96px; border-radius: 26px; background: #fff;
+    border: 6px solid #023047; display: flex; align-items: center; gap: 10px;
+    padding: 0 22px; z-index: 20; font: 900 44px/1 -apple-system, "Arial Rounded MT Bold", sans-serif;
+    color: #023047;
+  }
+  .chip svg { width: 52px; height: 52px; }
+  .chip.pop { animation: chipPop .35s ease; }
+  .chip.deny { animation: denyShake .4s ease; }
+  @keyframes chipPop { 40% { transform: scale(1.18); } }
+  @keyframes denyShake { 20%,60% { transform: translateX(-10px); } 40%,80% { transform: translateX(10px); } }
+
   /* ---------- GARAGE ---------- */
   #garage { background: linear-gradient(#8ecae6 0%, #bde0fe 55%, #a8763e 55%, #8a5a2b 100%); }
   #garageWall {
@@ -35,10 +48,11 @@
     letter-spacing: 6px; padding: 10px 28px; border-radius: 14px; border: 5px solid #ffb703;
   }
   #preview {
-    position: absolute; left: 50%; top: 240px; transform: translateX(-50%);
+    position: absolute; left: 50%; top: 180px; transform: translateX(-50%);
     width: 440px; cursor: pointer; touch-action: none; pointer-events: auto;
   }
   #preview svg { width: 100%; height: auto; overflow: visible; }
+  #preview.locked svg { filter: grayscale(.9) opacity(.55); }
   #preview.bounce { animation: bounce .45s ease; }
   @keyframes bounce {
     0% { transform: translateX(-50%) scale(1); }
@@ -47,14 +61,25 @@
     100% { transform: translateX(-50%) scale(1); }
   }
   #garageFloor {
-    position: absolute; left: 0; right: 0; top: 452px; height: 40px;
+    position: absolute; left: 0; right: 0; top: 426px; height: 40px;
     background: #6c757d; border-top: 6px solid #495057;
   }
+  #priceTag {
+    position: absolute; left: calc(50% + 205px); top: 250px; height: 96px;
+    border-radius: 26px; background: #ffb703; border: 6px solid #023047;
+    display: none; align-items: center; gap: 10px; padding: 0 24px; z-index: 6;
+    font: 900 46px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #023047;
+    cursor: pointer; touch-action: none; box-shadow: 0 6px 0 rgba(0,0,0,.35);
+    animation: tagWiggle 1.6s ease infinite;
+  }
+  #priceTag.show { display: flex; }
+  #priceTag svg { width: 54px; height: 54px; }
+  @keyframes tagWiggle { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
 
   #controls {
-    position: absolute; left: 0; right: 0; bottom: 0; height: 205px;
+    position: absolute; left: 0; right: 0; bottom: 0; height: 244px;
     background: #023047; border-top: 8px solid #ffb703;
-    display: flex; align-items: center; justify-content: center; gap: 22px; padding: 0 20px;
+    display: flex; align-items: center; justify-content: center; gap: 14px; padding: 0 10px;
   }
   .bigBtn {
     border: none; border-radius: 24px; cursor: pointer; touch-action: none;
@@ -62,18 +87,24 @@
     box-shadow: 0 6px 0 rgba(0,0,0,.35); transition: transform .08s;
   }
   .bigBtn:active, .bigBtn.pressed { transform: translateY(4px) scale(.96); box-shadow: 0 2px 0 rgba(0,0,0,.35); }
-  #bodyBtn, #wheelBtn { width: 125px; height: 165px; background: #219ebc; flex-direction: column; gap: 6px; }
+  #bodyBtn, #wheelBtn { width: 122px; height: 165px; background: #219ebc; flex-direction: column; gap: 6px; }
   #bodyBtn svg, #wheelBtn svg { width: 92px; height: 92px; }
 
-  #swatches { display: grid; grid-template-columns: repeat(3, 86px); grid-template-rows: repeat(2, 86px); gap: 10px; }
+  /* 76px stage size = 64.8px rendered at iPad landscape scale (.853) — SPEC floor is 64 */
+  #swatches { display: grid; grid-template-columns: repeat(4, 76px); grid-template-rows: repeat(3, 76px); gap: 7px; }
   .swatch {
-    width: 86px; height: 86px; border-radius: 50%; border: 6px solid rgba(255,255,255,.85);
-    cursor: pointer; touch-action: none; box-shadow: 0 5px 0 rgba(0,0,0,.35); transition: transform .08s;
+    position: relative; width: 76px; height: 76px; border-radius: 50%; border: 5px solid rgba(255,255,255,.85);
+    cursor: pointer; touch-action: none; box-shadow: 0 4px 0 rgba(0,0,0,.35); transition: transform .08s;
   }
   .swatch:active { transform: scale(.9); }
-  .swatch.selected { border-color: #ffb703; transform: scale(1.08); }
+  .swatch.selected { border-color: #ffb703; transform: scale(1.1); }
+  .swatch .lockDot, .lvlBtn .lockDot {
+    position: absolute; right: -6px; bottom: -6px; width: 28px; height: 28px; border-radius: 50%;
+    background: #023047; display: flex; align-items: center; justify-content: center;
+  }
+  .lockDot svg { width: 16px; height: 16px; }
 
-  #extras { display: flex; gap: 10px; }
+  #extras { display: grid; grid-template-columns: repeat(2, 92px); gap: 9px; }
   .extraBtn {
     width: 92px; height: 92px; border-radius: 22px; background: #457b9d; opacity: .55;
     border: 5px solid rgba(255,255,255,.5);
@@ -81,31 +112,64 @@
   .extraBtn.on { background: #2a9d8f; opacity: 1; border-color: #ffb703; }
   .extraBtn svg { width: 60px; height: 60px; }
 
+  #mapBtn { width: 118px; height: 118px; border-radius: 50%; background: #219ebc; border: 8px solid #bde0fe; }
+  #mapBtn svg { width: 70px; height: 70px; }
+
   #goBtn {
     width: 160px; height: 160px; border-radius: 50%; background: #38b000;
     border: 8px solid #d8f3dc;
   }
   #goBtn svg { width: 80px; height: 80px; }
+  #goBtn.locked { background: #6c757d; border-color: #adb5bd; filter: opacity(.7); }
+
+  /* ---------- LEVEL MAP ---------- */
+  #map { background: linear-gradient(#8ecae6 0%, #bde0fe 60%, #74c69d 60%, #588157 100%); }
+  #mapGrid {
+    position: absolute; left: 50%; top: 120px; transform: translateX(-50%);
+    display: grid; grid-template-columns: repeat(6, 100px); grid-template-rows: repeat(5, 100px); gap: 12px;
+  }
+  .lvlBtn {
+    position: relative; width: 100px; height: 100px; border-radius: 28px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    font: 900 40px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #fff;
+  }
+  .lvlBtn.locked { background: #6c757d; opacity: .75; }
+  .lvlBtn.open { background: #219ebc; }
+  .lvlBtn.done { background: #2a9d8f; }
+  .lvlBtn.current { outline: 6px solid #ffb703; }
+  .lvlBtn .miniStars { display: flex; gap: 2px; height: 20px; }
+  .lvlBtn .miniStars svg { width: 20px; height: 20px; }
+  .lvlBtn > svg { width: 44px; height: 44px; }
 
   /* ---------- ROAD ---------- */
   #road { background: linear-gradient(#4cc9f0 0%, #90e0ef 45%, #caf0f8 62%); touch-action: none; }
+  #road.sunset { background: linear-gradient(#ff6d00 0%, #ffb85c 45%, #ffe3bd 62%); }
+  #road.night { background: linear-gradient(#0d1b2a 0%, #1b263b 45%, #33415c 62%); }
   .layer { position: absolute; top: 0; height: 100%; will-change: transform; }
-  #farLayer, #midLayer, #groundLayer { left: 0; width: 6400px; }
   #sun { position: absolute; right: 90px; top: 45px; width: 110px; height: 110px; border-radius: 50%; background: #ffd60a; box-shadow: 0 0 60px 22px rgba(255,214,10,.55); }
+  #road.sunset #sun { background: #ff9e00; box-shadow: 0 0 70px 28px rgba(255,120,0,.55); top: 130px; }
+  #road.night #sun { background: #f1faee; box-shadow: 0 0 40px 14px rgba(240,250,240,.35); }
   .cloud { position: absolute; background: #fff; border-radius: 60px; opacity: .9; }
+  #road.night .cloud { opacity: .25; }
   .cloud::before, .cloud::after { content: ""; position: absolute; background: #fff; border-radius: 50%; }
   .cloud::before { width: 55%; height: 160%; left: 12%; bottom: 25%; }
   .cloud::after { width: 45%; height: 130%; right: 12%; bottom: 30%; }
+  #skyStars { display: none; position: absolute; inset: 0; }
+  #road.night #skyStars { display: block; }
 
   #roadStrip {
-    position: absolute; left: 0; width: 100%; top: 500px; height: 120px;
+    position: absolute; left: 0; width: 100%; top: 460px; height: 230px;
     background: #495057; border-top: 8px solid #343a40;
   }
   #roadStrip::before {
-    content: ""; position: absolute; left: 0; width: 100%; top: 52px; height: 12px;
+    content: ""; position: absolute; left: 0; width: 100%; top: 62px; height: 10px;
     background: repeating-linear-gradient(90deg, #ffd60a 0 60px, transparent 60px 120px);
   }
-  #dirt { position: absolute; left: 0; width: 100%; top: 620px; height: 80px; background: #8a5a2b; }
+  #roadStrip::after {
+    content: ""; position: absolute; left: 0; width: 100%; top: 128px; height: 10px;
+    background: repeating-linear-gradient(90deg, #ffd60a 0 60px, transparent 60px 120px);
+  }
+  #dirt { position: absolute; left: 0; width: 100%; top: 690px; height: 10px; background: #8a5a2b; }
 
   .prop { position: absolute; }
   .cone { transition: transform .5s ease; transform-origin: bottom center; }
@@ -114,37 +178,68 @@
   .star.collected { transform: scale(2.2); opacity: 0; }
   .puddle .splash { opacity: 0; transition: opacity .15s; }
   .puddle.splashing .splash { opacity: 1; }
+  .prop.hit { animation: propShake .45s ease; }
+  @keyframes propShake { 20%,60% { transform: translateX(-8px) rotate(-5deg); } 40%,80% { transform: translateX(8px) rotate(5deg); } }
 
-  #carWrap { position: absolute; left: 135px; width: 330px; will-change: transform; cursor: pointer; touch-action: none; transform-origin: center; }
+  #carWrap { position: absolute; left: 135px; width: 330px; will-change: transform; cursor: pointer; touch-action: none; transform-origin: 50% 90%; }
   #carWrap svg { width: 100%; height: auto; overflow: visible; }
+  #carWrap.wobble svg { animation: carWobble .55s ease; }
+  @keyframes carWobble { 20% { transform: rotate(-7deg); } 40% { transform: rotate(6deg); } 60% { transform: rotate(-4deg); } 80% { transform: rotate(2deg); } }
 
-  #homeBtn {
+  #homeBtn, #mapHomeBtn {
     position: absolute; left: 24px; top: 24px; width: 96px; height: 96px;
     border-radius: 26px; background: #fff; border: 6px solid #023047; z-index: 20;
   }
-  #homeBtn svg { width: 56px; height: 56px; }
+  #homeBtn svg, #mapHomeBtn svg { width: 56px; height: 56px; }
 
-  #pedal {
-    position: absolute; right: 30px; bottom: 26px; width: 170px; height: 170px;
-    border-radius: 50%; background: #e63946; border: 10px solid #fff;
+  #hudLevel { left: 136px; top: 24px; }
+  #hudStars { right: 24px; top: 24px; }
+  #garageWallet { right: 24px; top: 24px; cursor: pointer; }
+  #mapWallet { right: 24px; top: 24px; }
+
+  .pedal {
+    position: absolute; bottom: 26px; border-radius: 50%; border: 10px solid #fff;
     display: flex; align-items: center; justify-content: center; z-index: 20;
     box-shadow: 0 8px 0 rgba(0,0,0,.35); cursor: pointer; touch-action: none;
     transition: transform .08s;
   }
-  #pedal.held { transform: scale(.92); box-shadow: 0 3px 0 rgba(0,0,0,.35); }
-  #pedal svg { width: 90px; height: 90px; }
+  .pedal.held { transform: scale(.92); box-shadow: 0 3px 0 rgba(0,0,0,.35); }
+  #gasPedal { right: 30px; width: 170px; height: 170px; background: #38b000; }
+  #gasPedal svg { width: 90px; height: 90px; }
+  #brakePedal { right: 225px; bottom: 32px; width: 140px; height: 140px; background: #e63946; }
+  #brakePedal svg { width: 76px; height: 76px; }
+
+  .laneArrow {
+    position: absolute; left: 30px; width: 108px; height: 108px; border-radius: 50%;
+    background: #219ebc; border: 8px solid #bde0fe; z-index: 20;
+  }
+  .laneArrow svg { width: 60px; height: 60px; }
+  #laneUp { bottom: 190px; }
+  #laneDown { bottom: 60px; }
 
   /* ---------- CELEBRATION ---------- */
   #celebrate {
     position: absolute; inset: 0; display: none; z-index: 30;
-    background: rgba(2,48,71,.45); align-items: center; justify-content: center;
+    background: rgba(2,48,71,.55); align-items: center; justify-content: center;
+    flex-direction: column; gap: 34px;
   }
   #celebrate.active { display: flex; }
-  #celebrateBtn {
-    width: 230px; height: 230px; border-radius: 50%; background: #ffb703;
-    border: 12px solid #fff; animation: pulse 1.1s ease infinite;
+  #tallyChip {
+    position: static; height: 130px; border-radius: 34px; padding: 0 36px;
+    font-size: 64px; gap: 16px; border-width: 8px;
   }
-  #celebrateBtn svg { width: 120px; height: 120px; }
+  #tallyChip svg { width: 76px; height: 76px; }
+  #ratingRow { display: flex; gap: 18px; }
+  #ratingRow .rateStar { width: 104px; height: 104px; opacity: .25; transform: scale(.6); }
+  #ratingRow .rateStar.lit { opacity: 1; transform: scale(1); transition: transform .3s cubic-bezier(.2,2,.4,1), opacity .2s; }
+  #celebrateRow { display: flex; gap: 30px; align-items: center; }
+  #replayBtn, #celebrateHomeBtn { width: 150px; height: 150px; border-radius: 50%; background: #219ebc; border: 10px solid #fff; }
+  #replayBtn svg, #celebrateHomeBtn svg { width: 80px; height: 80px; }
+  #nextBtn {
+    width: 220px; height: 220px; border-radius: 50%; background: #38b000;
+    border: 12px solid #d8f3dc; animation: pulse 1.1s ease infinite;
+  }
+  #nextBtn svg { width: 110px; height: 110px; }
   @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.09); } }
   .confetti {
     position: absolute; top: -30px; width: 16px; height: 16px; z-index: 29;
@@ -166,6 +261,8 @@
     <div id="garageWall"><div id="garageSign">VROOM</div></div>
     <div id="garageFloor"></div>
     <div id="preview"></div>
+    <button id="priceTag" aria-label="unlock with stars"></button>
+    <div class="chip" id="garageWallet" aria-label="star wallet"></div>
     <div id="controls">
       <button class="bigBtn" id="bodyBtn" aria-label="change truck body">
         <svg viewBox="0 0 100 100"><path d="M10 62 L10 40 L48 40 L48 26 L74 26 L86 44 L90 62 Z" fill="#fff"/><circle cx="30" cy="66" r="12" fill="#023047" stroke="#fff" stroke-width="4"/><circle cx="72" cy="66" r="12" fill="#023047" stroke="#fff" stroke-width="4"/><path d="M40 18 L46 8 M50 18 L50 6 M60 18 L54 8" stroke="#ffb703" stroke-width="5" stroke-linecap="round"/></svg>
@@ -185,14 +282,28 @@
           <svg viewBox="0 0 100 100"><path d="M35 90 V12" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M40 15 L82 25 L40 40 Z" fill="#e63946" stroke="#fff" stroke-width="3"/></svg>
         </button>
       </div>
+      <button class="bigBtn" id="mapBtn" aria-label="pick a level">
+        <svg viewBox="0 0 100 100"><path d="M14 22 L38 14 L62 22 L86 14 V78 L62 86 L38 78 L14 86 Z" fill="#fff" stroke="#023047" stroke-width="5" stroke-linejoin="round"/><path d="M30 60 Q45 30 62 52 Q72 64 76 40" stroke="#e63946" stroke-width="6" fill="none" stroke-dasharray="2 10" stroke-linecap="round"/><circle cx="76" cy="36" r="9" fill="#e63946"/></svg>
+      </button>
       <button class="bigBtn" id="goBtn" aria-label="go drive">
         <svg viewBox="0 0 100 100"><path d="M30 18 L82 50 L30 82 Z" fill="#fff"/></svg>
       </button>
     </div>
   </div>
 
+  <div id="map" class="scene">
+    <div class="cloud" style="left:160px; top:40px; width:150px; height:48px;"></div>
+    <div class="cloud" style="left:880px; top:30px; width:120px; height:40px;"></div>
+    <button class="bigBtn" id="mapHomeBtn" aria-label="back to garage">
+      <svg viewBox="0 0 100 100"><path d="M50 12 L92 50 H78 V88 H22 V50 H8 Z" fill="#023047"/><rect x="40" y="58" width="20" height="30" fill="#ffb703"/></svg>
+    </button>
+    <div class="chip" id="mapWallet" aria-label="star wallet"></div>
+    <div id="mapGrid"></div>
+  </div>
+
   <div id="road" class="scene">
     <div id="sun"></div>
+    <div id="skyStars"></div>
     <div class="cloud" style="left:180px; top:70px; width:130px; height:44px;"></div>
     <div class="cloud" style="left:620px; top:120px; width:170px; height:52px;"></div>
     <div class="cloud" style="left:980px; top:55px; width:110px; height:38px;"></div>
@@ -200,18 +311,41 @@
     <div id="midLayer" class="layer"></div>
     <div id="roadStrip"></div>
     <div id="dirt"></div>
-    <div id="groundLayer" class="layer"></div>
+    <div id="lane0" class="layer laneLayer" style="z-index:10"></div>
+    <div id="lane1" class="layer laneLayer" style="z-index:12"></div>
+    <div id="lane2" class="layer laneLayer" style="z-index:14"></div>
     <div id="carWrap"></div>
     <button class="bigBtn" id="homeBtn" aria-label="back to garage">
       <svg viewBox="0 0 100 100"><path d="M50 12 L92 50 H78 V88 H22 V50 H8 Z" fill="#023047"/><rect x="40" y="58" width="20" height="30" fill="#ffb703"/></svg>
     </button>
-    <button id="pedal" aria-label="hold to drive">
+    <div class="chip" id="hudLevel" aria-label="level number"></div>
+    <div class="chip" id="hudStars" aria-label="stars collected"></div>
+    <button class="bigBtn laneArrow" id="laneUp" aria-label="move up a lane">
+      <svg viewBox="0 0 100 100"><path d="M50 14 L88 62 H12 Z" fill="#fff"/></svg>
+    </button>
+    <button class="bigBtn laneArrow" id="laneDown" aria-label="move down a lane">
+      <svg viewBox="0 0 100 100"><path d="M50 86 L12 38 H88 Z" fill="#fff"/></svg>
+    </button>
+    <button class="pedal" id="brakePedal" aria-label="brake">
+      <svg viewBox="0 0 100 100"><path d="M32 8 H68 L92 32 V68 L68 92 H32 L8 68 V32 Z" fill="#fff"/><path d="M36 16 H64 L84 36 V64 L64 84 H36 L16 64 V36 Z" fill="#e63946"/><rect x="28" y="42" width="44" height="16" rx="8" fill="#fff"/></svg>
+    </button>
+    <button class="pedal" id="gasPedal" aria-label="hold to drive">
       <svg viewBox="0 0 100 100"><path d="M30 14 L82 50 L30 86 Z" fill="#fff"/></svg>
     </button>
     <div id="celebrate">
-      <button class="bigBtn" id="celebrateBtn" aria-label="build another truck">
-        <svg viewBox="0 0 100 100"><path d="M50 10 L94 42 H84 V90 H16 V42 H6 Z" fill="#023047"/><rect x="30" y="52" width="40" height="38" rx="4" fill="#e9ecef"/><path d="M30 62 H70 M30 72 H70 M30 82 H70" stroke="#adb5bd" stroke-width="4"/></svg>
-      </button>
+      <div class="chip" id="tallyChip"></div>
+      <div id="ratingRow"></div>
+      <div id="celebrateRow">
+        <button class="bigBtn" id="replayBtn" aria-label="drive this road again">
+          <svg viewBox="0 0 100 100"><path d="M50 16 A34 34 0 1 1 18 46" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M8 24 L36 22 L22 48 Z" fill="#fff"/></svg>
+        </button>
+        <button class="bigBtn" id="nextBtn" aria-label="next level">
+          <svg viewBox="0 0 100 100"><path d="M20 18 L64 50 L20 82 Z" fill="#fff"/><rect x="68" y="18" width="14" height="64" rx="7" fill="#fff"/></svg>
+        </button>
+        <button class="bigBtn" id="celebrateHomeBtn" aria-label="back to garage">
+          <svg viewBox="0 0 100 100"><path d="M50 10 L94 42 H84 V90 H16 V42 H6 Z" fill="#fff"/><rect x="40" y="58" width="20" height="32" fill="#219ebc"/></svg>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -227,30 +361,69 @@ function fit() {
   stage.style.transform = `translate(-50%,-50%) scale(${s})`;
 }
 addEventListener("resize", fit);
+addEventListener("orientationchange", () => { fit(); setTimeout(fit, 350); });
+if (window.visualViewport) visualViewport.addEventListener("resize", fit);
 fit();
 
-/* ============ STATE ============ */
-const COLORS = ["#e53935", "#1e88e5", "#fdd835", "#43a047", "#fb8c00", "#ec407a"];
-const BODY_ORDER = ["dump", "digger", "mixer", "fire", "monster"];
-const WHEEL_ORDER = ["normal", "monster", "racing"];
+/* ============ CATALOG + ECONOMY ============ */
+const COLORS = ["#e53935", "#1e88e5", "#fdd835", "#43a047", "#fb8c00", "#ec407a",
+                "#8e24aa", "#00acc1", "#9ccc65", "#f5f5f5", "#37474f", "rainbow"];
+let BODY_ORDER = ["dump", "digger", "mixer", "fire", "monster", "police", "race", "tractor", "icecream", "rocket", "ufo"];
+let WHEEL_ORDER = ["normal", "monster", "racing", "gold", "flower", "tank"];
+const PRICES = {
+  body:   { police: 25, race: 40, tractor: 60, icecream: 80, rocket: 120, ufo: 200 },
+  wheels: { gold: 30, flower: 50, tank: 70 },
+  color:  { "#8e24aa": 10, "#00acc1": 10, "#9ccc65": 15, "#f5f5f5": 15, "#37474f": 20, "rainbow": 60 }
+};
+function priceOf(kind, id) { return (PRICES[kind] && PRICES[kind][id]) || 0; }
+function owns(kind, id) { return priceOf(kind, id) === 0 || progress.owned[kind].includes(id); }
 
+const MAX_LEVEL = 30;
+
+/* ============ STATE (vroom.v2, migrates v1 build) ============ */
 let state = { body: "dump", wheels: "normal", color: "#fdd835", extras: { horn: false, beacon: false, flag: false } };
-try {
-  const saved = JSON.parse(localStorage.getItem("vroom.v1"));
-  if (saved && BODY_ORDER.includes(saved.body) && WHEEL_ORDER.includes(saved.wheels)) {
-    state.body = saved.body;
-    state.wheels = saved.wheels;
-    if (COLORS.includes(saved.color)) state.color = saved.color;
-    for (const k in state.extras) state.extras[k] = !!(saved.extras && saved.extras[k]);
+let progress = { wallet: 0, owned: { body: [], wheels: [], color: [] }, levels: {}, current: 1 };
+
+function loadState() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem("vroom.v2")); } catch (e) {}
+  if (!saved) {
+    /* migrate the kid's v1 build if present */
+    try { const v1 = JSON.parse(localStorage.getItem("vroom.v1")); if (v1) saved = { build: v1 }; } catch (e) {}
   }
-} catch (e) {}
-function save() { try { localStorage.setItem("vroom.v1", JSON.stringify(state)); } catch (e) {} }
+  if (!saved) return;
+  const b = saved.build || {};
+  if (BODY_ORDER.includes(b.body)) state.body = b.body;
+  if (WHEEL_ORDER.includes(b.wheels)) state.wheels = b.wheels;
+  if (COLORS.includes(b.color)) state.color = b.color;
+  for (const k in state.extras) state.extras[k] = !!(b.extras && b.extras[k]);
+  if (Number.isFinite(saved.wallet) && saved.wallet >= 0) progress.wallet = Math.floor(saved.wallet);
+  if (saved.owned) for (const kind of ["body", "wheels", "color"]) {
+    if (Array.isArray(saved.owned[kind])) progress.owned[kind] = saved.owned[kind].filter(id => priceOf(kind, id) > 0);
+  }
+  if (saved.levels) for (const n in saved.levels) {
+    const lv = saved.levels[n], num = +n;
+    if (num >= 1 && num <= MAX_LEVEL && lv && Number.isFinite(lv.best)) {
+      progress.levels[num] = { best: lv.best, rating: Math.min(3, Math.max(1, lv.rating || 1)) };
+    }
+  }
+  if (Number.isFinite(saved.current) && saved.current >= 1 && saved.current <= MAX_LEVEL) progress.current = Math.floor(saved.current);
+  /* if the saved build uses a part that is no longer owned somehow, fall back */
+  if (!owns("body", state.body)) state.body = "dump";
+  if (!owns("wheels", state.wheels)) state.wheels = "normal";
+  if (!owns("color", state.color)) state.color = "#fdd835";
+}
+function save() {
+  try { localStorage.setItem("vroom.v2", JSON.stringify({ build: state, ...progress })); } catch (e) {}
+}
 
 /* ============ AUDIO (all synthesized) ============ */
 let actx = null;
 function unlockAudio() {
-  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
-  if (actx.state === "suspended") actx.resume();
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === "suspended") actx.resume();
+  } catch (e) { /* stay silent for the session */ }
 }
 addEventListener("pointerdown", unlockAudio, { capture: true });
 
@@ -286,11 +459,18 @@ const sfx = {
   clank()  { tone("square", 300, 120, 0.12, 0.18); noiseBurst(0.06, 3000, 0.12); },
   splat()  { noiseBurst(0.18, 1200, 0.3); tone("sine", 300, 80, 0.18, 0.2); },
   chime()  { tone("sine", 880, 880, 0.15, 0.22); tone("sine", 1320, 1320, 0.25, 0.18, 0.08); },
+  tick(i)  { tone("sine", 700 + i * 40, 700 + i * 40, 0.08, 0.18); },
   boink()  { tone("triangle", 500, 150, 0.2, 0.3); },
+  thud()   { tone("square", 130, 55, 0.3, 0.35); noiseBurst(0.15, 700, 0.3); },
+  squeal() { tone("sawtooth", 1400, 900, 0.35, 0.08); noiseBurst(0.3, 2400, 0.1); },
+  whoosh() { tone("sine", 300, 620, 0.14, 0.16); },
   whee()   { [523, 659, 784, 1047].forEach((f, i) => tone("sine", f, f, 0.14, 0.22, i * 0.07)); },
   splash() { noiseBurst(0.35, 900, 0.35); },
+  deny()   { tone("triangle", 220, 160, 0.18, 0.3); tone("triangle", 180, 120, 0.22, 0.3, 0.18); },
+  buy()    { [659, 784, 988, 1319].forEach((f, i) => tone("triangle", f, f, 0.3, 0.24, i * 0.09)); noiseBurst(0.4, 4000, 0.08, 0.36); },
   tada()   { [523, 659, 784, 1047, 1319].forEach((f, i) => tone("triangle", f, f, 0.5, 0.22, i * 0.11)); noiseBurst(0.5, 4000, 0.1, 0.5); },
   honk(body) {
+    if (HONKS[body]) { HONKS[body](); return; }
     if (body === "dump")    { tone("square", 190, 190, 0.2, 0.3); tone("square", 150, 150, 0.25, 0.3, 0.22); }
     if (body === "digger")  { tone("square", 880, 880, 0.12, 0.22); tone("square", 880, 880, 0.12, 0.22, 0.2); }
     if (body === "mixer")   { tone("sine", 300, 380, 0.15, 0.3); tone("sine", 380, 300, 0.2, 0.3, 0.15); }
@@ -298,6 +478,39 @@ const sfx = {
     if (body === "monster") { tone("sawtooth", 95, 80, 0.5, 0.4); tone("sawtooth", 98, 82, 0.5, 0.3); }
   }
 };
+const HONKS = {
+  police() { /* two-tone siren wail, up-down-up */
+    tone("sawtooth", 620, 920, 0.3, 0.2);
+    tone("sawtooth", 920, 620, 0.3, 0.2, 0.3);
+    tone("sawtooth", 620, 920, 0.3, 0.2, 0.6);
+  },
+  race() { /* high engine rev blips */
+    tone("sawtooth", 180, 1100, 0.22, 0.25);
+    tone("sawtooth", 1100, 500, 0.12, 0.2, 0.22);
+    tone("sawtooth", 260, 1300, 0.2, 0.22, 0.4);
+  },
+  tractor() { /* slow low diesel chugs */
+    tone("square", 105, 88, 0.16, 0.3);
+    tone("square", 105, 88, 0.16, 0.3, 0.22);
+    tone("square", 100, 80, 0.24, 0.3, 0.44);
+  },
+  icecream() { /* 4-note music-box jingle: G5 E5 G5 C6 */
+    tone("triangle", 784, 784, 0.16, 0.22);
+    tone("triangle", 659, 659, 0.16, 0.22, 0.18);
+    tone("triangle", 784, 784, 0.16, 0.22, 0.36);
+    tone("triangle", 1047, 1047, 0.3, 0.22, 0.54);
+  },
+  rocket() { /* rising launch whoosh */
+    tone("sawtooth", 70, 900, 0.6, 0.22);
+    tone("sine", 140, 1800, 0.55, 0.12, 0.1);
+  },
+  ufo() { /* wobbly theremin warble */
+    tone("sine", 520, 720, 0.22, 0.25);
+    tone("sine", 720, 440, 0.22, 0.25, 0.22);
+    tone("sine", 440, 780, 0.3, 0.25, 0.44);
+  }
+};
+
 let engine = null;
 function engineStart() {
   if (!actx || engine) return;
@@ -311,11 +524,14 @@ function engineStart() {
 }
 function engineSet(v) {
   if (!engine) return;
-  engine.o.frequency.value = 45 + (v / 700) * 100;
-  engine.g.gain.value = v > 5 ? 0.07 : 0;
+  /* smooth ramps instead of per-frame .value writes (audible zipper otherwise) */
+  const t = actx.currentTime;
+  engine.o.frequency.setTargetAtTime(45 + (v / 700) * 100, t, 0.06);
+  engine.g.gain.setTargetAtTime(v > 5 ? 0.07 : 0, t, 0.06);
 }
 function engineStop() {
   if (!engine) return;
+  engine.g.gain.cancelScheduledValues(actx.currentTime);
   engine.g.gain.value = 0; engine.o.stop();
   engine = null;
 }
@@ -325,21 +541,37 @@ function engineStop() {
 const WHEELS = {
   normal:  { r: 26, hub: "#adb5bd" },
   monster: { r: 40, hub: "#adb5bd" },
-  racing:  { r: 22, hub: "#ffd60a" }
+  racing:  { r: 22, hub: "#ffd60a" },
+  gold:    { r: 28, hub: "#ffd700" },
+  flower:  { r: 30, hub: "#ff70a6" },
+  tank:    { r: 36, hub: "#495057" }
+};
+const WHEEL_DECOR = {
+  monster: (r) => {
+    let t = "";
+    for (let a = 0; a < 8; a++) t += `<rect x="-4" y="${-r}" width="8" height="10" rx="3" fill="#111" transform="rotate(${a * 45})"/>`;
+    return t;
+  },
+  /* 5 thin gold spokes; hub circle drawn after covers the inner half */
+  gold: (r) => [0, 1, 2, 3, 4].map(a =>
+    `<rect x="-2" y="${-r + 3}" width="4" height="${r - 3}" rx="2" fill="#ffd700" transform="rotate(${a * 72})"/>`
+  ).join(""),
+  /* 6 white petal ellipses around the pink hub — hub becomes the flower center */
+  flower: (r) => [0, 1, 2, 3, 4, 5].map(a =>
+    `<ellipse cx="0" cy="${-r * 0.62}" rx="${r * 0.28}" ry="${r * 0.42}" fill="#fff" transform="rotate(${a * 60})"/>`
+  ).join(""),
+  /* 10 wide flat lugs around the rim, chunkier than monster treads */
+  tank: (r) => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(a =>
+    `<rect x="-7" y="${-r - 2}" width="14" height="8" rx="2" fill="#111" transform="rotate(${a * 36})"/>`
+  ).join("")
 };
 function wheelSVG(type, cx) {
   const w = WHEELS[type];
   const cy = 200 - w.r;
-  let treads = "";
-  if (type === "monster") {
-    for (let a = 0; a < 8; a++) {
-      const rad = a * Math.PI / 4;
-      treads += `<rect x="${-4}" y="${-w.r}" width="8" height="10" rx="3" fill="#111" transform="rotate(${a * 45})"/>`;
-    }
-  }
+  const decor = WHEEL_DECOR[type] ? WHEEL_DECOR[type](w.r) : "";
   return `<g transform="translate(${cx},${cy})"><g class="wheelrot">
     <circle r="${w.r}" fill="#2b2d31"/>
-    ${treads}
+    ${decor}
     <circle r="${w.r * 0.52}" fill="${w.hub}"/>
     <rect x="${-w.r * 0.5}" y="-3.5" width="${w.r}" height="7" rx="3" fill="#2b2d31"/>
     <circle r="${w.r * 0.16}" fill="#2b2d31"/>
@@ -407,6 +639,109 @@ const BODIES = {
       ${eye(214, 101, 9)}
       <path d="M60 132 Q80 118 96 132 Q112 146 128 132" stroke="#ffd60a" stroke-width="7" fill="none" stroke-linecap="round"/>
       <rect x="36" y="158" width="252" height="14" rx="7" fill="#495057"/>`
+  },
+  /* police: low sedan silhouette — long trunk-hood line with a rounded cabin hump,
+     white side stripe with a navy star badge, red+blue lightbar on the roof */
+  police: {
+    roof: [140, 84], rear: [52, 116],
+    svg: () => `
+      <path d="M42 128 Q42 116 56 116 L104 116 L120 90 Q124 84 132 84 L228 84 Q236 84 240 90 L256 116 L266 116 Q280 116 280 128 L280 158 L42 158 Z" fill="var(--paint)"/>
+      <rect x="50" y="134" width="222" height="16" rx="7" fill="#f8f9fa"/>
+      <rect x="128" y="94" width="46" height="26" rx="5" fill="#bde0fe"/>
+      <rect x="186" y="94" width="48" height="26" rx="5" fill="#bde0fe"/>
+      ${eye(211, 107, 8)}
+      <rect x="168" y="78" width="50" height="8" rx="3" fill="#adb5bd"/>
+      <rect x="172" y="68" width="19" height="12" rx="3" fill="#e63946"/>
+      <rect x="197" y="68" width="19" height="12" rx="3" fill="#1e88e5"/>
+      <path d="M0 -9 L2.2 -3.1 L8.6 -2.8 L3.6 1.2 L5.3 7.3 L0 3.8 L-5.3 7.3 L-3.6 1.2 L-8.6 -2.8 L-2.2 -3.1 Z" fill="#1d3557" transform="translate(161,142)"/>
+      <rect x="36" y="156" width="252" height="14" rx="6" fill="#495057"/>`
+  },
+  /* race: low sleek wedge rising from the pointed nose (right) to the tail (left),
+     bubble cockpit canopy, tall rear spoiler, white "1" roundel on the flank */
+  race: {
+    roof: [142, 86], rear: [50, 78],
+    svg: () => `
+      <rect x="46" y="86" width="10" height="36" rx="3" fill="#343a40"/>
+      <rect x="26" y="76" width="56" height="12" rx="5" fill="var(--paint)" filter="brightness(.75)"/>
+      <path d="M40 158 L40 138 Q40 122 62 119 L150 110 Q195 106 235 120 L290 140 Q300 144 300 154 L300 158 Z" fill="var(--paint)"/>
+      <path d="M100 116 Q114 86 142 86 Q168 86 178 112 Z" fill="#bde0fe"/>
+      ${eye(142, 100, 9)}
+      <path d="M64 136 L268 146" stroke="#ffffffaa" stroke-width="7" stroke-linecap="round"/>
+      <circle cx="222" cy="136" r="15" fill="#fff"/>
+      <path d="M217 130 L224 126 L224 146" stroke="#1d3557" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="40" y="154" width="252" height="14" rx="6" fill="#495057"/>`
+  },
+  /* tractor: tall boxy cab at the rear with a big fender arch over the back wheel,
+     low flat hood out front with grille, headlight and an exhaust stack on top */
+  tractor: {
+    roof: [142, 56], rear: [46, 108],
+    svg: () => `
+      <rect x="96" y="56" width="92" height="102" rx="12" fill="var(--paint)"/>
+      <rect x="108" y="68" width="68" height="48" rx="8" fill="#bde0fe"/>
+      ${eye(142, 92, 10)}
+      <rect x="180" y="112" width="96" height="36" rx="8" fill="var(--paint)"/>
+      <rect x="264" y="118" width="12" height="26" rx="3" fill="#343a40"/>
+      <circle cx="256" cy="124" r="5" fill="#ffd60a"/>
+      <rect x="210" y="68" width="11" height="48" fill="#495057"/>
+      <rect x="205" y="60" width="21" height="10" rx="4" fill="#6c757d"/>
+      <path d="M40 138 Q40 102 85 102 Q130 102 130 138 L130 150 L40 150 Z" fill="var(--paint)" filter="brightness(.85)"/>
+      <rect x="36" y="152" width="250" height="16" rx="7" fill="#495057"/>`
+  },
+  /* icecream: tall boxy van with striped awning over a white serving window,
+     giant waffle cone + pink scoop + cherry towering off the roof */
+  icecream: {
+    roof: [104, 76], rear: [46, 88],
+    svg: () => `
+      <rect x="40" y="76" width="196" height="92" rx="12" fill="var(--paint)"/>
+      <rect x="222" y="106" width="64" height="62" rx="10" fill="var(--paint)" filter="brightness(.92)"/>
+      <rect x="232" y="114" width="44" height="27" rx="5" fill="#bde0fe"/>
+      ${eye(254, 127, 8)}
+      <rect x="64" y="102" width="78" height="44" rx="6" fill="#fff"/>
+      <rect x="60" y="142" width="86" height="8" rx="4" fill="#adb5bd"/>
+      <rect x="56" y="88" width="94" height="14" rx="6" fill="#e63946"/>
+      <rect x="68" y="88" width="12" height="14" fill="#fff"/>
+      <rect x="94" y="88" width="12" height="14" fill="#fff"/>
+      <rect x="120" y="88" width="12" height="14" fill="#fff"/>
+      <path d="M162 42 L192 42 L177 78 Z" fill="#e6a23c"/>
+      <circle cx="177" cy="34" r="16" fill="#ff70a6"/>
+      <circle cx="177" cy="17" r="9" fill="#fff"/>
+      <circle cx="177" cy="6" r="5" fill="#e63946"/>
+      <rect x="36" y="160" width="252" height="12" rx="6" fill="#495057"/>`
+  },
+  /* rocket: horizontal capsule fuselage with a pointed nose cone (right), swept
+     tail fin (left), silver thruster spitting flames, porthole eye, flame decal */
+  rocket: {
+    roof: [150, 96], rear: [80, 100],
+    svg: () => `
+      <path d="M92 100 L56 64 L56 100 Z" fill="var(--paint)" filter="brightness(.8)"/>
+      <rect x="58" y="96" width="180" height="62" rx="26" fill="var(--paint)"/>
+      <path d="M232 100 L304 127 L232 154 Z" fill="var(--paint)" filter="brightness(1.15)"/>
+      <rect x="40" y="110" width="20" height="34" rx="4" fill="#adb5bd"/>
+      <path d="M40 118 L16 127 L40 136 Z" fill="#ff9f1c"/>
+      <path d="M40 122 L28 127 L40 132 Z" fill="#ffd60a"/>
+      <circle cx="192" cy="126" r="22" fill="#f8f9fa"/>
+      <circle cx="192" cy="126" r="16" fill="#bde0fe"/>
+      ${eye(192, 126, 8)}
+      <path d="M96 134 Q104 118 112 134 Q120 118 128 134 Q136 118 144 134" stroke="#ff9f1c" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <rect x="52" y="152" width="216" height="14" rx="6" fill="#495057"/>`
+  },
+  /* ufo: wide saucer ellipse with a darker under-hull, glass dome canopy with a
+     big alien-cute eye, antenna ball on the dome, ring of yellow rim lights */
+  ufo: {
+    roof: [150, 62], rear: [52, 122],
+    svg: () => `
+      <path d="M112 120 Q112 60 160 60 Q208 60 208 120 Z" fill="#bde0fe"/>
+      ${eye(164, 94, 11)}
+      <path d="M192 74 L202 48" stroke="#adb5bd" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="203" cy="44" r="7" fill="#ffd60a"/>
+      <ellipse cx="160" cy="134" rx="122" ry="33" fill="var(--paint)"/>
+      <ellipse cx="160" cy="142" rx="92" ry="20" fill="var(--paint)" filter="brightness(.8)"/>
+      <circle cx="72" cy="136" r="6" fill="#ffd60a"/>
+      <circle cx="116" cy="146" r="6" fill="#ffd60a"/>
+      <circle cx="160" cy="149" r="6" fill="#ffd60a"/>
+      <circle cx="204" cy="146" r="6" fill="#ffd60a"/>
+      <circle cx="248" cy="136" r="6" fill="#ffd60a"/>
+      <rect x="70" y="156" width="180" height="14" rx="7" fill="#495057"/>`
   }
 };
 function extrasSVG(body, extras) {
@@ -430,9 +765,21 @@ function extrasSVG(body, extras) {
     </g>`;
   return out;
 }
+let svgUid = 0;
 function vehicleSVG(st) {
   const lift = Math.max(0, WHEELS[st.wheels].r - 26);
-  return `<svg viewBox="0 0 320 230" style="--paint:${st.color}">
+  let paint = st.color, defs = "";
+  if (st.color === "rainbow") {
+    const id = "rg" + (++svgUid);
+    defs = `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e53935"/><stop offset=".2" stop-color="#fb8c00"/>
+      <stop offset=".4" stop-color="#fdd835"/><stop offset=".6" stop-color="#43a047"/>
+      <stop offset=".8" stop-color="#1e88e5"/><stop offset="1" stop-color="#8e24aa"/>
+    </linearGradient></defs>`;
+    paint = `url(#${id})`;
+  }
+  return `<svg viewBox="0 0 320 230" style="--paint:${paint}">
+    ${defs}
     <g transform="translate(0,${-lift})">
       ${BODIES[st.body].svg()}
       ${extrasSVG(st.body, st.extras)}
@@ -446,14 +793,72 @@ function vehicleSVG(st) {
   </svg>`;
 }
 
-/* ============ GARAGE UI ============ */
+/* ============ SHARED ICONS ============ */
+const starIcon = `<svg viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/></svg>`;
+const lockIcon = `<svg viewBox="0 0 64 64"><rect x="12" y="28" width="40" height="30" rx="7" fill="#fff"/><path d="M20 28 V20 a12 12 0 0 1 24 0 V28" stroke="#fff" stroke-width="8" fill="none"/></svg>`;
+
+loadState();
+
+/* ============ WALLET UI ============ */
+const garageWallet = document.getElementById("garageWallet");
+const mapWallet = document.getElementById("mapWallet");
+function renderWallets(pop) {
+  for (const el of [garageWallet, mapWallet]) {
+    el.innerHTML = starIcon + `<span>${progress.wallet}</span>`;
+    if (pop) { el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); }
+  }
+}
+function walletDeny() {
+  for (const el of [garageWallet, mapWallet]) {
+    el.classList.remove("deny"); void el.offsetWidth; el.classList.add("deny");
+  }
+  sfx.deny();
+}
+
+/* ============ GARAGE UI + SHOP ============ */
 const preview = document.getElementById("preview");
+const priceTag = document.getElementById("priceTag");
+const goBtn = document.getElementById("goBtn");
+
+function lockedParts() {
+  const out = [];
+  if (!owns("body", state.body)) out.push(["body", state.body]);
+  if (!owns("wheels", state.wheels)) out.push(["wheels", state.wheels]);
+  if (!owns("color", state.color)) out.push(["color", state.color]);
+  return out;
+}
+function renderShop() {
+  const locked = lockedParts();
+  const cost = locked.reduce((s, [k, id]) => s + priceOf(k, id), 0);
+  preview.classList.toggle("locked", locked.length > 0);
+  goBtn.classList.toggle("locked", locked.length > 0);
+  if (locked.length) {
+    priceTag.innerHTML = starIcon + `<span>${cost}</span>`;
+    priceTag.classList.add("show");
+  } else priceTag.classList.remove("show");
+}
 function renderPreview() {
   preview.innerHTML = vehicleSVG(state);
   preview.classList.remove("bounce");
   void preview.offsetWidth;
   preview.classList.add("bounce");
+  renderShop();
 }
+priceTag.addEventListener("pointerdown", e => {
+  e.stopPropagation();
+  const locked = lockedParts();
+  const cost = locked.reduce((s, [k, id]) => s + priceOf(k, id), 0);
+  if (!locked.length) return;
+  if (progress.wallet >= cost) {
+    progress.wallet -= cost;
+    locked.forEach(([k, id]) => progress.owned[k].push(id));
+    save(); renderWallets(true); renderPreview(); renderSwatchLocks();
+    sfx.buy(); confettiBurst(garageScene, 40);
+  } else {
+    walletDeny();
+  }
+});
+
 document.getElementById("bodyBtn").addEventListener("pointerdown", () => {
   state.body = BODY_ORDER[(BODY_ORDER.indexOf(state.body) + 1) % BODY_ORDER.length];
   save(); renderPreview(); sfx.pop();
@@ -465,7 +870,10 @@ document.getElementById("wheelBtn").addEventListener("pointerdown", () => {
 const swatchesEl = document.getElementById("swatches");
 COLORS.forEach(c => {
   const b = document.createElement("button");
-  b.className = "swatch"; b.style.background = c;
+  b.className = "swatch"; b.dataset.color = c;
+  b.style.background = c === "rainbow"
+    ? "conic-gradient(#e53935,#fb8c00,#fdd835,#43a047,#1e88e5,#8e24aa,#e53935)"
+    : c;
   b.setAttribute("aria-label", "paint color");
   b.addEventListener("pointerdown", () => {
     state.color = c; save();
@@ -475,6 +883,14 @@ COLORS.forEach(c => {
   if (c === state.color) b.classList.add("selected");
   swatchesEl.appendChild(b);
 });
+function renderSwatchLocks() {
+  swatchesEl.querySelectorAll(".swatch").forEach(s => {
+    const locked = !owns("color", s.dataset.color);
+    let dot = s.querySelector(".lockDot");
+    if (locked && !dot) { dot = document.createElement("span"); dot.className = "lockDot"; dot.innerHTML = lockIcon; s.appendChild(dot); }
+    if (!locked && dot) dot.remove();
+  });
+}
 document.querySelectorAll(".extraBtn").forEach(btn => {
   const name = btn.dataset.extra;
   btn.classList.toggle("on", state.extras[name]);
@@ -489,119 +905,273 @@ document.querySelectorAll(".extraBtn").forEach(btn => {
 preview.addEventListener("pointerdown", () => { sfx.honk(state.body); renderPreview(); });
 renderPreview();
 preview.classList.remove("bounce");
+renderWallets(false);
+renderSwatchLocks();
 
 /* ============ SCENE SWITCHING ============ */
 const garageScene = document.getElementById("garage");
+const mapScene = document.getElementById("map");
 const roadScene = document.getElementById("road");
-function showGarage() {
+function showScene(el) {
   stopDrive();
-  roadScene.classList.remove("active");
-  garageScene.classList.add("active");
+  document.querySelectorAll(".scene").forEach(s => s.classList.remove("active"));
+  el.classList.add("active");
   document.getElementById("celebrate").classList.remove("active");
   document.querySelectorAll(".confetti").forEach(c => c.remove());
-  renderPreview();
 }
-function showRoad() {
-  garageScene.classList.remove("active");
-  roadScene.classList.add("active");
-  startDrive();
-}
-document.getElementById("goBtn").addEventListener("pointerdown", () => { sfx.pop(); showRoad(); });
+function showGarage() { showScene(garageScene); renderPreview(); renderWallets(false); }
+function showMap() { showScene(mapScene); renderMap(); renderWallets(false); }
+
+document.getElementById("goBtn").addEventListener("pointerdown", () => {
+  if (goBtn.classList.contains("locked")) { walletDeny(); return; }
+  sfx.pop(); drive(progress.current);
+});
+document.getElementById("mapBtn").addEventListener("pointerdown", () => { sfx.pop(); showMap(); });
 document.getElementById("homeBtn").addEventListener("pointerdown", e => { e.stopPropagation(); sfx.pop(); showGarage(); });
-document.getElementById("celebrateBtn").addEventListener("pointerdown", e => { e.stopPropagation(); sfx.pop(); showGarage(); });
+document.getElementById("mapHomeBtn").addEventListener("pointerdown", e => { e.stopPropagation(); sfx.pop(); showGarage(); });
+document.getElementById("celebrateHomeBtn").addEventListener("pointerdown", e => { e.stopPropagation(); sfx.pop(); showGarage(); });
+document.getElementById("replayBtn").addEventListener("pointerdown", e => { e.stopPropagation(); sfx.pop(); drive(lastPlayed); });
+document.getElementById("nextBtn").addEventListener("pointerdown", e => { e.stopPropagation(); sfx.pop(); drive(Math.min(MAX_LEVEL, lastPlayed + 1)); });
+
+/* ============ LEVEL MAP ============ */
+const mapGrid = document.getElementById("mapGrid");
+function levelUnlocked(n) { return n === 1 || !!progress.levels[n - 1]; }
+function renderMap() {
+  mapGrid.innerHTML = "";
+  for (let n = 1; n <= MAX_LEVEL; n++) {
+    const b = document.createElement("button");
+    b.className = "bigBtn lvlBtn";
+    const done = progress.levels[n];
+    if (!levelUnlocked(n)) {
+      b.classList.add("locked");
+      b.innerHTML = lockIcon;
+    } else {
+      b.classList.add(done ? "done" : "open");
+      if (n === progress.current) b.classList.add("current");
+      let stars = "";
+      if (done) {
+        stars = `<span class="miniStars">` + [1, 2, 3].map(i =>
+          `<svg viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="${i <= done.rating ? "#ffd60a" : "#00000033"}"/></svg>`).join("") + `</span>`;
+      }
+      b.innerHTML = `<span>${n}</span>` + stars;
+      b.addEventListener("pointerdown", () => { sfx.pop(); progress.current = n; save(); drive(n); });
+    }
+    b.setAttribute("aria-label", "level " + n);
+    mapGrid.appendChild(b);
+  }
+}
 
 /* ============ ROAD SCENE ============ */
 const farLayer = document.getElementById("farLayer");
 const midLayer = document.getElementById("midLayer");
-const groundLayer = document.getElementById("groundLayer");
+const laneLayers = [document.getElementById("lane0"), document.getElementById("lane1"), document.getElementById("lane2")];
 const carWrap = document.getElementById("carWrap");
+const hudStars = document.getElementById("hudStars");
+const hudLevel = document.getElementById("hudLevel");
 
-/* background scenery (built once) */
-(function buildScenery() {
-  let far = "";
-  for (let x = 0; x < 6400; x += 520) {
-    far += `<path d="M${x} 500 Q${x + 130} 330 ${x + 260} 500 Q${x + 390} 350 ${x + 520} 500" fill="#74c69d" opacity=".8"/>`;
+/* 3 lanes: ground stage-Y per lane, depth scale, z stacking (car sits between lane layers) */
+const LANE_Y = [520, 585, 650];
+const LANE_SCALE = [0.88, 1.0, 1.12];
+const CAR_SCREEN_X = 300;         /* world x of car center = pos + 300 */
+const CAR_BASE_TOP = 379;         /* car svg ground line sits at stage y=585 (middle lane) */
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/* prop art */
+const coneSVG = `<svg width="64" height="80" viewBox="0 0 64 80"><path d="M32 4 L50 66 H14 Z" fill="#f77f00"/><path d="M24 34 H40 M20 50 H45" stroke="#fff" stroke-width="8"/><rect x="4" y="66" width="56" height="12" rx="5" fill="#e76f51"/></svg>`;
+const barrelSVG = `<svg width="66" height="84" viewBox="0 0 66 84"><rect x="6" y="4" width="54" height="76" rx="10" fill="#f77f00"/><rect x="6" y="22" width="54" height="14" fill="#fff"/><rect x="6" y="50" width="54" height="14" fill="#fff"/><rect x="2" y="2" width="62" height="8" rx="4" fill="#e76f51"/><rect x="2" y="74" width="62" height="8" rx="4" fill="#e76f51"/></svg>`;
+const rockSVG = `<svg width="84" height="66" viewBox="0 0 84 66"><path d="M14 62 L4 40 L18 16 L46 6 L72 20 L80 46 L66 62 Z" fill="#8d99ae"/><path d="M30 28 L44 20 M52 34 L64 28" stroke="#6c757d" stroke-width="5" stroke-linecap="round"/></svg>`;
+const starSVG = `<svg width="64" height="64" viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/></svg>`;
+const rampSVG = `<svg width="250" height="95" viewBox="0 0 250 95"><path d="M0 95 L250 0 L250 95 Z" fill="#e9c46a" stroke="#b08968" stroke-width="5"/><path d="M60 72 L250 0" stroke="#b08968" stroke-width="4" opacity=".5"/></svg>`;
+const puddleSVG = `<svg width="230" height="70" viewBox="0 0 230 70"><ellipse cx="115" cy="52" rx="110" ry="17" fill="#6b4423"/><ellipse cx="115" cy="48" rx="95" ry="13" fill="#8d5a2f"/><g class="splash"><path d="M50 40 Q60 5 72 38 M110 38 Q118 0 130 36 M165 40 Q175 8 185 38" stroke="#8d5a2f" stroke-width="9" fill="none" stroke-linecap="round"/></g></svg>`;
+const finishSVG = `<svg width="120" height="360" viewBox="0 0 120 360"><rect x="8" y="0" width="10" height="360" fill="#6c757d"/><g>${
+  (() => { let s = ""; for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) s += `<rect x="${18 + c * 18}" y="${6 + r * 15}" width="18" height="15" fill="${(r + c) % 2 ? "#fff" : "#212529"}"/>`; return s; })()
+}</g></svg>`;
+
+/* level runtime */
+let level = 1, lastPlayed = 1;
+let LEVEL_LEN = 5200, RAMPS = [], props = [], totalStars = 0, runStars = 0;
+
+function rampElev(x) {
+  for (const rp of RAMPS) {
+    const d = x - rp.x;
+    if (d >= 0 && d <= rp.w) return (d / rp.w) * rp.h;
   }
-  farLayer.innerHTML = `<svg width="6400" height="700" viewBox="0 0 6400 700">${far}</svg>`;
+  return 0;
+}
+
+function addProp(type, x, lane, y, svg, xOff, yOff) {
+  const el = document.createElement("div");
+  el.className = "prop " + type;
+  el.innerHTML = svg;
+  el.style.cssText = `left:${x + xOff}px; top:${y + yOff}px;`;
+  laneLayers[lane].appendChild(el);
+  const p = { type, x, lane, y, el, done: false };
+  props.push(p);
+  return p;
+}
+
+function buildLevel(n) {
+  laneLayers.forEach(l => l.innerHTML = "");
+  props = [];
+  RAMPS = [];
+  totalStars = 0;
+  const rng = mulberry32(n * 7919 + 13);
+  LEVEL_LEN = 3500 + n * 250;
+
+  /* ramps: 1-3, spread across the level, spanning all lanes (drawn per lane) */
+  const nRamps = 1 + (n > 8 ? 1 : 0) + (n > 20 ? 1 : 0);
+  for (let i = 0; i < nRamps; i++) {
+    const rx = Math.floor(LEVEL_LEN * (i + 1) / (nRamps + 1) + (rng() - 0.5) * 400);
+    RAMPS.push({ x: rx, w: 250, h: 95 });
+    for (let l = 0; l < 3; l++) addProp("ramp", rx, l, LANE_Y[l], rampSVG, 0, -95);
+    /* a high bonus star on the jump arc */
+    const lane = Math.floor(rng() * 3);
+    addProp("star", rx + 460, lane, LANE_Y[lane] - 240, starSVG, -32, -32);
+    totalStars++;
+  }
+  const inRampZone = x => RAMPS.some(rp => x > rp.x - 200 && x < rp.x + rp.w + 420);
+
+  /* slots along the road */
+  const nObs = 3 + Math.floor(n * 0.6);
+  const nStars = 6 + Math.floor(n / 3);
+  const items = [];
+  for (let i = 0; i < nObs; i++) {
+    const roll = rng();
+    let t = "cone";
+    if (n >= 3 && roll > 0.55) t = "barrel";
+    if (n >= 8 && roll > 0.8) t = "rock";
+    if (n >= 2 && roll < 0.18) t = "puddle";
+    items.push(t);
+  }
+  for (let i = 0; i < nStars; i++) items.push("star");
+  /* shuffle */
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+
+  let x = 700;
+  const endX = LEVEL_LEN - 600;
+  const recentHard = [];   /* keep at least one lane free within any 260px window */
+  /* ramp zones are unusable for obstacles, so budget the spacing on usable road only */
+  const zoneAhead = from => RAMPS.reduce((s, rp) => {
+    const a = Math.max(from, rp.x - 200), b = Math.min(endX, rp.x + rp.w + 420);
+    return s + Math.max(0, b - a);
+  }, 0);
+  for (let i = 0; i < items.length; i++) {
+    const t = items[i];
+    /* adaptive spacing: divide the remaining usable road across the remaining
+       items, capped so the ones still queued can fit before endX */
+    const step = Math.max(0, (endX - x - zoneAhead(x)) / (items.length - i));
+    x += Math.max(170, Math.min(step * (0.6 + rng() * 0.8), endX - x - (items.length - 1 - i) * 170));
+    while (inRampZone(x) && t !== "star") x += 300;
+    if (x > endX) continue;
+    let lane = Math.floor(rng() * 3);
+    const hard = t === "barrel" || t === "rock";
+    if (hard) {
+      const near = recentHard.filter(h => Math.abs(h.x - x) < 260);
+      if (near.length >= 2) continue;                       /* never block all 3 lanes */
+      while (near.some(h => h.lane === lane)) lane = (lane + 1) % 3;
+      recentHard.push({ x, lane });
+      if (recentHard.length > 6) recentHard.shift();
+    }
+    const gy = LANE_Y[lane];
+    if (t === "cone")   addProp(t, x, lane, gy, coneSVG, -32, -78);
+    if (t === "barrel") addProp(t, x, lane, gy, barrelSVG, -33, -82);
+    if (t === "rock")   addProp(t, x, lane, gy, rockSVG, -42, -64);
+    if (t === "puddle") addProp(t, x, lane, gy, puddleSVG, -115, -22);
+    if (t === "star") { addProp(t, x, lane, gy - 85, starSVG, -32, -32); totalStars++; }
+  }
+
+  addProp("finish", LEVEL_LEN, 0, 690, finishSVG, 0, -360);
+
+  buildScenery(LEVEL_LEN + 1600);
+  roadScene.classList.toggle("sunset", n > 10 && n <= 20);
+  roadScene.classList.toggle("night", n > 20);
+}
+
+function buildScenery(w) {
+  let far = "";
+  for (let x = 0; x < w; x += 520) {
+    far += `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#74c69d" opacity=".8"/>`;
+  }
+  farLayer.style.width = w + "px";
+  farLayer.innerHTML = `<svg width="${w}" height="700" viewBox="0 0 ${w} 700">${far}</svg>`;
   let mid = "";
-  for (let x = 150; x < 6400; x += 900) {
+  for (let x = 150; x < w; x += 900) {
     mid += `
-      <g transform="translate(${x},500)">
+      <g transform="translate(${x},462)">
         <rect x="0" y="-190" width="14" height="190" fill="#e76f51"/>
         <rect x="-70" y="-196" width="200" height="12" fill="#e76f51"/>
         <path d="M118 -190 L118 -120" stroke="#495057" stroke-width="4"/>
         <rect x="104" y="-120" width="28" height="24" rx="4" fill="#ffb703"/>
       </g>
-      <g transform="translate(${x + 420},500)">
+      <g transform="translate(${x + 420},462)">
         <rect x="0" y="-130" width="120" height="130" fill="#adb5bd"/>
         <rect x="12" y="-116" width="24" height="24" fill="#4cc9f0"/><rect x="52" y="-116" width="24" height="24" fill="#4cc9f0"/>
         <rect x="12" y="-76" width="24" height="24" fill="#4cc9f0"/><rect x="52" y="-76" width="24" height="24" fill="#4cc9f0"/>
         <rect x="88" y="-150" width="16" height="150" fill="#6c757d"/>
       </g>`;
   }
-  midLayer.innerHTML = `<svg width="6400" height="700" viewBox="0 0 6400 700">${mid}</svg>`;
-})();
-
-const coneSVG = `<svg width="64" height="80" viewBox="0 0 64 80"><path d="M32 4 L50 66 H14 Z" fill="#f77f00"/><path d="M24 34 H40 M20 50 H45" stroke="#fff" stroke-width="8"/><rect x="4" y="66" width="56" height="12" rx="5" fill="#e76f51"/></svg>`;
-const starSVG = `<svg width="64" height="64" viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/></svg>`;
-const rampSVG = `<svg width="250" height="95" viewBox="0 0 250 95"><path d="M0 95 L250 0 L250 95 Z" fill="#e9c46a" stroke="#b08968" stroke-width="5"/><path d="M60 72 L250 0" stroke="#b08968" stroke-width="4" opacity=".5"/></svg>`;
-const puddleSVG = `<svg width="230" height="70" viewBox="0 0 230 70"><ellipse cx="115" cy="52" rx="110" ry="17" fill="#6b4423"/><ellipse cx="115" cy="48" rx="95" ry="13" fill="#8d5a2f"/><g class="splash"><path d="M50 40 Q60 5 72 38 M110 38 Q118 0 130 36 M165 40 Q175 8 185 38" stroke="#8d5a2f" stroke-width="9" fill="none" stroke-linecap="round"/></g></svg>`;
-const finishSVG = `<svg width="120" height="230" viewBox="0 0 120 230"><rect x="8" y="0" width="10" height="230" fill="#6c757d"/><g>${
-  (() => { let s = ""; for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) s += `<rect x="${18 + c * 18}" y="${6 + r * 15}" width="18" height="15" fill="${(r + c) % 2 ? "#fff" : "#212529"}"/>`; return s; })()
-}</g></svg>`;
-
-const RAMP = { x: 2600, w: 250, h: 95 };
-const FINISH_X = 5200;
-let props = [];
-function buildProps() {
-  groundLayer.innerHTML = "";
-  props = [];
-  const defs = [
-    { type: "cone", x: 900 }, { type: "cone", x: 1500 }, { type: "cone", x: 3400 }, { type: "cone", x: 4600 },
-    { type: "star", x: 1200, y: 505 }, { type: "star", x: 1800, y: 505 }, { type: "star", x: 2950, y: 330 },
-    { type: "star", x: 3800, y: 505 }, { type: "star", x: 4200, y: 505 },
-    { type: "puddle", x: 2050 },
-    { type: "ramp", x: RAMP.x },
-    { type: "finish", x: FINISH_X }
-  ];
-  defs.forEach(d => {
-    const el = document.createElement("div");
-    el.className = "prop " + d.type;
-    if (d.type === "cone")   { el.innerHTML = coneSVG;   el.style.cssText = `left:${d.x - 32}px; top:505px;`; }
-    if (d.type === "star")   { el.innerHTML = starSVG;   el.style.cssText = `left:${d.x - 32}px; top:${d.y - 32}px;`; }
-    if (d.type === "puddle") { el.innerHTML = puddleSVG; el.style.cssText = `left:${d.x - 115}px; top:533px;`; }
-    if (d.type === "ramp")   { el.innerHTML = rampSVG;   el.style.cssText = `left:${d.x}px; top:490px;`; }
-    if (d.type === "finish") { el.innerHTML = finishSVG; el.style.cssText = `left:${d.x}px; top:355px;`; }
-    groundLayer.appendChild(el);
-    props.push({ ...d, el, done: false });
-  });
+  midLayer.style.width = w + "px";
+  midLayer.innerHTML = `<svg width="${w}" height="700" viewBox="0 0 ${w} 700">${mid}</svg>`;
+  laneLayers.forEach(l => l.style.width = w + "px");
+  /* night sky pinpricks, built once */
+  const sky = document.getElementById("skyStars");
+  if (!sky.childElementCount) {
+    let dots = "";
+    const srng = mulberry32(99);
+    for (let i = 0; i < 40; i++) dots += `<circle cx="${srng() * 1200}" cy="${srng() * 380}" r="${1.2 + srng() * 2}" fill="#f1faee" opacity="${0.5 + srng() * 0.5}"/>`;
+    sky.innerHTML = `<svg width="1200" height="700" viewBox="0 0 1200 700">${dots}</svg>`;
+  }
 }
 
 /* drive physics */
-const CAR_SCREEN_X = 300;         /* world x of car center = pos + 300 */
-const CAR_BASE_TOP = 379;         /* car svg ground line (y=206) sits at stage y=585 */
+const VMAX = 700, ACCEL = 900, COAST = 350, BRAKE = 1600;
 let pos = 0, v = 0, jumpY = 0, vy = 0, airborne = false, finished = false;
-let held = false, rafId = null, lastT = 0, wheelAngle = 0;
+let held = false, braking = false, rafId = null, lastT = 0, wheelAngle = 0;
+let targetLane = 1, laneVis = 1;
 let wheelEls = [], mudEl = null;
-let celebrateTimer = null;
-const drivePointers = new Set();
+let celebrateTimer = null, tallyTimer = null, rateTimers = [];
+const roadPointers = new Map();   /* pointerId -> last y (for swipe lane changes) */
+const gasPointers = new Set(), brakePointers = new Set();
+let gasKey = false, brakeKey = false;
 
-function rampElev(x) {
-  const d = x - RAMP.x;
-  if (d < 0 || d > RAMP.w) return 0;
-  return (d / RAMP.w) * RAMP.h;
+function setLane(t) {
+  const clamped = Math.max(0, Math.min(2, t));
+  if (clamped !== targetLane) { targetLane = clamped; sfx.whoosh(); }
+}
+
+function drive(n) {
+  if (lockedParts().length) { walletDeny(); return; }   /* map/replay can't bypass the shop gate */
+  level = lastPlayed = n;
+  showScene(roadScene);
+  startDrive();
 }
 function startDrive() {
   stopDrive();
-  pos = 0; v = 0; jumpY = 0; vy = 0; airborne = false; finished = false; held = false;
-  drivePointers.clear();
+  pos = 0; v = 0; jumpY = 0; vy = 0; airborne = false; finished = false;
+  held = false; braking = false; gasKey = false; brakeKey = false;
+  targetLane = 1; laneVis = 1; runStars = 0;
+  roadPointers.clear(); gasPointers.clear(); brakePointers.clear();
   document.getElementById("celebrate").classList.remove("active");
-  buildProps();
+  document.querySelectorAll(".confetti").forEach(c => c.remove());
+  buildLevel(level);
   carWrap.innerHTML = vehicleSVG(state);
   carWrap.style.top = CAR_BASE_TOP + "px";
   wheelEls = carWrap.querySelectorAll(".wheelrot");
   mudEl = carWrap.querySelector(".mudSpots");
-  document.getElementById("pedal").classList.remove("held");
+  document.querySelectorAll(".pedal").forEach(p => p.classList.remove("held"));
+  hudLevel.innerHTML = `<svg viewBox="0 0 64 64"><path d="M14 58 V8" stroke="#023047" stroke-width="7" stroke-linecap="round"/><path d="M18 10 L54 16 L18 30 Z" fill="#e63946"/></svg><span>${level}</span>`;
+  renderHudStars(false);
   engineStart();
   lastT = performance.now();
   rafId = requestAnimationFrame(tick);
@@ -609,22 +1179,80 @@ function startDrive() {
 function stopDrive() {
   if (rafId) cancelAnimationFrame(rafId);
   rafId = null;
-  clearTimeout(celebrateTimer);
-  celebrateTimer = null;
+  clearTimeout(celebrateTimer); celebrateTimer = null;
+  clearInterval(tallyTimer); tallyTimer = null;
+  rateTimers.forEach(clearTimeout); rateTimers = [];
   engineStop();
 }
+function renderHudStars(pop) {
+  hudStars.innerHTML = starIcon + `<span>${runStars}</span>`;
+  if (pop) { hudStars.classList.remove("pop"); void hudStars.offsetWidth; hudStars.classList.add("pop"); }
+}
+
+/* prop collision handlers — d = carX - p.x; car front bumper reaches ~+90, tail ~-30 */
+const PROP_HIT = {
+  cone(p, d) {
+    if (Math.round(laneVis) !== p.lane) return;
+    if (d > -30 && d < 90 && v > 30) {
+      p.done = true; p.el.classList.add("knocked"); sfx.boink();
+      v *= 0.85;                                   /* soft: fun tumble, tiny slow */
+    }
+  },
+  barrel(p, d) { hardHit(p, d); },
+  rock(p, d) { hardHit(p, d); },
+  puddle(p, d) {
+    if (Math.round(laneVis) !== p.lane) return;
+    if (d > -80 && d < 80 && v > 30) {
+      p.done = true; p.el.classList.add("splashing"); sfx.splash();
+      if (mudEl) mudEl.style.opacity = 1;
+      setTimeout(() => p.el.classList.remove("splashing"), 600);
+    }
+  },
+  star(p, d) {
+    if (Math.round(laneVis) !== p.lane) return;
+    const carCY = LANE_Y[Math.round(laneVis)] - 85 - jumpY;   /* car body center */
+    if (Math.abs(d) < 60 && Math.abs(carCY - p.y) < 115) {
+      p.done = true; p.el.classList.add("collected"); sfx.chime();
+      runStars++; renderHudStars(true);
+    }
+  },
+  ramp() {},   /* physics handled by rampElev */
+  finish(p, d) {
+    if (d > -10) { p.done = true; finished = true; finishLevel(); }
+  }
+};
+function hardHit(p, d) {
+  if (Math.round(laneVis) !== p.lane) return;
+  if (d > -20 && d < 95 && v > 25 && jumpY < 45) {   /* jumpY gate: you can jump clean over */
+    p.done = true; v = 0; sfx.thud();
+    p.el.classList.add("hit");
+    carWrap.classList.remove("wobble"); void carWrap.offsetWidth; carWrap.classList.add("wobble");
+  }
+}
+
 function tick(now) {
   const dt = Math.min(0.05, (now - lastT) / 1000);
   lastT = now;
 
+  const gas = held || gasPointers.size > 0 || roadPointers.size > 0 || gasKey;
+  const brake = brakePointers.size > 0 || brakeKey;
   if (!finished) {
-    if (held) v = Math.min(700, v + 900 * dt);
-    else v = Math.max(0, v - 600 * dt);
+    if (brake) {
+      if (v > 120) sfxSquealThrottle();
+      v = Math.max(0, v - BRAKE * dt);
+    } else if (gas) v = Math.min(VMAX, v + ACCEL * dt);
+    else v = Math.max(0, v - COAST * dt);
     pos += v * dt;
   } else v = 0;
-  engineSet(held || v > 5 ? v : 0);
+  engineSet(v);
 
   const carX = pos + CAR_SCREEN_X;
+
+  /* lane glide */
+  laneVis += (targetLane - laneVis) * Math.min(1, dt * 9);
+  if (Math.abs(targetLane - laneVis) < 0.01) laneVis = targetLane;
+  const laneRound = Math.round(laneVis);
+  carWrap.style.zIndex = 11 + laneRound * 2;
 
   /* ramp + jump */
   if (airborne) {
@@ -633,34 +1261,18 @@ function tick(now) {
     if (jumpY <= 0) { jumpY = 0; airborne = false; sfx.clank(); }
   } else {
     const wasOn = jumpY > 0;
-    jumpY = rampElev(carX);
-    if (wasOn && jumpY === 0 && carX > RAMP.x + RAMP.w) {
-      airborne = true; vy = v * 0.9; jumpY = RAMP.h;
-      if (v > 260) sfx.whee();
+    const onRamp = rampElev(carX);
+    jumpY = onRamp;
+    if (wasOn && onRamp === 0) {
+      airborne = true; vy = v * 0.9; jumpY = 95;
+      sfx.whee();                                   /* every launch gets its whee */
     }
   }
 
   /* props */
   for (const p of props) {
     if (p.done) continue;
-    const d = carX - p.x;
-    if (p.type === "cone" && d > -30 && d < 90 && v > 30) {
-      p.done = true; p.el.classList.add("knocked"); sfx.boink();
-    }
-    if (p.type === "star") {
-      const carCY = 500 - jumpY;
-      if (Math.abs(d) < 60 && Math.abs(carCY - p.y) < 130) {
-        p.done = true; p.el.classList.add("collected"); sfx.chime();
-      }
-    }
-    if (p.type === "puddle" && d > -80 && d < 80 && v > 30) {
-      p.done = true; p.el.classList.add("splashing"); sfx.splash();
-      if (mudEl) mudEl.style.opacity = 1;
-      setTimeout(() => p.el.classList.remove("splashing"), 600);
-    }
-    if (p.type === "finish" && d > -10) {
-      p.done = true; finished = true; celebrate();
-    }
+    PROP_HIT[p.type](p, carX - p.x);
   }
 
   /* wheels */
@@ -674,34 +1286,79 @@ function tick(now) {
   else if (jumpY > 0) tilt = -14;
   farLayer.style.transform = `translateX(${-pos * 0.25}px)`;
   midLayer.style.transform = `translateX(${-pos * 0.55}px)`;
-  groundLayer.style.transform = `translateX(${-pos}px)`;
-  carWrap.style.transform = `translateY(${-jumpY}px) rotate(${tilt}deg)`;
+  laneLayers.forEach(l => l.style.transform = `translateX(${-pos}px)`);
+  const laneOff = (laneVis - 1) * 65;
+  carWrap.style.transform = `translateY(${laneOff - jumpY}px) rotate(${tilt}deg) scale(${0.88 + 0.12 * laneVis})`;
 
   rafId = requestAnimationFrame(tick);
 }
-
-/* drive input: hold road or pedal to go */
-const pedal = document.getElementById("pedal");
-function pressOn() { held = true; pedal.classList.add("held"); }
-function pressOff() { held = false; pedal.classList.remove("held"); }
-roadScene.addEventListener("pointerdown", e => {
-  if (e.target.closest("#homeBtn") || e.target.closest("#celebrate")) return;
-  drivePointers.add(e.pointerId);
-  pressOn();
-});
-function pressEnd(e) {
-  drivePointers.delete(e.pointerId);
-  if (drivePointers.size === 0) pressOff();
+let lastSqueal = 0;
+function sfxSquealThrottle() {
+  const t = performance.now();
+  if (t - lastSqueal > 320) { lastSqueal = t; sfx.squeal(); }
 }
-addEventListener("pointerup", pressEnd);
-addEventListener("pointercancel", pressEnd);
+
+/* ============ DRIVE INPUT ============ */
+const gasPedal = document.getElementById("gasPedal");
+const brakePedal = document.getElementById("brakePedal");
+function bindPedal(el, set) {
+  el.addEventListener("pointerdown", e => {
+    e.stopPropagation();
+    try { el.setPointerCapture(e.pointerId); } catch (err) {}   /* mouse released off-window still ends the hold */
+    set.add(e.pointerId);
+    el.classList.add("held");
+  });
+}
+bindPedal(gasPedal, gasPointers);
+bindPedal(brakePedal, brakePointers);
+
+roadScene.addEventListener("pointerdown", e => {
+  if (e.target.closest(".bigBtn") || e.target.closest(".pedal") || e.target.closest("#celebrate")) return;
+  try { roadScene.setPointerCapture(e.pointerId); } catch (err) {}
+  roadPointers.set(e.pointerId, e.clientY);
+});
+roadScene.addEventListener("pointermove", e => {
+  if (!roadPointers.has(e.pointerId)) return;
+  const scale = stage.getBoundingClientRect().height / 700;
+  const dy = (e.clientY - roadPointers.get(e.pointerId)) / scale;
+  /* 60 ~= one 65px lane of drag per lane change, so long swipes track the finger */
+  if (dy < -60) { setLane(targetLane - 1); roadPointers.set(e.pointerId, e.clientY); }
+  else if (dy > 60) { setLane(targetLane + 1); roadPointers.set(e.pointerId, e.clientY); }
+});
+function pointerEnd(e) {
+  roadPointers.delete(e.pointerId);
+  if (gasPointers.delete(e.pointerId) && gasPointers.size === 0) gasPedal.classList.remove("held");
+  if (brakePointers.delete(e.pointerId) && brakePointers.size === 0) brakePedal.classList.remove("held");
+}
+addEventListener("pointerup", pointerEnd);
+addEventListener("pointercancel", pointerEnd);
+
+document.getElementById("laneUp").addEventListener("pointerdown", e => { e.stopPropagation(); setLane(targetLane - 1); });
+document.getElementById("laneDown").addEventListener("pointerdown", e => { e.stopPropagation(); setLane(targetLane + 1); });
+
+addEventListener("keydown", e => {
+  if (!roadScene.classList.contains("active")) return;
+  if (e.repeat) return;
+  if (e.key === "ArrowUp") setLane(targetLane - 1);
+  if (e.key === "ArrowDown") setLane(targetLane + 1);
+  if (e.key === "ArrowRight" || e.key === " ") gasKey = true;
+  if (e.key === "ArrowLeft") brakeKey = true;
+});
+addEventListener("keyup", e => {
+  if (e.key === "ArrowRight" || e.key === " ") gasKey = false;
+  if (e.key === "ArrowLeft") brakeKey = false;
+});
+/* keyups get lost on window blur, and a hidden tab freezes rAF with the engine gain up */
+addEventListener("blur", () => { gasKey = false; brakeKey = false; });
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { gasKey = false; brakeKey = false; engineSet(0); }
+});
 carWrap.addEventListener("pointerdown", () => sfx.honk(state.body));
 
-/* celebration */
-function celebrate() {
-  sfx.tada();
+/* ============ FINISH + CELEBRATION ============ */
+function confettiBurst(sceneEl, count) {
   const cols = ["#e63946", "#ffd60a", "#43a047", "#1e88e5", "#ec407a", "#fb8c00"];
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < count; i++) {
     const c = document.createElement("div");
     c.className = "confetti";
     c.style.left = Math.random() * 1200 + "px";
@@ -710,9 +1367,56 @@ function celebrate() {
     c.style.animationDuration = (1.6 + Math.random() * 1.8) + "s";
     c.style.animationDelay = (Math.random() * 0.8) + "s";
     c.style.borderRadius = Math.random() > 0.5 ? "50%" : "3px";
-    roadScene.appendChild(c);
+    sceneEl.appendChild(c);
   }
-  celebrateTimer = setTimeout(() => document.getElementById("celebrate").classList.add("active"), 700);
+  setTimeout(() => sceneEl.querySelectorAll(".confetti").forEach(c => c.remove()), 4200);
+}
+
+function finishLevel() {
+  sfx.tada();
+  confettiBurst(roadScene, 90);
+
+  const bonus = 3;
+  const banked = runStars + bonus;
+  const frac = totalStars ? runStars / totalStars : 1;
+  const rating = frac >= 0.8 ? 3 : frac >= 0.34 ? 2 : 1;
+
+  progress.wallet += banked;
+  const prev = progress.levels[level];
+  progress.levels[level] = {
+    best: Math.max(prev ? prev.best : 0, runStars),
+    rating: Math.max(prev ? prev.rating : 0, rating)
+  };
+  if (level < MAX_LEVEL) progress.current = Math.max(progress.current, level + 1);
+  save();
+
+  /* build the tally UI */
+  const tally = document.getElementById("tallyChip");
+  tally.innerHTML = starIcon + `<span>0</span>`;
+  const ratingRow = document.getElementById("ratingRow");
+  ratingRow.innerHTML = [1, 2, 3].map(() =>
+    `<svg class="rateStar" viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/></svg>`).join("");
+  document.getElementById("nextBtn").style.display = level < MAX_LEVEL ? "" : "none";
+
+  celebrateTimer = setTimeout(() => {
+    document.getElementById("celebrate").classList.add("active");
+    /* count the stars up one by one, then light the rating */
+    let shown = 0;
+    const span = tally.querySelector("span");
+    tallyTimer = setInterval(() => {
+      shown++;
+      span.textContent = shown;
+      sfx.tick(shown);
+      tally.classList.remove("pop"); void tally.offsetWidth; tally.classList.add("pop");
+      if (shown >= banked) {
+        clearInterval(tallyTimer); tallyTimer = null;
+        const rs = ratingRow.querySelectorAll(".rateStar");
+        for (let i = 0; i < rating; i++) {
+          rateTimers.push(setTimeout(() => { rs[i].classList.add("lit"); sfx.chime(); }, 250 + i * 350));
+        }
+      }
+    }, 120);
+  }, 700);
 }
 </script>
 </body>
