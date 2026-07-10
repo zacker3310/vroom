@@ -7,7 +7,14 @@
 
 - [x] T3.1: Core systems rewrite: 3-lane road (swipe/arrows/keys), gas + brake pedals, seeded 30-level generator with soft/hard obstacles + day/sunset/night themes, star currency + HUD, level map scene, celebrate w/ tally + replay/next/garage, vroom.v2 persistence + v1 migration, mini-review fixes (engine audio ramps, fit() rotation, audio try/catch, whee gate, collision handler registry). [SPI-]
 - [x] T3.2: Content + shop: 6 new bodies (police, race, tractor, icecream, rocket, ufo), 3 new wheels (gold, flower, tank), 6 new colors incl. rainbow gradient, per-body honks, garage shop flow (locked cycle, price tag, buy fanfare, GO gating). [SPI-]
-- [ ] T3.3: Polish + verify: Playwright full-loop regression, kid-UX pass, performance pass, Doubt audit.
+- [x] T3.3: Polish + verify: Playwright full-loop regression, kid-UX pass (12-item punch list), Doubt audit. [SPID]
+
+## v4 (2026-07-10, user-directed: hazards, damage, upgrades, roadtrip longevity)
+
+- [x] T4.1: WASD + arrow keyboard controls (steer/gas/brake) alongside mouse pedals. [SPID:fast]
+- [x] T4.2: Damage system: persistent 0-9 damage w/ scuff/crack/smoke tiers + 15% speed penalty at 5+, oil-slick spin-outs (L5+), TNT crates (L12+, 2 dmg), HUD + celebrate damage chips, clean-run +2 star bonus, star-paid repair (2/point), upgrade tracks engine/shield/magnet (3 levels each). [SPI-]
+- [ ] T4.3: Roadtrip longevity round A (from research): surprise capsules, free-drive cruise mode, tap-everything Easter eggs, magic dice randomizer, quiet mode, idle attract.
+- [ ] T4.4: Roadtrip longevity round B: finish-line photo keepsakes, sticker album scene, passenger buddies, decal slots, car wash.
 
 ## Backlog (v2 candidates, from kid-testing)
 

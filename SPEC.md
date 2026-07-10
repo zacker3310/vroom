@@ -48,7 +48,16 @@ Side-scrolling construction site, now 3 lanes. The exact vehicle built in the ga
 - Mud puddle -> splash, muddy wheels (lane-specific)
 - Ramp -> jump with "whee" arpeggio (spans all lanes; high stars float over ramps)
 - Traffic cones -> tumble with boinks (soft: fun, no penalty)
-- Barrels / rocks -> bonk, car stops and wobbles (hard: never a fail, just a stop)
+- Barrels / rocks -> bonk, car stops and wobbles, +1 damage (hard: never a fail, just a stop)
+- Oil slicks (level 5+) -> spin-out, half speed, no damage
+- TNT crates (level 12+) -> cartoon boom, +2 damage
+- **Damage** (v4): persists 0-9 (wrench chip in HUD + celebrate). Truck shows scuffs at 1+,
+  cracked glass at 3+, smoke + 15% slower at 5+. Jumping clears hazards. Shield upgrade soaks
+  damage. Finish a run with no new dings -> +2 star clean bonus. Never blocks play.
+- **Garage repair**: pulsing wrench button when dinged, costs 2 stars per damage point.
+- **Garage upgrades** (star-paid, 3 pips each): engine (+80 top speed/level),
+  shield (soaks 1 damage per hit/level), star magnet (wider pull/level).
+- **Keyboard**: WASD or arrows steer (W/S = lanes), D/->/space = gas, A/<- = brake.
 - Stars -> chime + burst, +1 to run counter, banked to wallet at the finish (+3 finish bonus)
 - Finish flag -> confetti, star tally, next level unlocked; buttons: replay / next / garage
 - House button (top-left) returns to garage anytime

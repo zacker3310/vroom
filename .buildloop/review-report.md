@@ -80,3 +80,37 @@ Audited the uncommitted kid-UX polish diff on index.html (on top of cc3426d) aga
 - CHECK:main — node verify.cjs — **35/35 PASS**
 - CHECK:polish — node polish-check.cjs — **14/14 PASS**
 - doubt-probe.cjs (scratchpad, ad-hoc): magnet attract + stale-clear, previewLock centering, nudge reset, flyStar letterbox geometry, headlight idempotency — all confirmed fixed/clean.
+
+## Damage round Doubt (T4)
+
+Audited the uncommitted T4 damage/hazards/repair/upgrades diff on index.html (vs 0d8a151) against the AUDIT_PAYLOAD. Every DELTA_MANIFEST claim verified present and accurate: progress gains damage 0-9 + upgrades{engine,armor,magnet} 0-3 with clamped loadState validation (index.html:529-532); UPG prices engine/armor [20,40,80] magnet [15,30,60] (index.html:491-494); REPAIR_RATE 2 (index.html:496); sfx crunch/slip/boom/fixed; dmgScuff>=1 / dmgCrack>=3 / dmgSmoke>=5 with animated puffUp keyframes embedded in vehicleSVG; applyDamage soaks armor, caps at MAX_DAMAGE 9, saves, updates visuals + HUD (index.html:1493-1501); vmaxEff = (700 + engine*80) * (damage>=5 ? .85 : 1) used in tick; oil (spin, v*=.45, no damage, n>=5, roll (0.42,0.55]) and tnt (2 dmg, boomSVG swap, n>=12, counts as hard for the lane rule); magnet widens all three star windows; hudDamage chip (hurt>=5, hidden while celebrating); celebrateDamage chip + clean class; clean-run bonus +2 when runDamage===0; garage upgrade buttons (pips/price/maxed/cant/deny) + repairBtn (show when damage>0, price 2*damage). WASD keyboard is the prior round's work, already in 0d8a151.
+
+### Fixed (MED)
+
+- **MED — oil spin permanently shadowed the crash wobble, and hit classes replayed at spawn.** `#carWrap.spin svg` is declared after `#carWrap.wobble svg` with equal specificity, and neither class was ever removed. After one oil slick, every later hard-hit wobble lost the cascade to the stale `spin` rule and never animated (probe: computedStyle animationName stayed `spin360` after shakeCar). Worse, `startDrive()` replaces the inner svg while classes persist on the wrapper div, so a leftover `spin`/`wobble` restarted its animation on the fresh svg — the truck did a full 360 at the start line. Fixed three ways: `shakeCar()` drops both classes before adding wobble (index.html:1484-1485), the oil handler drops both before adding spin (index.html:1441), and `startDrive()` clears both before rebuilding the car (index.html:1381). Re-probe: spin→hard hit now animates `carWobble`; leftover class at startDrive computes `animationName: none`.
+- **MED — tnt explosion rendered off-center and sunk into the road.** The prop element was positioned for the 70x72 crate (offsets -35,-68 → crate center at x, gy-32); swapping innerHTML to the 120x120 boomSVG left the burst center at (x+25, gy-8) — 25px right, 24px low, bottom edge 52px below the ground line, visible for the opening frames of the propAway fling. Fixed by repositioning the element on swap to (x-60, gy-92) so the boom center lands exactly on the crate center (index.html:1428-1431). Probe: centered within <1px, damage 2 applied.
+- **MED — repair left upgrade affordability stale.** The repair handler spends up to 18 stars but never called `renderUpgrades()`, so upgrade buttons kept their pre-repair `cant` (dimmed price) state until a scene change — the only garage wallet-spend path that skipped the refresh (priceTag buy calls it). Fixed (index.html:1087). Probe: wallet 33, repair 18 → engine button flips to `cant`.
+
+### Hunted, audited clean (no bug found)
+
+1. **Save spam:** `applyDamage` is only reachable from `hardHit` and `PROP_HIT.tnt`, both of which set `p.done = true` in the same branch, so each prop saves at most once per run (a handful per level, not per-frame). No save() in the tick path.
+2. **Damage visual staleness:** `startDrive()` rebuilds carWrap from `vehicleSVG(state)` which embeds display styles from live `progress.damage`, so smoke shows immediately when starting a drive at damage>=5 and vmaxEff() reads live state in tick. Repair and buys in the garage both call `renderPreview()`. No stale path found (the class-residue bug above was the only startDrive leak).
+3. **Armor 3 vs tnt:** `soaked = max(0, 2-3) = 0` → early return with `sfx.clank()` shield ping; progress.damage and runDamage untouched, never negative. Probe confirmed damage stays 0. Note: full armor preserves the clean-run bonus even through a tnt hit — reads as intended (armor = clean).
+4. **Spin vs wobble:** bug found and fixed, above.
+5. **Boom offset:** bug found and fixed, above.
+6. **Kid-legibility:** repairBtn at damage 9 shows 18 — probe-verified textContent "18"; curve tops out affordable (one level's haul). celebrateDamage shows the persistent total while tally counts run stars — see LOW note below.
+7. **loadState hostile values:** damage NaN/Infinity/negative/huge all clamped via Number.isFinite + floor + min/max clamp to [0,9]; upgrades clamped to [0,3] per key; non-object `saved.upgrades` (number/string/null) falls through harmlessly. v1 saves have neither field so migration path defaults both to 0 — damage-check reload test stays green.
+8. **Economy:** stars per level = 6 + floor(n/3) placed + 1-3 ramp stars (~7 at L1, ~19 at L30), banked = collected + 3 (or +5 clean). One 30-level pass at decent collection yields roughly 350-450 stars vs a 385 total upgrade sink — all upgrades earnable in one playthrough without grinding, cosmetics (805) push replays. Repairs (max 18) are pocket change against a ~12-15 star level. No flag.
+
+### Reported only (LOW, not fixed)
+
+- celebrateDamage shows *total* accumulated damage while the `clean` green border keys off *run* damage — a kid can see a green-bordered "4". Defensible ("no new dings this run") but the mixed signal is real; showing runDamage or hiding the chip when clean-but-dinged would be tighter.
+- tnt still zeroes velocity and detonates when armor fully soaks it — thud+clank with no crunch. Reads fine (the shield ate it), just noting the sfx layering.
+- Garage `#upgrades` column (left 84px) and `#repairBtn` (right 96px) coexist with priceTag/preview at 1024-wide stage without overlap per suite screenshots; untested at extreme aspect ratios, but the stage letterboxes uniformly so positions scale together.
+
+### Suite results (post-fix)
+
+- CHECK:main — node verify.cjs — **35/35 PASS**
+- CHECK:polish — node polish-check.cjs — **14/14 PASS**
+- CHECK:damage — node damage-check.cjs — **20/20 PASS**
+- doubt-t4.cjs (scratchpad, ad-hoc): spin/wobble cascade + spawn residue, boom recentering, repair→upgrade refresh + price 18 at damage 9, armor-3 tnt soak — **6/6 PASS**

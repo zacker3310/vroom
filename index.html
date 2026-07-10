@@ -94,6 +94,30 @@
   #priceTag.deny { animation: denyShake .4s ease, tagWiggle 1.6s ease .4s infinite; }
   @keyframes tagWiggle { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
 
+  /* ---------- UPGRADES + REPAIR ---------- */
+  #upgrades { position: absolute; left: 84px; top: 48px; display: flex; flex-direction: column; gap: 14px; z-index: 5; }
+  .upgBtn {
+    width: 96px; height: 96px; border-radius: 24px; background: #457b9d;
+    flex-direction: column; gap: 3px; position: relative;
+  }
+  .upgBtn > svg { width: 40px; height: 40px; }
+  .upgBtn.maxed { background: #2a9d8f; }
+  .upgBtn.deny { animation: denyShake .4s ease; }
+  .pips { display: flex; gap: 5px; }
+  .pips i { width: 13px; height: 13px; border-radius: 50%; background: #02304766; display: block; }
+  .pips i.on { background: #ffd60a; }
+  .upgPrice { display: flex; align-items: center; gap: 3px; font: 900 20px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #fff; }
+  .upgPrice svg { width: 20px; height: 20px; }
+  .upgBtn.cant .upgPrice { opacity: .55; }
+  #repairBtn {
+    position: absolute; right: 96px; top: 150px; width: 120px; height: 120px;
+    border-radius: 50%; background: #e76f51; border: 8px solid #fff;
+    display: none; flex-direction: column; gap: 2px; z-index: 5;
+    animation: pulse 1.1s ease infinite;
+  }
+  #repairBtn.show { display: flex; }
+  #repairBtn > svg { width: 48px; height: 48px; }
+
   #controls {
     position: absolute; left: 0; right: 0; bottom: 0; height: 244px;
     background: #023047; border-top: 8px solid #ffb703;
@@ -213,6 +237,13 @@
   #carWrap svg { width: 100%; height: auto; overflow: visible; }
   #carWrap.wobble svg { animation: carWobble .55s ease; }
   @keyframes carWobble { 20% { transform: rotate(-7deg); } 40% { transform: rotate(6deg); } 60% { transform: rotate(-4deg); } 80% { transform: rotate(2deg); } }
+  #carWrap.spin svg { animation: spin360 .65s ease; }
+  @keyframes spin360 { to { transform: rotate(360deg); } }
+  .dmgSmoke circle { animation: puffUp 1.3s ease-in infinite; transform-box: fill-box; }
+  @keyframes puffUp {
+    0% { transform: translate(0,0) scale(.6); opacity: .85; }
+    100% { transform: translate(-26px,-54px) scale(1.9); opacity: 0; }
+  }
 
   #homeBtn, #mapHomeBtn {
     position: absolute; left: 24px; top: 24px; width: 96px; height: 96px;
@@ -222,6 +253,8 @@
 
   #hudLevel { left: 136px; top: 24px; }
   #hudStars { right: 24px; top: 24px; }
+  #hudDamage { right: 24px; top: 130px; }
+  #hudDamage.hurt { border-color: #e63946; color: #e63946; }
   #hudProgress { left: 300px; top: 24px; padding: 0 20px; gap: 12px; }
   #progTrack { position: relative; width: 170px; height: 12px; background: #e9ecef; border-radius: 6px; }
   #progDot {
@@ -231,7 +264,7 @@
   #hudProgress svg { width: 40px; height: 40px; }
   /* during the celebration the run HUD and controls step aside */
   #road.celebrating #hudStars, #road.celebrating #hudLevel, #road.celebrating #hudProgress,
-  #road.celebrating .pedal, #road.celebrating .laneArrow { display: none; }
+  #road.celebrating #hudDamage, #road.celebrating .pedal, #road.celebrating .laneArrow { display: none; }
   #garageWallet { right: 24px; top: 24px; cursor: pointer; }
   #mapWallet { right: 24px; top: 24px; }
 
@@ -265,6 +298,8 @@
   }
   #celebrate.active { display: flex; }
   #celebrateWallet { position: absolute; right: 24px; top: 24px; }
+  #celebrateDamage { position: static; }
+  #celebrateDamage.clean { border-color: #38b000; color: #38b000; }
   .flyStar {
     position: absolute; width: 44px; height: 44px; z-index: 40; pointer-events: none;
     transition: transform .55s cubic-bezier(.45,.1,.6,1), opacity .55s;
@@ -306,6 +341,24 @@
   <div id="garage" class="scene active">
     <div id="garageWall"><div id="garageSign">VROOM</div></div>
     <div id="garageFloor"></div>
+    <div id="upgrades">
+      <button class="bigBtn upgBtn" data-upg="engine" aria-label="engine speed upgrade">
+        <svg viewBox="0 0 64 64"><path d="M12 40 Q4 32 12 22 Q20 10 34 12 Q30 20 36 24 Q44 14 54 20 Q46 24 48 32 Q58 34 56 44 Q46 42 42 48 Q46 56 38 58 Q34 50 26 52 Q22 60 14 54 Q18 46 12 40 Z" fill="#ff9f1c"/><circle cx="32" cy="36" r="9" fill="#ffd60a"/></svg>
+        <span class="pips"></span><span class="upgPrice"></span>
+      </button>
+      <button class="bigBtn upgBtn" data-upg="armor" aria-label="shield upgrade">
+        <svg viewBox="0 0 64 64"><path d="M32 4 L56 14 V32 Q56 52 32 60 Q8 52 8 32 V14 Z" fill="#bde0fe" stroke="#1d3557" stroke-width="4"/><path d="M22 32 L30 40 L44 24" stroke="#1d3557" stroke-width="6" fill="none" stroke-linecap="round"/></svg>
+        <span class="pips"></span><span class="upgPrice"></span>
+      </button>
+      <button class="bigBtn upgBtn" data-upg="magnet" aria-label="star magnet upgrade">
+        <svg viewBox="0 0 64 64"><path d="M14 8 H28 V30 Q28 38 32 38 Q36 38 36 30 V8 H50 V30 Q50 52 32 52 Q14 52 14 30 Z" fill="#e63946"/><rect x="14" y="8" width="14" height="10" fill="#f1faee"/><rect x="36" y="8" width="14" height="10" fill="#f1faee"/><path d="M50 56 L54 60 M32 56 V62 M14 56 L10 60" stroke="#ffd60a" stroke-width="4" stroke-linecap="round"/></svg>
+        <span class="pips"></span><span class="upgPrice"></span>
+      </button>
+    </div>
+    <button class="bigBtn" id="repairBtn" aria-label="fix the truck with stars">
+      <svg viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#fff"/></svg>
+      <span class="upgPrice"></span>
+    </button>
     <div id="preview"></div>
     <button id="priceTag" aria-label="unlock with stars"></button>
     <div id="previewLock">
@@ -373,6 +426,7 @@
       <svg viewBox="0 0 64 64"><rect x="10" y="4" width="6" height="56" rx="3" fill="#6c757d"/><g><rect x="16" y="6" width="12" height="10" fill="#212529"/><rect x="28" y="6" width="12" height="10" fill="#fff"/><rect x="16" y="16" width="12" height="10" fill="#fff"/><rect x="28" y="16" width="12" height="10" fill="#212529"/><rect x="40" y="6" width="12" height="10" fill="#212529"/><rect x="40" y="16" width="12" height="10" fill="#fff"/></g></svg>
     </div>
     <div class="chip" id="hudStars" aria-label="stars collected"></div>
+    <div class="chip" id="hudDamage" aria-label="damage"></div>
     <button class="bigBtn laneArrow" id="laneUp" aria-label="move up a lane">
       <svg viewBox="0 0 100 100"><path d="M50 14 L88 62 H12 Z" fill="#fff"/></svg>
     </button>
@@ -389,6 +443,7 @@
       <div class="chip" id="celebrateWallet" aria-label="star wallet"></div>
       <div class="chip" id="tallyChip"></div>
       <div id="ratingRow"></div>
+      <div class="chip" id="celebrateDamage" aria-label="damage taken"></div>
       <div id="celebrateRow">
         <button class="bigBtn" id="replayBtn" aria-label="drive this road again">
           <svg viewBox="0 0 100 100"><path d="M50 16 A34 34 0 1 1 18 46" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M8 24 L36 22 L22 48 Z" fill="#fff"/></svg>
@@ -432,11 +487,20 @@ const PRICES = {
 function priceOf(kind, id) { return (PRICES[kind] && PRICES[kind][id]) || 0; }
 function owns(kind, id) { return priceOf(kind, id) === 0 || progress.owned[kind].includes(id); }
 
+/* upgrade tracks: 3 levels each; repair costs 2 stars per damage point */
+const UPG = {
+  engine: { prices: [20, 40, 80] },   /* +80 top speed per level */
+  armor:  { prices: [20, 40, 80] },   /* soaks 1 damage per hit per level */
+  magnet: { prices: [15, 30, 60] }    /* wider star pull per level */
+};
+const MAX_DAMAGE = 9, REPAIR_RATE = 2;
+
 const MAX_LEVEL = 30;
 
 /* ============ STATE (vroom.v2, migrates v1 build) ============ */
 let state = { body: "dump", wheels: "normal", color: "#fdd835", extras: { horn: false, beacon: false, flag: false } };
-let progress = { wallet: 0, owned: { body: [], wheels: [], color: [] }, levels: {}, current: 1 };
+let progress = { wallet: 0, owned: { body: [], wheels: [], color: [] }, levels: {}, current: 1,
+                 damage: 0, upgrades: { engine: 0, armor: 0, magnet: 0 } };
 
 function loadState() {
   let saved = null;
@@ -462,6 +526,10 @@ function loadState() {
     }
   }
   if (Number.isFinite(saved.current) && saved.current >= 1 && saved.current <= MAX_LEVEL) progress.current = Math.floor(saved.current);
+  if (Number.isFinite(saved.damage)) progress.damage = Math.min(MAX_DAMAGE, Math.max(0, Math.floor(saved.damage)));
+  if (saved.upgrades) for (const k of ["engine", "armor", "magnet"]) {
+    if (Number.isFinite(saved.upgrades[k])) progress.upgrades[k] = Math.min(3, Math.max(0, Math.floor(saved.upgrades[k])));
+  }
   /* if the saved build uses a part that is no longer owned somehow, fall back */
   if (!owns("body", state.body)) state.body = "dump";
   if (!owns("wheels", state.wheels)) state.wheels = "normal";
@@ -522,6 +590,10 @@ const sfx = {
   almost() { [660, 880, 1100].forEach((f, i) => tone("sine", f, f, 0.1, 0.15, i * 0.09)); },
   splash() { noiseBurst(0.35, 900, 0.35); },
   deny()   { tone("triangle", 220, 160, 0.18, 0.3); tone("triangle", 180, 120, 0.22, 0.3, 0.18); },
+  crunch() { noiseBurst(0.14, 1800, 0.3); tone("square", 200, 70, 0.22, 0.28); },
+  slip()   { tone("sine", 900, 200, 0.45, 0.2); noiseBurst(0.3, 1400, 0.12); },
+  boom()   { noiseBurst(0.5, 500, 0.5); tone("sine", 90, 38, 0.5, 0.4); },
+  fixed()  { [440, 440, 660, 880].forEach((f, i) => tone("square", f, f, 0.09, 0.16, i * 0.1)); tone("sine", 1320, 1320, 0.3, 0.2, 0.42); },
   buy()    { [659, 784, 988, 1319].forEach((f, i) => tone("triangle", f, f, 0.3, 0.24, i * 0.09)); noiseBurst(0.4, 4000, 0.08, 0.36); },
   tada()   { [523, 659, 784, 1047, 1319].forEach((f, i) => tone("triangle", f, f, 0.5, 0.22, i * 0.11)); noiseBurst(0.5, 4000, 0.1, 0.5); },
   honk(body) {
@@ -842,6 +914,18 @@ function vehicleSVG(st) {
         <circle cx="70" cy="160" r="9" fill="#6b4423"/><circle cx="120" cy="170" r="7" fill="#6b4423"/>
         <circle cx="180" cy="165" r="8" fill="#6b4423"/><circle cx="240" cy="158" r="6" fill="#6b4423"/>
       </g>
+      <g class="dmgScuff" style="display:${progress.damage >= 1 ? "" : "none"}" stroke="#37474f" stroke-width="3" stroke-linecap="round" opacity=".75">
+        <path d="M98 142 l24 -7 M106 150 l18 -5 M188 136 l20 6 M194 145 l14 4" fill="none"/>
+        <ellipse cx="150" cy="150" rx="13" ry="7" fill="#00000022" stroke="none"/>
+      </g>
+      <g class="dmgCrack" style="display:${progress.damage >= 3 ? "" : "none"}" stroke="#f8f9fa" stroke-width="3" fill="none" opacity=".9">
+        <path d="M236 98 l-9 9 l11 7 l-7 9 M227 107 l-9 3 M238 114 l10 5"/>
+      </g>
+      <g class="dmgSmoke" style="display:${progress.damage >= 5 ? "" : "none"}" fill="#90a4ae">
+        <circle cx="288" cy="90" r="9" opacity=".8"/>
+        <circle cx="294" cy="86" r="7" opacity=".7" style="animation-delay:.45s"/>
+        <circle cx="283" cy="84" r="6" opacity=".6" style="animation-delay:.9s"/>
+      </g>
     </g>
     ${wheelSVG(st.wheels, 85)}
     ${wheelSVG(st.wheels, 235)}
@@ -851,6 +935,7 @@ function vehicleSVG(st) {
 /* ============ SHARED ICONS ============ */
 const starIcon = `<svg viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/></svg>`;
 const lockIcon = `<svg viewBox="0 0 64 64"><rect x="12" y="28" width="40" height="30" rx="7" fill="#fff"/><path d="M20 28 V20 a12 12 0 0 1 24 0 V28" stroke="#fff" stroke-width="8" fill="none"/></svg>`;
+const wrenchIcon = `<svg viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#6c757d"/></svg>`;
 
 loadState();
 
@@ -909,7 +994,7 @@ priceTag.addEventListener("pointerdown", e => {
   if (progress.wallet >= cost) {
     progress.wallet -= cost;
     locked.forEach(([k, id]) => progress.owned[k].push(id));
-    save(); renderWallets(true); renderPreview(); renderSwatchLocks();
+    save(); renderWallets(true); renderPreview(); renderSwatchLocks(); renderUpgrades();
     sfx.buy(); confettiBurst(garageScene, 40);
   } else {
     walletDeny();
@@ -961,10 +1046,57 @@ document.querySelectorAll(".extraBtn").forEach(btn => {
   });
 });
 preview.addEventListener("pointerdown", () => { sfx.honk(state.body); renderPreview(); });
+
+/* ---- upgrades + repair ---- */
+function renderUpgrades() {
+  document.querySelectorAll(".upgBtn").forEach(b => {
+    const k = b.dataset.upg, lvl = progress.upgrades[k];
+    const maxed = lvl >= 3;
+    b.querySelector(".pips").innerHTML = [0, 1, 2].map(i => `<i class="${i < lvl ? "on" : ""}"></i>`).join("");
+    b.classList.toggle("maxed", maxed);
+    b.querySelector(".upgPrice").innerHTML = maxed ? "" : starIcon + `<span>${UPG[k].prices[lvl]}</span>`;
+    b.classList.toggle("cant", !maxed && progress.wallet < UPG[k].prices[lvl]);
+  });
+}
+document.querySelectorAll(".upgBtn").forEach(b => b.addEventListener("pointerdown", () => {
+  const k = b.dataset.upg, lvl = progress.upgrades[k];
+  if (lvl >= 3) { sfx.chime(); return; }   /* already maxed: happy ping */
+  const price = UPG[k].prices[lvl];
+  if (progress.wallet >= price) {
+    progress.wallet -= price;
+    progress.upgrades[k]++;
+    save(); renderWallets(true); renderUpgrades(); renderShop();
+    sfx.buy(); confettiBurst(garageScene, 24);
+  } else {
+    walletDeny();
+    b.classList.remove("deny"); void b.offsetWidth; b.classList.add("deny");
+  }
+}));
+const repairBtn = document.getElementById("repairBtn");
+function renderRepair() {
+  const cost = progress.damage * REPAIR_RATE;
+  repairBtn.classList.toggle("show", progress.damage > 0);
+  if (progress.damage > 0) repairBtn.querySelector(".upgPrice").innerHTML = starIcon + `<span>${cost}</span>`;
+}
+repairBtn.addEventListener("pointerdown", () => {
+  const cost = progress.damage * REPAIR_RATE;
+  if (!progress.damage) return;
+  if (progress.wallet >= cost) {
+    progress.wallet -= cost;
+    progress.damage = 0;
+    save(); renderWallets(true); renderRepair(); renderPreview(); renderUpgrades();
+    sfx.fixed(); confettiBurst(garageScene, 20);
+  } else {
+    walletDeny();
+  }
+});
+
 renderPreview();
 preview.classList.remove("bounce");
 renderWallets(false);
 renderSwatchLocks();
+renderUpgrades();
+renderRepair();
 
 /* ============ SCENE SWITCHING ============ */
 const garageScene = document.getElementById("garage");
@@ -978,7 +1110,7 @@ function showScene(el) {
   roadScene.classList.remove("celebrating");
   document.querySelectorAll(".confetti, .flyStar").forEach(c => c.remove());
 }
-function showGarage() { showScene(garageScene); renderPreview(); renderWallets(false); }
+function showGarage() { showScene(garageScene); renderPreview(); renderWallets(false); renderUpgrades(); renderRepair(); }
 function showMap() { showScene(mapScene); renderMap(); renderWallets(false); }
 
 document.getElementById("goBtn").addEventListener("pointerdown", () => {
@@ -1039,6 +1171,7 @@ const laneLayers = [document.getElementById("lane0"), document.getElementById("l
 const carWrap = document.getElementById("carWrap");
 const hudStars = document.getElementById("hudStars");
 const hudLevel = document.getElementById("hudLevel");
+const hudDamage = document.getElementById("hudDamage");
 const progDot = document.getElementById("progDot");
 
 /* 3 lanes: ground stage-Y per lane, depth scale, z stacking (car sits between lane layers) */
@@ -1058,6 +1191,9 @@ function mulberry32(a) {
 
 /* prop art */
 const coneSVG = `<svg width="64" height="80" viewBox="0 0 64 80"><path d="M32 4 L50 66 H14 Z" fill="#f77f00"/><path d="M24 34 H40 M20 50 H45" stroke="#fff" stroke-width="8"/><rect x="4" y="66" width="56" height="12" rx="5" fill="#e76f51"/></svg>`;
+const oilSVG = `<svg width="150" height="46" viewBox="0 0 150 46"><ellipse cx="75" cy="30" rx="70" ry="14" fill="#212529"/><ellipse cx="75" cy="26" rx="55" ry="10" fill="#343a40"/><path d="M40 26 Q60 18 80 26 Q100 32 112 24" stroke="#7b68ee" stroke-width="3" fill="none" opacity=".7"/></svg>`;
+const tntSVG = `<svg width="70" height="72" viewBox="0 0 70 72"><path d="M35 12 Q44 2 50 6" stroke="#6c757d" stroke-width="4" fill="none"/><path d="M50 6 l4 -4 M50 6 l6 1 M50 6 l0 -6" stroke="#ffd60a" stroke-width="3" stroke-linecap="round"/><rect x="4" y="12" width="62" height="56" rx="8" fill="#d1495b"/><rect x="4" y="32" width="62" height="16" fill="#e9c46a"/><circle cx="35" cy="40" r="10" fill="#212529"/></svg>`;
+const boomSVG = `<svg width="120" height="120" viewBox="0 0 120 120"><path d="M60 4 L70 38 L104 22 L82 52 L116 60 L82 68 L104 98 L70 82 L60 116 L50 82 L16 98 L38 68 L4 60 L38 52 L16 22 L50 38 Z" fill="#ff9f1c"/><circle cx="60" cy="60" r="18" fill="#ffd60a"/></svg>`;
 const barrelSVG = `<svg width="66" height="84" viewBox="0 0 66 84"><rect x="6" y="4" width="54" height="76" rx="10" fill="#f77f00"/><rect x="6" y="22" width="54" height="14" fill="#fff"/><rect x="6" y="50" width="54" height="14" fill="#fff"/><rect x="2" y="2" width="62" height="8" rx="4" fill="#e76f51"/><rect x="2" y="74" width="62" height="8" rx="4" fill="#e76f51"/></svg>`;
 const rockSVG = `<svg width="84" height="66" viewBox="0 0 84 66"><path d="M14 62 L4 40 L18 16 L46 6 L72 20 L80 46 L66 62 Z" fill="#8d99ae"/><path d="M30 28 L44 20 M52 34 L64 28" stroke="#6c757d" stroke-width="5" stroke-linecap="round"/></svg>`;
 const starSVG = `<svg width="64" height="64" viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/></svg>`;
@@ -1069,7 +1205,7 @@ const finishSVG = `<svg width="120" height="360" viewBox="0 0 120 360"><rect x="
 
 /* level runtime */
 let level = 1, lastPlayed = 1;
-let LEVEL_LEN = 5200, RAMPS = [], props = [], totalStars = 0, runStars = 0;
+let LEVEL_LEN = 5200, RAMPS = [], props = [], totalStars = 0, runStars = 0, runDamage = 0;
 
 function rampElev(x) {
   for (const rp of RAMPS) {
@@ -1120,6 +1256,8 @@ function buildLevel(n) {
     let t = "cone";
     if (n >= 3 && roll > 0.55) t = "barrel";
     if (n >= 8 && roll > 0.8) t = "rock";
+    if (n >= 12 && roll > 0.92) t = "tnt";
+    if (n >= 5 && roll > 0.42 && roll <= 0.55) t = "oil";
     if (n >= 2 && roll < 0.18) t = "puddle";
     items.push(t);
   }
@@ -1147,7 +1285,7 @@ function buildLevel(n) {
     while (inRampZone(x) && t !== "star") x += 300;
     if (x > endX) continue;
     let lane = Math.floor(rng() * 3);
-    const hard = t === "barrel" || t === "rock";
+    const hard = t === "barrel" || t === "rock" || t === "tnt";
     if (hard) {
       const near = recentHard.filter(h => Math.abs(h.x - x) < 260);
       if (near.length >= 2) continue;                       /* never block all 3 lanes */
@@ -1157,6 +1295,8 @@ function buildLevel(n) {
     }
     const gy = LANE_Y[lane];
     if (t === "cone")   addProp(t, x, lane, gy, coneSVG, -32, -78);
+    if (t === "oil")    addProp(t, x, lane, gy, oilSVG, -75, -36);
+    if (t === "tnt")    addProp(t, x, lane, gy, tntSVG, -35, -68);
     if (t === "barrel") addProp(t, x, lane, gy, barrelSVG, -33, -82);
     if (t === "rock")   addProp(t, x, lane, gy, rockSVG, -42, -64);
     if (t === "puddle") addProp(t, x, lane, gy, puddleSVG, -115, -22);
@@ -1232,12 +1372,13 @@ function startDrive() {
   stopDrive();
   pos = 0; v = 0; jumpY = 0; vy = 0; airborne = false; finished = false;
   gasKey = false; brakeKey = false;
-  targetLane = 1; laneVis = 1; runStars = 0; idleT = 0; nearFinish = false;
+  targetLane = 1; laneVis = 1; runStars = 0; runDamage = 0; idleT = 0; nearFinish = false;
   roadPointers.clear(); gasPointers.clear(); brakePointers.clear();
   document.getElementById("celebrate").classList.remove("active");
   roadScene.classList.remove("celebrating");
   document.querySelectorAll(".confetti, .flyStar").forEach(c => c.remove());
   buildLevel(level);
+  carWrap.classList.remove("wobble", "spin");   /* a leftover class would replay on the fresh svg */
   carWrap.innerHTML = vehicleSVG(state);
   if (roadScene.classList.contains("night")) {
     /* headlights: a soft beam off the front bumper, night levels only */
@@ -1251,6 +1392,7 @@ function startDrive() {
   document.querySelectorAll(".pedal").forEach(p => p.classList.remove("held", "nudge"));
   hudLevel.innerHTML = `<svg viewBox="0 0 64 64"><path d="M14 58 V8" stroke="#023047" stroke-width="7" stroke-linecap="round"/><path d="M18 10 L54 16 L18 30 Z" fill="#e63946"/></svg><span>${level}</span>`;
   renderHudStars(false);
+  renderHudDamage(false);
   engineStart();
   lastT = performance.now();
   rafId = requestAnimationFrame(tick);
@@ -1277,8 +1419,28 @@ const PROP_HIT = {
       v *= 0.85;                                   /* soft: fun tumble, tiny slow */
     }
   },
-  barrel(p, d) { hardHit(p, d); },
-  rock(p, d) { hardHit(p, d); },
+  barrel(p, d) { hardHit(p, d, 1); },
+  rock(p, d) { hardHit(p, d, 1); },
+  tnt(p, d) {
+    if (Math.round(laneVis) !== p.lane) return;
+    if (d > -20 && d < 95 && v > 25 && jumpY < 45) {
+      p.done = true; v = 0; sfx.boom();
+      p.el.innerHTML = boomSVG;
+      /* boom art (120px) is bigger than the crate (70px): recenter on the crate */
+      p.el.style.left = (p.x - 60) + "px";
+      p.el.style.top = (p.y - 92) + "px";
+      p.el.classList.add("hit");
+      applyDamage(2);
+      shakeCar();
+    }
+  },
+  oil(p, d) {
+    if (Math.round(laneVis) !== p.lane) return;
+    if (d > -60 && d < 80 && v > 80 && jumpY < 45) {
+      p.done = true; v *= 0.45; sfx.slip();
+      carWrap.classList.remove("spin", "wobble"); void carWrap.offsetWidth; carWrap.classList.add("spin");
+    }
+  },
   puddle(p, d) {
     if (Math.round(laneVis) !== p.lane) return;
     if (d > -80 && d < 80 && v > 30) {
@@ -1288,15 +1450,17 @@ const PROP_HIT = {
     }
   },
   star(p, d) {
-    /* forgiving magnet for small hands: near-lane counts, and close stars drift in */
-    const near = Math.abs(laneVis - p.lane) <= 0.65;
+    /* forgiving magnet for small hands: near-lane counts, and close stars drift in.
+       the magnet upgrade widens every window */
+    const mag = progress.upgrades.magnet;
+    const near = Math.abs(laneVis - p.lane) <= 0.65 + mag * 0.15;
     const carCY = LANE_Y[Math.round(laneVis)] - 85 - jumpY;   /* car body center */
     const dy = carCY - p.y;
-    if (near && Math.abs(d) < 75 && Math.abs(dy) < 125) {
+    if (near && Math.abs(d) < 75 + mag * 20 && Math.abs(dy) < 125 + mag * 15) {
       p.el.style.transform = "";
       p.done = true; p.el.classList.add("collected"); sfx.chime();
       runStars++; renderHudStars(true);
-    } else if (near && d > -150 && d < 75 && Math.abs(dy) < 160) {
+    } else if (near && d > -(150 + mag * 40) && d < 75 && Math.abs(dy) < 160 + mag * 20) {
       p.el.style.transform = `translate(${d * 0.3}px, ${dy * 0.25}px)`;
     } else if (p.el.style.transform) {
       p.el.style.transform = "";   /* missed it — the star glides back home */
@@ -1307,14 +1471,44 @@ const PROP_HIT = {
     if (d > -10) { p.done = true; finished = true; finishLevel(); }
   }
 };
-function hardHit(p, d) {
+function hardHit(p, d, dmg) {
   if (Math.round(laneVis) !== p.lane) return;
   if (d > -20 && d < 95 && v > 25 && jumpY < 45) {   /* jumpY gate: you can jump clean over */
     p.done = true; v = 0; sfx.thud();
     p.el.classList.add("hit");
-    carWrap.classList.remove("wobble"); void carWrap.offsetWidth; carWrap.classList.add("wobble");
-    roadScene.classList.remove("quake"); void roadScene.offsetWidth; roadScene.classList.add("quake");
+    applyDamage(dmg);
+    shakeCar();
   }
+}
+function shakeCar() {
+  /* drop both hit classes: the later .spin rule would shadow .wobble in the cascade */
+  carWrap.classList.remove("wobble", "spin"); void carWrap.offsetWidth; carWrap.classList.add("wobble");
+  roadScene.classList.remove("quake"); void roadScene.offsetWidth; roadScene.classList.add("quake");
+}
+
+/* ---- damage: cosmetic tiers + mild speed cost, never a fail state ---- */
+function vmaxEff() {
+  return Math.round((VMAX + progress.upgrades.engine * 80) * (progress.damage >= 5 ? 0.85 : 1));
+}
+function applyDamage(n) {
+  const soaked = Math.max(0, n - progress.upgrades.armor);
+  if (!soaked) { sfx.clank(); return; }   /* the shield takes it — ping, no harm */
+  progress.damage = Math.min(MAX_DAMAGE, progress.damage + soaked);
+  runDamage += soaked;
+  save();
+  sfx.crunch();
+  updateDamageVisuals();
+  renderHudDamage(true);
+}
+function updateDamageVisuals() {
+  for (const [cls, min] of [["dmgScuff", 1], ["dmgCrack", 3], ["dmgSmoke", 5]]) {
+    carWrap.querySelectorAll("." + cls).forEach(el => el.style.display = progress.damage >= min ? "" : "none");
+  }
+}
+function renderHudDamage(pop) {
+  hudDamage.innerHTML = wrenchIcon + `<span>${progress.damage}</span>`;
+  hudDamage.classList.toggle("hurt", progress.damage >= 5);
+  if (pop) { hudDamage.classList.remove("pop"); void hudDamage.offsetWidth; hudDamage.classList.add("pop"); }
 }
 
 function tick(now) {
@@ -1327,7 +1521,7 @@ function tick(now) {
     if (brake) {
       if (v > 120) sfxSquealThrottle();
       v = Math.max(0, v - BRAKE * dt);
-    } else if (gas) v = Math.min(VMAX, v + ACCEL * dt);
+    } else if (gas) v = Math.min(vmaxEff(), v + ACCEL * dt);
     else v = Math.max(0, v - COAST * dt);
     pos += v * dt;
   } else v = 0;
@@ -1498,7 +1692,8 @@ function finishLevel() {
   confettiBurst(roadScene, 90);
   roadScene.classList.add("celebrating");   /* run HUD steps aside: one star number at a time */
 
-  const bonus = 3;
+  const clean = runDamage === 0;
+  const bonus = 3 + (clean ? 2 : 0);        /* clean-run bonus: no new dings this run */
   const banked = runStars + bonus;
   const frac = totalStars ? runStars / totalStars : 1;
   const rating = frac >= 0.65 ? 3 : frac >= 0.34 ? 2 : 1;
@@ -1518,6 +1713,9 @@ function finishLevel() {
   tally.innerHTML = starIcon + `<span>0</span>`;
   const cWallet = document.getElementById("celebrateWallet");
   cWallet.innerHTML = starIcon + `<span>${walletStart}</span>`;
+  const cDamage = document.getElementById("celebrateDamage");
+  cDamage.innerHTML = wrenchIcon + `<span>${progress.damage}</span>`;
+  cDamage.classList.toggle("clean", clean);
   const ratingRow = document.getElementById("ratingRow");
   ratingRow.innerHTML = [1, 2, 3].map(() =>
     `<svg class="rateStar" viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/></svg>`).join("");
