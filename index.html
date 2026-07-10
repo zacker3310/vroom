@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Vroom</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #1a2634; touch-action: none; }
+  svg { display: block; pointer-events: none; }
+
+  #stage {
+    position: absolute; left: 50%; top: 50%;
+    width: 1200px; height: 700px;
+    transform-origin: center;
+    overflow: hidden; border-radius: 12px;
+  }
+  .scene { position: absolute; inset: 0; display: none; }
+  .scene.active { display: block; }
+
+  /* ---------- GARAGE ---------- */
+  #garage { background: linear-gradient(#8ecae6 0%, #bde0fe 55%, #a8763e 55%, #8a5a2b 100%); }
+  #garageWall {
+    position: absolute; left: 60px; right: 60px; top: 30px; height: 360px;
+    background: #e9ecef; border-radius: 18px 18px 0 0; border: 8px solid #adb5bd; border-bottom: none;
+  }
+  #garageWall::before {
+    content: ""; position: absolute; left: 20px; right: 20px; top: 18px; height: 26px;
+    background: repeating-linear-gradient(90deg, #f77f00 0 40px, #fcbf49 40px 80px); border-radius: 8px;
+  }
+  #garageSign {
+    position: absolute; left: 50%; top: -6px; transform: translateX(-50%);
+    background: #023047; color: #ffb703; font: 900 34px/1 -apple-system, "Arial Rounded MT Bold", sans-serif;
+    letter-spacing: 6px; padding: 10px 28px; border-radius: 14px; border: 5px solid #ffb703;
+  }
+  #preview {
+    position: absolute; left: 50%; top: 240px; transform: translateX(-50%);
+    width: 440px; cursor: pointer; touch-action: none; pointer-events: auto;
+  }
+  #preview svg { width: 100%; height: auto; overflow: visible; }
+  #preview.bounce { animation: bounce .45s ease; }
+  @keyframes bounce {
+    0% { transform: translateX(-50%) scale(1); }
+    30% { transform: translateX(-50%) scale(1.08, .88); }
+    60% { transform: translateX(-50%) scale(.95, 1.06); }
+    100% { transform: translateX(-50%) scale(1); }
+  }
+  #garageFloor {
+    position: absolute; left: 0; right: 0; top: 452px; height: 40px;
+    background: #6c757d; border-top: 6px solid #495057;
+  }
+
+  #controls {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 205px;
+    background: #023047; border-top: 8px solid #ffb703;
+    display: flex; align-items: center; justify-content: center; gap: 22px; padding: 0 20px;
+  }
+  .bigBtn {
+    border: none; border-radius: 24px; cursor: pointer; touch-action: none;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 0 rgba(0,0,0,.35); transition: transform .08s;
+  }
+  .bigBtn:active, .bigBtn.pressed { transform: translateY(4px) scale(.96); box-shadow: 0 2px 0 rgba(0,0,0,.35); }
+  #bodyBtn, #wheelBtn { width: 125px; height: 165px; background: #219ebc; flex-direction: column; gap: 6px; }
+  #bodyBtn svg, #wheelBtn svg { width: 92px; height: 92px; }
+
+  #swatches { display: grid; grid-template-columns: repeat(3, 86px); grid-template-rows: repeat(2, 86px); gap: 10px; }
+  .swatch {
+    width: 86px; height: 86px; border-radius: 50%; border: 6px solid rgba(255,255,255,.85);
+    cursor: pointer; touch-action: none; box-shadow: 0 5px 0 rgba(0,0,0,.35); transition: transform .08s;
+  }
+  .swatch:active { transform: scale(.9); }
+  .swatch.selected { border-color: #ffb703; transform: scale(1.08); }
+
+  #extras { display: flex; gap: 10px; }
+  .extraBtn {
+    width: 92px; height: 92px; border-radius: 22px; background: #457b9d; opacity: .55;
+    border: 5px solid rgba(255,255,255,.5);
+  }
+  .extraBtn.on { background: #2a9d8f; opacity: 1; border-color: #ffb703; }
+  .extraBtn svg { width: 60px; height: 60px; }
+
+  #goBtn {
+    width: 160px; height: 160px; border-radius: 50%; background: #38b000;
+    border: 8px solid #d8f3dc;
+  }
+  #goBtn svg { width: 80px; height: 80px; }
+
+  /* ---------- ROAD ---------- */
+  #road { background: linear-gradient(#4cc9f0 0%, #90e0ef 45%, #caf0f8 62%); touch-action: none; }
+  .layer { position: absolute; top: 0; height: 100%; will-change: transform; }
+  #farLayer, #midLayer, #groundLayer { left: 0; width: 6400px; }
+  #sun { position: absolute; right: 90px; top: 45px; width: 110px; height: 110px; border-radius: 50%; background: #ffd60a; box-shadow: 0 0 60px 22px rgba(255,214,10,.55); }
+  .cloud { position: absolute; background: #fff; border-radius: 60px; opacity: .9; }
+  .cloud::before, .cloud::after { content: ""; position: absolute; background: #fff; border-radius: 50%; }
+  .cloud::before { width: 55%; height: 160%; left: 12%; bottom: 25%; }
+  .cloud::after { width: 45%; height: 130%; right: 12%; bottom: 30%; }
+
+  #roadStrip {
+    position: absolute; left: 0; width: 100%; top: 500px; height: 120px;
+    background: #495057; border-top: 8px solid #343a40;
+  }
+  #roadStrip::before {
+    content: ""; position: absolute; left: 0; width: 100%; top: 52px; height: 12px;
+    background: repeating-linear-gradient(90deg, #ffd60a 0 60px, transparent 60px 120px);
+  }
+  #dirt { position: absolute; left: 0; width: 100%; top: 620px; height: 80px; background: #8a5a2b; }
+
+  .prop { position: absolute; }
+  .cone { transition: transform .5s ease; transform-origin: bottom center; }
+  .cone.knocked { transform: rotate(78deg) translateX(26px); }
+  .star { transition: transform .4s ease, opacity .4s ease; }
+  .star.collected { transform: scale(2.2); opacity: 0; }
+  .puddle .splash { opacity: 0; transition: opacity .15s; }
+  .puddle.splashing .splash { opacity: 1; }
+
+  #carWrap { position: absolute; left: 135px; width: 330px; will-change: transform; cursor: pointer; touch-action: none; transform-origin: center; }
+  #carWrap svg { width: 100%; height: auto; overflow: visible; }
+
+  #homeBtn {
+    position: absolute; left: 24px; top: 24px; width: 96px; height: 96px;
+    border-radius: 26px; background: #fff; border: 6px solid #023047; z-index: 20;
+  }
+  #homeBtn svg { width: 56px; height: 56px; }
+
+  #pedal {
+    position: absolute; right: 30px; bottom: 26px; width: 170px; height: 170px;
+    border-radius: 50%; background: #e63946; border: 10px solid #fff;
+    display: flex; align-items: center; justify-content: center; z-index: 20;
+    box-shadow: 0 8px 0 rgba(0,0,0,.35); cursor: pointer; touch-action: none;
+    transition: transform .08s;
+  }
+  #pedal.held { transform: scale(.92); box-shadow: 0 3px 0 rgba(0,0,0,.35); }
+  #pedal svg { width: 90px; height: 90px; }
+
+  /* ---------- CELEBRATION ---------- */
+  #celebrate {
+    position: absolute; inset: 0; display: none; z-index: 30;
+    background: rgba(2,48,71,.45); align-items: center; justify-content: center;
+  }
+  #celebrate.active { display: flex; }
+  #celebrateBtn {
+    width: 230px; height: 230px; border-radius: 50%; background: #ffb703;
+    border: 12px solid #fff; animation: pulse 1.1s ease infinite;
+  }
+  #celebrateBtn svg { width: 120px; height: 120px; }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.09); } }
+  .confetti {
+    position: absolute; top: -30px; width: 16px; height: 16px; z-index: 29;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(760px) rotate(var(--spin)); }
+  }
+
+  .spinner { animation: spin 1.2s linear infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .wheelrot { transform-box: fill-box; transform-origin: center; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <div id="garage" class="scene active">
+    <div id="garageWall"><div id="garageSign">VROOM</div></div>
+    <div id="garageFloor"></div>
+    <div id="preview"></div>
+    <div id="controls">
+      <button class="bigBtn" id="bodyBtn" aria-label="change truck body">
+        <svg viewBox="0 0 100 100"><path d="M10 62 L10 40 L48 40 L48 26 L74 26 L86 44 L90 62 Z" fill="#fff"/><circle cx="30" cy="66" r="12" fill="#023047" stroke="#fff" stroke-width="4"/><circle cx="72" cy="66" r="12" fill="#023047" stroke="#fff" stroke-width="4"/><path d="M40 18 L46 8 M50 18 L50 6 M60 18 L54 8" stroke="#ffb703" stroke-width="5" stroke-linecap="round"/></svg>
+      </button>
+      <button class="bigBtn" id="wheelBtn" aria-label="change wheels">
+        <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="#fff"/><circle cx="50" cy="50" r="16" fill="#023047"/><g stroke="#023047" stroke-width="8" stroke-linecap="round"><path d="M50 12 V30 M50 70 V88 M12 50 H30 M70 50 H88 M23 23 L36 36 M64 64 L77 77 M77 23 L64 36 M36 64 L23 77"/></g></svg>
+      </button>
+      <div id="swatches"></div>
+      <div id="extras">
+        <button class="bigBtn extraBtn" data-extra="horn" aria-label="horn">
+          <svg viewBox="0 0 100 100"><path d="M20 50 Q20 30 45 30 L70 15 L70 85 L45 70 Q20 70 20 50Z" fill="#ffd60a" stroke="#fff" stroke-width="4"/><path d="M80 35 Q92 50 80 65" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round"/></svg>
+        </button>
+        <button class="bigBtn extraBtn" data-extra="beacon" aria-label="flashing light">
+          <svg viewBox="0 0 100 100"><path d="M30 70 Q30 35 50 35 Q70 35 70 70 Z" fill="#ff9f1c" stroke="#fff" stroke-width="4"/><rect x="22" y="70" width="56" height="12" rx="6" fill="#fff"/><path d="M50 22 V8 M28 30 L18 20 M72 30 L82 20" stroke="#ffd60a" stroke-width="6" stroke-linecap="round"/></svg>
+        </button>
+        <button class="bigBtn extraBtn" data-extra="flag" aria-label="flag">
+          <svg viewBox="0 0 100 100"><path d="M35 90 V12" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M40 15 L82 25 L40 40 Z" fill="#e63946" stroke="#fff" stroke-width="3"/></svg>
+        </button>
+      </div>
+      <button class="bigBtn" id="goBtn" aria-label="go drive">
+        <svg viewBox="0 0 100 100"><path d="M30 18 L82 50 L30 82 Z" fill="#fff"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="road" class="scene">
+    <div id="sun"></div>
+    <div class="cloud" style="left:180px; top:70px; width:130px; height:44px;"></div>
+    <div class="cloud" style="left:620px; top:120px; width:170px; height:52px;"></div>
+    <div class="cloud" style="left:980px; top:55px; width:110px; height:38px;"></div>
+    <div id="farLayer" class="layer"></div>
+    <div id="midLayer" class="layer"></div>
+    <div id="roadStrip"></div>
+    <div id="dirt"></div>
+    <div id="groundLayer" class="layer"></div>
+    <div id="carWrap"></div>
+    <button class="bigBtn" id="homeBtn" aria-label="back to garage">
+      <svg viewBox="0 0 100 100"><path d="M50 12 L92 50 H78 V88 H22 V50 H8 Z" fill="#023047"/><rect x="40" y="58" width="20" height="30" fill="#ffb703"/></svg>
+    </button>
+    <button id="pedal" aria-label="hold to drive">
+      <svg viewBox="0 0 100 100"><path d="M30 14 L82 50 L30 86 Z" fill="#fff"/></svg>
+    </button>
+    <div id="celebrate">
+      <button class="bigBtn" id="celebrateBtn" aria-label="build another truck">
+        <svg viewBox="0 0 100 100"><path d="M50 10 L94 42 H84 V90 H16 V42 H6 Z" fill="#023047"/><rect x="30" y="52" width="40" height="38" rx="4" fill="#e9ecef"/><path d="M30 62 H70 M30 72 H70 M30 82 H70" stroke="#adb5bd" stroke-width="4"/></svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+
+/* ============ STAGE SCALING ============ */
+const stage = document.getElementById("stage");
+function fit() {
+  const s = Math.min(innerWidth / 1200, innerHeight / 700);
+  stage.style.transform = `translate(-50%,-50%) scale(${s})`;
+}
+addEventListener("resize", fit);
+fit();
+
+/* ============ STATE ============ */
+const COLORS = ["#e53935", "#1e88e5", "#fdd835", "#43a047", "#fb8c00", "#ec407a"];
+const BODY_ORDER = ["dump", "digger", "mixer", "fire", "monster"];
+const WHEEL_ORDER = ["normal", "monster", "racing"];
+
+let state = { body: "dump", wheels: "normal", color: "#fdd835", extras: { horn: false, beacon: false, flag: false } };
+try {
+  const saved = JSON.parse(localStorage.getItem("vroom.v1"));
+  if (saved && BODY_ORDER.includes(saved.body) && WHEEL_ORDER.includes(saved.wheels)) {
+    state.body = saved.body;
+    state.wheels = saved.wheels;
+    if (COLORS.includes(saved.color)) state.color = saved.color;
+    for (const k in state.extras) state.extras[k] = !!(saved.extras && saved.extras[k]);
+  }
+} catch (e) {}
+function save() { try { localStorage.setItem("vroom.v1", JSON.stringify(state)); } catch (e) {} }
+
+/* ============ AUDIO (all synthesized) ============ */
+let actx = null;
+function unlockAudio() {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === "suspended") actx.resume();
+}
+addEventListener("pointerdown", unlockAudio, { capture: true });
+
+function tone(type, f0, f1, dur, vol = 0.25, delay = 0) {
+  if (!actx) return;
+  const t = actx.currentTime + delay;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(f0, t);
+  o.frequency.exponentialRampToValueAtTime(Math.max(f1, 1), t + dur);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g).connect(actx.destination);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+function noiseBurst(dur, freq, vol = 0.3, delay = 0) {
+  if (!actx) return;
+  const t = actx.currentTime + delay;
+  const len = Math.max(1, Math.floor(actx.sampleRate * dur));
+  const buf = actx.createBuffer(1, len, actx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  const src = actx.createBufferSource(); src.buffer = buf;
+  const f = actx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = freq;
+  const g = actx.createGain();
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  src.connect(f).connect(g).connect(actx.destination);
+  src.start(t);
+}
+const sfx = {
+  pop()    { tone("sine", 400, 900, 0.12, 0.3); },
+  clank()  { tone("square", 300, 120, 0.12, 0.18); noiseBurst(0.06, 3000, 0.12); },
+  splat()  { noiseBurst(0.18, 1200, 0.3); tone("sine", 300, 80, 0.18, 0.2); },
+  chime()  { tone("sine", 880, 880, 0.15, 0.22); tone("sine", 1320, 1320, 0.25, 0.18, 0.08); },
+  boink()  { tone("triangle", 500, 150, 0.2, 0.3); },
+  whee()   { [523, 659, 784, 1047].forEach((f, i) => tone("sine", f, f, 0.14, 0.22, i * 0.07)); },
+  splash() { noiseBurst(0.35, 900, 0.35); },
+  tada()   { [523, 659, 784, 1047, 1319].forEach((f, i) => tone("triangle", f, f, 0.5, 0.22, i * 0.11)); noiseBurst(0.5, 4000, 0.1, 0.5); },
+  honk(body) {
+    if (body === "dump")    { tone("square", 190, 190, 0.2, 0.3); tone("square", 150, 150, 0.25, 0.3, 0.22); }
+    if (body === "digger")  { tone("square", 880, 880, 0.12, 0.22); tone("square", 880, 880, 0.12, 0.22, 0.2); }
+    if (body === "mixer")   { tone("sine", 300, 380, 0.15, 0.3); tone("sine", 380, 300, 0.2, 0.3, 0.15); }
+    if (body === "fire")    { tone("sawtooth", 500, 950, 0.35, 0.2); tone("sawtooth", 950, 500, 0.35, 0.2, 0.35); }
+    if (body === "monster") { tone("sawtooth", 95, 80, 0.5, 0.4); tone("sawtooth", 98, 82, 0.5, 0.3); }
+  }
+};
+let engine = null;
+function engineStart() {
+  if (!actx || engine) return;
+  const o = actx.createOscillator(), g = actx.createGain(), f = actx.createBiquadFilter();
+  o.type = "sawtooth"; o.frequency.value = 45;
+  f.type = "lowpass"; f.frequency.value = 260;
+  g.gain.value = 0;
+  o.connect(f).connect(g).connect(actx.destination);
+  o.start();
+  engine = { o, g };
+}
+function engineSet(v) {
+  if (!engine) return;
+  engine.o.frequency.value = 45 + (v / 700) * 100;
+  engine.g.gain.value = v > 5 ? 0.07 : 0;
+}
+function engineStop() {
+  if (!engine) return;
+  engine.g.gain.value = 0; engine.o.stop();
+  engine = null;
+}
+
+/* ============ VEHICLE SVG ============ */
+/* viewBox 0 0 320 230 — ground line y=200, axles x=85/235 */
+const WHEELS = {
+  normal:  { r: 26, hub: "#adb5bd" },
+  monster: { r: 40, hub: "#adb5bd" },
+  racing:  { r: 22, hub: "#ffd60a" }
+};
+function wheelSVG(type, cx) {
+  const w = WHEELS[type];
+  const cy = 200 - w.r;
+  let treads = "";
+  if (type === "monster") {
+    for (let a = 0; a < 8; a++) {
+      const rad = a * Math.PI / 4;
+      treads += `<rect x="${-4}" y="${-w.r}" width="8" height="10" rx="3" fill="#111" transform="rotate(${a * 45})"/>`;
+    }
+  }
+  return `<g transform="translate(${cx},${cy})"><g class="wheelrot">
+    <circle r="${w.r}" fill="#2b2d31"/>
+    ${treads}
+    <circle r="${w.r * 0.52}" fill="${w.hub}"/>
+    <rect x="${-w.r * 0.5}" y="-3.5" width="${w.r}" height="7" rx="3" fill="#2b2d31"/>
+    <circle r="${w.r * 0.16}" fill="#2b2d31"/>
+  </g></g>`;
+}
+function eye(cx, cy, r) {
+  return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff"/><circle cx="${cx + r * 0.25}" cy="${cy}" r="${r * 0.45}" fill="#1d3557"/>`;
+}
+const BODIES = {
+  dump: {
+    roof: [245, 100], rear: [45, 105],
+    svg: () => `
+      <path d="M40 108 L185 108 L178 165 L52 165 Z" fill="var(--paint)" stroke="#00000033" stroke-width="4"/>
+      <rect x="36" y="100" width="155" height="14" rx="6" fill="var(--paint)" filter="brightness(.8)"/>
+      <rect x="195" y="100" width="80" height="68" rx="10" fill="var(--paint)"/>
+      <rect x="208" y="110" width="52" height="30" rx="6" fill="#bde0fe"/>
+      ${eye(234, 125, 9)}
+      <rect x="270" y="140" width="18" height="28" rx="5" fill="#adb5bd"/>
+      <rect x="30" y="160" width="260" height="14" rx="6" fill="#495057"/>`
+  },
+  digger: {
+    roof: [225, 78], rear: [55, 128],
+    svg: () => `
+      <rect x="45" y="128" width="215" height="44" rx="10" fill="var(--paint)"/>
+      <rect x="180" y="78" width="78" height="58" rx="10" fill="var(--paint)"/>
+      <rect x="192" y="88" width="50" height="30" rx="6" fill="#bde0fe"/>
+      ${eye(217, 103, 9)}
+      <g stroke="#6c757d" stroke-width="14" stroke-linecap="round" fill="none">
+        <path d="M170 120 L110 62"/><path d="M110 62 L52 90"/>
+      </g>
+      <path d="M52 90 L20 78 L26 116 L58 112 Z" fill="#6c757d"/>
+      <rect x="40" y="160" width="240" height="14" rx="6" fill="#495057"/>`
+  },
+  mixer: {
+    roof: [245, 100], rear: [50, 90],
+    svg: () => `
+      <g class="spinner" style="animation-duration:3.5s">
+        <ellipse cx="115" cy="118" rx="78" ry="50" fill="var(--paint)" stroke="#00000033" stroke-width="4"/>
+        <path d="M50 100 Q115 78 180 100 M45 122 Q115 145 183 122" stroke="#ffffffaa" stroke-width="7" fill="none"/>
+      </g>
+      <rect x="195" y="100" width="80" height="68" rx="10" fill="var(--paint)"/>
+      <rect x="208" y="110" width="52" height="30" rx="6" fill="#bde0fe"/>
+      ${eye(234, 125, 9)}
+      <rect x="60" y="150" width="230" height="20" rx="8" fill="#495057"/>`
+  },
+  fire: {
+    roof: [250, 92], rear: [42, 100],
+    svg: () => `
+      <rect x="35" y="108" width="250" height="62" rx="12" fill="var(--paint)"/>
+      <rect x="215" y="92" width="70" height="40" rx="8" fill="var(--paint)"/>
+      <rect x="226" y="98" width="46" height="26" rx="5" fill="#bde0fe"/>
+      ${eye(249, 111, 8)}
+      <rect x="45" y="88" width="160" height="12" rx="6" fill="#adb5bd" transform="rotate(-4 125 94)"/>
+      <path d="M60 96 V86 M95 93 V83 M130 91 V81 M165 88 V78" stroke="#adb5bd" stroke-width="6"/>
+      <rect x="52" y="122" width="34" height="34" rx="6" fill="#e9ecef"/>
+      <rect x="100" y="122" width="34" height="34" rx="6" fill="#e9ecef"/>
+      <rect x="30" y="162" width="264" height="12" rx="6" fill="#495057"/>`
+  },
+  monster: {
+    roof: [212, 78], rear: [55, 120],
+    svg: () => `
+      <rect x="45" y="120" width="230" height="46" rx="12" fill="var(--paint)"/>
+      <path d="M165 122 L172 78 L245 78 L262 122 Z" fill="var(--paint)" filter="brightness(1.1)"/>
+      <path d="M180 88 L238 88 L248 114 L176 114 Z" fill="#bde0fe"/>
+      ${eye(214, 101, 9)}
+      <path d="M60 132 Q80 118 96 132 Q112 146 128 132" stroke="#ffd60a" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <rect x="36" y="158" width="252" height="14" rx="7" fill="#495057"/>`
+  }
+};
+function extrasSVG(body, extras) {
+  const [rx, ry] = BODIES[body].roof;
+  const [fx, fy] = BODIES[body].rear;
+  let out = "";
+  if (extras.horn) out += `
+    <g transform="translate(${rx - 28},${ry - 20})">
+      <path d="M4 14 Q4 4 16 4 L30 -4 L30 24 L16 16 Q4 16 4 14Z" fill="#ffd60a" stroke="#023047" stroke-width="3"/>
+    </g>`;
+  if (extras.beacon) out += `
+    <g transform="translate(${rx + 14},${ry - 26})">
+      <rect x="-14" y="18" width="28" height="8" rx="4" fill="#adb5bd"/>
+      <path d="M-10 18 Q-10 -2 0 -2 Q10 -2 10 18Z" fill="#ff9f1c" stroke="#e76f51" stroke-width="2"/>
+      <g class="spinner"><path d="M0 8 L0 -14" stroke="#ffd60a" stroke-width="5" stroke-linecap="round"/></g>
+    </g>`;
+  if (extras.flag) out += `
+    <g transform="translate(${fx},${fy})">
+      <path d="M0 0 V-52" stroke="#6c757d" stroke-width="5" stroke-linecap="round"/>
+      <path d="M2 -50 L38 -42 L2 -30 Z" fill="#e63946"/>
+    </g>`;
+  return out;
+}
+function vehicleSVG(st) {
+  const lift = Math.max(0, WHEELS[st.wheels].r - 26);
+  return `<svg viewBox="0 0 320 230" style="--paint:${st.color}">
+    <g transform="translate(0,${-lift})">
+      ${BODIES[st.body].svg()}
+      ${extrasSVG(st.body, st.extras)}
+      <g class="mudSpots" style="opacity:0">
+        <circle cx="70" cy="160" r="9" fill="#6b4423"/><circle cx="120" cy="170" r="7" fill="#6b4423"/>
+        <circle cx="180" cy="165" r="8" fill="#6b4423"/><circle cx="240" cy="158" r="6" fill="#6b4423"/>
+      </g>
+    </g>
+    ${wheelSVG(st.wheels, 85)}
+    ${wheelSVG(st.wheels, 235)}
+  </svg>`;
+}
+
+/* ============ GARAGE UI ============ */
+const preview = document.getElementById("preview");
+function renderPreview() {
+  preview.innerHTML = vehicleSVG(state);
+  preview.classList.remove("bounce");
+  void preview.offsetWidth;
+  preview.classList.add("bounce");
+}
+document.getElementById("bodyBtn").addEventListener("pointerdown", () => {
+  state.body = BODY_ORDER[(BODY_ORDER.indexOf(state.body) + 1) % BODY_ORDER.length];
+  save(); renderPreview(); sfx.pop();
+});
+document.getElementById("wheelBtn").addEventListener("pointerdown", () => {
+  state.wheels = WHEEL_ORDER[(WHEEL_ORDER.indexOf(state.wheels) + 1) % WHEEL_ORDER.length];
+  save(); renderPreview(); sfx.clank();
+});
+const swatchesEl = document.getElementById("swatches");
+COLORS.forEach(c => {
+  const b = document.createElement("button");
+  b.className = "swatch"; b.style.background = c;
+  b.setAttribute("aria-label", "paint color");
+  b.addEventListener("pointerdown", () => {
+    state.color = c; save();
+    swatchesEl.querySelectorAll(".swatch").forEach(s => s.classList.toggle("selected", s === b));
+    renderPreview(); sfx.splat();
+  });
+  if (c === state.color) b.classList.add("selected");
+  swatchesEl.appendChild(b);
+});
+document.querySelectorAll(".extraBtn").forEach(btn => {
+  const name = btn.dataset.extra;
+  btn.classList.toggle("on", state.extras[name]);
+  btn.addEventListener("pointerdown", () => {
+    state.extras[name] = !state.extras[name];
+    btn.classList.toggle("on", state.extras[name]);
+    save(); renderPreview();
+    if (name === "horn" && state.extras.horn) sfx.honk(state.body);
+    else sfx.clank();
+  });
+});
+preview.addEventListener("pointerdown", () => { sfx.honk(state.body); renderPreview(); });
+renderPreview();
+preview.classList.remove("bounce");
+
+/* ============ SCENE SWITCHING ============ */
+const garageScene = document.getElementById("garage");
+const roadScene = document.getElementById("road");
+function showGarage() {
+  stopDrive();
+  roadScene.classList.remove("active");
+  garageScene.classList.add("active");
+  document.getElementById("celebrate").classList.remove("active");
+  document.querySelectorAll(".confetti").forEach(c => c.remove());
+  renderPreview();
+}
+function showRoad() {
+  garageScene.classList.remove("active");
+  roadScene.classList.add("active");
+  startDrive();
+}
+document.getElementById("goBtn").addEventListener("pointerdown", () => { sfx.pop(); showRoad(); });
+document.getElementById("homeBtn").addEventListener("pointerdown", e => { e.stopPropagation(); sfx.pop(); showGarage(); });
+document.getElementById("celebrateBtn").addEventListener("pointerdown", e => { e.stopPropagation(); sfx.pop(); showGarage(); });
+
+/* ============ ROAD SCENE ============ */
+const farLayer = document.getElementById("farLayer");
+const midLayer = document.getElementById("midLayer");
+const groundLayer = document.getElementById("groundLayer");
+const carWrap = document.getElementById("carWrap");
+
+/* background scenery (built once) */
+(function buildScenery() {
+  let far = "";
+  for (let x = 0; x < 6400; x += 520) {
+    far += `<path d="M${x} 500 Q${x + 130} 330 ${x + 260} 500 Q${x + 390} 350 ${x + 520} 500" fill="#74c69d" opacity=".8"/>`;
+  }
+  farLayer.innerHTML = `<svg width="6400" height="700" viewBox="0 0 6400 700">${far}</svg>`;
+  let mid = "";
+  for (let x = 150; x < 6400; x += 900) {
+    mid += `
+      <g transform="translate(${x},500)">
+        <rect x="0" y="-190" width="14" height="190" fill="#e76f51"/>
+        <rect x="-70" y="-196" width="200" height="12" fill="#e76f51"/>
+        <path d="M118 -190 L118 -120" stroke="#495057" stroke-width="4"/>
+        <rect x="104" y="-120" width="28" height="24" rx="4" fill="#ffb703"/>
+      </g>
+      <g transform="translate(${x + 420},500)">
+        <rect x="0" y="-130" width="120" height="130" fill="#adb5bd"/>
+        <rect x="12" y="-116" width="24" height="24" fill="#4cc9f0"/><rect x="52" y="-116" width="24" height="24" fill="#4cc9f0"/>
+        <rect x="12" y="-76" width="24" height="24" fill="#4cc9f0"/><rect x="52" y="-76" width="24" height="24" fill="#4cc9f0"/>
+        <rect x="88" y="-150" width="16" height="150" fill="#6c757d"/>
+      </g>`;
+  }
+  midLayer.innerHTML = `<svg width="6400" height="700" viewBox="0 0 6400 700">${mid}</svg>`;
+})();
+
+const coneSVG = `<svg width="64" height="80" viewBox="0 0 64 80"><path d="M32 4 L50 66 H14 Z" fill="#f77f00"/><path d="M24 34 H40 M20 50 H45" stroke="#fff" stroke-width="8"/><rect x="4" y="66" width="56" height="12" rx="5" fill="#e76f51"/></svg>`;
+const starSVG = `<svg width="64" height="64" viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/></svg>`;
+const rampSVG = `<svg width="250" height="95" viewBox="0 0 250 95"><path d="M0 95 L250 0 L250 95 Z" fill="#e9c46a" stroke="#b08968" stroke-width="5"/><path d="M60 72 L250 0" stroke="#b08968" stroke-width="4" opacity=".5"/></svg>`;
+const puddleSVG = `<svg width="230" height="70" viewBox="0 0 230 70"><ellipse cx="115" cy="52" rx="110" ry="17" fill="#6b4423"/><ellipse cx="115" cy="48" rx="95" ry="13" fill="#8d5a2f"/><g class="splash"><path d="M50 40 Q60 5 72 38 M110 38 Q118 0 130 36 M165 40 Q175 8 185 38" stroke="#8d5a2f" stroke-width="9" fill="none" stroke-linecap="round"/></g></svg>`;
+const finishSVG = `<svg width="120" height="230" viewBox="0 0 120 230"><rect x="8" y="0" width="10" height="230" fill="#6c757d"/><g>${
+  (() => { let s = ""; for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) s += `<rect x="${18 + c * 18}" y="${6 + r * 15}" width="18" height="15" fill="${(r + c) % 2 ? "#fff" : "#212529"}"/>`; return s; })()
+}</g></svg>`;
+
+const RAMP = { x: 2600, w: 250, h: 95 };
+const FINISH_X = 5200;
+let props = [];
+function buildProps() {
+  groundLayer.innerHTML = "";
+  props = [];
+  const defs = [
+    { type: "cone", x: 900 }, { type: "cone", x: 1500 }, { type: "cone", x: 3400 }, { type: "cone", x: 4600 },
+    { type: "star", x: 1200, y: 505 }, { type: "star", x: 1800, y: 505 }, { type: "star", x: 2950, y: 330 },
+    { type: "star", x: 3800, y: 505 }, { type: "star", x: 4200, y: 505 },
+    { type: "puddle", x: 2050 },
+    { type: "ramp", x: RAMP.x },
+    { type: "finish", x: FINISH_X }
+  ];
+  defs.forEach(d => {
+    const el = document.createElement("div");
+    el.className = "prop " + d.type;
+    if (d.type === "cone")   { el.innerHTML = coneSVG;   el.style.cssText = `left:${d.x - 32}px; top:505px;`; }
+    if (d.type === "star")   { el.innerHTML = starSVG;   el.style.cssText = `left:${d.x - 32}px; top:${d.y - 32}px;`; }
+    if (d.type === "puddle") { el.innerHTML = puddleSVG; el.style.cssText = `left:${d.x - 115}px; top:533px;`; }
+    if (d.type === "ramp")   { el.innerHTML = rampSVG;   el.style.cssText = `left:${d.x}px; top:490px;`; }
+    if (d.type === "finish") { el.innerHTML = finishSVG; el.style.cssText = `left:${d.x}px; top:355px;`; }
+    groundLayer.appendChild(el);
+    props.push({ ...d, el, done: false });
+  });
+}
+
+/* drive physics */
+const CAR_SCREEN_X = 300;         /* world x of car center = pos + 300 */
+const CAR_BASE_TOP = 379;         /* car svg ground line (y=206) sits at stage y=585 */
+let pos = 0, v = 0, jumpY = 0, vy = 0, airborne = false, finished = false;
+let held = false, rafId = null, lastT = 0, wheelAngle = 0;
+let wheelEls = [], mudEl = null;
+let celebrateTimer = null;
+const drivePointers = new Set();
+
+function rampElev(x) {
+  const d = x - RAMP.x;
+  if (d < 0 || d > RAMP.w) return 0;
+  return (d / RAMP.w) * RAMP.h;
+}
+function startDrive() {
+  stopDrive();
+  pos = 0; v = 0; jumpY = 0; vy = 0; airborne = false; finished = false; held = false;
+  drivePointers.clear();
+  document.getElementById("celebrate").classList.remove("active");
+  buildProps();
+  carWrap.innerHTML = vehicleSVG(state);
+  carWrap.style.top = CAR_BASE_TOP + "px";
+  wheelEls = carWrap.querySelectorAll(".wheelrot");
+  mudEl = carWrap.querySelector(".mudSpots");
+  document.getElementById("pedal").classList.remove("held");
+  engineStart();
+  lastT = performance.now();
+  rafId = requestAnimationFrame(tick);
+}
+function stopDrive() {
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+  clearTimeout(celebrateTimer);
+  celebrateTimer = null;
+  engineStop();
+}
+function tick(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000);
+  lastT = now;
+
+  if (!finished) {
+    if (held) v = Math.min(700, v + 900 * dt);
+    else v = Math.max(0, v - 600 * dt);
+    pos += v * dt;
+  } else v = 0;
+  engineSet(held || v > 5 ? v : 0);
+
+  const carX = pos + CAR_SCREEN_X;
+
+  /* ramp + jump */
+  if (airborne) {
+    vy -= 1500 * dt;
+    jumpY += vy * dt;
+    if (jumpY <= 0) { jumpY = 0; airborne = false; sfx.clank(); }
+  } else {
+    const wasOn = jumpY > 0;
+    jumpY = rampElev(carX);
+    if (wasOn && jumpY === 0 && carX > RAMP.x + RAMP.w) {
+      airborne = true; vy = v * 0.9; jumpY = RAMP.h;
+      if (v > 260) sfx.whee();
+    }
+  }
+
+  /* props */
+  for (const p of props) {
+    if (p.done) continue;
+    const d = carX - p.x;
+    if (p.type === "cone" && d > -30 && d < 90 && v > 30) {
+      p.done = true; p.el.classList.add("knocked"); sfx.boink();
+    }
+    if (p.type === "star") {
+      const carCY = 500 - jumpY;
+      if (Math.abs(d) < 60 && Math.abs(carCY - p.y) < 130) {
+        p.done = true; p.el.classList.add("collected"); sfx.chime();
+      }
+    }
+    if (p.type === "puddle" && d > -80 && d < 80 && v > 30) {
+      p.done = true; p.el.classList.add("splashing"); sfx.splash();
+      if (mudEl) mudEl.style.opacity = 1;
+      setTimeout(() => p.el.classList.remove("splashing"), 600);
+    }
+    if (p.type === "finish" && d > -10) {
+      p.done = true; finished = true; celebrate();
+    }
+  }
+
+  /* wheels */
+  const r = WHEELS[state.wheels].r;
+  wheelAngle += (v * dt) / r * (180 / Math.PI);
+  wheelEls.forEach(w => w.style.transform = `rotate(${wheelAngle}deg)`);
+
+  /* layers + car */
+  let tilt = 0;
+  if (airborne) tilt = Math.max(-16, Math.min(20, -vy * 0.035));
+  else if (jumpY > 0) tilt = -14;
+  farLayer.style.transform = `translateX(${-pos * 0.25}px)`;
+  midLayer.style.transform = `translateX(${-pos * 0.55}px)`;
+  groundLayer.style.transform = `translateX(${-pos}px)`;
+  carWrap.style.transform = `translateY(${-jumpY}px) rotate(${tilt}deg)`;
+
+  rafId = requestAnimationFrame(tick);
+}
+
+/* drive input: hold road or pedal to go */
+const pedal = document.getElementById("pedal");
+function pressOn() { held = true; pedal.classList.add("held"); }
+function pressOff() { held = false; pedal.classList.remove("held"); }
+roadScene.addEventListener("pointerdown", e => {
+  if (e.target.closest("#homeBtn") || e.target.closest("#celebrate")) return;
+  drivePointers.add(e.pointerId);
+  pressOn();
+});
+function pressEnd(e) {
+  drivePointers.delete(e.pointerId);
+  if (drivePointers.size === 0) pressOff();
+}
+addEventListener("pointerup", pressEnd);
+addEventListener("pointercancel", pressEnd);
+carWrap.addEventListener("pointerdown", () => sfx.honk(state.body));
+
+/* celebration */
+function celebrate() {
+  sfx.tada();
+  const cols = ["#e63946", "#ffd60a", "#43a047", "#1e88e5", "#ec407a", "#fb8c00"];
+  for (let i = 0; i < 90; i++) {
+    const c = document.createElement("div");
+    c.className = "confetti";
+    c.style.left = Math.random() * 1200 + "px";
+    c.style.background = cols[i % cols.length];
+    c.style.setProperty("--spin", (Math.random() * 900 - 450) + "deg");
+    c.style.animationDuration = (1.6 + Math.random() * 1.8) + "s";
+    c.style.animationDelay = (Math.random() * 0.8) + "s";
+    c.style.borderRadius = Math.random() > 0.5 ? "50%" : "3px";
+    roadScene.appendChild(c);
+  }
+  celebrateTimer = setTimeout(() => document.getElementById("celebrate").classList.add("active"), 700);
+}
+</script>
+</body>
+</html>
