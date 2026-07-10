@@ -114,3 +114,33 @@ Audited the uncommitted T4 damage/hazards/repair/upgrades diff on index.html (vs
 - CHECK:polish — node polish-check.cjs — **14/14 PASS**
 - CHECK:damage — node damage-check.cjs — **20/20 PASS**
 - doubt-t4.cjs (scratchpad, ad-hoc): spin/wobble cascade + spawn residue, boom recentering, repair→upgrade refresh + price 18 at damage 9, armor-3 tnt soak — **6/6 PASS**
+
+## Capsules/free-drive/tiers Doubt (T4.3)
+
+Audited the uncommitted T4.3 diff on index.html (vs 2736785) against the AUDIT_PAYLOAD. Every DELTA_MANIFEST claim verified present and accurate: capsuleSVG/capsulePopSVG props with nCaps = (n>=2) + (n>8) (index.html:1333); PRIZE_TABLE weighted roll stars3 w5 / stars8 w2 / gag w3 (index.html:1561-1565); 4 GAGS (duckParade/ballBurst/rainbowBloom/birdBanner) with lazily injected CSS via injectedGagCSS Set, gagTimers cleared in stopDrive (index.html:1497), .gagWrap swept in showScene (index.html:1151) + startDrive (index.html:1472); sfx.capsuleOpen/.quack; PROP_HIT.capsule lane-forgiving |laneVis-lane|<=0.65, |d|<75, no speed/jump gate (index.html:1661-1669); free drive via #freeBtn -> driveFree/buildFree/spawnFreeItem with pos-gated difficulty (oil 2500 / barrel 3500 / rock 9000 / tnt 16000), freeHard 3-lane-wall guard, tickFree spawn-ahead/prune-behind/theme cycle every 7000px + setHeadlights swap; FAR_WRAP 6240 = 12x520, MID_WRAP 6300 = 7x900, FREE_W 8400 (max wrap offset + 1200px stage fits: 7440/7500 <= 8400); bankFreeRun on showGarage + drive(), cruise hudLevel icon, hudProgress hidden; runTime in tick + #hudTime, timeTier S/A/B/C par curves matching LEVEL_LEN = 3500+250n, TIER_RANK best-keeping, bestTime rounded 0.1s, medalSVG on celebrateDamage chip (medalPop) + map tierBadge, loadState validates bestTime/tier; difficulty nObs 3+floor(.75n) with sliding hard thresholds exactly as claimed. One undeclared micro-change: oil roll window tightened (0.42,0.55] -> (0.42,0.52], consistent with the sliding barrel band — fine.
+
+### Hunted, audited clean (no bug found)
+
+1. **Parallax wrap seams:** far tile is two Q-humps per 520px starting at x=0; mid tiles at 150+900k — both wrap lengths are exact period multiples. Pixel probe at stage scale 1.0 (viewport 1200x700): far offset 0 vs 6240 differs by 1451 px all with channel delta <= 25 confined to the hill-silhouette band y 382-459 (rasterizer AA jitter at large float coords); mid 0 vs 6300 differs by 6 px (maxd 34). Negative control at off-period 6000 shows a real seam (14677 px, maxd 73), proving probe sensitivity. Seam invisible in motion; no fix needed. Live crossing of the pos 24960 far boundary stays finite and error-free.
+2. **Long-run stability:** teleport to pos 60000 + gas: props array and DOM .prop both bounded at ~6-8, RAMPS pruned, rAF median 16.7ms / p95 17.1ms; still bounded and alive at pos 1e6. Transforms stay well inside float precision (wrapped layers never exceed 6300; lane layers at -1e6 are exact).
+3. **runTime vs hidden tab:** dt clamp at index.html:1770 holds — a 60s-stale lastT added 0.067s across two frames (one clamped 0.05 frame + one real). Hidden tab cannot inflate times.
+4. **Tier fairness (analytic):** perfect run = 700/900 accel + (LEVEL_LEN-310-272)/700 cruise (finish trips at pos > len-310). Perfect vs S par: L1 5.30 vs 6.20 (margin 0.90s), L5 6.73/8.41, L10 8.52/11.18, L15 10.30/13.94, L20 12.09/16.71, L30 15.66/22.24 (margin 6.58s). S is earnable on every level with no upgrades — tight on L1 (~0.9s of slack ≈ reaction time + 2 soft hits), progressively more forgiving late as obstacle density (25 at L30, each full stop costs ~0.39s) eats the slack; damage-capped vmax (595) still S-able at L30 (18.3 vs 22.24). Shape intact, constants kept.
+5. **Capsule spawn/interplay:** min generated capsule x across L2-30 is 878 (car center 300, window 75 — no auto-pop at level start, verified by 600ms idle probe: runStars 0); free mode first spawn at 1000. Mid-jump collection works (no jumpY gate — forgiving pickup, by design). Magnet doesn't touch the capsule window (fixed 0.65) — fine, capsules are already lane-forgiving.
+6. **medalSVG <text> (first SVG text in codebase):** renders with a real glyph box (22.7x39.2 at 64-unit viewBox), legible on both the celebrate chip (68px, medalPop) and the map badge (34px) — screenshot-verified.
+7. **bankFreeRun double-bank:** none. Free run +7 banks exactly once on home tap; repeat showGarage, drive(), and normal-level exit all leave the wallet unchanged (freeMode zeroed on first bank, runStars reset in startDrive, drive()'s bankFreeRun is a no-op by then). Level-mode exits never bank runStars.
+
+### Reported only (LOW, not fixed)
+
+- Closing/refreshing the tab mid-free-drive loses unbanked run stars ("nothing is ever lost" comment overstates); banking on beforeunload would cover it but is out of scope.
+- openCapsule's gag prize awards 0 stars — a pure show. Reads as intended surprise-box variance (weights 7:3 stars:gag).
+- Free-mode capsule pops while the car idles next to one (any-speed window) — reads as a friendly pickup, not a bug.
+
+### Suite results
+
+- CHECK:main — node verify.cjs — **35/35 PASS**
+- CHECK:polish — node polish-check.cjs — **14/14 PASS**
+- CHECK:damage — node damage-check.cjs — **20/20 PASS**
+- CHECK:free — node free-check.cjs — **14/14 PASS**
+- doubt-t43.cjs (scratchpad, ad-hoc): wrap-seam pixel probes + control, long-run 60k/1e6, dt clamp, tier table, capsule spawn/jump/idle, medal legibility shots, double-bank, free HUD — **23/23 PASS**
+
+No HIGH/MED findings; no source changes made this round.

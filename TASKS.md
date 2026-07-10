@@ -13,8 +13,10 @@
 
 - [x] T4.1: WASD + arrow keyboard controls (steer/gas/brake) alongside mouse pedals. [SPID:fast]
 - [x] T4.2: Damage system: persistent 0-9 damage w/ scuff/crack/smoke tiers + 15% speed penalty at 5+, oil-slick spin-outs (L5+), TNT crates (L12+, 2 dmg), HUD + celebrate damage chips, clean-run +2 star bonus, star-paid repair (2/point), upgrade tracks engine/shield/magnet (3 levels each). [SPI-]
-- [ ] T4.3: Roadtrip longevity round A (from research): surprise capsules, free-drive cruise mode, tap-everything Easter eggs, magic dice randomizer, quiet mode, idle attract.
+- [x] T4.3a: Surprise capsules (weighted star/gag prizes, 4 gag animations), free-drive endless cruise (map button, seamless parallax wrap, distance-gated difficulty, theme cycling, bank-on-exit), S/A/B/C time-trial medals (HUD timer, celebrate medal, map badges), steeper difficulty curve. [SPI-]
+- [ ] T4.3b: Remaining longevity round A: tap-everything Easter eggs, magic dice randomizer, quiet mode, idle attract (assets ready in scratchpad/delight-assets.js).
 - [ ] T4.4: Roadtrip longevity round B: finish-line photo keepsakes, sticker album scene, passenger buddies, decal slots, car wash.
+- [ ] T4.5: Nintendo-quality pre-release pass (game-feel critique agent findings).
 
 ## Backlog (v2 candidates, from kid-testing)
 

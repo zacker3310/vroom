@@ -58,6 +58,16 @@ Side-scrolling construction site, now 3 lanes. The exact vehicle built in the ga
 - **Garage upgrades** (star-paid, 3 pips each): engine (+80 top speed/level),
   shield (soaks 1 damage per hit/level), star magnet (wider pull/level).
 - **Keyboard**: WASD or arrows steer (W/S = lanes), D/->/space = gas, A/<- = brake.
+- **Surprise capsules** (v4.3): wrapped gift boxes on the road (1-2 per level from level 2,
+  common in free drive). Driving into one pops it: weighted prize roll of +3 stars, +8 stars,
+  or a one-off gag animation (duck parade, ball burst, rainbow bloom, bird banner).
+- **Time medals** (v4.3): every level records best time; S/A/B/C medal by par curve
+  (S = near-clean full-throttle run; engine upgrades matter late). Small timer in the HUD
+  progress chip, medal pops on celebrate, badge on the level map. Best medal is kept —
+  time never punishes, only rewards.
+- **Free drive** (v4.3): big road button on the map starts an endless cruise — no finish,
+  no timer, kid-paced. Difficulty rises gently with distance, day/sunset/night cycle every
+  stretch, stars bank automatically when heading home.
 - Stars -> chime + burst, +1 to run counter, banked to wallet at the finish (+3 finish bonus)
 - Finish flag -> confetti, star tally, next level unlocked; buttons: replay / next / garage
 - House button (top-left) returns to garage anytime
