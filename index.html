@@ -926,10 +926,12 @@ const BODIES = {
   mixer: {
     roof: [245, 100], rear: [50, 90],
     svg: () => `
-      <g class="spinner" style="animation-duration:3.5s">
-        <ellipse cx="115" cy="118" rx="78" ry="50" fill="var(--paint)" stroke="#00000033" stroke-width="4"/>
-        <path d="M50 100 Q115 78 180 100 M45 122 Q115 145 183 122" stroke="#ffffffaa" stroke-width="7" fill="none"/>
-      </g>
+      <ellipse cx="115" cy="118" rx="78" ry="50" fill="var(--paint)" stroke="#00000033" stroke-width="4"/>
+      <path d="M50 100 Q115 78 180 100 M45 122 Q115 145 183 122" stroke="#ffffffaa" stroke-width="7" fill="none"/>
+      <g transform="translate(115,118)"><g class="spinner" style="animation-duration:2.2s">
+        <circle r="21" fill="#00000026"/>
+        <path d="M0 -21 V21 M-18 -10 L18 10 M-18 10 L18 -10" stroke="#ffffffbb" stroke-width="6" stroke-linecap="round"/>
+      </g></g>
       <rect x="195" y="100" width="80" height="68" rx="10" fill="var(--paint)"/>
       <rect x="208" y="110" width="52" height="30" rx="6" fill="#bde0fe"/>
       ${eye(234, 125, 9)}
