@@ -47,3 +47,36 @@ KNOWN_GAPS: all 5 accurately described. hard-hit-l1 skip observed live in suite 
 ## Final suite result
 
 35/35 passed (node verify.cjs, post-fix run). Bypass repro re-tested: map tap with 3 locked parts now denies (road stays inactive). index.html is 1423 lines, single file, no new dependencies.
+
+## Polish round Doubt (T3.3)
+
+Audited the uncommitted kid-UX polish diff on index.html (on top of cc3426d) against the AUDIT_PAYLOAD claims. All DELTA_MANIFEST items verified present and as described, with one undeclared extra: a WASD/arrows keyboard block (`keyOf` helper, W/S lane, D/space gas, A brake, index.html:1436-1450) landed in the working tree but is not in the manifest. It works and keeps the blur/visibility failsafes.
+
+### Fixed (HIGH/MED)
+
+- **HIGH — star magnet repelled instead of attracted, and left stars permanently displaced.** `PROP_HIT.star` drift used `-d * 0.3` with `d = carX - p.x`, so the horizontal drift pushed stars *away* from the approaching car (probe: at d=-120 the star moved +36px, away). And the inline transform was never cleared when the star wasn't collected (lane change away, or dy gate fail): probe showed `translate(36px, 0px)` still applied with the car 400px past in another lane — stars sat visibly shifted for the rest of the run. Fixed (index.html:1290-1304): sign corrected to `d * 0.3`, drift window gated to `d > -150 && d < 75` so a passed star never chases the car's tail, and a final `else` clears any leftover transform (the `.star` .4s transition makes it glide back). Collect path unchanged (clears transform before `.collected` so the scale(2.2) pop-out is not fought by an inline transform — that part was already correct).
+- **MED — #previewLock padlock rendered 48px right of center.** `animation: pulse` keyframes animate `transform: scale(...)`, which *replaces* the base `translateX(-50%)` for the life of the infinite animation. Probe: computed transform `matrix(1.076,0,0,1.076,0,0)` (no translate), badge center offset +41 screen px from the preview center. Fixed with dedicated `lockPulse` keyframes composing `translateX(-50%) scale(...)` (index.html:56-70), same pattern the existing `bounce` keyframes use. Re-probe: offset 0.0px.
+- **MED — stale gas-pedal nudge at level start.** `startDrive()` reset `idleT` but not the `nudge` class, so after any run that idled >4s, every subsequent level started with the pedal already pulsing (probe confirmed class present at t=0 of the new run). Fixed: `classList.remove("held", "nudge")` in startDrive (index.html:1250). Re-probe: clean start, pulse returns only after 4s idle.
+- **MED (cosmetic but core affordance) — failed buy permanently killed the price-tag wiggle.** `#priceTag.deny { animation: denyShake ... }` overrides the infinite `tagWiggle`, and `.deny` is never removed, so after one failed tap the tag went static forever. Fixed by composing both animations on `.deny` with a .4s delay on the wiggle so it hands off cleanly after the shake (index.html:89).
+
+### Hunted, audited clean (no bug found)
+
+- **flyStar vs letterboxing:** `s = rd.width / 1200` is exact at any aspect ratio because `#road` is `inset: 0` inside the uniformly scaled `#stage` — the road rect *is* the stage rect. Probe at 1400x500 (heavy horizontal letterbox): star spawns at tally center dead-on (0.0px error) and lands at the wallet chip center dead-on, mid-flight sampling confirms the transition animates. The single-rAF transition start also gets a layout flush "for free" from the `void cWallet.offsetWidth` on the very next line of the tally interval.
+- **flyStar z-order:** `.flyStar` z-index 40 vs sibling `#celebrate` z-index 30 — stars sail *above* the overlay as intended.
+- **Headlight duplication/omission:** `carWrap.innerHTML = vehicleSVG(state)` rebuilds the car every `startDrive()`, and `buildLevel()` toggles `night` *before* the headlight check runs. Probe: double startDrive on level 25 = exactly 2 beam circles; day→night and night→day replays carry/remove beams correctly.
+- **progDot across LEVEL_LEN changes:** LEVEL_LEN is reassigned in `buildLevel()` and the dot is recomputed from `pos / LEVEL_LEN` every tick with `pos = 0` at start, so no stale percentage survives a level switch (worst case one 16ms frame before the first tick, invisible).
+- **celebrating class lifecycle:** removed in both `showScene()` and `startDrive()`; every exit from celebrate (home / replay / next) funnels through one of those. The lockedParts early-return in `drive()` can't strand it (parts can't become locked mid-run).
+- **Idle nudge scope:** tick's else-branch clears the class the moment `finished` flips, and `.celebrating` hides the pedals anyway; rAF is cancelled outside the road scene, so no pulsing in garage/celebrate.
+
+### Reported only (LOW, not fixed)
+
+- Undeclared WASD keyboard block (above) — works, but the manifest should have listed it.
+- `keyOf` lowercases any single-char key, so e.g. Cmd+D while driving also gasses; irrelevant for the target user.
+- Magnet lane gate uses `Math.abs(laneVis - p.lane)` but carCY uses `Math.round(laneVis)` — at laneVis exactly x.5 the collect window references the rounded lane's Y; forgiveness windows absorb the 65px discrepancy.
+- `#previewLock` overlaps the preview truck's cab at top:150px on tall bodies (icecream cone); cosmetic, reads fine.
+
+### Suite results (post-fix)
+
+- CHECK:main — node verify.cjs — **35/35 PASS**
+- CHECK:polish — node polish-check.cjs — **14/14 PASS**
+- doubt-probe.cjs (scratchpad, ad-hoc): magnet attract + stale-clear, previewLock centering, nudge reset, flyStar letterbox geometry, headlight idempotency — all confirmed fixed/clean.

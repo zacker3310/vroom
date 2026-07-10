@@ -52,7 +52,20 @@
     width: 440px; cursor: pointer; touch-action: none; pointer-events: auto;
   }
   #preview svg { width: 100%; height: auto; overflow: visible; }
-  #preview.locked svg { filter: grayscale(.9) opacity(.55); }
+  /* locked stays full color — the kid needs to see the cool thing; the padlock badge says "not yet" */
+  #previewLock {
+    position: absolute; left: 50%; top: 150px; transform: translateX(-50%);
+    width: 96px; height: 96px; border-radius: 50%; background: #023047; border: 6px solid #ffb703;
+    display: none; align-items: center; justify-content: center; z-index: 6;
+    animation: lockPulse 1.1s ease infinite; pointer-events: none;
+  }
+  #previewLock.show { display: flex; }
+  #previewLock svg { width: 52px; height: 52px; }
+  /* pulse alone would drop the translateX(-50%) centering, so compose it in */
+  @keyframes lockPulse {
+    0%,100% { transform: translateX(-50%) scale(1); }
+    50% { transform: translateX(-50%) scale(1.09); }
+  }
   #preview.bounce { animation: bounce .45s ease; }
   @keyframes bounce {
     0% { transform: translateX(-50%) scale(1); }
@@ -74,6 +87,11 @@
   }
   #priceTag.show { display: flex; }
   #priceTag svg { width: 54px; height: 54px; }
+  /* green = you can afford it, gray = keep collecting */
+  #priceTag { background: #adb5bd; }
+  #priceTag.afford { background: #38b000; color: #fff; border-color: #d8f3dc; }
+  /* keep the wiggle alive after the shake — .deny stays on the class list */
+  #priceTag.deny { animation: denyShake .4s ease, tagWiggle 1.6s ease .4s infinite; }
   @keyframes tagWiggle { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
 
   #controls {
@@ -134,9 +152,13 @@
     font: 900 40px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #fff;
   }
   .lvlBtn.locked { background: #6c757d; opacity: .75; }
+  .lvlBtn.locked.sunset { background: #a26a4f; }
+  .lvlBtn.locked.night { background: #3a4a6b; }
   .lvlBtn.open { background: #219ebc; }
   .lvlBtn.done { background: #2a9d8f; }
   .lvlBtn.current { outline: 6px solid #ffb703; }
+  .lvlBtn.deny { animation: denyShake .4s ease; }
+  .lvlBtn .bandIcon { position: absolute; left: -8px; top: -14px; width: 36px; height: 36px; }
   .lvlBtn .miniStars { display: flex; gap: 2px; height: 20px; }
   .lvlBtn .miniStars svg { width: 20px; height: 20px; }
   .lvlBtn > svg { width: 44px; height: 44px; }
@@ -178,8 +200,14 @@
   .star.collected { transform: scale(2.2); opacity: 0; }
   .puddle .splash { opacity: 0; transition: opacity .15s; }
   .puddle.splashing .splash { opacity: 1; }
-  .prop.hit { animation: propShake .45s ease; }
-  @keyframes propShake { 20%,60% { transform: translateX(-8px) rotate(-5deg); } 40%,80% { transform: translateX(8px) rotate(5deg); } }
+  /* a bonked barrel/rock hops off the road instead of sitting inside the car */
+  .prop.hit { animation: propAway .7s ease forwards; }
+  @keyframes propAway {
+    30% { transform: translate(46px, -120px) rotate(140deg); opacity: 1; }
+    100% { transform: translate(110px, 60px) rotate(330deg); opacity: 0; }
+  }
+  #road.quake { animation: quake .3s ease; }
+  @keyframes quake { 25% { transform: translateY(7px); } 50% { transform: translateY(-6px); } 75% { transform: translateY(3px); } }
 
   #carWrap { position: absolute; left: 135px; width: 330px; will-change: transform; cursor: pointer; touch-action: none; transform-origin: 50% 90%; }
   #carWrap svg { width: 100%; height: auto; overflow: visible; }
@@ -194,6 +222,16 @@
 
   #hudLevel { left: 136px; top: 24px; }
   #hudStars { right: 24px; top: 24px; }
+  #hudProgress { left: 300px; top: 24px; padding: 0 20px; gap: 12px; }
+  #progTrack { position: relative; width: 170px; height: 12px; background: #e9ecef; border-radius: 6px; }
+  #progDot {
+    position: absolute; top: -9px; left: 0; margin-left: -14px; width: 28px; height: 28px;
+    border-radius: 50%; background: #e63946; border: 5px solid #fff;
+  }
+  #hudProgress svg { width: 40px; height: 40px; }
+  /* during the celebration the run HUD and controls step aside */
+  #road.celebrating #hudStars, #road.celebrating #hudLevel, #road.celebrating #hudProgress,
+  #road.celebrating .pedal, #road.celebrating .laneArrow { display: none; }
   #garageWallet { right: 24px; top: 24px; cursor: pointer; }
   #mapWallet { right: 24px; top: 24px; }
 
@@ -203,7 +241,9 @@
     box-shadow: 0 8px 0 rgba(0,0,0,.35); cursor: pointer; touch-action: none;
     transition: transform .08s;
   }
+  .pedal { opacity: .87; }   /* lane-2 props stay readable behind the pedals */
   .pedal.held { transform: scale(.92); box-shadow: 0 3px 0 rgba(0,0,0,.35); }
+  #gasPedal.nudge { animation: pulse 1.1s ease infinite; }
   #gasPedal { right: 30px; width: 170px; height: 170px; background: #38b000; }
   #gasPedal svg { width: 90px; height: 90px; }
   #brakePedal { right: 225px; bottom: 32px; width: 140px; height: 140px; background: #e63946; }
@@ -224,6 +264,12 @@
     flex-direction: column; gap: 34px;
   }
   #celebrate.active { display: flex; }
+  #celebrateWallet { position: absolute; right: 24px; top: 24px; }
+  .flyStar {
+    position: absolute; width: 44px; height: 44px; z-index: 40; pointer-events: none;
+    transition: transform .55s cubic-bezier(.45,.1,.6,1), opacity .55s;
+  }
+  .flyStar svg { width: 100%; height: 100%; }
   #tallyChip {
     position: static; height: 130px; border-radius: 34px; padding: 0 36px;
     font-size: 64px; gap: 16px; border-width: 8px;
@@ -262,6 +308,9 @@
     <div id="garageFloor"></div>
     <div id="preview"></div>
     <button id="priceTag" aria-label="unlock with stars"></button>
+    <div id="previewLock">
+      <svg viewBox="0 0 64 64"><rect x="12" y="28" width="40" height="30" rx="7" fill="#ffb703"/><path d="M20 28 V20 a12 12 0 0 1 24 0 V28" stroke="#ffb703" stroke-width="8" fill="none"/></svg>
+    </div>
     <div class="chip" id="garageWallet" aria-label="star wallet"></div>
     <div id="controls">
       <button class="bigBtn" id="bodyBtn" aria-label="change truck body">
@@ -319,6 +368,10 @@
       <svg viewBox="0 0 100 100"><path d="M50 12 L92 50 H78 V88 H22 V50 H8 Z" fill="#023047"/><rect x="40" y="58" width="20" height="30" fill="#ffb703"/></svg>
     </button>
     <div class="chip" id="hudLevel" aria-label="level number"></div>
+    <div class="chip" id="hudProgress" aria-label="distance to finish">
+      <div id="progTrack"><div id="progDot"></div></div>
+      <svg viewBox="0 0 64 64"><rect x="10" y="4" width="6" height="56" rx="3" fill="#6c757d"/><g><rect x="16" y="6" width="12" height="10" fill="#212529"/><rect x="28" y="6" width="12" height="10" fill="#fff"/><rect x="16" y="16" width="12" height="10" fill="#fff"/><rect x="28" y="16" width="12" height="10" fill="#212529"/><rect x="40" y="6" width="12" height="10" fill="#212529"/><rect x="40" y="16" width="12" height="10" fill="#fff"/></g></svg>
+    </div>
     <div class="chip" id="hudStars" aria-label="stars collected"></div>
     <button class="bigBtn laneArrow" id="laneUp" aria-label="move up a lane">
       <svg viewBox="0 0 100 100"><path d="M50 14 L88 62 H12 Z" fill="#fff"/></svg>
@@ -333,6 +386,7 @@
       <svg viewBox="0 0 100 100"><path d="M30 14 L82 50 L30 86 Z" fill="#fff"/></svg>
     </button>
     <div id="celebrate">
+      <div class="chip" id="celebrateWallet" aria-label="star wallet"></div>
       <div class="chip" id="tallyChip"></div>
       <div id="ratingRow"></div>
       <div id="celebrateRow">
@@ -465,6 +519,7 @@ const sfx = {
   squeal() { tone("sawtooth", 1400, 900, 0.35, 0.08); noiseBurst(0.3, 2400, 0.1); },
   whoosh() { tone("sine", 300, 620, 0.14, 0.16); },
   whee()   { [523, 659, 784, 1047].forEach((f, i) => tone("sine", f, f, 0.14, 0.22, i * 0.07)); },
+  almost() { [660, 880, 1100].forEach((f, i) => tone("sine", f, f, 0.1, 0.15, i * 0.09)); },
   splash() { noiseBurst(0.35, 900, 0.35); },
   deny()   { tone("triangle", 220, 160, 0.18, 0.3); tone("triangle", 180, 120, 0.22, 0.3, 0.18); },
   buy()    { [659, 784, 988, 1319].forEach((f, i) => tone("triangle", f, f, 0.3, 0.24, i * 0.09)); noiseBurst(0.4, 4000, 0.08, 0.36); },
@@ -831,10 +886,12 @@ function renderShop() {
   const locked = lockedParts();
   const cost = locked.reduce((s, [k, id]) => s + priceOf(k, id), 0);
   preview.classList.toggle("locked", locked.length > 0);
+  document.getElementById("previewLock").classList.toggle("show", locked.length > 0);
   goBtn.classList.toggle("locked", locked.length > 0);
   if (locked.length) {
     priceTag.innerHTML = starIcon + `<span>${cost}</span>`;
     priceTag.classList.add("show");
+    priceTag.classList.toggle("afford", progress.wallet >= cost);
   } else priceTag.classList.remove("show");
 }
 function renderPreview() {
@@ -856,6 +913,7 @@ priceTag.addEventListener("pointerdown", e => {
     sfx.buy(); confettiBurst(garageScene, 40);
   } else {
     walletDeny();
+    priceTag.classList.remove("deny"); void priceTag.offsetWidth; priceTag.classList.add("deny");
   }
 });
 
@@ -917,7 +975,8 @@ function showScene(el) {
   document.querySelectorAll(".scene").forEach(s => s.classList.remove("active"));
   el.classList.add("active");
   document.getElementById("celebrate").classList.remove("active");
-  document.querySelectorAll(".confetti").forEach(c => c.remove());
+  roadScene.classList.remove("celebrating");
+  document.querySelectorAll(".confetti, .flyStar").forEach(c => c.remove());
 }
 function showGarage() { showScene(garageScene); renderPreview(); renderWallets(false); }
 function showMap() { showScene(mapScene); renderMap(); renderWallets(false); }
@@ -936,15 +995,27 @@ document.getElementById("nextBtn").addEventListener("pointerdown", e => { e.stop
 /* ============ LEVEL MAP ============ */
 const mapGrid = document.getElementById("mapGrid");
 function levelUnlocked(n) { return n === 1 || !!progress.levels[n - 1]; }
+const BAND_ICONS = {
+  day: `<svg class="bandIcon" viewBox="0 0 64 64"><circle cx="32" cy="32" r="14" fill="#ffd60a"/><g stroke="#ffd60a" stroke-width="5" stroke-linecap="round"><path d="M32 6 V14 M32 50 V58 M6 32 H14 M50 32 H58 M13 13 L19 19 M45 45 L51 51 M51 13 L45 19 M19 45 L13 51"/></g></svg>`,
+  sunset: `<svg class="bandIcon" viewBox="0 0 64 64"><path d="M14 38 A18 18 0 0 1 50 38 Z" fill="#ff9e00"/><rect x="8" y="38" width="48" height="6" rx="3" fill="#e76f51"/></svg>`,
+  night: `<svg class="bandIcon" viewBox="0 0 64 64"><path d="M40 8 A24 24 0 1 0 56 42 A19 19 0 0 1 40 8 Z" fill="#f1faee"/></svg>`
+};
 function renderMap() {
   mapGrid.innerHTML = "";
   for (let n = 1; n <= MAX_LEVEL; n++) {
     const b = document.createElement("button");
     b.className = "bigBtn lvlBtn";
+    const band = n > 20 ? "night" : n > 10 ? "sunset" : "day";
+    const bandIcon = (n === 1 || n === 11 || n === 21) ? BAND_ICONS[band] : "";
     const done = progress.levels[n];
     if (!levelUnlocked(n)) {
-      b.classList.add("locked");
-      b.innerHTML = lockIcon;
+      b.classList.add("locked", band);
+      b.innerHTML = lockIcon + bandIcon;
+      /* dead taps break the instant-feedback rule — locked levels wiggle and grumble */
+      b.addEventListener("pointerdown", () => {
+        sfx.deny();
+        b.classList.remove("deny"); void b.offsetWidth; b.classList.add("deny");
+      });
     } else {
       b.classList.add(done ? "done" : "open");
       if (n === progress.current) b.classList.add("current");
@@ -953,7 +1024,7 @@ function renderMap() {
         stars = `<span class="miniStars">` + [1, 2, 3].map(i =>
           `<svg viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="${i <= done.rating ? "#ffd60a" : "#00000033"}"/></svg>`).join("") + `</span>`;
       }
-      b.innerHTML = `<span>${n}</span>` + stars;
+      b.innerHTML = `<span>${n}</span>` + stars + bandIcon;
       b.addEventListener("pointerdown", () => { sfx.pop(); progress.current = n; save(); drive(n); });
     }
     b.setAttribute("aria-label", "level " + n);
@@ -968,6 +1039,7 @@ const laneLayers = [document.getElementById("lane0"), document.getElementById("l
 const carWrap = document.getElementById("carWrap");
 const hudStars = document.getElementById("hudStars");
 const hudLevel = document.getElementById("hudLevel");
+const progDot = document.getElementById("progDot");
 
 /* 3 lanes: ground stage-Y per lane, depth scale, z stacking (car sits between lane layers) */
 const LANE_Y = [520, 585, 650];
@@ -1137,8 +1209,8 @@ function buildScenery(w) {
 /* drive physics */
 const VMAX = 700, ACCEL = 900, COAST = 350, BRAKE = 1600;
 let pos = 0, v = 0, jumpY = 0, vy = 0, airborne = false, finished = false;
-let held = false, braking = false, rafId = null, lastT = 0, wheelAngle = 0;
-let targetLane = 1, laneVis = 1;
+let rafId = null, lastT = 0, wheelAngle = 0;
+let targetLane = 1, laneVis = 1, idleT = 0, nearFinish = false;
 let wheelEls = [], mudEl = null;
 let celebrateTimer = null, tallyTimer = null, rateTimers = [];
 const roadPointers = new Map();   /* pointerId -> last y (for swipe lane changes) */
@@ -1159,17 +1231,24 @@ function drive(n) {
 function startDrive() {
   stopDrive();
   pos = 0; v = 0; jumpY = 0; vy = 0; airborne = false; finished = false;
-  held = false; braking = false; gasKey = false; brakeKey = false;
-  targetLane = 1; laneVis = 1; runStars = 0;
+  gasKey = false; brakeKey = false;
+  targetLane = 1; laneVis = 1; runStars = 0; idleT = 0; nearFinish = false;
   roadPointers.clear(); gasPointers.clear(); brakePointers.clear();
   document.getElementById("celebrate").classList.remove("active");
-  document.querySelectorAll(".confetti").forEach(c => c.remove());
+  roadScene.classList.remove("celebrating");
+  document.querySelectorAll(".confetti, .flyStar").forEach(c => c.remove());
   buildLevel(level);
   carWrap.innerHTML = vehicleSVG(state);
+  if (roadScene.classList.contains("night")) {
+    /* headlights: a soft beam off the front bumper, night levels only */
+    carWrap.querySelector("svg").insertAdjacentHTML("beforeend",
+      `<g><path d="M298 108 L610 44 L610 208 L298 150 Z" fill="#ffd60a" opacity=".22"/>
+       <circle cx="296" cy="114" r="9" fill="#fff9c4"/><circle cx="296" cy="142" r="9" fill="#fff9c4"/></g>`);
+  }
   carWrap.style.top = CAR_BASE_TOP + "px";
   wheelEls = carWrap.querySelectorAll(".wheelrot");
   mudEl = carWrap.querySelector(".mudSpots");
-  document.querySelectorAll(".pedal").forEach(p => p.classList.remove("held"));
+  document.querySelectorAll(".pedal").forEach(p => p.classList.remove("held", "nudge"));
   hudLevel.innerHTML = `<svg viewBox="0 0 64 64"><path d="M14 58 V8" stroke="#023047" stroke-width="7" stroke-linecap="round"/><path d="M18 10 L54 16 L18 30 Z" fill="#e63946"/></svg><span>${level}</span>`;
   renderHudStars(false);
   engineStart();
@@ -1209,11 +1288,18 @@ const PROP_HIT = {
     }
   },
   star(p, d) {
-    if (Math.round(laneVis) !== p.lane) return;
+    /* forgiving magnet for small hands: near-lane counts, and close stars drift in */
+    const near = Math.abs(laneVis - p.lane) <= 0.65;
     const carCY = LANE_Y[Math.round(laneVis)] - 85 - jumpY;   /* car body center */
-    if (Math.abs(d) < 60 && Math.abs(carCY - p.y) < 115) {
+    const dy = carCY - p.y;
+    if (near && Math.abs(d) < 75 && Math.abs(dy) < 125) {
+      p.el.style.transform = "";
       p.done = true; p.el.classList.add("collected"); sfx.chime();
       runStars++; renderHudStars(true);
+    } else if (near && d > -150 && d < 75 && Math.abs(dy) < 160) {
+      p.el.style.transform = `translate(${d * 0.3}px, ${dy * 0.25}px)`;
+    } else if (p.el.style.transform) {
+      p.el.style.transform = "";   /* missed it — the star glides back home */
     }
   },
   ramp() {},   /* physics handled by rampElev */
@@ -1227,6 +1313,7 @@ function hardHit(p, d) {
     p.done = true; v = 0; sfx.thud();
     p.el.classList.add("hit");
     carWrap.classList.remove("wobble"); void carWrap.offsetWidth; carWrap.classList.add("wobble");
+    roadScene.classList.remove("quake"); void roadScene.offsetWidth; roadScene.classList.add("quake");
   }
 }
 
@@ -1234,7 +1321,7 @@ function tick(now) {
   const dt = Math.min(0.05, (now - lastT) / 1000);
   lastT = now;
 
-  const gas = held || gasPointers.size > 0 || roadPointers.size > 0 || gasKey;
+  const gas = gasPointers.size > 0 || roadPointers.size > 0 || gasKey;
   const brake = brakePointers.size > 0 || brakeKey;
   if (!finished) {
     if (brake) {
@@ -1245,6 +1332,19 @@ function tick(now) {
     pos += v * dt;
   } else v = 0;
   engineSet(v);
+
+  /* idle nudge: a parked car pulses the gas pedal for first-timers */
+  if (v === 0 && !finished && !gas) {
+    idleT += dt;
+    if (idleT > 4) gasPedal.classList.add("nudge");
+  } else {
+    idleT = 0;
+    gasPedal.classList.remove("nudge");
+  }
+
+  /* almost there! */
+  if (!nearFinish && pos > LEVEL_LEN - 900) { nearFinish = true; sfx.almost(); }
+  progDot.style.left = Math.min(100, pos / LEVEL_LEN * 100) + "%";
 
   const carX = pos + CAR_SCREEN_X;
 
@@ -1313,7 +1413,7 @@ bindPedal(gasPedal, gasPointers);
 bindPedal(brakePedal, brakePointers);
 
 roadScene.addEventListener("pointerdown", e => {
-  if (e.target.closest(".bigBtn") || e.target.closest(".pedal") || e.target.closest("#celebrate")) return;
+  if (e.target.closest(".bigBtn") || e.target.closest(".pedal") || e.target.closest("#celebrate") || e.target.closest(".chip")) return;
   try { roadScene.setPointerCapture(e.pointerId); } catch (err) {}
   roadPointers.set(e.pointerId, e.clientY);
 });
@@ -1336,17 +1436,21 @@ addEventListener("pointercancel", pointerEnd);
 document.getElementById("laneUp").addEventListener("pointerdown", e => { e.stopPropagation(); setLane(targetLane - 1); });
 document.getElementById("laneDown").addEventListener("pointerdown", e => { e.stopPropagation(); setLane(targetLane + 1); });
 
+/* keyboard: WASD or arrows steer, D/→/space is gas, A/← is brake (mouse can ride the pedals) */
+const keyOf = e => (e.key.length === 1 ? e.key.toLowerCase() : e.key);
 addEventListener("keydown", e => {
   if (!roadScene.classList.contains("active")) return;
   if (e.repeat) return;
-  if (e.key === "ArrowUp") setLane(targetLane - 1);
-  if (e.key === "ArrowDown") setLane(targetLane + 1);
-  if (e.key === "ArrowRight" || e.key === " ") gasKey = true;
-  if (e.key === "ArrowLeft") brakeKey = true;
+  const k = keyOf(e);
+  if (k === "ArrowUp" || k === "w") setLane(targetLane - 1);
+  if (k === "ArrowDown" || k === "s") setLane(targetLane + 1);
+  if (k === "ArrowRight" || k === "d" || k === " ") gasKey = true;
+  if (k === "ArrowLeft" || k === "a") brakeKey = true;
 });
 addEventListener("keyup", e => {
-  if (e.key === "ArrowRight" || e.key === " ") gasKey = false;
-  if (e.key === "ArrowLeft") brakeKey = false;
+  const k = keyOf(e);
+  if (k === "ArrowRight" || k === "d" || k === " ") gasKey = false;
+  if (k === "ArrowLeft" || k === "a") brakeKey = false;
 });
 /* keyups get lost on window blur, and a hidden tab freezes rAF with the engine gain up */
 addEventListener("blur", () => { gasKey = false; brakeKey = false; });
@@ -1372,15 +1476,34 @@ function confettiBurst(sceneEl, count) {
   setTimeout(() => sceneEl.querySelectorAll(".confetti").forEach(c => c.remove()), 4200);
 }
 
+/* a star pops out of the tally and sails into the wallet chip */
+function flyStar(fromEl, toEl) {
+  const rd = roadScene.getBoundingClientRect();
+  const s = rd.width / 1200;
+  const a = fromEl.getBoundingClientRect(), b = toEl.getBoundingClientRect();
+  const d = document.createElement("div");
+  d.className = "flyStar"; d.innerHTML = starIcon;
+  d.style.left = ((a.left + a.width / 2 - rd.left) / s - 22) + "px";
+  d.style.top = ((a.top + a.height / 2 - rd.top) / s - 22) + "px";
+  roadScene.appendChild(d);
+  requestAnimationFrame(() => {
+    d.style.transform = `translate(${(b.left - a.left + (b.width - a.width) / 2) / s}px, ${(b.top - a.top + (b.height - a.height) / 2) / s}px) scale(.45)`;
+    d.style.opacity = ".2";
+  });
+  setTimeout(() => d.remove(), 700);
+}
+
 function finishLevel() {
   sfx.tada();
   confettiBurst(roadScene, 90);
+  roadScene.classList.add("celebrating");   /* run HUD steps aside: one star number at a time */
 
   const bonus = 3;
   const banked = runStars + bonus;
   const frac = totalStars ? runStars / totalStars : 1;
-  const rating = frac >= 0.8 ? 3 : frac >= 0.34 ? 2 : 1;
+  const rating = frac >= 0.65 ? 3 : frac >= 0.34 ? 2 : 1;
 
+  const walletStart = progress.wallet;
   progress.wallet += banked;
   const prev = progress.levels[level];
   progress.levels[level] = {
@@ -1393,6 +1516,8 @@ function finishLevel() {
   /* build the tally UI */
   const tally = document.getElementById("tallyChip");
   tally.innerHTML = starIcon + `<span>0</span>`;
+  const cWallet = document.getElementById("celebrateWallet");
+  cWallet.innerHTML = starIcon + `<span>${walletStart}</span>`;
   const ratingRow = document.getElementById("ratingRow");
   ratingRow.innerHTML = [1, 2, 3].map(() =>
     `<svg class="rateStar" viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/></svg>`).join("");
@@ -1403,9 +1528,13 @@ function finishLevel() {
     /* count the stars up one by one, then light the rating */
     let shown = 0;
     const span = tally.querySelector("span");
+    const walletSpan = cWallet.querySelector("span");
     tallyTimer = setInterval(() => {
       shown++;
       span.textContent = shown;
+      walletSpan.textContent = walletStart + shown;
+      flyStar(tally, cWallet);
+      cWallet.classList.remove("pop"); void cWallet.offsetWidth; cWallet.classList.add("pop");
       sfx.tick(shown);
       tally.classList.remove("pop"); void tally.offsetWidth; tally.classList.add("pop");
       if (shown >= banked) {

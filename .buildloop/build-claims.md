@@ -36,6 +36,10 @@ GAP:sun-chip-overlap | #sun sits under top-right chip | z-order correct, cosmeti
 GAP:no-multitouch-test | gas+swipe simultaneously untested in harness | pointer sets are per-id, logic reviewed; severity MED
 GAP:performance | ~60-90 prop divs at L30 untested on real iPad | transform-only animation; severity MED
 
+== T3.3 POLISH ROUND (appended post-Doubt-1) ==
+previewLock badge (locked stays full color) | priceTag afford(green)/deny(shake) | lvlBtn locked-tap deny + sunset/night band tints + 3 band icons | propAway fly-off + road quake on hardHit | star magnet (laneDist<=.65, drift within 150/160, collect |d|<75) + 3-star at .65 | pedal opacity .87 | night headlights (startDrive inject) | #hudProgress track + progDot + sfx.almost | gas idle nudge 4s | celebrate: road.celebrating hides HUD/pedals/arrows, celebrateWallet count-up + flyStar transitions, cleanup on scene switch | removed dead held/braking | chips excluded from road-gas
+CHECK:polish | node polish-check.cjs | 14/14 | PASS
+
 == VERIFICATION_MATRIX ==
 CHECK:suite | node /private/tmp/claude-501/-Users-zacker-Documents-dev-vroom/ece5a294-0b4b-45a6-aba6-879f1850b067/scratchpad/verify.cjs (server: python3 -m http.server 4173 in repo, already running) | 35/35 | PASS
 CHECK:console | suite asserts zero console errors at load and end | clean | PASS
