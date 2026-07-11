@@ -32,9 +32,9 @@
 
 ## v7 (2026-07-11, user-directed: "Animal Crossing perfect" overhaul)
 
-- [ ] T7.1: Full visual/UX audit of every scene + state (agent, screenshots) → prioritized overhaul spec.
-- [ ] T7.2: Design system: warm AC-grade token set + drop-in CSS overriding all chrome (chips, buttons, panels, scenes), pattern textures, unified press states + pop-ins (agent deliverable → integrate).
-- [ ] T7.3: Integrate + iterate per scene with screenshot loops; icon recolor pass per design notes; regression all 8 suites; Doubt; ship.
+- [x] T7.1: Full visual/UX audit (agent, 17 screenshots, 25-item report: "two art directors — the album's language wins"). Found the WORLD_TINT key bug. [SPID]
+- [x] T7.2: "Toybox" design system integrated: warm cream/wood/putty tokens replacing navy chrome everywhere, unified radii + flat shadows + one press squash, dot textures, warmed scrims/letterbox/iris, attribute-selector icon recolors, theme-color meta. [SPI-]
+- [x] T7.3: Structural overhaul: garage 3-tray toolbar + map/GO column; map → winding journey path (nodes on road, one padlock, quiet far dots, per-world tint, calm locked tabs); circular free-drive wheel; celebrate results card (+home hidden while celebrating); entrance choreography (popIn staggers everywhere); lane-arrow gutter; anchor-based damage decals (visible on premium bodies); star-scalloped S medal; 76px swatch floor reconciliation. Suites 137/137. [SPI-]
 
 ## Backlog (v2 candidates, from kid-testing)
 

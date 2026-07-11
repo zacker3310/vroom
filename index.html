@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#1a2634">
+<meta name="theme-color" content="#2f241a">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z' fill='%23ffd60a'/%3E%3C/svg%3E">
 <title>Vroom</title>
 <style>
@@ -186,19 +186,25 @@
   #controls {
     position: absolute; left: 0; right: 0; bottom: 0; height: 244px;
     background: #023047; border-top: 8px solid #ffb703;
-    display: flex; align-items: center; justify-content: center; gap: 14px; padding: 0 10px;
+    display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 8px;
   }
+  .tray {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,.08); border-radius: 24px; padding: 8px;
+  }
+  #trayBuild { flex-direction: column; }
+  #goCol { display: flex; flex-direction: column; align-items: center; gap: 10px; }
   .bigBtn {
     border: none; border-radius: 24px; cursor: pointer; touch-action: none;
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 6px 0 rgba(0,0,0,.35); transition: transform .08s;
   }
   .bigBtn:active, .bigBtn.pressed { transform: translateY(4px) scale(.96); box-shadow: 0 2px 0 rgba(0,0,0,.35); }
-  #bodyBtn, #wheelBtn { width: 122px; height: 165px; background: #219ebc; flex-direction: column; gap: 6px; }
-  #bodyBtn svg, #wheelBtn svg { width: 92px; height: 92px; }
+  #bodyBtn, #wheelBtn { width: 104px; height: 104px; background: #219ebc; }
+  #bodyBtn svg, #wheelBtn svg { width: 76px; height: 76px; }
 
   /* 76px stage size = 64.8px rendered at iPad landscape scale (.853) — SPEC floor is 64 */
-  #swatches { display: grid; grid-template-columns: repeat(4, 76px); grid-template-rows: repeat(3, 76px); gap: 7px; }
+  #swatches { display: grid; grid-template-columns: repeat(6, 76px); grid-template-rows: repeat(2, 76px); gap: 7px; }
   .swatch {
     position: relative; width: 76px; height: 76px; border-radius: 50%; border: 5px solid rgba(255,255,255,.85);
     cursor: pointer; touch-action: none; box-shadow: 0 4px 0 rgba(0,0,0,.35); transition: transform .08s;
@@ -219,14 +225,14 @@
   .extraBtn.on { background: #2a9d8f; opacity: 1; border-color: #ffb703; }
   .extraBtn svg { width: 48px; height: 48px; }
 
-  #mapBtn { width: 118px; height: 118px; border-radius: 50%; background: #219ebc; border: 8px solid #bde0fe; }
-  #mapBtn svg { width: 70px; height: 70px; }
+  #mapBtn { width: 84px; height: 84px; border-radius: 50%; background: #219ebc; border: 6px solid #bde0fe; }
+  #mapBtn svg { width: 52px; height: 52px; }
 
   #goBtn {
-    width: 160px; height: 160px; border-radius: 50%; background: #38b000;
+    width: 140px; height: 140px; border-radius: 50%; background: #38b000;
     border: 8px solid #d8f3dc;
   }
-  #goBtn svg { width: 80px; height: 80px; }
+  #goBtn svg { width: 72px; height: 72px; }
   #goBtn.locked { background: #6c757d; border-color: #adb5bd; filter: opacity(.7); }
 
   /* ---------- STICKER ALBUM ---------- */
@@ -290,10 +296,10 @@
   /* ---------- LEVEL MAP ---------- */
   #map { background: linear-gradient(#8ecae6 0%, #bde0fe 60%, #74c69d 60%, #588157 100%); }
   #freeBtn {
-    position: absolute; left: calc(50% - 130px); top: 18px; width: 260px; height: 84px;
-    border-radius: 26px; background: #38b000; border: 6px solid #d8f3dc;
+    position: absolute; left: 30px; bottom: 30px; width: 130px; height: 130px;
+    border-radius: 50%; background: #38b000; border: 6px solid #d8f3dc; z-index: 6;
   }
-  #freeBtn svg { width: 170px; height: 62px; }
+  #freeBtn svg { width: 84px; height: 84px; }
   #worldTabs {
     position: absolute; left: 50%; top: 118px; transform: translateX(-50%);
     display: flex; gap: 10px; z-index: 5;
@@ -304,14 +310,32 @@
   .worldTab.deny { animation: denyShake .4s ease; }
   .worldTab svg { width: 58px; height: 58px; }
   .worldTab span { font: 900 40px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #fff; }
-  #mapGrid {
-    position: absolute; left: 50%; top: 258px; transform: translateX(-50%);
-    display: grid; grid-template-columns: repeat(5, 110px); grid-template-rows: repeat(2, 110px); gap: 16px;
+  #mapGround {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 300px;
+    opacity: .2; border-radius: 60% 40% 0 0 / 30px 40px 0 0;
+    transition: background .4s;
   }
+  #mapGrid {
+    position: absolute; left: 50%; top: 250px; transform: translateX(-50%);
+    width: 1140px; height: 360px;
+  }
+  #mapPath { position: absolute; left: 0; top: 0; }
+  .lvlBtn.far {
+    width: 44px; height: 44px; margin: 26px;   /* small quiet dot, still centered on its path point */
+    border-radius: 50%; opacity: .6;
+  }
+  .lvlBtn.locked:not(.far) { width: 72px; height: 72px; margin: 12px; border-radius: 50%; }
+  .lvlBtn.locked:not(.far) svg { width: 34px; height: 34px; }
+  .worldTab.locked { width: 70px; height: 70px; margin-top: 9px; opacity: .55; }
+  .worldTab.locked svg { width: 34px; height: 34px; }
+  /* entrance choreography: one popIn, staggered by --i */
+  @keyframes popIn { 0% { transform: scale(.5); opacity: 0; } 70% { transform: scale(1.06); } 100% { transform: scale(1); opacity: 1; } }
+  .enter { animation: popIn .3s cubic-bezier(.2,1.6,.4,1) backwards; animation-delay: calc(var(--i, 0) * 35ms); }
+  .pressable:active { transform: translateY(3px) scale(.96); }
   .lvlBtn {
-    position: relative; width: 110px; height: 110px; border-radius: 28px;
+    position: absolute; width: 96px; height: 96px; border-radius: 28px;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-    font: 900 40px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #fff;
+    font: 900 34px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #fff;
   }
   .lvlBtn.locked { background: #6c757d; opacity: .75; }
   .lvlBtn.locked.sunset { background: #a26a4f; }
@@ -401,7 +425,7 @@
 
   #hudLevel { left: 136px; top: 24px; }
   #hudStars { right: 24px; top: 24px; }
-  #hudDamage { right: 24px; top: 130px; }
+  #hudDamage { right: 24px; top: 132px; }
   #hudDamage.hurt { border-color: #e63946; color: #e63946; }
   #hudProgress { left: 300px; top: 24px; padding: 0 20px; gap: 12px; }
   #progTrack { position: relative; width: 170px; height: 12px; background: #e9ecef; border-radius: 6px; }
@@ -412,7 +436,8 @@
   #hudProgress svg { width: 40px; height: 40px; }
   /* during the celebration the run HUD and controls step aside */
   #road.celebrating #hudStars, #road.celebrating #hudLevel, #road.celebrating #hudProgress,
-  #road.celebrating #hudDamage, #road.celebrating .pedal, #road.celebrating .laneArrow { display: none; }
+  #road.celebrating #hudDamage, #road.celebrating .pedal, #road.celebrating .laneArrow,
+  #road.celebrating #homeBtn { display: none; }
   #garageWallet { right: 24px; top: 24px; cursor: pointer; }
   #albumWallet { right: 24px; top: 24px; }
   #mapWallet { right: 24px; top: 24px; }
@@ -432,12 +457,18 @@
   #brakePedal svg { width: 76px; height: 76px; }
 
   .laneArrow {
-    position: absolute; left: 30px; width: 108px; height: 108px; border-radius: 50%;
+    position: absolute; left: 20px; width: 96px; height: 96px; border-radius: 50%;
     background: #219ebc; border: 8px solid #bde0fe; z-index: 20;
   }
-  .laneArrow svg { width: 60px; height: 60px; }
-  #laneUp { bottom: 190px; }
-  #laneDown { bottom: 60px; }
+  .laneArrow svg { width: 54px; height: 54px; }
+  #laneUp { bottom: 186px; }
+  #laneDown { bottom: 66px; }
+  /* soft control gutters lift the touch layer off the game world */
+  #road::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 150px; z-index: 15;
+    background: linear-gradient(90deg, rgba(0,0,0,.16), transparent); pointer-events: none;
+  }
+  .celebrating#road::before { display: none; }
 
   /* ---------- CELEBRATION ---------- */
   #celebrate {
@@ -447,6 +478,15 @@
   }
   #celebrate.active { display: flex; }
   #celebrateWallet { position: absolute; right: 24px; top: 24px; }
+  /* one anchored results card instead of parts floating on the scrim */
+  #resultsCard {
+    background: #fdf6ea; border: 8px solid #ffb703; border-radius: 32px;
+    padding: 26px 44px; display: flex; flex-direction: column; gap: 20px; align-items: center;
+    box-shadow: 0 8px 0 rgba(63,50,34,.2);
+  }
+  #celebrate.active #resultsCard { animation: popIn .35s cubic-bezier(.2,1.6,.4,1) backwards; }
+  #resultsMeta { display: flex; gap: 18px; }
+  #resultsCard .chip { position: static; box-shadow: none; }
   #celebrateDamage { position: static; }
   #celebrateDamage.clean { border-color: #38b000; color: #38b000; }
   #celebrateDamage .medal { display: flex; }
@@ -537,6 +577,426 @@
   #celebrateTime .medal svg { width: 68px; height: 68px; animation: medalPop .5s cubic-bezier(.2,2,.4,1) .4s backwards; }
   #celebrateRow { opacity: 0; pointer-events: none; transform: translateY(30px); transition: opacity .35s, transform .35s; }
   #celebrateRow.ready { opacity: 1; pointer-events: auto; transform: none; }
+
+/* ============ TOYBOX DESIGN SYSTEM (T7, agent-generated layer) ============ */
+/* ============================================================
+   VROOM DESIGN SYSTEM — "Toybox" layer (Animal Crossing school)
+   Drop-in override sheet. Append AFTER the existing <style> rules;
+   later rules win the cascade. No new class names — only selectors
+   that already exist in index.html.
+   ============================================================ */
+
+/* ---------- 1. TOKENS ---------- */
+:root {
+  /* surfaces (warm cream paper) */
+  --v-surface: #fff8ec;
+  --v-surface-2: #f6e9d2;
+  --v-surface-line: #e6d2ab;      /* soft outline = darker shade of cream */
+  --v-surface-down: #d9c193;      /* flat press shadow for cream */
+
+  /* ink (warm brown, never navy/black) */
+  --v-ink: #5a4634;
+  --v-ink-strong: #4a3826;
+  --v-ink-soft: #8a7360;
+
+  /* wood */
+  --v-wood: #c9a476;
+  --v-wood-deep: #a8804e;
+  --v-wood-dark: #6e5233;
+  --v-wood-line: #8a6538;
+
+  /* accents — each fill ships with its own soft outline + flat shadow */
+  --v-accent-green: #74c465;  --v-green-line: #4e9a45;  --v-green-down: #438a3b;
+  --v-accent-red:   #ef7d6d;  --v-red-line:   #c95a4c;  --v-red-down:   #b34e41;
+  --v-accent-blue:  #6fc0df;  --v-blue-line:  #4a94b5;  --v-blue-down:  #3f83a2;
+  --v-accent-yellow:#ffd66e;  --v-yellow-line:#dca63f;  --v-yellow-down:#c69334;
+
+  /* muted / locked (warm putty, replaces cold gray) */
+  --v-mute: #cfc0a6;  --v-mute-line: #b1a082;  --v-mute-down: #a3916d;
+
+  /* per-purpose radii */
+  --v-r-sm: 16px;      /* pips, small tags */
+  --v-r-md: 22px;      /* standard square buttons */
+  --v-r-lg: 30px;      /* chips, chunky buttons, toasts */
+  --v-r-xl: 38px;      /* panels */
+  --v-r-round: 50%;
+
+  /* shadow tokens — flat, never blurred */
+  --v-shadow-soft: 0 5px 0 rgba(74, 53, 35, .18);   /* over unknown fills */
+  --v-shadow-card: 0 6px 0 rgba(74, 53, 35, .14);
+  --v-outline-soft: rgba(74, 53, 35, .22);           /* translucent 2-tone edge for JS-tinted fills */
+  --v-scrim: rgba(64, 44, 28, .55);
+
+  /* bgPattern utility — one dot texture, ~4% opacity, reused everywhere */
+  --v-dots: radial-gradient(rgba(90, 70, 52, .05) 2.4px, transparent 2.6px);
+  --v-dots-light: radial-gradient(rgba(255, 255, 255, .06) 2.4px, transparent 2.6px);
+  --v-dots-size: 26px 26px;
+
+  /* rounded friendly type */
+  --v-font: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold",
+            "Hiragino Maru Gothic ProN", -apple-system, system-ui, sans-serif;
+}
+
+/* ---------- 2. GLOBAL WARMTH ---------- */
+html, body { background: #2f241a; }               /* warm dark letterbox, was navy */
+#iris { background: #3a2c1e; }                    /* scene-change wipe, warmed */
+#rotateOverlay { background: #2f241a; }
+
+/* ---------- 3. TYPOGRAPHY ---------- */
+.chip, #garageSign, .upgPrice, .photoCap, .worldTab span, .lvlBtn, .profileSlot .plus {
+  font-family: var(--v-font);
+}
+.chip, .chip span, .lvlBtn, .upgPrice {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+}
+
+/* ---------- 4. BUTTON SYSTEM ---------- */
+/* one consistent squash: down-and-flatten, shadow collapses to 1px.
+   NOTE: many elements are "bigBtn <thing>" combos; every circle/slot shape
+   re-asserts its own radius below so this base radius never flattens them. */
+.bigBtn {
+  border-radius: var(--v-r-md);
+  box-shadow: 0 6px 0 rgba(74, 53, 35, .22);
+  transition: transform .1s cubic-bezier(.34, 1.56, .64, 1), box-shadow .1s;
+}
+.bigBtn:active, .bigBtn.pressed {
+  transform: translateY(5px) scale(.97, .94);
+  box-shadow: 0 1px 0 rgba(74, 53, 35, .22);
+}
+
+/* icon ink: chrome icons drop navy for warm brown (fill/stroke attributes
+   lose to CSS, so this legally recolors inline SVG chrome) */
+.bigBtn [fill="#023047"], .chip [fill="#023047"] { fill: var(--v-ink-strong); }
+.bigBtn [stroke="#023047"], .chip [stroke="#023047"] { stroke: var(--v-ink-strong); }
+/* cold grays inside chrome (muted speaker, HUD flag pole) go warm too */
+.bigBtn [fill="#6c757d"], .chip [fill="#6c757d"] { fill: var(--v-ink-soft); }
+
+/* --- cream chrome (home/dice/album/quiet/profile) --- */
+#homeBtn, #mapHomeBtn, #albumHomeBtn, #albumBtn, #diceBtn, #quietBtn {
+  background: var(--v-surface);
+  border: 6px solid var(--v-surface-line);
+  border-radius: var(--v-r-lg);
+  box-shadow: 0 6px 0 var(--v-surface-down);
+}
+#profileBtn {                                      /* circle — keep 50% radius */
+  background: var(--v-surface);
+  border: 6px solid var(--v-surface-line);
+  box-shadow: 0 6px 0 var(--v-surface-down);
+}
+
+/* --- blue chrome --- */
+#mapBtn, #bodyBtn, #wheelBtn, #copyCodeBtn, #pasteCodeBtn, #replayBtn, #celebrateHomeBtn {
+  background: var(--v-accent-blue);
+  border: 6px solid var(--v-blue-line);
+  box-shadow: 0 6px 0 var(--v-blue-down);
+}
+#bodyBtn, #wheelBtn, #copyCodeBtn, #pasteCodeBtn { border-radius: var(--v-r-lg); }
+.laneArrow {
+  background: var(--v-accent-blue);
+  border: 7px solid var(--v-blue-line);
+  border-radius: var(--v-r-round);
+  box-shadow: 0 6px 0 var(--v-blue-down);
+}
+
+/* --- green = GO --- */
+#goBtn, #freeBtn, #nextBtn, #importYes {
+  background: var(--v-accent-green);
+  border-color: var(--v-green-line);
+  box-shadow: 0 7px 0 var(--v-green-down);
+}
+#goBtn, #importYes { border-width: 8px; }
+#nextBtn { border-width: 10px; }
+#freeBtn { border-width: 6px; border-style: solid; border-radius: var(--v-r-lg); }
+#goBtn.locked {
+  background: var(--v-mute);
+  border-color: var(--v-mute-line);
+  box-shadow: 0 7px 0 var(--v-mute-down);
+}
+
+/* --- red = stop / careful --- */
+#importNo {
+  background: var(--v-accent-red);
+  border: 8px solid var(--v-red-line);
+  box-shadow: 0 7px 0 var(--v-red-down);
+}
+#repairBtn {
+  background: var(--v-accent-red);
+  border: 7px solid var(--v-red-line);
+  box-shadow: 0 6px 0 var(--v-red-down);
+}
+
+/* --- pedals: same language, darker-shade rings instead of white --- */
+.pedal { box-shadow: 0 8px 0 rgba(74, 53, 35, .22); }
+#gasPedal {
+  background: var(--v-accent-green);
+  border: 10px solid var(--v-green-line);
+  box-shadow: 0 8px 0 var(--v-green-down);
+}
+#gasPedal.held { box-shadow: 0 3px 0 var(--v-green-down); }
+#brakePedal {
+  background: var(--v-accent-red);
+  border: 10px solid var(--v-red-line);
+  box-shadow: 0 8px 0 var(--v-red-down);
+}
+#brakePedal.held { box-shadow: 0 3px 0 var(--v-red-down); }
+
+/* --- upgrades: wood tool-rack --- */
+.upgBtn {
+  background: var(--v-wood-deep);
+  border: 5px solid var(--v-wood-line);
+  border-radius: var(--v-r-md);
+  box-shadow: 0 6px 0 var(--v-wood-dark);
+}
+.upgBtn.maxed {
+  background: var(--v-accent-green);
+  border-color: var(--v-green-line);
+  box-shadow: 0 6px 0 var(--v-green-down);
+}
+.pips i { background: rgba(74, 53, 35, .35); }
+.pips i.on { background: var(--v-accent-yellow); }
+
+/* --- extras --- */
+.extraBtn {
+  background: var(--v-wood-deep);
+  border: 5px solid var(--v-wood-line);
+  border-radius: var(--v-r-md);
+  box-shadow: 0 5px 0 var(--v-wood-dark);
+}
+.extraBtn.on {
+  background: var(--v-accent-green);
+  border-color: var(--v-accent-yellow);
+  box-shadow: 0 5px 0 var(--v-green-down);
+}
+
+/* --- paint swatches: white ring stays (they ARE the color), warm shadow --- */
+.swatch {
+  border: 5px solid rgba(255, 248, 236, .9);
+  box-shadow: 0 4px 0 rgba(74, 53, 35, .25);
+}
+.swatch.selected { border-color: var(--v-accent-yellow); }
+
+/* --- price tag: putty until affordable, then green --- */
+#priceTag {
+  background: var(--v-mute);
+  border: 6px solid var(--v-mute-line);
+  border-radius: var(--v-r-lg);
+  color: var(--v-ink);
+  box-shadow: 0 6px 0 var(--v-mute-down);
+}
+#priceTag.afford {
+  background: var(--v-accent-green);
+  border-color: var(--v-green-line);
+  color: #fff;
+  box-shadow: 0 6px 0 var(--v-green-down);
+}
+
+/* --- locks --- */
+#previewLock { background: var(--v-wood-dark); border: 6px solid var(--v-accent-yellow); }
+.swatch .lockDot, .lvlBtn .lockDot { background: var(--v-wood-dark); }
+
+/* ---------- 5. CHIPS (HUD / wallets / tallies) ---------- */
+.chip {
+  background: var(--v-surface);
+  border: 6px solid var(--v-surface-line);
+  border-radius: var(--v-r-lg);
+  color: var(--v-ink);
+  box-shadow: 0 5px 0 var(--v-surface-down);
+}
+#hudDamage.hurt { border-color: var(--v-red-line); color: #c9584a; }
+#celebrateDamage.clean { border-color: var(--v-green-line); color: #3f8a38; }
+#progTrack { background: var(--v-surface-2); }
+#progDot { background: var(--v-accent-red); border: 5px solid var(--v-surface); }
+
+/* squashier pop for chips (existing hook, retuned) */
+@keyframes chipPop {
+  35% { transform: scale(1.15, 1.06); }
+  70% { transform: scale(.97, 1.02); }
+}
+
+/* ---------- 6. SCENE DRESSING ---------- */
+
+/* --- garage: warm workshop --- */
+#garage {
+  background: linear-gradient(#b7e3f4 0%, #e6f6fc 54%, #c9a476 54%, #a17847 100%);
+}
+/* horizontal floor planks */
+#garage::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 385px; bottom: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom,
+    rgba(94, 68, 41, .12) 0 3px, transparent 3px 46px);
+}
+/* soft warm vignette (under all controls: they sit at z-index 5+) */
+#garage::after {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: radial-gradient(ellipse 85% 78% at 50% 42%,
+    transparent 58%, rgba(94, 68, 41, .14) 100%);
+}
+#garageWall {
+  background-color: #fbf1da;
+  background-image: var(--v-dots);
+  background-size: var(--v-dots-size);
+  border: 8px solid var(--v-surface-line);
+  border-bottom: none;
+  border-radius: var(--v-r-md) var(--v-r-md) 0 0;
+}
+#garageWall::before {          /* bunting stripe, pastel instead of hazard-orange */
+  background: repeating-linear-gradient(90deg, #ffd98c 0 40px, #ffb98a 40px 80px);
+}
+#garageFloor { background: #b8905c; border-top: 6px solid #97744a; }
+#garageSign {
+  background: var(--v-wood-dark);
+  color: #ffe6a8;
+  border: 5px solid #57402a;
+  box-shadow: 0 4px 0 #57402a;
+}
+
+/* --- controls: wood workbench, was navy --- */
+#controls {
+  background-color: #c19664;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(94, 68, 41, .10) 0 3px, transparent 3px 150px),
+    linear-gradient(#cda97c, #b28a58);
+  border-top: 8px solid #e6cb98;   /* light rim = tabletop edge highlight */
+}
+
+/* --- map: park meadow --- */
+#map {
+  background: linear-gradient(#aadcf0 0%, #dbf2fb 56%, #a9d88e 56%, #7fbb66 100%);
+}
+#map::before {                     /* paper grain + soft clearing + mown-grass path */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    var(--v-dots-light),
+    radial-gradient(ellipse 46% 24% at 50% 62%, rgba(255, 248, 236, .30), transparent 72%),
+    repeating-linear-gradient(100deg, rgba(255, 255, 255, .05) 0 36px, transparent 36px 72px);
+  background-size: 30px 30px, 100% 100%, 100% 44%;
+  background-position: 0 0, 0 0, 0 100%;
+  background-repeat: repeat, no-repeat, no-repeat;
+}
+#map::after {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: radial-gradient(ellipse 85% 78% at 50% 45%,
+    transparent 60%, rgba(64, 84, 48, .13) 100%);
+}
+.worldTab {
+  background: var(--v-accent-blue);
+  border: 5px solid var(--v-outline-soft);   /* translucent: survives JS world tints */
+  border-radius: var(--v-r-md);
+  box-shadow: 0 5px 0 rgba(74, 53, 35, .25);
+}
+.worldTab.sel { outline: 6px solid var(--v-accent-yellow); }
+.worldTab.locked { background: var(--v-mute); }
+.lvlBtn {
+  border: 5px solid var(--v-outline-soft);
+  border-radius: var(--v-r-lg);
+  box-shadow: 0 6px 0 rgba(74, 53, 35, .25);
+}
+.lvlBtn.open { background: var(--v-accent-blue); }
+.lvlBtn.done { background: var(--v-accent-green); }
+.lvlBtn.locked { background: var(--v-mute); }
+.lvlBtn.locked.sunset { background: #bd8f6d; }
+.lvlBtn.locked.night { background: #8b90ac; }
+.lvlBtn.current { outline: 6px solid var(--v-accent-yellow); }
+
+/* --- album: same paper, harmonized to token set --- */
+#album {
+  background-color: var(--v-surface);
+  background-image: var(--v-dots), linear-gradient(#fff8ec, #f3e4c8);
+  background-size: var(--v-dots-size), 100% 100%;
+}
+#album::before { border-color: rgba(216, 185, 140, .45); border-radius: var(--v-r-lg); }
+.buddySlot, .badgeSlot {
+  background: rgba(90, 70, 52, .07);
+  border: 5px dashed rgba(138, 115, 96, .55);
+}
+.buddySlot { border-radius: var(--v-r-round); }
+.badgeSlot { border-radius: var(--v-r-lg); }
+.buddySlot.filled, .badgeSlot.filled {
+  background: var(--v-surface);
+  border-color: var(--v-accent-yellow);
+  box-shadow: 0 4px 0 rgba(74, 53, 35, .15);
+}
+.buddySlot.equipped { outline: 6px solid var(--v-accent-green); }
+.photoSlot { background: #fffdf6; border-radius: 10px; box-shadow: 0 5px 0 rgba(74, 53, 35, .16); }
+.photoSlot.empty { background: rgba(90, 70, 52, .07); border: 5px dashed rgba(138, 115, 96, .55); box-shadow: none; }
+.photoCap { color: var(--v-ink); }
+
+/* ---------- 7. OVERLAYS + PANELS ---------- */
+#profileOverlay { background: var(--v-scrim); }
+#celebrate { background: var(--v-scrim); }
+#importConfirm { background: rgba(64, 44, 28, .65); }
+
+#profilePanel {
+  background-color: var(--v-surface);
+  background-image: var(--v-dots);
+  background-size: var(--v-dots-size);
+  border: 8px solid var(--v-wood);
+  border-radius: var(--v-r-xl);
+  box-shadow: 0 8px 0 rgba(74, 53, 35, .25);
+}
+.profileSlot {
+  background: var(--v-surface);
+  border: 7px solid var(--v-surface-line);
+  border-radius: var(--v-r-round);
+  box-shadow: 0 4px 0 var(--v-surface-down);
+}
+.profileSlot.empty {
+  background: rgba(90, 70, 52, .07);
+  border-style: dashed;
+  border-color: rgba(138, 115, 96, .6);
+  box-shadow: none;
+}
+.profileSlot.activeP { outline: 7px solid var(--v-accent-green); }
+.profileSlot .plus { color: var(--v-ink-soft); }
+#qrBox { border: 5px solid var(--v-surface-line); border-radius: var(--v-r-sm); }
+
+#stickerToast {
+  background: var(--v-surface);
+  border: 6px solid var(--v-accent-yellow);
+  border-radius: var(--v-r-lg);
+  box-shadow: 0 6px 0 var(--v-surface-down);
+}
+
+#tallyChip { border-radius: var(--v-r-xl); }
+
+/* ---------- 8. ENTRANCE ANIMATION ---------- */
+/* the game already defines `@keyframes popIn` (scale .5 -> 1.06 -> 1, with
+   opacity) for its .enter choreography — reuse it rather than redefining,
+   so every entrance in the game shares one pop */
+#profileOverlay.show #profilePanel {
+  animation: popIn .35s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+#importConfirm.show #importYes,
+#importConfirm.show #importNo {
+  animation: popIn .35s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+/* celebrate children pop in with a gentle stagger;
+   #celebrateRow keeps its own .ready reveal mechanic untouched */
+#celebrate.active > :not(#celebrateRow) {
+  animation: popIn .4s cubic-bezier(.2, 1.4, .4, 1) backwards;
+}
+#celebrate.active > :nth-child(2) { animation-delay: .05s; }
+#celebrate.active > :nth-child(3) { animation-delay: .10s; }
+#celebrate.active > :nth-child(4) { animation-delay: .15s; }
+#celebrate.active > :nth-child(5) { animation-delay: .20s; }
+
+/* toast keeps translateX centering inside its own pop */
+@keyframes toastPop {
+  0%   { transform: translateX(-50%) scale(.5);  opacity: 0; }
+  65%  { transform: translateX(-50%) scale(1.06); opacity: 1; }
+  100% { transform: translateX(-50%) scale(1);   opacity: 1; }
+}
+#stickerToast.show {
+  animation: toastPop .45s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+
+
+/* ---- T7 reconciliation: rules that must win over the toybox layer ---- */
+/* SPEC floor: 76px stage = 64.8px rendered at iPad landscape scale */
+.swatch { width: 76px; height: 76px; }
+#swatches { grid-template-columns: repeat(6, 76px); grid-template-rows: repeat(2, 76px); }
 </style>
 </head>
 <body>
@@ -578,13 +1038,16 @@
     </div>
     <div class="chip" id="garageWallet" aria-label="star wallet"></div>
     <div id="controls">
+      <div class="tray" id="trayBuild">
       <button class="bigBtn" id="bodyBtn" aria-label="change truck body">
         <svg viewBox="0 0 100 100"><path d="M10 62 L10 40 L48 40 L48 26 L74 26 L86 44 L90 62 Z" fill="#fff"/><circle cx="30" cy="66" r="12" fill="#023047" stroke="#fff" stroke-width="4"/><circle cx="72" cy="66" r="12" fill="#023047" stroke="#fff" stroke-width="4"/><path d="M40 18 L46 8 M50 18 L50 6 M60 18 L54 8" stroke="#ffb703" stroke-width="5" stroke-linecap="round"/></svg>
       </button>
       <button class="bigBtn" id="wheelBtn" aria-label="change wheels">
         <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="#fff"/><circle cx="50" cy="50" r="16" fill="#023047"/><g stroke="#023047" stroke-width="8" stroke-linecap="round"><path d="M50 12 V30 M50 70 V88 M12 50 H30 M70 50 H88 M23 23 L36 36 M64 64 L77 77 M77 23 L64 36 M36 64 L23 77"/></g></svg>
       </button>
-      <div id="swatches"></div>
+      </div>
+      <div class="tray" id="trayPaint"><div id="swatches"></div></div>
+      <div class="tray" id="trayExtras">
       <div id="extras">
         <button class="bigBtn extraBtn" data-extra="horn" aria-label="horn">
           <svg viewBox="0 0 100 100"><path d="M20 50 Q20 30 45 30 L70 15 L70 85 L45 70 Q20 70 20 50Z" fill="#ffd60a" stroke="#fff" stroke-width="4"/><path d="M80 35 Q92 50 80 65" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round"/></svg>
@@ -596,12 +1059,15 @@
           <svg viewBox="0 0 100 100"><path d="M35 90 V12" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M40 15 L82 25 L40 40 Z" fill="#e63946" stroke="#fff" stroke-width="3"/></svg>
         </button>
       </div>
+      </div>
+      <div id="goCol">
       <button class="bigBtn" id="mapBtn" aria-label="pick a level">
         <svg viewBox="0 0 100 100"><path d="M14 22 L38 14 L62 22 L86 14 V78 L62 86 L38 78 L14 86 Z" fill="#fff" stroke="#023047" stroke-width="5" stroke-linejoin="round"/><path d="M30 60 Q45 30 62 52 Q72 64 76 40" stroke="#e63946" stroke-width="6" fill="none" stroke-dasharray="2 10" stroke-linecap="round"/><circle cx="76" cy="36" r="9" fill="#e63946"/></svg>
       </button>
       <button class="bigBtn" id="goBtn" aria-label="go drive">
         <svg viewBox="0 0 100 100"><path d="M30 18 L82 50 L30 82 Z" fill="#fff"/></svg>
       </button>
+      </div>
     </div>
   </div>
 
@@ -624,9 +1090,10 @@
       <svg viewBox="0 0 100 100"><path d="M50 12 L92 50 H78 V88 H22 V50 H8 Z" fill="#023047"/><rect x="40" y="58" width="20" height="30" fill="#ffb703"/></svg>
     </button>
     <div class="chip" id="mapWallet" aria-label="star wallet"></div>
+    <div id="mapGround"></div>
     <div id="worldTabs"></div>
     <button class="bigBtn" id="freeBtn" aria-label="free drive, no finish line">
-      <svg viewBox="0 0 160 60"><path d="M8 52 Q40 10 80 30 Q120 50 152 8" stroke="#fff" stroke-width="16" fill="none" stroke-linecap="round"/><path d="M8 52 Q40 10 80 30 Q120 50 152 8" stroke="#ffd60a" stroke-width="4" fill="none" stroke-dasharray="10 14" stroke-linecap="round"/></svg>
+      <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="#fff" stroke-width="11"/><circle cx="50" cy="50" r="12" fill="#fff"/><path d="M50 38 V12 M39 57 L16 70 M61 57 L84 70" stroke="#fff" stroke-width="10" stroke-linecap="round"/></svg>
     </button>
     <div id="mapGrid"></div>
   </div>
@@ -672,10 +1139,14 @@
     </button>
     <div id="celebrate">
       <div class="chip" id="celebrateWallet" aria-label="star wallet"></div>
+      <div id="resultsCard">
       <div class="chip" id="tallyChip"></div>
       <div id="ratingRow"></div>
-      <div class="chip" id="celebrateTime" aria-label="run time and medal"></div>
-      <div class="chip" id="celebrateDamage" aria-label="damage taken"></div>
+      <div id="resultsMeta">
+        <div class="chip" id="celebrateTime" aria-label="run time and medal"></div>
+        <div class="chip" id="celebrateDamage" aria-label="damage taken"></div>
+      </div>
+      </div>
       <div id="celebrateRow">
         <button class="bigBtn" id="replayBtn" aria-label="drive this road again">
           <svg viewBox="0 0 100 100"><path d="M50 16 A34 34 0 1 1 18 46" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M8 24 L36 22 L22 48 Z" fill="#fff"/></svg>
@@ -787,7 +1258,14 @@ const BADGES = [
   { id: "gag",   icon: `<svg viewBox="0 0 64 64"><ellipse cx="30" cy="44" rx="22" ry="13" fill="#ffd60a"/><circle cx="46" cy="26" r="12" fill="#ffd60a"/><path d="M56 24 L66 28 L56 32 Z" fill="#f77f00"/><circle cx="49" cy="23" r="2.5" fill="#023047"/></svg>` }
 ];
 function medalSVG(tier) {
-  return `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="${TIER_COLOR[tier]}" stroke="#023047" stroke-width="4"/><text x="32" y="44" text-anchor="middle" font-family="-apple-system,'Arial Rounded MT Bold',sans-serif" font-size="34" font-weight="900" fill="#023047">${tier}</text></svg>`;
+  /* the S coin is star-scalloped so the top tier reads by shape as well as letter */
+  const burst = tier === "S"
+    ? `<path d="${[...Array(10)].map((_, i) => {
+        const a = i * Math.PI / 5 - Math.PI / 2, r = i % 2 ? 27 : 32;
+        return (i ? "L" : "M") + (32 + Math.cos(a) * r).toFixed(1) + " " + (32 + Math.sin(a) * r).toFixed(1);
+      }).join(" ")} Z" fill="#fb8500"/>`
+    : "";
+  return `<svg viewBox="0 0 64 64">${burst}<circle cx="32" cy="32" r="${tier === "S" ? 24 : 28}" fill="${TIER_COLOR[tier]}" stroke="#023047" stroke-width="4"/><text x="32" y="${tier === "S" ? 42 : 44}" text-anchor="middle" font-family="-apple-system,'Arial Rounded MT Bold',sans-serif" font-size="${tier === "S" ? 30 : 34}" font-weight="900" fill="#023047">${tier}</text></svg>`;
 }
 
 /* ============ STATE (vroom.v2, migrates v1 build) ============ */
@@ -1347,14 +1825,19 @@ function vehicleSVG(st) {
       <g class="dmgScuff" style="display:${progress.damage >= 1 ? "" : "none"}" stroke="#37474f" stroke-width="3" stroke-linecap="round" opacity=".75">
         <path d="M98 142 l24 -7 M106 150 l18 -5 M188 136 l20 6 M194 145 l14 4" fill="none"/>
         <ellipse cx="150" cy="150" rx="13" ry="7" fill="#00000022" stroke="none"/>
+        <g stroke="none" transform="translate(${BODIES[st.body].rear[0] + 6},${BODIES[st.body].rear[1] - 6}) rotate(-18)">
+          <rect x="-16" y="-6" width="32" height="12" rx="6" fill="#e9d8c3"/>
+          <rect x="-6" y="-16" width="12" height="32" rx="6" fill="#e9d8c3"/>
+          <circle r="3" fill="#c9b697"/>
+        </g>
       </g>
       <g class="dmgCrack" style="display:${progress.damage >= 3 ? "" : "none"}" stroke="#f8f9fa" stroke-width="3" fill="none" opacity=".9">
         <path d="M236 98 l-9 9 l11 7 l-7 9 M227 107 l-9 3 M238 114 l10 5"/>
       </g>
-      <g class="dmgSmoke" style="display:${progress.damage >= 5 ? "" : "none"}" fill="#90a4ae">
-        <circle cx="288" cy="90" r="9" opacity=".8"/>
-        <circle cx="294" cy="86" r="7" opacity=".7" style="animation-delay:.45s"/>
-        <circle cx="283" cy="84" r="6" opacity=".6" style="animation-delay:.9s"/>
+      <g class="dmgSmoke" style="display:${progress.damage >= 5 ? "" : "none"}" fill="#90a4ae" transform="translate(${Math.min(288, BODIES[st.body].roof[0] + 60) - 288},0)">
+        <circle cx="288" cy="90" r="13" opacity=".85"/>
+        <circle cx="296" cy="84" r="10" opacity=".7" style="animation-delay:.45s"/>
+        <circle cx="281" cy="81" r="8" opacity=".6" style="animation-delay:.9s"/>
       </g>
     </g>
     ${wheelSVG(st.wheels, 85)}
@@ -2053,7 +2536,8 @@ document.getElementById("wheelBtn").addEventListener("pointerdown", () => {
 const swatchesEl = document.getElementById("swatches");
 COLORS.forEach(c => {
   const b = document.createElement("button");
-  b.className = "swatch"; b.dataset.color = c;
+  b.className = "swatch pressable enter"; b.dataset.color = c;
+  b.style.setProperty("--i", COLORS.indexOf(c));
   b.style.background = c === "rainbow"
     ? "conic-gradient(#e53935,#fb8c00,#fdd835,#43a047,#1e88e5,#8e24aa,#e53935)"
     : c;
@@ -2262,7 +2746,8 @@ function renderAlbum() {
   for (const id of BUDDY_ORDER) {
     const owned = progress.owned.buddy.includes(id);
     const slot = document.createElement("button");
-    slot.className = "bigBtn buddySlot" + (owned ? " filled" : "") + (owned && state.buddy === id ? " equipped" : "");
+    slot.className = "bigBtn buddySlot pressable enter" + (owned ? " filled" : "") + (owned && state.buddy === id ? " equipped" : "");
+    slot.style.setProperty("--i", BUDDY_ORDER.indexOf(id));
     slot.innerHTML = `<svg viewBox="-6 -58 76 72" ${owned ? "" : 'class="sil"'}>${BUDDY_SVG[id]}</svg>`;
     slot.setAttribute("aria-label", owned ? "buddy " + id + (state.buddy === id ? ", riding along" : ", tap to ride") : "buddy not found yet");
     slot.addEventListener("pointerdown", () => {
@@ -2279,7 +2764,8 @@ function renderAlbum() {
   for (const badge of BADGES) {
     const owned = progress.badges.includes(badge.id);
     const slot = document.createElement("button");
-    slot.className = "bigBtn badgeSlot" + (owned ? " filled" : "");
+    slot.className = "bigBtn badgeSlot pressable enter" + (owned ? " filled" : "");
+    slot.style.setProperty("--i", BADGES.indexOf(badge) + 6);
     slot.innerHTML = owned ? badge.icon : badge.icon.replace("<svg ", '<svg class="sil" ');
     slot.setAttribute("aria-label", "sticker " + badge.id + (owned ? "" : ", not earned yet"));
     slot.addEventListener("pointerdown", () => { wiggleSlot(slot); owned ? sfx.chime() : sfx.deny(); });
@@ -2290,7 +2776,8 @@ function renderAlbum() {
   for (let i = 0; i < 6; i++) {
     const photo = progress.photos[i];
     const slot = document.createElement("button");
-    slot.className = "bigBtn photoSlot" + (photo ? "" : " empty");
+    slot.className = "bigBtn photoSlot pressable enter" + (photo ? "" : " empty");
+    slot.style.setProperty("--i", i + 12);
     slot.style.setProperty("--tilt", ((i % 3) - 1) * 2 + "deg");
     if (photo) {
       slot.innerHTML = `<span class="photoCar">${vehicleSVG(photo.b)}</span>
@@ -2537,7 +3024,8 @@ function renderProfiles() {
   for (let i = 0; i < MAX_PROFILES; i++) {
     const slot = document.createElement("button");
     const avatar = meta.avatars[i];
-    slot.className = "bigBtn profileSlot" + (avatar ? "" : " empty") + (i === meta.active ? " activeP" : "");
+    slot.className = "bigBtn profileSlot pressable enter" + (avatar ? "" : " empty") + (i === meta.active ? " activeP" : "");
+    slot.style.setProperty("--i", i);
     slot.innerHTML = avatar ? `<svg viewBox="-6 -58 76 72">${BUDDY_SVG[avatar]}</svg>` : `<span class="plus">+</span>`;
     slot.setAttribute("aria-label", avatar ? "player " + (i + 1) : "new player");
     slot.addEventListener("pointerdown", () => {
@@ -2606,6 +3094,11 @@ const mapGrid = document.getElementById("mapGrid");
 function levelUnlocked(n) { return n === 1 || !!progress.levels[n - 1]; }
 function worldUnlocked(w) { return w === 1 || !!progress.levels[(w - 1) * WORLD_SIZE]; }
 let selectedWorld = 1;
+function worldTint(w) {
+  return (typeof WORLD_TINT !== "undefined" && (WORLD_TINT["w" + w] || WORLD_TINT[w])) || "#219ebc";
+}
+/* level nodes sit ON a winding road: alternating heights along the path */
+const MAP_NODE_Y = [0, -44, -70, -40, 8, 36, 4, -42, -66, -30];
 function renderMap() {
   /* world tabs: one themed button per world, locked until the previous world is finished */
   const tabs = document.getElementById("worldTabs");
@@ -2613,8 +3106,9 @@ function renderMap() {
   for (let w = 1; w <= WORLD_COUNT; w++) {
     const b = document.createElement("button");
     const open = worldUnlocked(w);
-    b.className = "bigBtn worldTab" + (w === selectedWorld ? " sel" : "") + (open ? "" : " locked");
-    if (open && typeof WORLD_TINT !== "undefined" && WORLD_TINT[w]) b.style.background = WORLD_TINT[w];
+    b.className = "bigBtn worldTab pressable enter" + (w === selectedWorld ? " sel" : "") + (open ? "" : " locked");
+    b.style.setProperty("--i", w - 1);
+    if (open) b.style.background = worldTint(w);
     b.innerHTML = open
       ? ((typeof WORLD_ICONS !== "undefined" && WORLD_ICONS["w" + w]) || `<span>${w}</span>`)
       : lockIcon;
@@ -2626,16 +3120,39 @@ function renderMap() {
     tabs.appendChild(b);
   }
 
+  /* tint the meadow toward the selected world */
+  document.getElementById("mapGround").style.background = worldTint(selectedWorld);
+
+  /* the winding journey road with 10 nodes on it */
   mapGrid.innerHTML = "";
   const first = (selectedWorld - 1) * WORLD_SIZE + 1;
+  const pathPts = [];
+  for (let i = 0; i < WORLD_SIZE; i++) pathPts.push([90 + i * 113, 180 + MAP_NODE_Y[i]]);
+  let d = `M ${pathPts[0][0]} ${pathPts[0][1]}`;
+  for (let i = 1; i < pathPts.length; i++) {
+    const [px, py] = pathPts[i - 1], [x, y] = pathPts[i];
+    d += ` Q ${(px + x) / 2} ${i % 2 ? py : y} ${x} ${y}`;
+  }
+  mapGrid.insertAdjacentHTML("beforeend",
+    `<svg id="mapPath" width="1140" height="360" viewBox="0 0 1140 360">
+       <path d="${d}" stroke="#00000022" stroke-width="34" fill="none" stroke-linecap="round"/>
+       <path d="${d}" stroke="#fdf6ea" stroke-width="26" fill="none" stroke-linecap="round" stroke-dasharray="4 26"/>
+     </svg>`);
+
+  let firstLockedShown = false;
   for (let n = first; n < first + WORLD_SIZE; n++) {
+    const i = n - first;
     const b = document.createElement("button");
-    b.className = "bigBtn lvlBtn";
+    b.className = "bigBtn lvlBtn pressable enter";
+    b.style.setProperty("--i", i + 2);
+    b.style.left = (pathPts[i][0] - 48) + "px";
+    b.style.top = (pathPts[i][1] - 48) + "px";
     const done = progress.levels[n];
     if (!levelUnlocked(n)) {
       b.classList.add("locked");
-      b.innerHTML = lockIcon;
-      /* dead taps break the instant-feedback rule — locked levels wiggle and grumble */
+      /* only the NEXT locked node wears the padlock; the rest are quiet dots on the road ahead */
+      if (!firstLockedShown) { b.innerHTML = lockIcon; firstLockedShown = true; }
+      else { b.classList.add("far"); b.innerHTML = ""; }
       b.addEventListener("pointerdown", () => {
         sfx.deny();
         b.classList.remove("deny"); void b.offsetWidth; b.classList.add("deny");
@@ -2645,8 +3162,8 @@ function renderMap() {
       if (n === progress.current) b.classList.add("current");
       let stars = "", tierBadge = "";
       if (done) {
-        stars = `<span class="miniStars">` + [1, 2, 3].map(i =>
-          `<svg viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="${i <= done.rating ? "#ffd60a" : "#00000033"}"/></svg>`).join("") + `</span>`;
+        stars = `<span class="miniStars">` + [1, 2, 3].map(j =>
+          `<svg viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="${j <= done.rating ? "#ffd60a" : "#00000033"}"/></svg>`).join("") + `</span>`;
         if (done.tier) tierBadge = `<span class="tierBadge">${medalSVG(done.tier)}</span>`;
       }
       b.innerHTML = `<span>${n}</span>` + stars + tierBadge;

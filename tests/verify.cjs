@@ -38,7 +38,8 @@ function check(name, ok, detail) {
   check('garage: 15 bodies all defined', inv.bodies === 15 && inv.bodyKeys);
   check('garage: 8 wheels all defined', inv.wheels === 8 && inv.wheelKeys);
 
-  /* ---- 3. touch targets >= 64px rendered at 1024x768 ---- */
+  /* ---- 3. touch targets >= 64px rendered at 1024x768 (after entrance staggers settle) ---- */
+  await page.waitForTimeout(1100);
   const tiny = await page.evaluate(() => {
     const bad = [];
     document.querySelectorAll('#garage button, #garage .swatch').forEach(b => {

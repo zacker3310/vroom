@@ -113,6 +113,16 @@ Book button in the garage opens a paper album page, all wordless:
   buddy, extras) with the level number and time medal. Last six kept, tilted like a
   real album. Everything wiggles + sounds when tapped.
 
+## Look ("Toybox", v7)
+
+One warm design language everywhere (the album's): cream paper surfaces, wood toolbar
+and racks, warm putty for locked states (never cold gray), one amber for selection, one
+green for go/afford, flat unblurred shadows, a 16/22/30/38px radius scale, dot-pattern
+textures, one press squash, staggered pop-in entrances, warm-brown scrim/letterbox/iris.
+The map is a journey: a winding dashed road with level nodes on it, one padlock ahead,
+quiet dots beyond, meadow tinted per world. Celebrations happen on a single cream
+results card. Navy is game-world art only, never chrome.
+
 ## Feel (v4.5)
 
 - The car is a character: leans back accelerating, dives braking, banks through lane
