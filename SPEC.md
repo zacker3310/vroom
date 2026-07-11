@@ -93,6 +93,22 @@ Side-scrolling construction site, now 3 lanes. The exact vehicle built in the ga
 - State `vroom.v2` = `{build, wallet, owned, levels, current}` persisted to localStorage; v1 build migrated.
 - Levels generated from a seeded PRNG (level number = seed) so each level is stable across plays.
 
+## Scene 4: Sticker album (v4.4)
+
+Book button in the garage opens a paper album page, all wordless:
+
+- **Buddies** (top row): six critters — pup, kitty, ducky, dino, penguin, monkey —
+  found ONLY in surprise capsules (mystery silhouettes until found). A found buddy
+  auto-hops into the cab: head peeking over the roofline, bobbing, squeaks when the
+  vehicle is tapped, appears in every scene and photo. Tap a buddy sticker to make it
+  ride (green ring); tap the rider to hop out.
+- **"First!" badges** (middle row): first jump, first clean run, first S medal, first
+  world clear, first purchase, first gag. Earned once, announced by a wordless
+  pop-in toast, silhouettes until earned.
+- **Photos** (bottom row): every finish saves a polaroid of the exact build (paint,
+  buddy, extras) with the level number and time medal. Last six kept, tilted like a
+  real album. Everything wiggles + sounds when tapped.
+
 ## Feel (v4.5)
 
 - The car is a character: leans back accelerating, dives braking, banks through lane

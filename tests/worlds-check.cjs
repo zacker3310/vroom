@@ -3,7 +3,6 @@ const os = require('os');
 const EXE = os.homedir() + '/Library/Caches/ms-playwright/chromium-1117/chrome-mac/Chromium.app/Contents/MacOS/Chromium';
 const URL = 'http://localhost:4173/index.html';
 const SHOT = __dirname + '/shots/';
-require('fs').mkdirSync(SHOT, { recursive: true });
 
 const results = [];
 function check(name, ok, detail) {
@@ -138,7 +137,7 @@ function check(name, ok, detail) {
     const c = props.find(p => p.type === 'capsule');
     if (!c) return { skip: true };
     const rr = Math.random;
-    Math.random = () => 0.68;   /* weights 5,2,1,3 of 11: 0.68*11=7.48 -> golden bucket [7,8) */
+    Math.random = () => 0.57;   /* weights 5,2,1,3,2 of 13: 7.41 -> golden bucket [7,8) */
     const before = runStars;
     targetLane = laneVis = c.lane; pos = c.x - 300; v = 0;
     await new Promise(r => setTimeout(r, 250));

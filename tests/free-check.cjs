@@ -3,7 +3,6 @@ const os = require('os');
 const EXE = os.homedir() + '/Library/Caches/ms-playwright/chromium-1117/chrome-mac/Chromium.app/Contents/MacOS/Chromium';
 const URL = 'http://localhost:4173/index.html';
 const SHOT = __dirname + '/shots/';
-require('fs').mkdirSync(SHOT, { recursive: true });
 
 const results = [];
 function check(name, ok, detail) {
@@ -60,7 +59,7 @@ function check(name, ok, detail) {
     const c = props.find(p => p.type === 'capsule');
     if (!c) return { skip: true };
     const realRandom2 = Math.random;
-    Math.random = () => 0.999;   /* last weight bucket = gag; also picks last gag */
+    Math.random = () => 0.8;   /* weights 5,2,1,3,2 of 13: 10.4 = gag bucket [8,11); also picks gag idx 3 */
     targetLane = laneVis = c.lane;
     pos = c.x - 300; v = 0;
     await new Promise(r => setTimeout(r, 300));
@@ -94,7 +93,8 @@ function check(name, ok, detail) {
     behind: props.filter(p => p.x < pos - 700).length,
     count: props.length
   }));
-  check('free: props spawn ahead, prune behind', world.pos > 1000 && world.ahead >= 3 && world.behind === 0 && world.count < 120, JSON.stringify(world));
+  /* ahead >= 2: spawn spacing is 280-540px (+500 skip after ramps), so 2 in the 1600px window is a legit floor */
+  check('free: props spawn ahead, prune behind', world.pos > 1000 && world.ahead >= 2 && world.behind === 0 && world.count < 120, JSON.stringify(world));
 
   /* ---- free drive: theme cycles with distance ---- */
   const themes = await page.evaluate(async () => {

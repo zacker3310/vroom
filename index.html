@@ -193,6 +193,64 @@
   #goBtn svg { width: 80px; height: 80px; }
   #goBtn.locked { background: #6c757d; border-color: #adb5bd; filter: opacity(.7); }
 
+  /* ---------- STICKER ALBUM ---------- */
+  #album { background: linear-gradient(#f7ede2, #f2e0c9); }
+  #album::before {
+    content: ""; position: absolute; inset: 22px; border: 6px dashed #d4a37366; border-radius: 26px;
+  }
+  #albumBook {
+    position: absolute; left: 50%; top: 140px; transform: translateX(-50%);
+    display: flex; flex-direction: column; gap: 26px; align-items: center;
+  }
+  .albumRow { display: flex; gap: 16px; }
+  .buddySlot, .badgeSlot {
+    width: 112px; height: 112px; border-radius: 50%;
+    background: #00000010; border: 5px dashed #b0896899;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; touch-action: none; position: relative;
+  }
+  .badgeSlot { border-radius: 26px; width: 104px; height: 104px; }
+  .buddySlot.filled, .badgeSlot.filled { background: #fff; border-style: solid; border-color: #ffb703; box-shadow: 0 4px 0 rgba(0,0,0,.15); }
+  .buddySlot.equipped { outline: 6px solid #38b000; }
+  .buddySlot svg { width: 78px; height: 78px; }
+  .badgeSlot svg { width: 66px; height: 66px; }
+  .buddySlot .sil, .badgeSlot .sil { filter: brightness(0); opacity: .18; }
+  .buddySlot.wiggle, .badgeSlot.wiggle, .photoSlot.wiggle { animation: stickerWiggle .5s ease; }
+  @keyframes stickerWiggle { 25% { transform: rotate(-7deg) scale(1.08); } 65% { transform: rotate(6deg) scale(1.04); } }
+  .photoSlot {
+    width: 150px; height: 184px; background: #fff; border-radius: 8px;
+    box-shadow: 0 5px 0 rgba(0,0,0,.18); padding: 8px; cursor: pointer; touch-action: none;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    transform: rotate(var(--tilt, 0deg));
+  }
+  .photoSlot.empty { background: #00000010; border: 5px dashed #b0896899; box-shadow: none; }
+  .photoCar { width: 134px; height: 120px; background: #bde0fe; border-radius: 6px; overflow: hidden; display: flex; align-items: flex-end; }
+  .photoCar svg { width: 100%; height: auto; }
+  /* keepsake photos stay pristine — never show the car's current dings */
+  .photoCar .dmgScuff, .photoCar .dmgCrack, .photoCar .dmgSmoke { display: none !important; }
+  .photoCap { display: flex; align-items: center; gap: 6px; font: 900 26px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #023047; }
+  .photoCap svg { width: 30px; height: 30px; }
+  #stickerToast {
+    position: absolute; left: 50%; top: 130px; transform: translateX(-50%) scale(0);
+    background: #fff; border: 6px solid #ffb703; border-radius: 30px; padding: 14px 26px;
+    display: flex; gap: 12px; z-index: 70; pointer-events: none;
+    transition: transform .3s cubic-bezier(.2,2,.4,1);
+  }
+  #stickerToast.show { transform: translateX(-50%) scale(1); }
+  #stickerToast svg { width: 64px; height: 64px; }
+  #albumBtn { position: absolute; right: 320px; top: 24px; width: 96px; height: 96px; border-radius: 26px; background: #fff; border: 6px solid #023047; z-index: 20; }
+  #albumBtn svg { width: 60px; height: 60px; }
+  .buddyPop { animation: buddyPopUp 1.9s ease forwards; }
+  @keyframes buddyPopUp {
+    0% { transform: translateY(30px) scale(.3); opacity: 0; }
+    25% { transform: translateY(-46px) scale(1.15); opacity: 1; }
+    45% { transform: translateY(-30px) scale(1); }
+    80% { transform: translateY(-38px) scale(1.05); opacity: 1; }
+    100% { transform: translateY(-20px) scale(.9); opacity: 0; }
+  }
+  .buddyBob { animation: buddyBob 1.6s ease-in-out infinite; transform-box: fill-box; }
+  @keyframes buddyBob { 50% { transform: translateY(3.5px); } }
+
   /* ---------- LEVEL MAP ---------- */
   #map { background: linear-gradient(#8ecae6 0%, #bde0fe 60%, #74c69d 60%, #588157 100%); }
   #freeBtn {
@@ -299,11 +357,11 @@
     100% { transform: translate(-26px,-54px) scale(1.9); opacity: 0; }
   }
 
-  #homeBtn, #mapHomeBtn {
+  #homeBtn, #mapHomeBtn, #albumHomeBtn {
     position: absolute; left: 24px; top: 24px; width: 96px; height: 96px;
     border-radius: 26px; background: #fff; border: 6px solid #023047; z-index: 20;
   }
-  #homeBtn svg, #mapHomeBtn svg { width: 56px; height: 56px; }
+  #homeBtn svg, #mapHomeBtn svg, #albumHomeBtn svg { width: 56px; height: 56px; }
 
   #hudLevel { left: 136px; top: 24px; }
   #hudStars { right: 24px; top: 24px; }
@@ -320,6 +378,7 @@
   #road.celebrating #hudStars, #road.celebrating #hudLevel, #road.celebrating #hudProgress,
   #road.celebrating #hudDamage, #road.celebrating .pedal, #road.celebrating .laneArrow { display: none; }
   #garageWallet { right: 24px; top: 24px; cursor: pointer; }
+  #albumWallet { right: 24px; top: 24px; }
   #mapWallet { right: 24px; top: 24px; }
 
   .pedal {
@@ -472,6 +531,9 @@
       <svg viewBox="0 0 100 100"><rect x="12" y="12" width="76" height="76" rx="18" fill="#fff" stroke="#023047" stroke-width="5"/><circle cx="32" cy="32" r="9" fill="#e63946"/><circle cx="68" cy="32" r="9" fill="#ff9f1c"/><circle cx="50" cy="50" r="9" fill="#ffd60a"/><circle cx="32" cy="68" r="9" fill="#74c69d"/><circle cx="68" cy="68" r="9" fill="#4cc9f0"/></svg>
     </button>
     <button class="bigBtn" id="quietBtn" aria-label="quiet mode for the car"></button>
+    <button class="bigBtn" id="albumBtn" aria-label="sticker album">
+      <svg viewBox="0 0 100 100"><path d="M50 18 Q30 8 14 14 V78 Q30 72 50 82 Q70 72 86 78 V14 Q70 8 50 18 Z" fill="#fff" stroke="#023047" stroke-width="5"/><path d="M50 18 V82" stroke="#023047" stroke-width="4"/><path d="M30 34 L33 41 L41 42 L35 47 L37 55 L30 50 L23 55 L25 47 L19 42 L27 41 Z" fill="#ffd60a"/><circle cx="68" cy="44" r="9" fill="#74c69d"/></svg>
+    </button>
     <div id="preview"></div>
     <button id="priceTag" aria-label="unlock with stars"></button>
     <div id="previewLock">
@@ -503,6 +565,18 @@
       <button class="bigBtn" id="goBtn" aria-label="go drive">
         <svg viewBox="0 0 100 100"><path d="M30 18 L82 50 L30 82 Z" fill="#fff"/></svg>
       </button>
+    </div>
+  </div>
+
+  <div id="album" class="scene">
+    <button class="bigBtn" id="albumHomeBtn" aria-label="back to garage">
+      <svg viewBox="0 0 100 100"><path d="M50 12 L92 50 H78 V88 H22 V50 H8 Z" fill="#023047"/><rect x="40" y="58" width="20" height="30" fill="#ffb703"/></svg>
+    </button>
+    <div class="chip" id="albumWallet" aria-label="star wallet"></div>
+    <div id="albumBook">
+      <div class="albumRow" id="buddyRow"></div>
+      <div class="albumRow" id="badgeRow"></div>
+      <div class="albumRow" id="photoRow"></div>
     </div>
   </div>
 
@@ -579,6 +653,7 @@
     </div>
   </div>
 
+  <div id="stickerToast"></div>
   <div id="iris"></div>
 </div>
 <div id="rotateOverlay" aria-label="turn the tablet sideways">
@@ -642,14 +717,25 @@ function timeTier(n, t) {
   return "C";
 }
 const stopwatchIcon = `<svg viewBox="0 0 64 64"><circle cx="32" cy="36" r="24" fill="#fff" stroke="#023047" stroke-width="6"/><path d="M32 36 V22 M32 36 L42 42" stroke="#e63946" stroke-width="5" stroke-linecap="round"/><path d="M26 8 H38 M32 8 V12" stroke="#023047" stroke-width="6" stroke-linecap="round"/></svg>`;
+
+/* "first time!" sticker badges — earned once, live in the album */
+const BADGES = [
+  { id: "jump",  icon: `<svg viewBox="0 0 64 64"><path d="M4 54 L34 42 L34 54 Z" fill="#e9c46a" stroke="#b08968" stroke-width="3"/><path d="M30 40 Q44 18 58 26" stroke="#4cc9f0" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="1 9"/><circle cx="58" cy="26" r="7" fill="#e63946"/></svg>` },
+  { id: "clean", icon: `<svg viewBox="0 0 64 64"><path d="M32 4 L54 12 V30 Q54 48 32 58 Q10 48 10 30 V12 Z" fill="#bde0fe" stroke="#1d3557" stroke-width="4"/><path d="M20 30 L28 38 L44 20" stroke="#38b000" stroke-width="7" fill="none" stroke-linecap="round"/></svg>` },
+  { id: "s",     icon: `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="#ffd60a" stroke="#023047" stroke-width="4"/><text x="32" y="44" text-anchor="middle" font-family="-apple-system,'Arial Rounded MT Bold',sans-serif" font-size="34" font-weight="900" fill="#023047">S</text></svg>` },
+  { id: "world", icon: `<svg viewBox="0 0 64 64"><path d="M18 8 H46 V26 Q46 40 32 44 Q18 40 18 26 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/><path d="M18 12 Q6 14 12 26 Q15 32 20 32 M46 12 Q58 14 52 26 Q49 32 44 32" stroke="#fb8500" stroke-width="4" fill="none"/><rect x="26" y="44" width="12" height="8" fill="#b08968"/><rect x="20" y="52" width="24" height="6" rx="3" fill="#8a5a2b"/></svg>` },
+  { id: "buy",   icon: `<svg viewBox="0 0 64 64"><path d="M8 24 L28 8 H52 V32 L32 52 Q28 56 24 52 L8 32 Q4 28 8 24 Z" fill="#ffb703" stroke="#023047" stroke-width="4"/><circle cx="42" cy="18" r="5" fill="#023047"/></svg>` },
+  { id: "gag",   icon: `<svg viewBox="0 0 64 64"><ellipse cx="30" cy="44" rx="22" ry="13" fill="#ffd60a"/><circle cx="46" cy="26" r="12" fill="#ffd60a"/><path d="M56 24 L66 28 L56 32 Z" fill="#f77f00"/><circle cx="49" cy="23" r="2.5" fill="#023047"/></svg>` }
+];
 function medalSVG(tier) {
   return `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="${TIER_COLOR[tier]}" stroke="#023047" stroke-width="4"/><text x="32" y="44" text-anchor="middle" font-family="-apple-system,'Arial Rounded MT Bold',sans-serif" font-size="34" font-weight="900" fill="#023047">${tier}</text></svg>`;
 }
 
 /* ============ STATE (vroom.v2, migrates v1 build) ============ */
-let state = { body: "dump", wheels: "normal", color: "#fdd835", extras: { horn: false, beacon: false, flag: false } };
-let progress = { wallet: 0, owned: { body: [], wheels: [], color: [], extras: [] }, levels: {}, current: 1,
-                 damage: 0, upgrades: { engine: 0, armor: 0, magnet: 0 }, quiet: false };
+let state = { body: "dump", wheels: "normal", color: "#fdd835", buddy: null, extras: { horn: false, beacon: false, flag: false } };
+let progress = { wallet: 0, owned: { body: [], wheels: [], color: [], extras: [], buddy: [] }, levels: {}, current: 1,
+                 damage: 0, upgrades: { engine: 0, armor: 0, magnet: 0 }, quiet: false,
+                 badges: [], photos: [] };
 
 function loadState() {
   let saved = null;
@@ -678,6 +764,13 @@ function loadState() {
   }
   if (Number.isFinite(saved.current) && saved.current >= 1 && saved.current <= MAX_LEVEL) progress.current = Math.floor(saved.current);
   progress.quiet = !!saved.quiet;
+  if (saved.owned && Array.isArray(saved.owned.buddy)) progress.owned.buddy = saved.owned.buddy.filter(id => BUDDY_ORDER.includes(id));
+  if (b.buddy && BUDDY_ORDER.includes(b.buddy) && progress.owned.buddy.includes(b.buddy)) state.buddy = b.buddy;
+  if (Array.isArray(saved.badges)) progress.badges = saved.badges.filter(id => BADGES.some(x => x.id === id));
+  if (Array.isArray(saved.photos)) {
+    progress.photos = saved.photos.slice(0, 6).filter(p =>
+      p && p.b && p.b.extras && BODY_ORDER.includes(p.b.body) && WHEEL_ORDER.includes(p.b.wheels) && COLORS.includes(p.b.color));
+  }
   if (Number.isFinite(saved.damage)) progress.damage = Math.min(MAX_DAMAGE, Math.max(0, Math.floor(saved.damage)));
   if (saved.upgrades) for (const k of ["engine", "armor", "magnet"]) {
     if (Number.isFinite(saved.upgrades[k])) progress.upgrades[k] = Math.min(3, Math.max(0, Math.floor(saved.upgrades[k])));
@@ -762,6 +855,7 @@ const sfx = {
     noiseBurst(0.25, 5000, 0.14, 0.38);
   },
   quack() { tone("square", 520, 360, 0.11, 0.26); tone("square", 460, 300, 0.13, 0.26, 0.16); },
+  squeak() { tone("sine", 950, 1300, 0.09, 0.25); tone("sine", 1300, 880, 0.12, 0.22, 0.1); },
   slip()   { tone("sine", 900, 200, 0.45, 0.2); noiseBurst(0.3, 1400, 0.12); },
   boom()   { noiseBurst(0.5, 500, 0.5); tone("sine", 90, 38, 0.5, 0.4); },
   fixed()  { [440, 440, 660, 880].forEach((f, i) => tone("square", f, f, 0.09, 0.16, i * 0.1)); tone("sine", 1320, 1320, 0.3, 0.2, 0.42); },
@@ -1090,6 +1184,51 @@ function extrasSVG(body, extras) {
   }
   return out;
 }
+/* ============ BUDDIES — capsule-prize critters that ride along ============ */
+/* each is a head-and-paws peeking over the roofline; ~64 wide, drawn upward from y=6 */
+const BUDDY_ORDER = ["pup", "kitty", "ducky", "dino", "penguin", "monkey"];
+const BUDDY_SVG = {
+  pup: `<circle cx="32" cy="-18" r="22" fill="#b08968"/>
+    <path d="M12 -30 Q2 -14 12 -2 Q20 -8 18 -24 Z" fill="#8a5a2b"/><path d="M52 -30 Q62 -14 52 -2 Q44 -8 46 -24 Z" fill="#8a5a2b"/>
+    <circle cx="25" cy="-22" r="3.5" fill="#212529"/><circle cx="39" cy="-22" r="3.5" fill="#212529"/>
+    <ellipse cx="32" cy="-10" rx="9" ry="7" fill="#e9d8c3"/><circle cx="32" cy="-13" r="4" fill="#212529"/>
+    <path d="M32 -8 Q34 -2 40 -3" stroke="#e76f51" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <circle cx="14" cy="4" r="6" fill="#b08968"/><circle cx="50" cy="4" r="6" fill="#b08968"/>`,
+  kitty: `<circle cx="32" cy="-16" r="20" fill="#adb5bd"/>
+    <path d="M16 -30 L12 -46 L28 -34 Z" fill="#adb5bd"/><path d="M48 -30 L52 -46 L36 -34 Z" fill="#adb5bd"/>
+    <path d="M17 -31 L15 -41 L25 -34 Z" fill="#ffafcc"/><path d="M47 -31 L49 -41 L39 -34 Z" fill="#ffafcc"/>
+    <circle cx="25" cy="-19" r="3.5" fill="#212529"/><circle cx="39" cy="-19" r="3.5" fill="#212529"/>
+    <path d="M29 -10 L32 -7 L35 -10" stroke="#212529" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M8 -14 L20 -12 M8 -8 L20 -9 M56 -14 L44 -12 M56 -8 L44 -9" stroke="#6c757d" stroke-width="2"/>
+    <circle cx="15" cy="4" r="6" fill="#adb5bd"/><circle cx="49" cy="4" r="6" fill="#adb5bd"/>`,
+  ducky: `<circle cx="32" cy="-16" r="20" fill="#ffd60a"/>
+    <path d="M22 -38 Q32 -46 40 -38 Q36 -34 28 -35 Z" fill="#ffd60a"/>
+    <circle cx="25" cy="-19" r="3.5" fill="#212529"/><circle cx="39" cy="-19" r="3.5" fill="#212529"/>
+    <path d="M24 -9 Q32 -1 40 -9 Q36 -13 28 -13 Z" fill="#fb8500"/>
+    <circle cx="14" cy="4" r="6" fill="#ffd60a"/><circle cx="50" cy="4" r="6" fill="#ffd60a"/>`,
+  dino: `<circle cx="32" cy="-16" r="20" fill="#74c69d"/>
+    <path d="M18 -33 L24 -43 L30 -34 L36 -44 L42 -34 L46 -41 L48 -30 Z" fill="#2a9d8f"/>
+    <circle cx="25" cy="-18" r="4.5" fill="#fff"/><circle cx="26" cy="-18" r="2.5" fill="#212529"/>
+    <circle cx="39" cy="-18" r="4.5" fill="#fff"/><circle cx="40" cy="-18" r="2.5" fill="#212529"/>
+    <path d="M24 -7 Q32 -3 40 -7" stroke="#1d3557" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <circle cx="20" cy="-8" r="2" fill="#2a9d8f"/><circle cx="44" cy="-8" r="2" fill="#2a9d8f"/>
+    <circle cx="14" cy="4" r="6" fill="#74c69d"/><circle cx="50" cy="4" r="6" fill="#74c69d"/>`,
+  penguin: `<circle cx="32" cy="-16" r="20" fill="#212529"/>
+    <ellipse cx="32" cy="-12" rx="13" ry="12" fill="#f1faee"/>
+    <circle cx="26" cy="-19" r="3.5" fill="#fff"/><circle cx="27" cy="-19" r="2" fill="#212529"/>
+    <circle cx="38" cy="-19" r="3.5" fill="#fff"/><circle cx="39" cy="-19" r="2" fill="#212529"/>
+    <path d="M27 -10 L32 -4 L37 -10 Z" fill="#fb8500"/>
+    <circle cx="14" cy="4" r="6" fill="#212529"/><circle cx="50" cy="4" r="6" fill="#212529"/>`,
+  monkey: `<circle cx="10" cy="-22" r="8" fill="#8a5a2b"/><circle cx="54" cy="-22" r="8" fill="#8a5a2b"/>
+    <circle cx="10" cy="-22" r="4" fill="#e9d8c3"/><circle cx="54" cy="-22" r="4" fill="#e9d8c3"/>
+    <circle cx="32" cy="-16" r="20" fill="#8a5a2b"/>
+    <path d="M18 -20 Q32 -38 46 -20 Q40 -28 32 -28 Q24 -28 18 -20 Z" fill="#6b4423"/>
+    <ellipse cx="32" cy="-10" rx="12" ry="9" fill="#e9d8c3"/>
+    <circle cx="25" cy="-18" r="3.5" fill="#212529"/><circle cx="39" cy="-18" r="3.5" fill="#212529"/>
+    <path d="M27 -7 Q32 -3 37 -7" stroke="#212529" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <circle cx="14" cy="4" r="6" fill="#8a5a2b"/><circle cx="50" cy="4" r="6" fill="#8a5a2b"/>`
+};
+
 let svgUid = 0;
 function vehicleSVG(st) {
   const lift = Math.max(0, WHEELS[st.wheels].r - 26);
@@ -1103,9 +1242,13 @@ function vehicleSVG(st) {
     </linearGradient></defs>`;
     paint = `url(#${id})`;
   }
+  const buddy = st.buddy && progress.owned.buddy.includes(st.buddy)
+    ? `<g transform="translate(${BODIES[st.body].roof[0] - 55},${BODIES[st.body].roof[1] + 4})"><g class="buddyBob">${BUDDY_SVG[st.buddy]}</g></g>`
+    : "";
   return `<svg viewBox="0 0 320 230" style="--paint:${paint}">
     ${defs}
     <g transform="translate(0,${-lift})">
+      ${buddy}
       ${BODIES[st.body].svg()}
       ${extrasSVG(st.body, st.extras)}
       <g class="mudSpots" style="opacity:0">
@@ -1749,7 +1892,7 @@ loadState();
 const garageWallet = document.getElementById("garageWallet");
 const mapWallet = document.getElementById("mapWallet");
 function renderWallets(pop) {
-  for (const el of [garageWallet, mapWallet]) {
+  for (const el of [garageWallet, mapWallet, document.getElementById("albumWallet")]) {
     el.innerHTML = starIcon + `<span>${progress.wallet}</span>`;
     if (pop) { el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); }
   }
@@ -1803,6 +1946,7 @@ priceTag.addEventListener("pointerdown", e => {
     locked.forEach(([k, id]) => progress.owned[k].push(id));
     save(); renderWallets(true); renderPreview(); renderSwatchLocks(); renderExtrasLocks(); renderUpgrades();
     sfx.buy(); confettiBurst(garageScene, 40);
+    award("buy");
   } else {
     walletDeny();
     priceTag.classList.remove("deny"); void priceTag.offsetWidth; priceTag.classList.add("deny");
@@ -1971,9 +2115,10 @@ signEl.addEventListener("pointerdown", () => {
   signEl.classList.remove("bouncy"); void signEl.offsetWidth; signEl.classList.add("bouncy");
   sfx.whee();
 });
-/* the preview's eye blinks when honked */
+/* the preview's eye blinks when honked; a riding buddy squeaks along */
 preview.addEventListener("pointerdown", () => {
   preview.classList.remove("blink"); void preview.offsetWidth; preview.classList.add("blink");
+  if (state.buddy) setTimeout(() => sfx.squeak(), 160);
 });
 
 renderPreview();
@@ -2015,6 +2160,60 @@ function showScene(el) {
 }
 function showGarage() { bankFreeRun(); showScene(garageScene); renderPreview(); renderWallets(false); renderUpgrades(); renderRepair(); }
 function showMap() { selectedWorld = worldOf(progress.current); showScene(mapScene); renderMap(); renderWallets(false); }
+const albumScene = document.getElementById("album");
+function showAlbum() { showScene(albumScene); renderAlbum(); renderWallets(false); }
+
+/* ============ STICKER ALBUM ============ */
+function wiggleSlot(el) {
+  el.classList.remove("wiggle"); void el.offsetWidth; el.classList.add("wiggle");
+}
+function renderAlbum() {
+  const bRow = document.getElementById("buddyRow");
+  bRow.innerHTML = "";
+  for (const id of BUDDY_ORDER) {
+    const owned = progress.owned.buddy.includes(id);
+    const slot = document.createElement("button");
+    slot.className = "bigBtn buddySlot" + (owned ? " filled" : "") + (owned && state.buddy === id ? " equipped" : "");
+    slot.innerHTML = `<svg viewBox="-6 -58 76 72" ${owned ? "" : 'class="sil"'}>${BUDDY_SVG[id]}</svg>`;
+    slot.setAttribute("aria-label", owned ? "buddy " + id + (state.buddy === id ? ", riding along" : ", tap to ride") : "buddy not found yet");
+    slot.addEventListener("pointerdown", () => {
+      wiggleSlot(slot);
+      if (!owned) { sfx.deny(); return; }
+      /* tap to ride; tap the rider to hop out */
+      state.buddy = state.buddy === id ? null : id;
+      save(); sfx.squeak(); renderAlbum();
+    });
+    bRow.appendChild(slot);
+  }
+  const gRow = document.getElementById("badgeRow");
+  gRow.innerHTML = "";
+  for (const badge of BADGES) {
+    const owned = progress.badges.includes(badge.id);
+    const slot = document.createElement("button");
+    slot.className = "bigBtn badgeSlot" + (owned ? " filled" : "");
+    slot.innerHTML = owned ? badge.icon : badge.icon.replace("<svg ", '<svg class="sil" ');
+    slot.setAttribute("aria-label", "sticker " + badge.id + (owned ? "" : ", not earned yet"));
+    slot.addEventListener("pointerdown", () => { wiggleSlot(slot); owned ? sfx.chime() : sfx.deny(); });
+    gRow.appendChild(slot);
+  }
+  const pRow = document.getElementById("photoRow");
+  pRow.innerHTML = "";
+  for (let i = 0; i < 6; i++) {
+    const photo = progress.photos[i];
+    const slot = document.createElement("button");
+    slot.className = "bigBtn photoSlot" + (photo ? "" : " empty");
+    slot.style.setProperty("--tilt", ((i % 3) - 1) * 2 + "deg");
+    if (photo) {
+      slot.innerHTML = `<span class="photoCar">${vehicleSVG(photo.b)}</span>
+        <span class="photoCap"><svg viewBox="0 0 64 64"><path d="M14 58 V8" stroke="#023047" stroke-width="7" stroke-linecap="round"/><path d="M18 10 L54 16 L18 30 Z" fill="#e63946"/></svg>${photo.n}${medalSVG(photo.t)}</span>`;
+      slot.addEventListener("pointerdown", () => { wiggleSlot(slot); sfx.pop(); });
+    }
+    slot.setAttribute("aria-label", photo ? "photo of level " + photo.n : "empty photo slot");
+    pRow.appendChild(slot);
+  }
+}
+document.getElementById("albumBtn").addEventListener("pointerdown", () => { sfx.pop(); showAlbum(); });
+document.getElementById("albumHomeBtn").addEventListener("pointerdown", e => { e.stopPropagation(); sfx.pop(); showGarage(); });
 
 document.getElementById("goBtn").addEventListener("pointerdown", () => {
   if (goBtn.classList.contains("locked")) { walletDeny(); return; }
@@ -2509,7 +2708,8 @@ const PRIZE_TABLE = [
   { kind: "stars",    weight: 5, amount: 3 },
   { kind: "bigstars", weight: 2, amount: 8 },
   { kind: "bigstars", weight: 1, amount: 20 },   /* the rare golden jackpot */
-  { kind: "gag",      weight: 3 }
+  { kind: "gag",      weight: 3 },
+  { kind: "buddy",    weight: 2 }                /* a new friend! (stars if all six found) */
 ];
 const GAGS = [
   {
@@ -2596,12 +2796,53 @@ function rollPrize() {
 }
 function openCapsule(p) {
   const prize = rollPrize();
-  if (prize.kind === "gag") { runGag(); return; }
-  runStars += prize.amount;
+  if (prize.kind === "gag") { runGag(); award("gag"); return; }
+  if (prize.kind === "buddy") {
+    const unfound = BUDDY_ORDER.filter(id => !progress.owned.buddy.includes(id));
+    if (unfound.length) {
+      const nb = unfound[Math.floor(Math.random() * unfound.length)];
+      progress.owned.buddy.push(nb);
+      state.buddy = nb;                       /* the new friend hops straight in */
+      save();
+      const el = document.createElement("div");
+      el.className = "gagWrap buddyPop";
+      el.innerHTML = `<svg width="120" height="120" viewBox="-4 -56 72 68">${BUDDY_SVG[nb]}</svg>`;
+      el.style.left = "230px";
+      el.style.top = (CAR_BASE_TOP + (targetLane - 1) * 65 - 40) + "px";
+      roadScene.appendChild(el);
+      gagTimer(() => el.remove(), 1900);
+      sfx.squeak(); gagTimer(() => sfx.tada(), 400);
+      const muddy = mudEl && mudEl.style.opacity == 1;   /* keep this run's mud through the rebuild */
+      carWrap.innerHTML = vehicleSVG(state);
+      wheelEls = carWrap.querySelectorAll(".wheelrot");
+      mudEl = carWrap.querySelector(".mudSpots");
+      if (muddy) mudEl.style.opacity = 1;
+      setHeadlights(roadScene.classList.contains("night") || roadScene.classList.contains("w8"));
+      return;
+    }
+    /* all six found: consolation stars */
+  }
+  const amount = prize.kind === "buddy" ? 5 : prize.amount;
+  runStars += amount;
   renderHudStars(true);
-  for (let i = 0; i < Math.min(prize.amount, 5); i++) {
+  for (let i = 0; i < Math.min(amount, 5); i++) {
     gagTimer(() => { flyStar(p.el, hudStars); sfx.tick(i + 2); }, i * 110);
   }
+}
+
+/* ---- sticker badges: award once, toast wordlessly ---- */
+let toastTimer = null;
+function award(id) {
+  if (progress.badges.includes(id)) return;
+  progress.badges.push(id);
+  save();
+  const badge = BADGES.find(x => x.id === id);
+  const toast = document.getElementById("stickerToast");
+  toast.innerHTML = badge.icon + starIcon;
+  toast.classList.remove("show"); void toast.offsetWidth; toast.classList.add("show");
+  sfx.chime();
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("show"), 1900);
 }
 
 /* prop collision handlers — d = carX - p.x; car front bumper reaches ~+90, tail ~-30 */
@@ -2832,6 +3073,7 @@ function tick(now) {
     if (wasOn && onRamp === 0) {
       airborne = true; vy = v * 0.9; jumpY = 95;
       sfx.whee();                                   /* every launch gets its whee */
+      award("jump");
     }
   }
 
@@ -2940,7 +3182,10 @@ addEventListener("blur", () => { gasKey = false; brakeKey = false; });
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) { gasKey = false; brakeKey = false; engineSet(0); }
 });
-carWrap.addEventListener("pointerdown", () => sfx.honk(state.body));
+carWrap.addEventListener("pointerdown", () => {
+  sfx.honk(state.body);
+  if (state.buddy) setTimeout(() => sfx.squeak(), 160);
+});
 
 /* ============ FINISH + CELEBRATION ============ */
 function confettiBurst(sceneEl, count) {
@@ -2994,6 +3239,13 @@ function finishLevel() {
   const walletStart = progress.wallet;
   progress.wallet += banked;
   const tier = timeTier(level, runTime);
+
+  /* album keepsakes: a finish-line photo of this exact build, plus first-time stickers */
+  progress.photos.unshift({ b: JSON.parse(JSON.stringify(state)), n: level, t: tier, s: runStars });
+  progress.photos = progress.photos.slice(0, 6);
+  if (clean) award("clean");
+  if (tier === "S") award("s");
+  if (worldBonus) award("world");
   progress.levels[level] = {
     best: Math.max(prev ? prev.best : 0, runStars),
     rating: Math.max(prev ? prev.rating : 0, rating),
