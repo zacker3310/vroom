@@ -102,8 +102,44 @@
     position: absolute; width: 96px; height: 96px; border-radius: 26px;
     background: #fff; border: 6px solid #023047; z-index: 5;
   }
-  #diceBtn { left: 84px; top: 374px; }
+  #diceBtn { right: 96px; top: 300px; }
   #quietBtn { right: 200px; top: 24px; background: #e9ecef; z-index: 20; }
+  #profileBtn {
+    position: absolute; left: 24px; top: 24px; width: 96px; height: 96px;
+    border-radius: 50%; background: #fff; border: 6px solid #023047; z-index: 20;
+  }
+  #profileBtn svg { width: 74px; height: 74px; }
+  #profileOverlay {
+    position: absolute; inset: 0; z-index: 80; display: none;
+    background: rgba(2,48,71,.6); align-items: center; justify-content: center;
+  }
+  #profileOverlay.show { display: flex; }
+  #profilePanel {
+    background: #f7ede2; border-radius: 34px; border: 8px solid #ffb703;
+    padding: 40px 48px; display: flex; flex-direction: column; gap: 30px; align-items: center;
+  }
+  #profileSlots { display: flex; gap: 26px; }
+  .profileSlot {
+    width: 132px; height: 132px; border-radius: 50%; background: #fff;
+    border: 7px solid #023047; display: flex; align-items: center; justify-content: center;
+  }
+  .profileSlot.empty { background: #00000012; border-style: dashed; border-color: #b08968; }
+  .profileSlot.activeP { outline: 7px solid #38b000; }
+  .profileSlot svg { width: 96px; height: 96px; }
+  .profileSlot .plus { font: 900 64px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #b08968; }
+  #saveTools { display: flex; gap: 22px; align-items: center; }
+  #qrBox { width: 176px; height: 176px; background: #fff; border-radius: 12px; border: 5px solid #023047; display: flex; align-items: center; justify-content: center; }
+  #qrBox canvas { image-rendering: pixelated; }
+  #copyCodeBtn, #pasteCodeBtn { width: 96px; height: 96px; border-radius: 26px; background: #219ebc; border: 6px solid #bde0fe; }
+  #copyCodeBtn svg, #pasteCodeBtn svg { width: 58px; height: 58px; }
+  #importConfirm {
+    position: absolute; inset: 0; z-index: 90; display: none;
+    background: rgba(2,48,71,.7); align-items: center; justify-content: center; gap: 40px;
+  }
+  #importConfirm.show { display: flex; }
+  #importYes { width: 170px; height: 170px; border-radius: 50%; background: #38b000; border: 10px solid #d8f3dc; }
+  #importNo { width: 130px; height: 130px; border-radius: 50%; background: #e63946; border: 10px solid #fff; }
+  #importYes svg, #importNo svg { width: 80px; height: 80px; }
   #diceBtn svg, #quietBtn svg { width: 60px; height: 60px; }
   #diceBtn.rolling { animation: diceShake .12s linear infinite; }
   @keyframes diceShake { 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
@@ -124,7 +160,7 @@
   @keyframes signHop { 40% { transform: translateY(-16px) scale(1.15); } }
 
   /* ---------- UPGRADES + REPAIR ---------- */
-  #upgrades { position: absolute; left: 84px; top: 48px; display: flex; flex-direction: column; gap: 14px; z-index: 5; }
+  #upgrades { position: absolute; left: 84px; top: 136px; display: flex; flex-direction: column; gap: 14px; z-index: 5; }
   .upgBtn {
     width: 96px; height: 96px; border-radius: 24px; background: #457b9d;
     flex-direction: column; gap: 3px; position: relative;
@@ -531,6 +567,7 @@
       <svg viewBox="0 0 100 100"><rect x="12" y="12" width="76" height="76" rx="18" fill="#fff" stroke="#023047" stroke-width="5"/><circle cx="32" cy="32" r="9" fill="#e63946"/><circle cx="68" cy="32" r="9" fill="#ff9f1c"/><circle cx="50" cy="50" r="9" fill="#ffd60a"/><circle cx="32" cy="68" r="9" fill="#74c69d"/><circle cx="68" cy="68" r="9" fill="#4cc9f0"/></svg>
     </button>
     <button class="bigBtn" id="quietBtn" aria-label="quiet mode for the car"></button>
+    <button class="bigBtn" id="profileBtn" aria-label="who is playing"></button>
     <button class="bigBtn" id="albumBtn" aria-label="sticker album">
       <svg viewBox="0 0 100 100"><path d="M50 18 Q30 8 14 14 V78 Q30 72 50 82 Q70 72 86 78 V14 Q70 8 50 18 Z" fill="#fff" stroke="#023047" stroke-width="5"/><path d="M50 18 V82" stroke="#023047" stroke-width="4"/><path d="M30 34 L33 41 L41 42 L35 47 L37 55 L30 50 L23 55 L25 47 L19 42 L27 41 Z" fill="#ffd60a"/><circle cx="68" cy="44" r="9" fill="#74c69d"/></svg>
     </button>
@@ -654,6 +691,28 @@
   </div>
 
   <div id="stickerToast"></div>
+  <div id="profileOverlay">
+    <div id="profilePanel">
+      <div id="profileSlots"></div>
+      <div id="saveTools">
+        <div id="qrBox"><canvas id="qrCanvas"></canvas></div>
+        <button class="bigBtn" id="copyCodeBtn" aria-label="copy save code">
+          <svg viewBox="0 0 100 100"><rect x="14" y="26" width="52" height="60" rx="8" fill="#fff"/><rect x="34" y="12" width="52" height="60" rx="8" fill="#fff" stroke="#219ebc" stroke-width="5"/></svg>
+        </button>
+        <button class="bigBtn" id="pasteCodeBtn" aria-label="paste save code">
+          <svg viewBox="0 0 100 100"><rect x="22" y="16" width="56" height="72" rx="8" fill="#fff"/><rect x="38" y="8" width="24" height="16" rx="5" fill="#adb5bd"/><path d="M50 38 V66 M38 54 L50 66 L62 54" stroke="#219ebc" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="importConfirm">
+    <button class="bigBtn" id="importYes" aria-label="load this save">
+      <svg viewBox="0 0 100 100"><path d="M20 52 L42 74 L82 28" stroke="#fff" stroke-width="14" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="bigBtn" id="importNo" aria-label="cancel">
+      <svg viewBox="0 0 100 100"><path d="M26 26 L74 74 M74 26 L26 74" stroke="#fff" stroke-width="14" stroke-linecap="round"/></svg>
+    </button>
+  </div>
   <div id="iris"></div>
 </div>
 <div id="rotateOverlay" aria-label="turn the tablet sideways">
@@ -737,10 +796,40 @@ let progress = { wallet: 0, owned: { body: [], wheels: [], color: [], extras: []
                  damage: 0, upgrades: { engine: 0, armor: 0, magnet: 0 }, quiet: false,
                  badges: [], photos: [] };
 
+/* ---- profiles: up to 3 kids, identified by a buddy-face avatar, no reading ---- */
+const MAX_PROFILES = 3;
+const AVATAR_IDS = ["pup", "kitty", "ducky", "dino", "penguin", "monkey"];   /* = BUDDY_ORDER, defined later */
+let meta = { active: 0, avatars: ["pup", null, null] };
+(function loadMeta() {
+  try {
+    const m = JSON.parse(localStorage.getItem("vroom.meta"));
+    if (m && Number.isInteger(m.active) && Array.isArray(m.avatars)) {
+      meta.active = Math.min(MAX_PROFILES - 1, Math.max(0, m.active));
+      meta.avatars = [0, 1, 2].map(i => AVATAR_IDS.includes(m.avatars[i]) ? m.avatars[i] : (i === 0 ? "pup" : null));
+    }
+  } catch (e) {}
+  /* migrate the single-profile era: vroom.v2 becomes profile 0 */
+  try {
+    if (localStorage.getItem("vroom.v2") && !localStorage.getItem("vroom.v2.p0")) {
+      localStorage.setItem("vroom.v2.p0", localStorage.getItem("vroom.v2"));
+      localStorage.removeItem("vroom.v2");
+    }
+  } catch (e) {}
+  saveMeta();
+})();
+function saveMeta() { try { localStorage.setItem("vroom.meta", JSON.stringify(meta)); } catch (e) {} }
+function saveKey() { return "vroom.v2.p" + meta.active; }
+function switchProfile(i) {
+  save();                 /* current kid's progress is already on its own key; just flip */
+  meta.active = i;
+  saveMeta();
+  location.reload();      /* cleanest possible state swap for a single-file game */
+}
+
 function loadState() {
   let saved = null;
-  try { saved = JSON.parse(localStorage.getItem("vroom.v2")); } catch (e) {}
-  if (!saved) {
+  try { saved = JSON.parse(localStorage.getItem(saveKey())); } catch (e) {}
+  if (!saved && meta.active === 0) {
     /* migrate the kid's v1 build if present */
     try { const v1 = JSON.parse(localStorage.getItem("vroom.v1")); if (v1) saved = { build: v1 }; } catch (e) {}
   }
@@ -781,7 +870,7 @@ function loadState() {
   if (!owns("color", state.color)) state.color = "#fdd835";
 }
 function save() {
-  try { localStorage.setItem("vroom.v2", JSON.stringify({ build: state, ...progress })); } catch (e) {}
+  try { localStorage.setItem(saveKey(), JSON.stringify({ build: state, ...progress })); } catch (e) {}
 }
 
 /* ============ AUDIO (all synthesized) ============ */
@@ -2213,6 +2302,291 @@ function renderAlbum() {
   }
 }
 document.getElementById("albumBtn").addEventListener("pointerdown", () => { sfx.pop(); showAlbum(); });
+
+/* ============ PROFILES + SAVE CODES ============ */
+const b64url = {
+  enc(bytes) {
+    let s = "";
+    for (const b of bytes) s += String.fromCharCode(b);
+    return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  },
+  dec(str) {
+    const s = atob(str.replace(/-/g, "+").replace(/_/g, "/"));
+    return Uint8Array.from(s, c => c.charCodeAt(0));
+  }
+};
+/* paid-item orders are FROZEN for code compatibility — append only */
+const CODE_BODIES = ["police", "race", "tractor", "icecream", "rocket", "ufo", "limo", "dragon", "train", "royal"];
+const CODE_WHEELS = ["gold", "flower", "tank", "glow", "star"];
+const CODE_COLORS = ["#8e24aa", "#00acc1", "#9ccc65", "#f5f5f5", "#37474f", "rainbow"];
+const CODE_EXTRAS = ["wings", "booster", "partyhat"];
+const CODE_BADGES = BADGES.map(b => b.id);
+
+/* compact binary save: everything except photos + best times — small enough for a QR */
+function packCompact() {
+  const bits = [];
+  const pushBits = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >> i) & 1); };
+  pushBits(1, 8);                                     /* format version */
+  pushBits(Math.min(65535, progress.wallet), 16);
+  pushBits(progress.current, 8);
+  pushBits(progress.damage, 4);
+  pushBits(progress.quiet ? 1 : 0, 1);
+  pushBits(state.buddy ? BUDDY_ORDER.indexOf(state.buddy) + 1 : 0, 3);
+  pushBits(progress.upgrades.engine, 2); pushBits(progress.upgrades.armor, 2); pushBits(progress.upgrades.magnet, 2);
+  pushBits(0, 2);                                     /* pad to byte */
+  for (const [list, kind] of [[CODE_BODIES, "body"], [CODE_WHEELS, "wheels"], [CODE_COLORS, "color"], [CODE_EXTRAS, "extras"]]) {
+    for (const id of list) pushBits(progress.owned[kind].includes(id) ? 1 : 0, 1);
+  }
+  for (const id of BUDDY_ORDER) pushBits(progress.owned.buddy.includes(id) ? 1 : 0, 1);
+  for (const id of CODE_BADGES) pushBits(progress.badges.includes(id) ? 1 : 0, 1);
+  while (bits.length % 8) pushBits(0, 1);
+  for (let n = 1; n <= MAX_LEVEL; n++) {
+    const lv = progress.levels[n];
+    pushBits(lv ? lv.rating : 0, 2);
+    pushBits(lv && lv.tier ? TIER_RANK[lv.tier] : 0, 2);
+  }
+  const bytes = new Uint8Array(Math.ceil(bits.length / 8));
+  bits.forEach((b, i) => { if (b) bytes[i >> 3] |= 128 >> (i & 7); });
+  return "VROOM1." + b64url.enc(bytes);
+}
+function unpackCompact(code) {
+  const bytes = b64url.dec(code);
+  let pos = 0;
+  const read = n => { let v = 0; for (let i = 0; i < n; i++) { v = (v << 1) | ((bytes[pos >> 3] >> (7 - (pos & 7))) & 1); pos++; } return v; };
+  if (read(8) !== 1) return null;
+  const out = {
+    build: { body: "dump", wheels: "normal", color: "#fdd835", buddy: null, extras: { horn: false, beacon: false, flag: false } },
+    wallet: read(16), current: read(8),
+    damage: read(4), quiet: !!read(1),
+    owned: { body: [], wheels: [], color: [], extras: [], buddy: [] },
+    levels: {}, badges: [], photos: [],
+    upgrades: null
+  };
+  const buddyIdx = read(3);
+  out.upgrades = { engine: read(2), armor: read(2), magnet: read(2) };
+  read(2);
+  for (const [list, kind] of [[CODE_BODIES, "body"], [CODE_WHEELS, "wheels"], [CODE_COLORS, "color"], [CODE_EXTRAS, "extras"]]) {
+    for (const id of list) if (read(1)) out.owned[kind].push(id);
+  }
+  for (const id of BUDDY_ORDER) if (read(1)) out.owned.buddy.push(id);
+  for (const id of CODE_BADGES) if (read(1)) out.badges.push(id);
+  while (pos % 8) read(1);
+  const TIER_OF = ["C", "B", "A", "S"];
+  for (let n = 1; n <= MAX_LEVEL; n++) {
+    const rating = read(2), tr = read(2);
+    if (rating) out.levels[n] = { best: 0, rating, tier: TIER_OF[tr] };
+  }
+  if (buddyIdx) out.build.buddy = BUDDY_ORDER[buddyIdx - 1];
+  if (pos > bytes.length * 8) return null;   /* truncated code: the reads ran past the payload */
+  return out;
+}
+/* full text code: the entire save, gzip-compressed where the browser can */
+async function exportFullCode() {
+  const json = JSON.stringify({ build: state, ...progress });
+  if (typeof CompressionStream !== "undefined") {
+    const stream = new Blob([json]).stream().pipeThrough(new CompressionStream("gzip"));
+    const buf = await new Response(stream).arrayBuffer();
+    return "VROOM2." + b64url.enc(new Uint8Array(buf));
+  }
+  return "VROOM3." + b64url.enc(new TextEncoder().encode(json));
+}
+async function decodeSaveCode(code) {
+  code = (code || "").trim();
+  if (code.startsWith("VROOM1.")) return unpackCompact(code.slice(7));
+  if (code.startsWith("VROOM2.")) {
+    const stream = new Blob([b64url.dec(code.slice(7))]).stream().pipeThrough(new DecompressionStream("gzip"));
+    return JSON.parse(await new Response(stream).text());
+  }
+  if (code.startsWith("VROOM3.")) return JSON.parse(new TextDecoder().decode(b64url.dec(code.slice(7))));
+  return null;
+}
+let pendingImport = null;
+async function importSaveCode(code) {
+  let data = null;
+  try { data = await decodeSaveCode(code); } catch (e) {}
+  if (!data || !data.owned || !Number.isFinite(data.wallet)) { walletDeny(); return false; }
+  pendingImport = data;
+  document.getElementById("importConfirm").classList.add("show");
+  sfx.chime();
+  return true;
+}
+document.getElementById("importYes").addEventListener("pointerdown", () => {
+  if (!pendingImport) return;
+  try { localStorage.setItem(saveKey(), JSON.stringify(pendingImport)); } catch (e) {}
+  location.reload();
+});
+document.getElementById("importNo").addEventListener("pointerdown", () => {
+  pendingImport = null;
+  document.getElementById("importConfirm").classList.remove("show");
+  sfx.pop();
+});
+
+/* ---- tiny QR encoder: byte mode, ECC level L, versions 1-5 (single EC block) ---- */
+function qrEncode(text) {
+  const DATA_CW = [0, 19, 34, 55, 80, 108], EC_CW = [0, 7, 10, 15, 20, 26];
+  const data = new TextEncoder().encode(text);
+  let ver = 0;
+  for (let v = 1; v <= 5; v++) if (data.length <= DATA_CW[v] - 2) { ver = v; break; }
+  if (!ver) return null;
+  /* bitstream -> data codewords */
+  const bits = [];
+  const pushBits = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >> i) & 1); };
+  pushBits(4, 4); pushBits(data.length, 8);
+  for (const b of data) pushBits(b, 8);
+  pushBits(0, Math.min(4, DATA_CW[ver] * 8 - bits.length));
+  while (bits.length % 8) pushBits(0, 1);
+  const cw = [];
+  for (let i = 0; i < bits.length; i += 8) cw.push(bits.slice(i, i + 8).reduce((a, b) => (a << 1) | b, 0));
+  for (let pad = 0; cw.length < DATA_CW[ver]; pad++) cw.push(pad % 2 ? 0x11 : 0xEC);
+  /* Reed-Solomon over GF(256) */
+  const gexp = new Array(512), glog = new Array(256);
+  for (let i = 0, x = 1; i < 255; i++) { gexp[i] = x; glog[x] = i; x <<= 1; if (x & 256) x ^= 0x11d; }
+  for (let i = 255; i < 512; i++) gexp[i] = gexp[i - 255];
+  let gen = [1];
+  for (let i = 0; i < EC_CW[ver]; i++) {
+    const next = new Array(gen.length + 1).fill(0);
+    for (let j = 0; j < gen.length; j++) {
+      next[j] ^= gexp[(glog[gen[j]] + i) % 255];
+      next[j + 1] ^= gen[j];
+    }
+    gen = next;
+  }
+  const ec = new Array(EC_CW[ver]).fill(0);
+  for (const c of cw) {
+    const factor = c ^ ec.shift();
+    ec.push(0);
+    if (factor) for (let j = 0; j < gen.length - 1; j++) ec[j] ^= gexp[(glog[gen[gen.length - 2 - j]] + glog[factor]) % 255];
+  }
+  const all = cw.concat(ec);
+  /* matrix */
+  const size = 17 + 4 * ver;
+  const M = Array.from({ length: size }, () => new Array(size).fill(null));   /* null = free for data */
+  const setRegion = (r, c, pattern) => pattern.forEach((row, dr) => row.forEach((v, dc) => {
+    if (r + dr >= 0 && r + dr < size && c + dc >= 0 && c + dc < size) M[r + dr][c + dc] = v;
+  }));
+  const finder = [...Array(7)].map((_, r) => [...Array(7)].map((_, c) =>
+    (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4)) ? 1 : 0));
+  setRegion(0, 0, finder); setRegion(0, size - 7, finder); setRegion(size - 7, 0, finder);
+  /* separators */
+  for (let i = 0; i < 8; i++) {
+    M[7][i] = 0; M[i][7] = 0;
+    M[7][size - 1 - i] = 0; M[i][size - 8] = 0;
+    M[size - 8][i] = 0; M[size - 1 - i][7] = 0;
+  }
+  if (ver >= 2) {   /* single alignment pattern at (4v+10, 4v+10) for v2-5 */
+    const ctr = 4 * ver + 10;
+    const align = [...Array(5)].map((_, r) => [...Array(5)].map((_, c) =>
+      (r === 0 || r === 4 || c === 0 || c === 4 || (r === 2 && c === 2)) ? 1 : 0));
+    setRegion(ctr - 2, ctr - 2, align);
+  }
+  for (let i = 8; i < size - 8; i++) { if (M[6][i] === null) M[6][i] = i % 2 ? 0 : 1; if (M[i][6] === null) M[i][6] = i % 2 ? 0 : 1; }
+  M[size - 8][8] = 1;   /* dark module */
+  /* reserve format info cells */
+  const fmtCells = [];
+  for (let i = 0; i <= 5; i++) fmtCells.push([8, i], [i, 8]);
+  fmtCells.push([8, 7], [8, 8], [7, 8]);
+  for (let i = 0; i < 8; i++) fmtCells.push([8, size - 1 - i], [size - 1 - i, 8]);
+  fmtCells.forEach(([r, c]) => { if (M[r][c] === null) M[r][c] = 0; });
+  /* zigzag data placement with mask 0: (r+c)%2===0 flips */
+  let bitIdx = 0;
+  const totalBits = all.length * 8;
+  let upward = true;
+  for (let col = size - 1; col > 0; col -= 2) {
+    if (col === 6) col--;
+    for (let i = 0; i < size; i++) {
+      const r = upward ? size - 1 - i : i;
+      for (const c of [col, col - 1]) {
+        if (M[r][c] !== null) continue;
+        let bit = bitIdx < totalBits ? (all[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1 : 0;
+        bitIdx++;
+        if ((r + c) % 2 === 0) bit ^= 1;
+        M[r][c] = bit;
+      }
+    }
+    upward = !upward;
+  }
+  /* format info: ECC L (01) + mask 0 (000) -> BCH(15,5), XOR 0x5412 */
+  let fmt = 0b01000 << 10;
+  let rem = fmt;
+  for (let i = 14; i >= 10; i--) if ((rem >> i) & 1) rem ^= 0x537 << (i - 10);
+  fmt = (fmt | rem) ^ 0x5412;
+  const fbit = i => (fmt >> i) & 1;
+  for (let i = 0; i <= 5; i++) { M[8][i] = fbit(14 - i); M[i][8] = fbit(i); }
+  M[8][7] = fbit(8); M[8][8] = fbit(7); M[7][8] = fbit(6);
+  for (let i = 0; i < 8; i++) M[8][size - 1 - i] = fbit(i);
+  for (let i = 0; i < 7; i++) M[size - 1 - i][8] = fbit(14 - i);   /* 7 bits — (size-8,8) is the dark module */
+  return M;
+}
+function renderQR() {
+  const canvas = document.getElementById("qrCanvas");
+  const M = qrEncode(packCompact());
+  if (!M) { canvas.width = canvas.height = 0; return; }
+  const scale = Math.floor(164 / M.length);
+  canvas.width = canvas.height = M.length * scale + 8;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#000";
+  M.forEach((row, r) => row.forEach((v, c) => { if (v) ctx.fillRect(c * scale + 4, r * scale + 4, scale, scale); }));
+}
+
+/* ---- profile overlay ---- */
+const profileOverlay = document.getElementById("profileOverlay");
+function renderProfiles() {
+  const slots = document.getElementById("profileSlots");
+  slots.innerHTML = "";
+  for (let i = 0; i < MAX_PROFILES; i++) {
+    const slot = document.createElement("button");
+    const avatar = meta.avatars[i];
+    slot.className = "bigBtn profileSlot" + (avatar ? "" : " empty") + (i === meta.active ? " activeP" : "");
+    slot.innerHTML = avatar ? `<svg viewBox="-6 -58 76 72">${BUDDY_SVG[avatar]}</svg>` : `<span class="plus">+</span>`;
+    slot.setAttribute("aria-label", avatar ? "player " + (i + 1) : "new player");
+    slot.addEventListener("pointerdown", () => {
+      sfx.pop();
+      if (!avatar) {
+        meta.avatars[i] = AVATAR_IDS.find(a => !meta.avatars.includes(a)) || "pup";
+        saveMeta();
+      }
+      if (i !== meta.active) switchProfile(i);
+      else renderProfiles();
+    });
+    slots.appendChild(slot);
+  }
+}
+document.getElementById("profileBtn").addEventListener("pointerdown", () => {
+  sfx.pop();
+  renderProfiles();
+  renderQR();
+  profileOverlay.classList.add("show");
+});
+profileOverlay.addEventListener("pointerdown", e => {
+  if (e.target === profileOverlay) { profileOverlay.classList.remove("show"); sfx.pop(); }
+});
+function renderProfileBtn() {
+  const avatar = meta.avatars[meta.active] || "pup";
+  document.getElementById("profileBtn").innerHTML = `<svg viewBox="-6 -58 76 72">${BUDDY_SVG[avatar]}</svg>`;
+}
+renderProfileBtn();
+document.getElementById("copyCodeBtn").addEventListener("pointerdown", async () => {
+  try {
+    const code = await exportFullCode();
+    await navigator.clipboard.writeText(code);
+    sfx.buy();
+  } catch (e) { sfx.deny(); }
+});
+document.getElementById("pasteCodeBtn").addEventListener("pointerdown", async () => {
+  try {
+    const code = await navigator.clipboard.readText();
+    profileOverlay.classList.remove("show");
+    if (!(await importSaveCode(code))) sfx.deny();
+  } catch (e) { sfx.deny(); }
+});
+/* a save code in the URL (e.g. scanned QR that opened the hosted game) offers an import */
+if (location.hash.startsWith("#save=")) {
+  let hashCode = "";
+  try { hashCode = decodeURIComponent(location.hash.slice(6)); } catch (e) {}   /* mangled %-escapes must not halt boot */
+  history.replaceState(null, "", location.pathname);
+  if (hashCode) importSaveCode(hashCode);
+}
 document.getElementById("albumHomeBtn").addEventListener("pointerdown", e => { e.stopPropagation(); sfx.pop(); showGarage(); });
 
 document.getElementById("goBtn").addEventListener("pointerdown", () => {

@@ -17,6 +17,11 @@
 - [x] T4.3b: Longevity round A remainder: tap-everything Easter eggs (sun sunglasses/moon wink, cloud puffs, VROOM sign letter-hop, vehicle eye blink), magic dice owned-parts randomizer w/ drumroll, persisted parent quiet mode (0.22x master volume incl engine). Idle attract shipped in T4.5. Verified live 9/9 + suites 113/113. [SPI-]
 - [x] T4.4a: Sticker album scene (buddy collection w/ tap-to-equip, 6 "first!" achievement badges w/ wordless toast, 6-slot finish-line photo polaroids), 6 passenger buddies as capsule prizes (auto-equip, ride peeking over the roofline, bob + squeak). Suite album-check.cjs 11/11; all 7 suites 124/124. [SPI-]
 - [ ] T4.4b: Decal slots + car-wash mini-activity (deferred; specs in research list).
+
+## v6 (2026-07-11, user-directed: persistence)
+
+- [x] T6.1: Local profiles: up to 3 kids, buddy-face avatars (no reading), per-profile save keys w/ legacy migration, avatar button in garage opens picker overlay, reload-based clean switch. [SPI-]
+- [x] T6.2: Save codes: VROOM1 compact bit-packed code (51 bytes, everything but photos/best-times) rendered as a real QR by a hand-rolled encoder (byte mode, ECC L, v1-5, verified byte-exact against jsQR); VROOM2 gzip full-save text code via clipboard copy/paste; import confirm overlay; #save= URL import for scanned QRs on a hosted copy. Suite profile-check.cjs 12/12; all 8 suites 136/136. [SPI-]
 - [x] T4.5: Nintendo-quality game-feel pass: body dynamics (accel lean / brake dive / lane bank), hit-stop + 2-axis quake, landing squash + dust, rising star-combo chimes, layered engine (detuned saws + swept filter + wind), speed lines at vmax, celebrate choreography (payoff first, buttons last, medal beat, damage only when relevant), iris scene transitions, iPad shell (rotate overlay, master compressor, touch-callout, metas, favicon), retuned medal curve (forgiving early, upgrade-tuned late), garage GO attract. [SPI-]
 
 ## v5 (2026-07-10, user-directed: "go wild" worlds expansion)
@@ -24,6 +29,12 @@
 - [x] T5.1: 80 levels across 8 themed worlds (construction/sunset/night/rain/snow/desert/beach/space): shared levelLen(), world-select map (8 tabs + 10-level pages), sequential world unlock, per-world CSS themes + scenery + weather particles (rain/snow), world-specific hazards incl. MOVING obstacles (tumbleweed, crab), low-gravity space physics, world-clear 25-star bonus, golden capsules, free-drive cycles all 8 themes. [SPI-]
 - [x] T5.2: Premium content: 4 endgame bodies (limo, dragon, train, royal 250-400 stars), 2 wheels (glow, star), 3 purchasable extras (wings, booster, party hat), golden capsule prize. [SPI-]
 - [x] T5.3: Suite updates: worlds-check.cjs (18 checks: 80-level invariants, world hazards, movers, gravity, map, unlock chain, world bonus, golden capsule, premium + extras shop, free-drive world tour) + all prior suites updated; 113/113 green. Mega Doubt running. [SPI-]
+
+## v7 (2026-07-11, user-directed: "Animal Crossing perfect" overhaul)
+
+- [ ] T7.1: Full visual/UX audit of every scene + state (agent, screenshots) → prioritized overhaul spec.
+- [ ] T7.2: Design system: warm AC-grade token set + drop-in CSS overriding all chrome (chips, buttons, panels, scenes), pattern textures, unified press states + pop-ins (agent deliverable → integrate).
+- [ ] T7.3: Integrate + iterate per scene with screenshot loops; icon recolor pass per design notes; regression all 8 suites; Doubt; ship.
 
 ## Backlog (v2 candidates, from kid-testing)
 

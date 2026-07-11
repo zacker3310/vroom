@@ -90,7 +90,11 @@ Side-scrolling construction site, now 3 lanes. The exact vehicle built in the ga
 - Web Audio API, all sounds synthesized. Audio unlocked on first pointer event (iOS).
 - Pointer events only (touch + mouse unified). `touch-action: none`, pinch-zoom locked.
 - Fixed 1200x700 stage, scaled to fit viewport (letterbox). Landscape-first.
-- State `vroom.v2` = `{build, wallet, owned, levels, current}` persisted to localStorage; v1 build migrated.
+- State `vroom.v2.p<n>` per profile (up to 3 kids, buddy-face avatars, `vroom.meta` tracks
+  the active one); legacy single-profile and v1 saves migrate automatically.
+- Save codes (v6): the profile overlay shows a QR of the compact save (bit-packed, no
+  photos/best-times, hand-rolled QR encoder) plus copy/paste buttons for a full gzip
+  text code. Pasting or opening `#save=<code>` raises a wordless ✓/✗ confirm.
 - Levels generated from a seeded PRNG (level number = seed) so each level is stable across plays.
 
 ## Scene 4: Sticker album (v4.4)

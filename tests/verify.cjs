@@ -283,6 +283,8 @@ function check(name, ok, detail) {
   /* ---- 13. v1 migration ---- */
   await page.evaluate(() => {
     localStorage.removeItem('vroom.v2');
+    localStorage.removeItem('vroom.v2.p0');   /* profiles era: p0 must be empty for v1 migration */
+    localStorage.removeItem('vroom.meta');
     localStorage.setItem('vroom.v1', JSON.stringify({ body: 'fire', wheels: 'monster', color: '#43a047', extras: { horn: true, beacon: false, flag: false } }));
   });
   await page.reload();
