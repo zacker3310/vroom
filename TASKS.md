@@ -16,7 +16,7 @@
 - [x] T4.3a: Surprise capsules (weighted star/gag prizes, 4 gag animations), free-drive endless cruise (map button, seamless parallax wrap, distance-gated difficulty, theme cycling, bank-on-exit), S/A/B/C time-trial medals (HUD timer, celebrate medal, map badges), steeper difficulty curve. [SPI-]
 - [x] T4.3b: Longevity round A remainder: tap-everything Easter eggs (sun sunglasses/moon wink, cloud puffs, VROOM sign letter-hop, vehicle eye blink), magic dice owned-parts randomizer w/ drumroll, persisted parent quiet mode (0.22x master volume incl engine). Idle attract shipped in T4.5. Verified live 9/9 + suites 113/113. [SPI-]
 - [x] T4.4a: Sticker album scene (buddy collection w/ tap-to-equip, 6 "first!" achievement badges w/ wordless toast, 6-slot finish-line photo polaroids), 6 passenger buddies as capsule prizes (auto-equip, ride peeking over the roofline, bob + squeak). Suite album-check.cjs 11/11; all 7 suites 124/124. [SPI-]
-- [ ] T4.4b: Decal slots + car-wash mini-activity (deferred; specs in research list).
+- [x] T4.4b: Decals (5 priced flank stickers, tap-cycle button in the build tray, shop-gated, save-code format v2) + car wash (persistent mud from puddles, sponge button, finger-scrub mini-game w/ bubble trail, meter, rinse + confetti). Suite washdecals-check.cjs 11/11; nine suites 148/148. [SPI-]
 
 ## v6 (2026-07-11, user-directed: persistence)
 

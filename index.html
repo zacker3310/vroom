@@ -51,7 +51,7 @@
     letter-spacing: 6px; padding: 10px 28px; border-radius: 14px; border: 5px solid #ffb703;
   }
   #preview {
-    position: absolute; left: 50%; top: 180px; transform: translateX(-50%);
+    position: absolute; left: 50%; top: 164px; transform: translateX(-50%);
     width: 440px; cursor: pointer; touch-action: none; pointer-events: auto;
   }
   #preview svg { width: 100%; height: auto; overflow: visible; }
@@ -102,7 +102,11 @@
     position: absolute; width: 96px; height: 96px; border-radius: 26px;
     background: #fff; border: 6px solid #023047; z-index: 5;
   }
-  #diceBtn { right: 96px; top: 300px; }
+  /* right-wall stack (wallet 24-120, repair 132-236, wash 246-334, dice 344-432): 88px keeps the dice + its 6px shadow above the 440px workbench */
+  #diceBtn { right: 96px; top: 344px; width: 88px; height: 88px; }
+  #washBtn { position: absolute; right: 96px; top: 246px; width: 88px; height: 88px; border-radius: 26px; background: #6fc0df; border: 6px solid #fff; z-index: 5; display: none; animation: pulse 1.1s ease infinite; }
+  #washBtn.show { display: flex; }
+  #washBtn svg { width: 60px; height: 60px; }
   #quietBtn { right: 200px; top: 24px; background: #e9ecef; z-index: 20; }
   #profileBtn {
     position: absolute; left: 24px; top: 24px; width: 96px; height: 96px;
@@ -160,7 +164,8 @@
   @keyframes signHop { 40% { transform: translateY(-16px) scale(1.15); } }
 
   /* ---------- UPGRADES + REPAIR ---------- */
-  #upgrades { position: absolute; left: 84px; top: 136px; display: flex; flex-direction: column; gap: 14px; z-index: 5; }
+  /* rack bottom + 6px shadow must clear the 260px workbench (top edge 440) */
+  #upgrades { position: absolute; left: 84px; top: 128px; display: flex; flex-direction: column; gap: 8px; z-index: 5; }
   .upgBtn {
     width: 96px; height: 96px; border-radius: 24px; background: #457b9d;
     flex-direction: column; gap: 3px; position: relative;
@@ -175,7 +180,7 @@
   .upgPrice svg { width: 20px; height: 20px; }
   .upgBtn.cant .upgPrice { opacity: .55; }
   #repairBtn {
-    position: absolute; right: 96px; top: 150px; width: 120px; height: 120px;
+    position: absolute; right: 96px; top: 132px; width: 104px; height: 104px;
     border-radius: 50%; background: #e76f51; border: 8px solid #fff;
     display: none; flex-direction: column; gap: 2px; z-index: 5;
     animation: pulse 1.1s ease infinite;
@@ -184,7 +189,7 @@
   #repairBtn > svg { width: 48px; height: 48px; }
 
   #controls {
-    position: absolute; left: 0; right: 0; bottom: 0; height: 244px;
+    position: absolute; left: 0; right: 0; bottom: 0; height: 260px;
     background: #023047; border-top: 8px solid #ffb703;
     display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 8px;
   }
@@ -192,7 +197,7 @@
     display: flex; align-items: center; gap: 10px;
     background: rgba(255,255,255,.08); border-radius: 24px; padding: 8px;
   }
-  #trayBuild { flex-direction: column; }
+  /* build tray: body / wheels / decal side by side */
   #goCol { display: flex; flex-direction: column; align-items: center; gap: 10px; }
   .bigBtn {
     border: none; border-radius: 24px; cursor: pointer; touch-action: none;
@@ -200,11 +205,11 @@
     box-shadow: 0 6px 0 rgba(0,0,0,.35); transition: transform .08s;
   }
   .bigBtn:active, .bigBtn.pressed { transform: translateY(4px) scale(.96); box-shadow: 0 2px 0 rgba(0,0,0,.35); }
-  #bodyBtn, #wheelBtn { width: 104px; height: 104px; background: #219ebc; }
-  #bodyBtn svg, #wheelBtn svg { width: 76px; height: 76px; }
+  #bodyBtn, #wheelBtn, #decalBtn { width: 104px; height: 104px; background: #219ebc; }
+  #bodyBtn svg, #wheelBtn svg, #decalBtn svg { width: 76px; height: 76px; }
 
   /* 76px stage size = 64.8px rendered at iPad landscape scale (.853) — SPEC floor is 64 */
-  #swatches { display: grid; grid-template-columns: repeat(6, 76px); grid-template-rows: repeat(2, 76px); gap: 7px; }
+  #swatches { display: grid; grid-template-columns: repeat(4, 76px); grid-template-rows: repeat(3, 76px); gap: 7px; }
   .swatch {
     position: relative; width: 76px; height: 76px; border-radius: 50%; border: 5px solid rgba(255,255,255,.85);
     cursor: pointer; touch-action: none; box-shadow: 0 4px 0 rgba(0,0,0,.35); transition: transform .08s;
@@ -268,8 +273,8 @@
   .photoSlot.empty { background: #00000010; border: 5px dashed #b0896899; box-shadow: none; }
   .photoCar { width: 134px; height: 120px; background: #bde0fe; border-radius: 6px; overflow: hidden; display: flex; align-items: flex-end; }
   .photoCar svg { width: 100%; height: auto; }
-  /* keepsake photos stay pristine — never show the car's current dings */
-  .photoCar .dmgScuff, .photoCar .dmgCrack, .photoCar .dmgSmoke { display: none !important; }
+  /* keepsake photos stay pristine — never show the car's current dings or mud */
+  .photoCar .dmgScuff, .photoCar .dmgCrack, .photoCar .dmgSmoke, .photoCar .mudSpots { display: none !important; }
   .photoCap { display: flex; align-items: center; gap: 6px; font: 900 26px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #023047; }
   .photoCap svg { width: 30px; height: 30px; }
   #stickerToast {
@@ -996,7 +1001,34 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ---- T7 reconciliation: rules that must win over the toybox layer ---- */
 /* SPEC floor: 76px stage = 64.8px rendered at iPad landscape scale */
 .swatch { width: 76px; height: 76px; }
-#swatches { grid-template-columns: repeat(6, 76px); grid-template-rows: repeat(2, 76px); }
+#swatches { grid-template-columns: repeat(4, 76px); grid-template-rows: repeat(3, 76px); }
+
+/* ---- car wash mini-game ---- */
+#washOverlay {
+  position: absolute; inset: 0; z-index: 80; display: none;
+  background: rgba(64,44,28,.55); align-items: center; justify-content: center;
+}
+#washOverlay.show { display: flex; }
+#washCard {
+  background: #fff8ec; border: 8px solid #6fc0df; border-radius: 38px;
+  padding: 30px 40px 24px; display: flex; flex-direction: column; gap: 16px; align-items: center;
+  animation: popIn .35s cubic-bezier(.2,1.6,.4,1) backwards;
+}
+#washCar { width: 560px; cursor: pointer; touch-action: none; position: relative; }
+#washCar svg { width: 100%; height: auto; overflow: visible; }
+#washMeter { width: 420px; height: 22px; background: #f6e9d2; border-radius: 11px; overflow: hidden; }
+#washFill { height: 100%; width: 0%; background: #6fc0df; border-radius: 11px; transition: width .15s; }
+.bubble {
+  position: absolute; border-radius: 50%; pointer-events: none; z-index: 82;
+  background: radial-gradient(circle at 35% 35%, #ffffff, #d9f1fb 60%, #9ad6ef);
+  animation: bubbleUp .9s ease-out forwards;
+}
+@keyframes bubbleUp {
+  0% { transform: translateY(0) scale(.5); opacity: .95; }
+  100% { transform: translateY(-70px) scale(1.25); opacity: 0; }
+}
+#washCard.rinsing #washCar svg { animation: rinseShake .5s ease; }
+@keyframes rinseShake { 25% { transform: rotate(-2deg); } 65% { transform: rotate(2deg); } }
 </style>
 </head>
 <body>
@@ -1023,6 +1055,9 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
       <svg viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#fff"/></svg>
       <span class="upgPrice"></span>
     </button>
+    <button class="bigBtn" id="washBtn" aria-label="wash the muddy truck">
+      <svg viewBox="0 0 100 100"><rect x="18" y="34" width="52" height="38" rx="14" fill="#ffd66e" stroke="#dca63f" stroke-width="4"/><circle cx="30" cy="30" r="9" fill="#fff" opacity=".9"/><circle cx="48" cy="22" r="12" fill="#fff" opacity=".9"/><circle cx="66" cy="30" r="8" fill="#fff" opacity=".9"/><circle cx="80" cy="44" r="6" fill="#fff" opacity=".8"/></svg>
+    </button>
     <button class="bigBtn" id="diceBtn" aria-label="surprise me: random truck">
       <svg viewBox="0 0 100 100"><rect x="12" y="12" width="76" height="76" rx="18" fill="#fff" stroke="#023047" stroke-width="5"/><circle cx="32" cy="32" r="9" fill="#e63946"/><circle cx="68" cy="32" r="9" fill="#ff9f1c"/><circle cx="50" cy="50" r="9" fill="#ffd60a"/><circle cx="32" cy="68" r="9" fill="#74c69d"/><circle cx="68" cy="68" r="9" fill="#4cc9f0"/></svg>
     </button>
@@ -1044,6 +1079,9 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
       </button>
       <button class="bigBtn" id="wheelBtn" aria-label="change wheels">
         <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="#fff"/><circle cx="50" cy="50" r="16" fill="#023047"/><g stroke="#023047" stroke-width="8" stroke-linecap="round"><path d="M50 12 V30 M50 70 V88 M12 50 H30 M70 50 H88 M23 23 L36 36 M64 64 L77 77 M77 23 L64 36 M36 64 L23 77"/></g></svg>
+      </button>
+      <button class="bigBtn" id="decalBtn" aria-label="change sticker decal">
+        <svg viewBox="0 0 100 100"><rect x="14" y="14" width="72" height="72" rx="16" fill="#fff"/><path d="M50 26 L57 42 L74 44 L61 55 L65 72 L50 63 L35 72 L39 55 L26 44 L43 42 Z" fill="#ffb703"/><path d="M70 24 Q80 18 82 28" stroke="#e63946" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
       </button>
       </div>
       <div class="tray" id="trayPaint"><div id="swatches"></div></div>
@@ -1161,6 +1199,12 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     </div>
   </div>
 
+  <div id="washOverlay">
+    <div id="washCard">
+      <div id="washCar"></div>
+      <div id="washMeter"><div id="washFill"></div></div>
+    </div>
+  </div>
   <div id="stickerToast"></div>
   <div id="profileOverlay">
     <div id="profilePanel">
@@ -1212,7 +1256,17 @@ let WHEEL_ORDER = ["normal", "monster", "racing", "gold", "flower", "tank"];
 const PRICES = {
   body:   { police: 25, race: 40, tractor: 60, icecream: 80, rocket: 120, ufo: 200 },
   wheels: { gold: 30, flower: 50, tank: 70 },
-  color:  { "#8e24aa": 10, "#00acc1": 10, "#9ccc65": 15, "#f5f5f5": 15, "#37474f": 20, "rainbow": 60 }
+  color:  { "#8e24aa": 10, "#00acc1": 10, "#9ccc65": 15, "#f5f5f5": 15, "#37474f": 20, "rainbow": 60 },
+  decal:  { flame: 30, star: 20, heart: 20, bolt: 40, eyes: 50 }
+};
+/* side-of-the-truck sticker decals, tap-cycled like body/wheels ("none" is free) */
+const DECAL_ORDER = ["none", "flame", "star", "heart", "bolt", "eyes"];
+const DECAL_SVG = {
+  flame: `<path d="M0 14 Q-14 6 -10 -8 Q-6 -16 0 -20 Q-2 -10 4 -8 Q2 -18 10 -22 Q8 -10 14 -6 Q18 4 8 12 Q4 16 0 14 Z" fill="#ff9f1c" stroke="#e76f51" stroke-width="2.5"/><path d="M0 8 Q-6 2 -2 -6 Q2 -10 4 -4 Q8 0 4 6 Q2 10 0 8 Z" fill="#ffd60a"/>`,
+  star:  `<path d="M0 -18 L5 -6 L18 -5 L8 4 L11 17 L0 10 L-11 17 L-8 4 L-18 -5 L-5 -6 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="2.5"/>`,
+  heart: `<path d="M0 14 Q-18 2 -14 -8 Q-10 -16 0 -8 Q10 -16 14 -8 Q18 2 0 14 Z" fill="#ef7d6d" stroke="#c95a4c" stroke-width="2.5"/>`,
+  bolt:  `<path d="M4 -20 L-12 4 L-2 4 L-6 20 L12 -6 L2 -6 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="2.5"/>`,
+  eyes:  `<circle cx="-9" cy="0" r="9" fill="#fff" stroke="#5a4634" stroke-width="2.5"/><circle cx="9" cy="0" r="9" fill="#fff" stroke="#5a4634" stroke-width="2.5"/><circle cx="-6" cy="2" r="4" fill="#212529"/><circle cx="12" cy="2" r="4" fill="#212529"/>`
 };
 function priceOf(kind, id) { return (PRICES[kind] && PRICES[kind][id]) || 0; }
 function owns(kind, id) { return priceOf(kind, id) === 0 || progress.owned[kind].includes(id); }
@@ -1269,8 +1323,9 @@ function medalSVG(tier) {
 }
 
 /* ============ STATE (vroom.v2, migrates v1 build) ============ */
-let state = { body: "dump", wheels: "normal", color: "#fdd835", buddy: null, extras: { horn: false, beacon: false, flag: false } };
-let progress = { wallet: 0, owned: { body: [], wheels: [], color: [], extras: [], buddy: [] }, levels: {}, current: 1,
+let state = { body: "dump", wheels: "normal", color: "#fdd835", buddy: null, decal: "none", extras: { horn: false, beacon: false, flag: false } };
+let progress = { wallet: 0, owned: { body: [], wheels: [], color: [], extras: [], buddy: [], decal: [] }, levels: {}, current: 1,
+                 muddy: false,
                  damage: 0, upgrades: { engine: 0, armor: 0, magnet: 0 }, quiet: false,
                  badges: [], photos: [] };
 
@@ -1318,7 +1373,7 @@ function loadState() {
   if (COLORS.includes(b.color)) state.color = b.color;
   for (const k in state.extras) state.extras[k] = !!(b.extras && b.extras[k]);
   if (Number.isFinite(saved.wallet) && saved.wallet >= 0) progress.wallet = Math.floor(saved.wallet);
-  if (saved.owned) for (const kind of ["body", "wheels", "color", "extras"]) {
+  if (saved.owned) for (const kind of ["body", "wheels", "color", "extras", "decal"]) {
     if (Array.isArray(saved.owned[kind])) progress.owned[kind] = saved.owned[kind].filter(id => priceOf(kind, id) > 0);
   }
   if (saved.levels) for (const n in saved.levels) {
@@ -1331,6 +1386,8 @@ function loadState() {
   }
   if (Number.isFinite(saved.current) && saved.current >= 1 && saved.current <= MAX_LEVEL) progress.current = Math.floor(saved.current);
   progress.quiet = !!saved.quiet;
+  progress.muddy = !!saved.muddy;
+  if (b.decal && DECAL_ORDER.includes(b.decal) && owns("decal", b.decal)) state.decal = b.decal;
   if (saved.owned && Array.isArray(saved.owned.buddy)) progress.owned.buddy = saved.owned.buddy.filter(id => BUDDY_ORDER.includes(id));
   if (b.buddy && BUDDY_ORDER.includes(b.buddy) && progress.owned.buddy.includes(b.buddy)) state.buddy = b.buddy;
   if (Array.isArray(saved.badges)) progress.badges = saved.badges.filter(id => BADGES.some(x => x.id === id));
@@ -1818,7 +1875,8 @@ function vehicleSVG(st) {
       ${buddy}
       ${BODIES[st.body].svg()}
       ${extrasSVG(st.body, st.extras)}
-      <g class="mudSpots" style="opacity:0">
+      ${st.decal && st.decal !== "none" && DECAL_SVG[st.decal] ? `<g transform="translate(150,136)">${DECAL_SVG[st.decal]}</g>` : ""}
+      <g class="mudSpots" style="opacity:${progress.muddy ? 1 : 0}">
         <circle cx="70" cy="160" r="9" fill="#6b4423"/><circle cx="120" cy="170" r="7" fill="#6b4423"/>
         <circle cx="180" cy="165" r="8" fill="#6b4423"/><circle cx="240" cy="158" r="6" fill="#6b4423"/>
       </g>
@@ -2486,6 +2544,7 @@ function lockedParts() {
   if (!owns("body", state.body)) out.push(["body", state.body]);
   if (!owns("wheels", state.wheels)) out.push(["wheels", state.wheels]);
   if (!owns("color", state.color)) out.push(["color", state.color]);
+  if (state.decal !== "none" && !owns("decal", state.decal)) out.push(["decal", state.decal]);
   for (const k in state.extras) if (state.extras[k] && !owns("extras", k)) out.push(["extras", k]);
   return out;
 }
@@ -2532,6 +2591,10 @@ document.getElementById("bodyBtn").addEventListener("pointerdown", () => {
 document.getElementById("wheelBtn").addEventListener("pointerdown", () => {
   state.wheels = WHEEL_ORDER[(WHEEL_ORDER.indexOf(state.wheels) + 1) % WHEEL_ORDER.length];
   save(); renderPreview(); sfx.clank();
+});
+document.getElementById("decalBtn").addEventListener("pointerdown", () => {
+  state.decal = DECAL_ORDER[(DECAL_ORDER.indexOf(state.decal) + 1) % DECAL_ORDER.length];
+  save(); renderPreview(); sfx.splat();
 });
 const swatchesEl = document.getElementById("swatches");
 COLORS.forEach(c => {
@@ -2649,6 +2712,56 @@ diceBtn.addEventListener("pointerdown", () => {
   }, 110);
 });
 
+/* ---- car wash: mud stays until the kid scrubs it off ---- */
+const washBtn = document.getElementById("washBtn");
+const washOverlay = document.getElementById("washOverlay");
+let washProgress = 0;
+function renderWash() { washBtn.classList.toggle("show", !!progress.muddy); }
+washBtn.addEventListener("pointerdown", () => {
+  sfx.pop();
+  washProgress = 0;
+  document.getElementById("washFill").style.width = "0%";
+  document.getElementById("washCar").innerHTML = vehicleSVG(state);
+  document.getElementById("washCard").classList.remove("rinsing");
+  washOverlay.classList.add("show");
+});
+washOverlay.addEventListener("pointerdown", e => {
+  if (e.target === washOverlay) { washOverlay.classList.remove("show"); sfx.pop(); }
+});
+let lastScrub = 0;
+document.getElementById("washCar").addEventListener("pointermove", e => {
+  if (!washOverlay.classList.contains("show") || washProgress >= 100 || e.buttons === 0 && e.pointerType !== "touch") return;
+  const rect = document.getElementById("washCar").getBoundingClientRect();
+  /* soap bubbles trail the finger */
+  const b = document.createElement("div");
+  b.className = "bubble";
+  const size = 16 + Math.random() * 22;
+  b.style.width = b.style.height = size + "px";
+  b.style.left = (e.clientX - rect.left - size / 2) + "px";
+  b.style.top = (e.clientY - rect.top - size / 2) + "px";
+  document.getElementById("washCar").appendChild(b);
+  setTimeout(() => b.remove(), 900);
+  washProgress = Math.min(100, washProgress + 1.6);
+  document.getElementById("washFill").style.width = washProgress + "%";
+  const now = performance.now();
+  if (now - lastScrub > 160) { lastScrub = now; noiseBurst(0.09, 2600, 0.1); }
+  if (washProgress >= 100) {
+    /* rinse! */
+    progress.muddy = false;
+    save();
+    document.getElementById("washCard").classList.add("rinsing");
+    sfx.splash(); setTimeout(() => sfx.fixed(), 350);
+    setTimeout(() => {
+      document.getElementById("washCar").innerHTML = vehicleSVG(state);
+      confettiBurst(garageScene, 24);
+    }, 400);
+    setTimeout(() => {
+      washOverlay.classList.remove("show");
+      renderWash(); renderPreview();
+    }, 1500);
+  }
+});
+
 /* ---- quiet mode: one wordless toggle, persists ---- */
 const quietBtn = document.getElementById("quietBtn");
 function renderQuiet() {
@@ -2701,6 +2814,7 @@ renderSwatchLocks();
 renderExtrasLocks();
 renderUpgrades();
 renderRepair();
+renderWash();
 
 /* first-timer attract: after 8 idle seconds in the garage, the big green GO breathes */
 const garageEl = document.getElementById("garage");
@@ -2731,7 +2845,7 @@ function showScene(el) {
   roadScene.classList.remove("celebrating");
   document.querySelectorAll(".confetti, .flyStar, .gagWrap, .dust").forEach(c => c.remove());
 }
-function showGarage() { bankFreeRun(); showScene(garageScene); renderPreview(); renderWallets(false); renderUpgrades(); renderRepair(); }
+function showGarage() { bankFreeRun(); showScene(garageScene); renderPreview(); renderWallets(false); renderUpgrades(); renderRepair(); renderWash(); }
 function showMap() { selectedWorld = worldOf(progress.current); showScene(mapScene); renderMap(); renderWallets(false); }
 const albumScene = document.getElementById("album");
 function showAlbum() { showScene(albumScene); renderAlbum(); renderWallets(false); }
@@ -2808,12 +2922,13 @@ const CODE_WHEELS = ["gold", "flower", "tank", "glow", "star"];
 const CODE_COLORS = ["#8e24aa", "#00acc1", "#9ccc65", "#f5f5f5", "#37474f", "rainbow"];
 const CODE_EXTRAS = ["wings", "booster", "partyhat"];
 const CODE_BADGES = BADGES.map(b => b.id);
+const CODE_DECALS = ["flame", "star", "heart", "bolt", "eyes"];
 
 /* compact binary save: everything except photos + best times — small enough for a QR */
 function packCompact() {
   const bits = [];
   const pushBits = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >> i) & 1); };
-  pushBits(1, 8);                                     /* format version */
+  pushBits(2, 8);                                     /* format version (2 adds decals + mud) */
   pushBits(Math.min(65535, progress.wallet), 16);
   pushBits(progress.current, 8);
   pushBits(progress.damage, 4);
@@ -2832,6 +2947,9 @@ function packCompact() {
     pushBits(lv ? lv.rating : 0, 2);
     pushBits(lv && lv.tier ? TIER_RANK[lv.tier] : 0, 2);
   }
+  for (const id of CODE_DECALS) pushBits(progress.owned.decal.includes(id) ? 1 : 0, 1);
+  pushBits(state.decal !== "none" ? DECAL_ORDER.indexOf(state.decal) : 0, 3);
+  pushBits(progress.muddy ? 1 : 0, 1);
   const bytes = new Uint8Array(Math.ceil(bits.length / 8));
   bits.forEach((b, i) => { if (b) bytes[i >> 3] |= 128 >> (i & 7); });
   return "VROOM1." + b64url.enc(bytes);
@@ -2840,12 +2958,13 @@ function unpackCompact(code) {
   const bytes = b64url.dec(code);
   let pos = 0;
   const read = n => { let v = 0; for (let i = 0; i < n; i++) { v = (v << 1) | ((bytes[pos >> 3] >> (7 - (pos & 7))) & 1); pos++; } return v; };
-  if (read(8) !== 1) return null;
+  const ver = read(8);
+  if (ver !== 1 && ver !== 2) return null;
   const out = {
-    build: { body: "dump", wheels: "normal", color: "#fdd835", buddy: null, extras: { horn: false, beacon: false, flag: false } },
+    build: { body: "dump", wheels: "normal", color: "#fdd835", buddy: null, decal: "none", extras: { horn: false, beacon: false, flag: false } },
     wallet: read(16), current: read(8),
     damage: read(4), quiet: !!read(1),
-    owned: { body: [], wheels: [], color: [], extras: [], buddy: [] },
+    owned: { body: [], wheels: [], color: [], extras: [], buddy: [], decal: [] },
     levels: {}, badges: [], photos: [],
     upgrades: null
   };
@@ -2862,6 +2981,12 @@ function unpackCompact(code) {
   for (let n = 1; n <= MAX_LEVEL; n++) {
     const rating = read(2), tr = read(2);
     if (rating) out.levels[n] = { best: 0, rating, tier: TIER_OF[tr] };
+  }
+  if (ver >= 2 && pos + 9 <= bytes.length * 8) {
+    for (const id of CODE_DECALS) if (read(1)) out.owned.decal.push(id);
+    const di = read(3);
+    if (di) out.build.decal = DECAL_ORDER[di] || "none";
+    out.muddy = !!read(1);
   }
   if (buddyIdx) out.build.buddy = BUDDY_ORDER[buddyIdx - 1];
   if (pos > bytes.length * 8) return null;   /* truncated code: the reads ran past the payload */
@@ -3781,6 +3906,7 @@ const PROP_HIT = {
     if (d > -80 && d < 80 && v > 30) {
       p.done = true; p.el.classList.add("splashing"); sfx.splash();
       if (mudEl) mudEl.style.opacity = 1;
+      if (!progress.muddy) { progress.muddy = true; save(); }
       setTimeout(() => p.el.classList.remove("splashing"), 600);
     }
   },
