@@ -70,12 +70,40 @@ function check(name, ok, detail) {
       const ctx = canvas.getContext('2d');
       const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const decoded = jsQR(img.data, img.width, img.height);
-      return { text: decoded && decoded.data, expected: packCompact() };
+      return { text: decoded && decoded.data, expected: SAVE_URL_PREFIX + packCompact() };
     }, JSQR_SRC);
     qrOK = r.text && r.text === r.expected;
     qrDetail = r.text ? (qrOK ? 'decoded ' + r.text.length + ' chars, exact match' : 'MISMATCH') : 'decode failed';
   }
-  check('qr: hand-rolled QR decodes byte-exact with jsQR', qrOK, qrDetail);
+  check('qr: scan-to-open QR (URL + save) decodes byte-exact with jsQR', qrOK, qrDetail);
+
+  /* multi-block regression: every version boundary v1-v10 decodes */
+  if (JSQR_SRC) {
+    const sweep = await page.evaluate(src => {
+      eval(src);
+      const decodeM = M => {
+        const scale = 4, pad = 8;
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = M.length * scale + pad * 2;
+        const ctx = cv.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+        ctx.fillStyle = '#000';
+        M.forEach((row, r2) => row.forEach((v, c) => { if (v) ctx.fillRect(c * scale + pad, r2 * scale + pad, scale, scale); }));
+        const img = ctx.getImageData(0, 0, cv.width, cv.height);
+        const d = jsQR(img.data, img.width, img.height);
+        return d && d.data;
+      };
+      const bad = [];
+      for (const n of [17, 32, 33, 53, 78, 106, 107, 134, 154, 155, 192, 230, 231, 271]) {
+        const payload = Array.from({ length: n }, (_, i) => String.fromCharCode(65 + (i % 26))).join('');
+        const M = qrEncode(payload);
+        if (!M || decodeM(M) !== payload) bad.push(n);
+      }
+      if (qrEncode('x'.repeat(272)) !== null) bad.push('272-accepted');
+      return bad;
+    }, JSQR_SRC);
+    check('qr: v1-v10 boundary sweep decodes, 272 rejects', sweep.length === 0, JSON.stringify(sweep));
+  }
 
   /* ---- compact code round-trip fidelity ---- */
   const compact = await page.evaluate(async () => {

@@ -132,7 +132,7 @@
   .profileSlot svg { width: 96px; height: 96px; }
   .profileSlot .plus { font: 900 64px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #b08968; }
   #saveTools { display: flex; gap: 22px; align-items: center; }
-  #qrBox { width: 176px; height: 176px; background: #fff; border-radius: 12px; border: 5px solid #023047; display: flex; align-items: center; justify-content: center; }
+  #qrBox { width: 190px; height: 190px; background: #fff; border-radius: 12px; border: 5px solid #023047; display: flex; align-items: center; justify-content: center; }
   #qrBox canvas { image-rendering: pixelated; }
   #copyCodeBtn, #pasteCodeBtn { width: 96px; height: 96px; border-radius: 26px; background: #219ebc; border: 6px solid #bde0fe; }
   #copyCodeBtn svg, #pasteCodeBtn svg { width: 58px; height: 58px; }
@@ -3033,29 +3033,42 @@ document.getElementById("importNo").addEventListener("pointerdown", () => {
   sfx.pop();
 });
 
-/* ---- tiny QR encoder: byte mode, ECC level L, versions 1-5 (single EC block) ---- */
+/* ---- QR encoder: byte mode, ECC level L, versions 1-10 ----
+   v1-5 are single-block; v6-10 split data into Reed-Solomon blocks and interleave
+   codewords per the spec, v7+ carry the 18-bit BCH version-info blocks. Verified
+   byte-exact against jsQR across every version boundary in tests/. */
 function qrEncode(text) {
-  const DATA_CW = [0, 19, 34, 55, 80, 108], EC_CW = [0, 7, 10, 15, 20, 26];
+  const BLOCKS = [null,
+    [19], [34], [55], [80], [108],
+    [68, 68], [78, 78], [97, 97], [116, 116],
+    [68, 68, 69, 69]
+  ];
+  const ECPB = [0, 7, 10, 15, 20, 26, 18, 20, 24, 30, 18];
+  const ALIGN = [null, [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34], [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50]];
   const data = new TextEncoder().encode(text);
-  let ver = 0;
-  for (let v = 1; v <= 5; v++) if (data.length <= DATA_CW[v] - 2) { ver = v; break; }
+  let ver = 0, dataCW = 0;
+  for (let v = 1; v <= 10; v++) {
+    dataCW = BLOCKS[v].reduce((a, b) => a + b, 0);
+    if (data.length <= dataCW - (v >= 10 ? 3 : 2)) { ver = v; break; }
+  }
   if (!ver) return null;
   /* bitstream -> data codewords */
   const bits = [];
   const pushBits = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >> i) & 1); };
-  pushBits(4, 4); pushBits(data.length, 8);
+  pushBits(4, 4); pushBits(data.length, ver >= 10 ? 16 : 8);
   for (const b of data) pushBits(b, 8);
-  pushBits(0, Math.min(4, DATA_CW[ver] * 8 - bits.length));
+  pushBits(0, Math.min(4, dataCW * 8 - bits.length));
   while (bits.length % 8) pushBits(0, 1);
   const cw = [];
   for (let i = 0; i < bits.length; i += 8) cw.push(bits.slice(i, i + 8).reduce((a, b) => (a << 1) | b, 0));
-  for (let pad = 0; cw.length < DATA_CW[ver]; pad++) cw.push(pad % 2 ? 0x11 : 0xEC);
-  /* Reed-Solomon over GF(256) */
+  for (let pad = 0; cw.length < dataCW; pad++) cw.push(pad % 2 ? 0x11 : 0xEC);
+  /* Reed-Solomon over GF(256), one remainder per block */
   const gexp = new Array(512), glog = new Array(256);
   for (let i = 0, x = 1; i < 255; i++) { gexp[i] = x; glog[x] = i; x <<= 1; if (x & 256) x ^= 0x11d; }
   for (let i = 255; i < 512; i++) gexp[i] = gexp[i - 255];
+  const ecLen = ECPB[ver];
   let gen = [1];
-  for (let i = 0; i < EC_CW[ver]; i++) {
+  for (let i = 0; i < ecLen; i++) {
     const next = new Array(gen.length + 1).fill(0);
     for (let j = 0; j < gen.length; j++) {
       next[j] ^= gexp[(glog[gen[j]] + i) % 255];
@@ -3063,13 +3076,24 @@ function qrEncode(text) {
     }
     gen = next;
   }
-  const ec = new Array(EC_CW[ver]).fill(0);
-  for (const c of cw) {
-    const factor = c ^ ec.shift();
-    ec.push(0);
-    if (factor) for (let j = 0; j < gen.length - 1; j++) ec[j] ^= gexp[(glog[gen[gen.length - 2 - j]] + glog[factor]) % 255];
-  }
-  const all = cw.concat(ec);
+  const rsRemainder = block => {
+    const ec = new Array(ecLen).fill(0);
+    for (const c of block) {
+      const factor = c ^ ec.shift();
+      ec.push(0);
+      if (factor) for (let j = 0; j < gen.length - 1; j++) ec[j] ^= gexp[(glog[gen[gen.length - 2 - j]] + glog[factor]) % 255];
+    }
+    return ec;
+  };
+  /* split -> per-block EC -> interleave */
+  const blocksData = [];
+  let off = 0;
+  for (const len of BLOCKS[ver]) { blocksData.push(cw.slice(off, off + len)); off += len; }
+  const blocksEC = blocksData.map(rsRemainder);
+  const all = [];
+  const maxD = Math.max(...BLOCKS[ver]);
+  for (let i = 0; i < maxD; i++) for (const bd of blocksData) if (i < bd.length) all.push(bd[i]);
+  for (let i = 0; i < ecLen; i++) for (const be of blocksEC) all.push(be[i]);
   /* matrix */
   const size = 17 + 4 * ver;
   const M = Array.from({ length: size }, () => new Array(size).fill(null));   /* null = free for data */
@@ -3079,17 +3103,17 @@ function qrEncode(text) {
   const finder = [...Array(7)].map((_, r) => [...Array(7)].map((_, c) =>
     (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4)) ? 1 : 0));
   setRegion(0, 0, finder); setRegion(0, size - 7, finder); setRegion(size - 7, 0, finder);
-  /* separators */
   for (let i = 0; i < 8; i++) {
     M[7][i] = 0; M[i][7] = 0;
     M[7][size - 1 - i] = 0; M[i][size - 8] = 0;
     M[size - 8][i] = 0; M[size - 1 - i][7] = 0;
   }
-  if (ver >= 2) {   /* single alignment pattern at (4v+10, 4v+10) for v2-5 */
-    const ctr = 4 * ver + 10;
-    const align = [...Array(5)].map((_, r) => [...Array(5)].map((_, c) =>
-      (r === 0 || r === 4 || c === 0 || c === 4 || (r === 2 && c === 2)) ? 1 : 0));
-    setRegion(ctr - 2, ctr - 2, align);
+  /* alignment grid: all center pairs except the three finder corners */
+  const align = [...Array(5)].map((_, r) => [...Array(5)].map((_, c) =>
+    (r === 0 || r === 4 || c === 0 || c === 4 || (r === 2 && c === 2)) ? 1 : 0));
+  for (const ar of ALIGN[ver]) for (const ac of ALIGN[ver]) {
+    if ((ar <= 8 && ac <= 8) || (ar <= 8 && ac >= size - 9) || (ar >= size - 9 && ac <= 8)) continue;
+    setRegion(ar - 2, ac - 2, align);
   }
   for (let i = 8; i < size - 8; i++) { if (M[6][i] === null) M[6][i] = i % 2 ? 0 : 1; if (M[i][6] === null) M[i][6] = i % 2 ? 0 : 1; }
   M[size - 8][8] = 1;   /* dark module */
@@ -3099,6 +3123,17 @@ function qrEncode(text) {
   fmtCells.push([8, 7], [8, 8], [7, 8]);
   for (let i = 0; i < 8; i++) fmtCells.push([8, size - 1 - i], [size - 1 - i, 8]);
   fmtCells.forEach(([r, c]) => { if (M[r][c] === null) M[r][c] = 0; });
+  /* version info blocks (v7+): 18-bit BCH(18,6), poly 0x1F25 */
+  if (ver >= 7) {
+    let rem = ver << 12;
+    for (let i = 17; i >= 12; i--) if ((rem >> i) & 1) rem ^= 0x1F25 << (i - 12);
+    const vi = (ver << 12) | rem;
+    for (let j = 0; j < 18; j++) {
+      const bit = (vi >> j) & 1;
+      M[size - 11 + (j % 3)][Math.floor(j / 3)] = bit;   /* bottom-left block */
+      M[Math.floor(j / 3)][size - 11 + (j % 3)] = bit;   /* top-right block */
+    }
+  }
   /* zigzag data placement with mask 0: (r+c)%2===0 flips */
   let bitIdx = 0;
   const totalBits = all.length * 8;
@@ -3119,9 +3154,9 @@ function qrEncode(text) {
   }
   /* format info: ECC L (01) + mask 0 (000) -> BCH(15,5), XOR 0x5412 */
   let fmt = 0b01000 << 10;
-  let rem = fmt;
-  for (let i = 14; i >= 10; i--) if ((rem >> i) & 1) rem ^= 0x537 << (i - 10);
-  fmt = (fmt | rem) ^ 0x5412;
+  let frem = fmt;
+  for (let i = 14; i >= 10; i--) if ((frem >> i) & 1) frem ^= 0x537 << (i - 10);
+  fmt = (fmt | frem) ^ 0x5412;
   const fbit = i => (fmt >> i) & 1;
   for (let i = 0; i <= 5; i++) { M[8][i] = fbit(14 - i); M[i][8] = fbit(i); }
   M[8][7] = fbit(8); M[8][8] = fbit(7); M[7][8] = fbit(6);
@@ -3129,11 +3164,15 @@ function qrEncode(text) {
   for (let i = 0; i < 7; i++) M[size - 1 - i][8] = fbit(14 - i);   /* 7 bits — (size-8,8) is the dark module */
   return M;
 }
+/* the QR carries the full hosted URL, so scanning it with a camera opens the
+   game with the save ready to import; falls back to the bare code if ever too big */
+const SAVE_URL_PREFIX = "https://zacker3310.github.io/vroom/#save=";
 function renderQR() {
   const canvas = document.getElementById("qrCanvas");
-  const M = qrEncode(packCompact());
+  const code = packCompact();
+  const M = qrEncode(SAVE_URL_PREFIX + code) || qrEncode(code);
   if (!M) { canvas.width = canvas.height = 0; return; }
-  const scale = Math.floor(164 / M.length);
+  const scale = Math.max(2, Math.floor(168 / M.length));
   canvas.width = canvas.height = M.length * scale + 8;
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
