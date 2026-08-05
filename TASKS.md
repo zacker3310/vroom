@@ -36,6 +36,11 @@
 - [x] T7.2: "Toybox" design system integrated: warm cream/wood/putty tokens replacing navy chrome everywhere, unified radii + flat shadows + one press squash, dot textures, warmed scrims/letterbox/iris, attribute-selector icon recolors, theme-color meta. [SPI-]
 - [x] T7.3: Structural overhaul: garage 3-tray toolbar + map/GO column; map → winding journey path (nodes on road, one padlock, quiet far dots, per-world tint, calm locked tabs); circular free-drive wheel; celebrate results card (+home hidden while celebrating); entrance choreography (popIn staggers everywhere); lane-arrow gutter; anchor-based damage decals (visible on premium bodies); star-scalloped S medal; 76px swatch floor reconciliation. Suites 137/137. [SPI-]
 
+## v9 (2026-08-04, user-directed: grand finale + decal glow-up)
+
+- [x] T9.1: Victory Parade: golden trophy button on the map once ALL 80 levels are done. One-of-a-kind finale level: rainbow road, golden sky, zero hazards, low-gravity party jumps, ~60 star waves, capsule shower, every found buddy bouncing roadside, fireworks + confetti drizzle, glowing trophy arch, +100 champion jackpot (+10 on replays), 7th album sticker (Champion), trophy results card. Suite parade-check.cjs 12/12. [SPI-]
+- [x] T9.2: Living decals: layered flickering flame, shooting star w/ sparkle trail + twinkle, glossy heartbeat heart, crackling electric bolt, wobbling googly eyes. [SPI-]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

@@ -59,9 +59,15 @@ Side-scrolling construction site, now 3 lanes. The exact vehicle built in the ga
   comes home dirty, a pulsing sponge button appears in the garage, and washing is a
   mini-game — rub the truck with a finger, soap bubbles trail the touch, fill the
   meter, rinse, sparkle. Pure care-play, no stars needed.
-- **Decals** (v4.4b): a sticker button beside body/wheels tap-cycles a flank decal —
-  flames, star, heart, lightning bolt, googly eyes — each a priced unlock through the
-  same tag flow. Decals ride into photos and save codes (format v2).
+- **Decals** (v4.4b, alive since v9): a sticker button beside body/wheels tap-cycles a
+  flank decal — a flickering layered flame, a shooting star with sparkle trail, a glossy
+  heart with a heartbeat, a crackling electric bolt, wobbling googly eyes — each a priced
+  unlock through the same tag flow. Decals ride into photos and save codes (format v2).
+- **Victory Parade** (v9): beat all 80 levels and a golden trophy button appears on the
+  map, forever. It opens the finale: rainbow road, golden sky, no hazards, floaty
+  low-gravity jumps, waves of stars, capsules, every found buddy cheering roadside,
+  fireworks all the way to a glowing trophy arch. First finish pays +100 stars and the
+  seventh album sticker (Champion); replays pay +10. Pure celebration.
 - Ramp -> jump with "whee" arpeggio (spans all lanes; high stars float over ramps)
 - Traffic cones -> tumble with boinks (soft: fun, no penalty)
 - Barrels / rocks -> bonk, car stops and wobbles, +1 damage (hard: never a fail, just a stop)

@@ -35,7 +35,7 @@ function check(name, ok, detail) {
     photos: document.querySelectorAll('.photoSlot').length,
     emptyPhotos: document.querySelectorAll('.photoSlot.empty').length
   }));
-  check('album: 6+6+6 slots, all empty on fresh save', empty.active && empty.buddies === 6 && empty.filled === 0 && empty.badges === 6 && empty.photos === 6 && empty.emptyPhotos === 6, JSON.stringify(empty));
+  check('album: 6+7+6 slots, all empty on fresh save', empty.active && empty.buddies === 6 && empty.filled === 0 && empty.badges === 7 && empty.photos === 6 && empty.emptyPhotos === 6, JSON.stringify(empty));
   await page.screenshot({ path: SHOT + 'a-album-empty.png' });
 
   /* tapping an unfound buddy grumbles, never equips */
