@@ -1,6 +1,6 @@
 const pw = require('playwright-core');
 const os = require('os');
-const EXE = os.homedir() + '/Library/Caches/ms-playwright/chromium-1117/chrome-mac/Chromium.app/Contents/MacOS/Chromium';
+const EXE = process.env.CHROMIUM || os.homedir() + '/Library/Caches/ms-playwright/chromium-1117/chrome-mac/Chromium.app/Contents/MacOS/Chromium';
 const URL = 'http://localhost:4173/index.html';
 const SHOT = __dirname + '/shots/';
 

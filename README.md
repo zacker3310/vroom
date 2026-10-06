@@ -23,8 +23,10 @@ Upgrade the engine, shield, and star magnet at the workbench. Fix crash damage w
 wrench. Wash off real mud with your finger in the wash bay. A magic dice button builds
 you a surprise.
 
-**The road.** Three lanes, a gas pedal, a brake pedal. Swipe or use the arrows to steer
-into stars and away from barrels, rocks, TNT, tumbleweeds, and crabs. Ramps jump, puddles
+**The road.** A chase cam behind your build: the road runs straight out to the horizon,
+three lanes (left, center, right), a gas pedal, a brake pedal. You see the back of your exact
+car, wings, buddy, party hat and all. Swipe sideways or tap the arrows to steer into stars
+and away from barrels, rocks, TNT, tumbleweeds, and crabs. Ramps jump, puddles
 splash, capsules pop open with prizes, and the finish flag brings confetti, a star tally,
 a 1 to 3 star rating, and an S/A/B/C time medal.
 
@@ -52,9 +54,9 @@ saves a polaroid of that exact build. All of it lives in a scrapbook.
 
 | | Touch (the real way) | Keyboard (desktop) |
 |---|---|---|
-| Drive | hold the green pedal, or anywhere on the road | D, right arrow, or space |
-| Brake | red pedal | A or left arrow |
-| Steer | swipe up/down, or the side arrows | W/S or up/down arrows |
+| Drive | hold the green pedal, or anywhere on the road | W, up arrow, or space |
+| Brake | red pedal | S or down arrow |
+| Steer | swipe left/right, or the arrow buttons | A/D or left/right arrows |
 | Honk | tap your car | |
 
 ## For the grown-ups

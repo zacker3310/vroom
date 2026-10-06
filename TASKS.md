@@ -41,6 +41,10 @@
 - [x] T9.1: Victory Parade: golden trophy button on the map once ALL 80 levels are done. One-of-a-kind finale level: rainbow road, golden sky, zero hazards, low-gravity party jumps, ~60 star waves, capsule shower, every found buddy bouncing roadside, fireworks + confetti drizzle, glowing trophy arch, +100 champion jackpot (+10 on replays), 7th album sticker (Champion), trophy results card. Suite parade-check.cjs 12/12. [SPI-]
 - [x] T9.2: Living decals: layered flickering flame, shooting star w/ sparkle trail + twinkle, glossy heartbeat heart, crackling electric bolt, wobbling googly eyes. [SPI-]
 
+## v10 (2026-10-06, user-directed: chase cam)
+
+- [x] T10.1: Road goes head-on: pseudo-3D chase cam (horizon + vanishing point, camera follows lane changes), three lanes left/center/right. Canvas ground plane (world palettes, speed bands, rumble strips, dashes, sloped ramps, checkered finish stripe, horizon haze, ground shadow under jumps); props become depth-sorted perspective sprites; roadside scenery on both shoulders; finish gantry; parade fans line both sides with the trophy floating over the road. Rear-view art for all 15 bodies + 8 tire styles, extras (twin wings, center booster), night tail lights + headlight pool. Controls remapped: swipe sideways / left-right buttons / A-D steer, W/up gas, S/down brake. Collision/physics/level gen untouched (world x is unchanged). Suites updated, 161/161.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

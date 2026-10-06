@@ -48,11 +48,15 @@ MOVE — the first moving obstacles. First clear of a world's last level banks a
 
 ## Scene 3: Road
 
-Side-scrolling construction site, now 3 lanes. The exact vehicle built in the garage drives it.
+Chase-cam (v10): the road runs straight out into the screen toward a vanishing point, 3 lanes
+left/center/right. The exact vehicle built in the garage drives it, seen from behind (a parallel
+rear-view art set per body, with tires, extras, buddy, decal, mud and damage). Props are
+perspective-scaled sprites; the ground plane (bands, rumble strips, dashes, ramps, finish
+stripe) is painted on a canvas each frame; roadside set pieces rush past on both shoulders.
 
 - **Gas pedal** (green, bottom-right): hold to drive. **Brake pedal** (red): squeal stop.
   Holding anywhere on the road also drives (v1 muscle memory).
-- **Lanes**: swipe up/down (or side arrow buttons, or arrow keys) to change lane.
+- **Lanes**: swipe left/right (or the left/right arrow buttons, or A/D / arrow keys) to change lane.
   Steer INTO stars, AWAY from obstacles.
 - Tap vehicle = honk
 - Mud puddle -> splash, muddy wheels (lane-specific). The mud STAYS (v4.4b): the truck

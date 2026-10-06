@@ -1,6 +1,6 @@
 const pw = require('playwright-core');
 const os = require('os');
-const EXE = os.homedir() + '/Library/Caches/ms-playwright/chromium-1117/chrome-mac/Chromium.app/Contents/MacOS/Chromium';
+const EXE = process.env.CHROMIUM || os.homedir() + '/Library/Caches/ms-playwright/chromium-1117/chrome-mac/Chromium.app/Contents/MacOS/Chromium';
 const URL = 'http://localhost:4173/index.html';
 const SHOT = __dirname + '/shots/';
 require('fs').mkdirSync(SHOT, { recursive: true });
@@ -24,28 +24,28 @@ function check(name, ok, detail) {
   await page.reload();
   await page.waitForTimeout(300);
 
-  /* ---- keyboard: WASD steering + gas/brake ---- */
+  /* ---- keyboard: A/D steer left/right, W gas, S brake ---- */
   await page.evaluate(() => drive(1));
   await page.waitForTimeout(200);
-  await page.keyboard.press('s');
+  await page.keyboard.press('d');
   await page.waitForTimeout(80);
   let lane = await page.evaluate(() => targetLane);
-  check('keys: S moves down a lane', lane === 2, 'targetLane=' + lane);
-  await page.keyboard.press('w');
-  await page.keyboard.press('w');
+  check('keys: D moves right a lane', lane === 2, 'targetLane=' + lane);
+  await page.keyboard.press('a');
+  await page.keyboard.press('a');
   await page.waitForTimeout(80);
   lane = await page.evaluate(() => targetLane);
-  check('keys: W moves up a lane', lane === 0, 'targetLane=' + lane);
-  await page.keyboard.down('d');
+  check('keys: A moves left a lane', lane === 0, 'targetLane=' + lane);
+  await page.keyboard.down('w');
   await page.waitForTimeout(600);
   const vGas = await page.evaluate(() => v);
-  await page.keyboard.up('d');
-  check('keys: D is gas', vGas > 300, 'v=' + vGas.toFixed(0));
-  await page.keyboard.down('a');
+  await page.keyboard.up('w');
+  check('keys: W is gas', vGas > 300, 'v=' + vGas.toFixed(0));
+  await page.keyboard.down('s');
   await page.waitForTimeout(500);
   const vBrake = await page.evaluate(() => v);
-  await page.keyboard.up('a');
-  check('keys: A is brake', vBrake < 40, 'v=' + vBrake.toFixed(0));
+  await page.keyboard.up('s');
+  check('keys: S is brake', vBrake < 40, 'v=' + vBrake.toFixed(0));
 
   /* ---- damage: barrel hit = 1, HUD chip + scuffs ---- */
   const dmg1 = await page.evaluate(async () => {

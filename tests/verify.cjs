@@ -1,6 +1,6 @@
 const pw = require('playwright-core');
 const os = require('os');
-const EXE = os.homedir() + '/Library/Caches/ms-playwright/chromium-1117/chrome-mac/Chromium.app/Contents/MacOS/Chromium';
+const EXE = process.env.CHROMIUM || os.homedir() + '/Library/Caches/ms-playwright/chromium-1117/chrome-mac/Chromium.app/Contents/MacOS/Chromium';
 const URL = 'http://localhost:4173/index.html';
 const SHOT = __dirname + '/shots/';
 require('fs').mkdirSync(SHOT, { recursive: true });
@@ -152,23 +152,23 @@ function check(name, ok, detail) {
   check('drive: gas pedal accelerates', moving.v > 300 && moving.pos > 100, JSON.stringify(moving));
   await page.mouse.up();
 
-  await page.click('#laneDown');
+  await page.click('#laneRight');
   await page.waitForTimeout(350);
   let lane = await page.evaluate(() => ({ t: targetLane, vis: laneVis }));
-  check('drive: lane-down button moves to lane 2', lane.t === 2 && Math.abs(lane.vis - 2) < 0.1, JSON.stringify(lane));
-  await page.keyboard.press('ArrowUp');
-  await page.keyboard.press('ArrowUp');
+  check('drive: lane-right button moves to the right lane', lane.t === 2 && Math.abs(lane.vis - 2) < 0.1, JSON.stringify(lane));
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowLeft');
   await page.waitForTimeout(350);
   lane = await page.evaluate(() => ({ t: targetLane, vis: laneVis }));
-  check('drive: arrow keys move to lane 0', lane.t === 0 && Math.abs(lane.vis) < 0.1, JSON.stringify(lane));
+  check('drive: arrow keys move to the left lane', lane.t === 0 && Math.abs(lane.vis) < 0.1, JSON.stringify(lane));
 
-  /* swipe on road surface: down 120px */
+  /* swipe on road surface: right ~117 stage px (one lane is 90) */
   await page.mouse.move(512, 300);
   await page.mouse.down();
-  await page.mouse.move(512, 362, { steps: 6 });
+  await page.mouse.move(612, 300, { steps: 6 });
   await page.mouse.up();
   lane = await page.evaluate(() => targetLane);
-  check('drive: swipe down changes exactly one lane', lane === 1, 'targetLane=' + lane);
+  check('drive: swipe right changes exactly one lane', lane === 1, 'targetLane=' + lane);
 
   /* brake */
   await page.mouse.move(gasBox.x + gasBox.width / 2, gasBox.y + gasBox.height / 2);
