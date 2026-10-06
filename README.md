@@ -25,7 +25,7 @@ you a surprise.
 
 **The road.** A chase cam behind your build: the road runs straight out to the horizon,
 three lanes (left, center, right), a gas pedal, a brake pedal. You see the back of your exact
-car, wings, buddy, party hat and all. Swipe sideways or tap the arrows to steer into stars
+car, wings, buddy, party hat and all. Swipe sideways or turn the steering wheel to steer into stars
 and away from barrels, rocks, TNT, tumbleweeds, and crabs. Ramps jump, puddles
 splash, capsules pop open with prizes, and the finish flag brings confetti, a star tally,
 a 1 to 3 star rating, and an S/A/B/C time medal.
@@ -56,7 +56,7 @@ saves a polaroid of that exact build. All of it lives in a scrapbook.
 |---|---|---|
 | Drive | hold the green gas pedal, or anywhere on the road | W, up arrow, or space |
 | Brake | red brake pedal | S or down arrow |
-| Steer | swipe left/right, or the arrow buttons | A/D or left/right arrows |
+| Steer | turn or tap the steering wheel, or swipe left/right | A/D or left/right arrows |
 | Honk | tap your car | |
 
 ## For the grown-ups

@@ -433,7 +433,7 @@
   #hudProgress svg { width: 40px; height: 40px; }
   /* during the celebration the run HUD and controls step aside */
   #road.celebrating #hudStars, #road.celebrating #hudLevel, #road.celebrating #hudProgress,
-  #road.celebrating #hudDamage, #road.celebrating .pedal, #road.celebrating .laneArrow,
+  #road.celebrating #hudDamage, #road.celebrating .pedal, #road.celebrating #steerWheel,
   #road.celebrating #homeBtn { display: none; }
   #garageWallet { right: 24px; top: 24px; cursor: pointer; }
   #albumWallet { right: 24px; top: 24px; }
@@ -457,13 +457,13 @@
   #brakePedal { right: 196px; bottom: 24px; width: 182px; height: 150px; transform-origin: 50% 0; }
   #brakePedal.held { transform: perspective(500px) rotateX(-30deg) scale(.97); }
 
-  .laneArrow {
-    position: absolute; left: 20px; width: 96px; height: 96px; border-radius: 50%;
-    background: #219ebc; border: 8px solid #bde0fe; z-index: 20;
+  /* steering wheel: tap a side to steer that way, or grab it and turn */
+  #steerWheel {
+    position: absolute; left: 18px; bottom: 12px; width: 220px; height: 220px; padding: 0;
+    border: 0; background: none; border-radius: 50%; z-index: 20; cursor: pointer; touch-action: none;
+    filter: drop-shadow(0 7px 0 rgba(74, 53, 35, .28));
   }
-  .laneArrow svg { width: 54px; height: 54px; }
-  #laneLeft { left: 24px; bottom: 40px; }
-  #laneRight { left: 148px; bottom: 40px; }
+  #steerWheel svg { width: 100%; height: 100%; will-change: transform; }
   /* soft control gutter lifts the touch layer off the game world */
   #road::before {
     content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 190px; z-index: 15;
@@ -703,12 +703,6 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
   box-shadow: 0 6px 0 var(--v-blue-down);
 }
 #bodyBtn, #wheelBtn, #copyCodeBtn, #pasteCodeBtn { border-radius: var(--v-r-lg); }
-.laneArrow {
-  background: var(--v-accent-blue);
-  border: 7px solid var(--v-blue-line);
-  border-radius: var(--v-r-round);
-  box-shadow: 0 6px 0 var(--v-blue-down);
-}
 
 /* --- green = GO --- */
 #goBtn, #freeBtn, #nextBtn, #importYes {
@@ -1192,11 +1186,19 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     </div>
     <div class="chip" id="hudStars" aria-label="stars collected"></div>
     <div class="chip" id="hudDamage" aria-label="damage"></div>
-    <button class="bigBtn laneArrow" id="laneLeft" aria-label="move left a lane">
-      <svg viewBox="0 0 100 100"><path d="M14 50 L62 12 V88 Z" fill="#fff"/></svg>
-    </button>
-    <button class="bigBtn laneArrow" id="laneRight" aria-label="move right a lane">
-      <svg viewBox="0 0 100 100"><path d="M86 50 L38 12 V88 Z" fill="#fff"/></svg>
+    <button id="steerWheel" aria-label="steering wheel: tap or turn left and right">
+      <svg viewBox="0 0 220 220">
+        <circle cx="110" cy="110" r="92" fill="none" stroke="var(--v-blue-down, #3f83a2)" stroke-width="30"/>
+        <circle cx="110" cy="110" r="92" fill="none" stroke="var(--v-accent-blue, #6fc0df)" stroke-width="22"/>
+        <path d="M22 96 Q16 110 22 124 M198 96 Q204 110 198 124" stroke="var(--v-blue-line, #4a94b5)" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <path d="M110 6 V30" stroke="#ffd60a" stroke-width="14" stroke-linecap="round"/>
+        <g stroke="var(--v-blue-line, #4a94b5)" stroke-width="20" stroke-linecap="round">
+          <path d="M84 116 H26 M136 116 H194 M110 136 V196"/>
+        </g>
+        <circle cx="110" cy="114" r="36" fill="#fdf6ea" stroke="var(--v-blue-line, #4a94b5)" stroke-width="7"/>
+        <path d="M110 96 L115 108 L128 109 L118 117 L121 130 L110 123 L99 130 L102 117 L92 109 L105 108 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="2.5"/>
+        <path d="M44 103 L30 116 L44 129 Z M176 103 L190 116 L176 129 Z" fill="#fff"/>
+      </svg>
     </button>
     <button class="pedal" id="brakePedal" aria-label="brake">
       <svg viewBox="0 0 182 150"><rect x="78" y="0" width="26" height="40" rx="7" fill="#6c757d"/><rect x="8" y="34" width="168" height="112" rx="26" fill="var(--v-red-down, #a4161a)"/><rect x="6" y="28" width="168" height="108" rx="26" fill="var(--v-accent-red, #e63946)" stroke="var(--v-red-line, #a4161a)" stroke-width="6"/><rect x="26" y="48" width="128" height="9" rx="4.5" fill="#00000026"/><rect x="26" y="68" width="128" height="9" rx="4.5" fill="#00000026"/><rect x="26" y="88" width="128" height="9" rx="4.5" fill="#00000026"/><rect x="26" y="108" width="128" height="9" rx="4.5" fill="#00000026"/><path d="M30 38 H120" stroke="#ffffff66" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
@@ -4114,6 +4116,7 @@ function startDrive() {
   gasKey = false; brakeKey = false;
   targetLane = 1; laneVis = 1; runStars = 0; runDamage = 0; runTime = 0; idleT = 0; nearFinish = false;
   bodyTilt = 0; prevV = 0; freezeUntil = 0; starCombo = 0; lastStarT = 0; lastShownTime = -1;
+  steerHold = 0; steerPointers.clear();
   speedLines.style.opacity = 0;
   roadPointers.clear(); gasPointers.clear(); brakePointers.clear();
   document.getElementById("celebrate").classList.remove("active");
@@ -4679,6 +4682,7 @@ function tick(now) {
   /* speed lines when flying along at (near) top speed */
   speedLines.style.opacity = v > 0.9 * vmaxEff() ? 1 : 0;
 
+  tickSteer(dt);
   /* world + car. From behind: bank into lane changes, squat on the gas, lift on the brake */
   renderWorld();
   let bank = (targetLane - laneVis) * 7;
@@ -4723,14 +4727,45 @@ roadScene.addEventListener("pointermove", e => {
 });
 function pointerEnd(e) {
   roadPointers.delete(e.pointerId);
+  if (steerPointers.delete(e.pointerId) && steerPointers.size === 0) steerHold = 0;
   if (gasPointers.delete(e.pointerId) && gasPointers.size === 0) gasPedal.classList.remove("held");
   if (brakePointers.delete(e.pointerId) && brakePointers.size === 0) brakePedal.classList.remove("held");
 }
 addEventListener("pointerup", pointerEnd);
 addEventListener("pointercancel", pointerEnd);
 
-document.getElementById("laneLeft").addEventListener("pointerdown", e => { e.stopPropagation(); setLane(targetLane - 1); });
-document.getElementById("laneRight").addEventListener("pointerdown", e => { e.stopPropagation(); setLane(targetLane + 1); });
+/* steering wheel: a tap on either half steers that way and holds the wheel turned;
+   grabbing and dragging sideways keeps turning, one lane per 70px */
+const steerEl = document.getElementById("steerWheel");
+const steerSvg = steerEl.querySelector("svg");
+const steerPointers = new Map();   /* pointerId -> last x */
+let steerHold = 0, steerAngle = 0;
+steerEl.addEventListener("pointerdown", e => {
+  e.stopPropagation();
+  try { steerEl.setPointerCapture(e.pointerId); } catch (err) {}
+  const r = steerEl.getBoundingClientRect();
+  const side = e.clientX < r.left + r.width / 2 ? -1 : 1;
+  steerPointers.set(e.pointerId, e.clientX);
+  steerHold = side;
+  setLane(targetLane + side);
+});
+steerEl.addEventListener("pointermove", e => {
+  if (!steerPointers.has(e.pointerId)) return;
+  const scale = stage.getBoundingClientRect().width / 1200;
+  const dx = (e.clientX - steerPointers.get(e.pointerId)) / scale;
+  if (Math.abs(dx) > 70) {
+    const side = Math.sign(dx);
+    steerHold = side;
+    setLane(targetLane + side);
+    steerPointers.set(e.pointerId, e.clientX);
+  }
+});
+function tickSteer(dt) {
+  /* turned while held, swings with every lane change (swipe/keys too), springs back */
+  const target = Math.max(-100, Math.min(100, steerHold * 30 + (targetLane - laneVis) * 90));
+  steerAngle += (target - steerAngle) * Math.min(1, dt * 14);
+  steerSvg.style.transform = `rotate(${steerAngle.toFixed(1)}deg)`;
+}
 
 /* keyboard: A/D or ←/→ steer, W/↑/space is gas, S/↓ is brake (mouse can ride the pedals) */
 const keyOf = e => (e.key.length === 1 ? e.key.toLowerCase() : e.key);

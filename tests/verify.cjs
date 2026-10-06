@@ -152,10 +152,11 @@ function check(name, ok, detail) {
   check('drive: gas pedal accelerates', moving.v > 300 && moving.pos > 100, JSON.stringify(moving));
   await page.mouse.up();
 
-  await page.click('#laneRight');
+  const wheelBox = await page.locator('#steerWheel').boundingBox();
+  await page.mouse.click(wheelBox.x + wheelBox.width * 0.8, wheelBox.y + wheelBox.height / 2);
   await page.waitForTimeout(350);
   let lane = await page.evaluate(() => ({ t: targetLane, vis: laneVis }));
-  check('drive: lane-right button moves to the right lane', lane.t === 2 && Math.abs(lane.vis - 2) < 0.1, JSON.stringify(lane));
+  check('drive: tapping the steering wheel\'s right side moves to the right lane', lane.t === 2 && Math.abs(lane.vis - 2) < 0.1, JSON.stringify(lane));
   await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('ArrowLeft');
   await page.waitForTimeout(350);
