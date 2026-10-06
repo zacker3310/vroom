@@ -4016,7 +4016,7 @@ function clearWorld() {
 const BEATS = {};
 function defBeat(name, kind, minLvl, fn) { BEATS[name] = { name, kind, minLvl, fn }; }
 /* hard obstacle / star / level budgets (tests pin the ordering L5 <= L15 <= L30) */
-const minHard = n => n < 3 ? 0 : Math.floor(1 + n * 0.3);
+const minHard = n => n < 3 ? 0 : Math.floor(1 + Math.min(n, 50) * 0.3);   /* past level 50 the formations, not random fills, bring the hazards */
 const maxHard = n => n < 3 ? 0 : Math.floor(2 + n * 0.45);
 const minStars = n => 12 + Math.floor(Math.min(n, 45) / 2);
 const maxStars = n => 22 + Math.floor(n * 1.2);
@@ -4086,28 +4086,33 @@ defBeat("slalom", "obs", 2, (b, x) => {
     const ox = x + i * 270, l = lanes[i % 2];
     b.put(b.hardOrSoft(), ox, l);
     b.star(ox + 135, 2 - l);         /* the hint: the star sits where you should be */
+    if (i % 2 === 0) b.star(ox + 135, 1);   /* the middle lane is safe all the way through */
   }
   return x + k * 270;
 });
 defBeat("gate", "obs", 5, (b, x) => {   /* two lanes shut, one open with a star */
   const gates = 1 + Math.floor(b.d * 2.5);
+  let open = -1;
   for (let g = 0; g < gates; g++) {
-    const gx = x + g * 460, open = b.rng() < 0.5 ? b.inside(gx) : Math.floor(b.rng() * 3);
+    const gx = x + g * 560;   /* a breath between gates: one decision per 0.8s at full speed */
+    let want = b.rng() < 0.5 ? b.inside(gx) : Math.floor(b.rng() * 3);
+    want = open < 0 ? b.nearLane(want) : Math.abs(want - open) > 1 ? open + Math.sign(want - open) : want;   /* never two lanes over at once */
+    open = want;
     for (let l = 0; l < 3; l++) if (l !== open) b.put(g === 0 || b.rng() < 0.6 ? b.hard() : b.soft(), gx, l);
-    b.star(gx, open); b.star(gx + 120, open);
+    b.star(gx - 200, open); b.star(gx, open); b.star(gx + 120, open);   /* the lead-in star shows the way through */
   }
-  return x + gates * 460;
+  return x + gates * 560;
 });
 defBeat("closingWalls", "obs", 8, (b, x) => {   /* the open lane walks across the road */
-  let open = Math.floor(b.rng() * 3);
+  let open = b.nearLane(Math.floor(b.rng() * 3));
   const dir = open === 0 ? 1 : open === 2 ? -1 : (b.rng() < 0.5 ? 1 : -1), k = 3;
   for (let g = 0; g < k; g++) {
-    const gx = x + g * 330;
+    const gx = x + g * 430;   /* one lane step per 430 units: small hands can follow it */
     for (let l = 0; l < 3; l++) if (l !== open) b.put(l === (open + dir + 3) % 3 || b.rng() < 0.5 ? b.hard() : b.soft(), gx, l);
     b.star(gx, open);
     open = Math.max(0, Math.min(2, open + dir));
   }
-  return x + k * 330;
+  return x + k * 430;
 });
 defBeat("coneForest", "obs", 1, (b, x) => {   /* soft and silly: cones everywhere, stars between */
   const cols = 4 + Math.floor(b.rng() * 3);
@@ -4133,14 +4138,14 @@ defBeat("bowling", "obs", 3, (b, x) => {   /* barrels in a V, the star sits at t
 });
 defBeat("minefield", "obs", 12, (b, x) => {   /* sparse tnt, stars mark the safe lane */
   const cols = 3 + Math.floor(b.d * 2);
-  let safe = Math.floor(b.rng() * 3);
+  let safe = b.nearLane(b.rng() < 0.4 ? 1 : Math.floor(b.rng() * 3));
   for (let c = 0; c < cols; c++) {
-    const cx = x + c * 290;
+    const cx = x + c * 330;
     b.put("tnt", cx, (safe + 1 + Math.floor(b.rng() * 2)) % 3);
-    b.star(cx, safe); b.star(cx + 145, safe);
-    if (b.rng() < 0.5) safe = (safe + (b.rng() < 0.5 ? 1 : 2)) % 3;
+    b.star(cx, safe); b.star(cx + 165, safe);
+    if (b.rng() < 0.5) safe = Math.max(0, Math.min(2, safe + (b.rng() < 0.5 ? 1 : -1)));   /* one lane step per column */
   }
-  return x + cols * 290;
+  return x + cols * 330;
 });
 defBeat("capsuleAlley", "rhythm", 3, (b, x) => {   /* a capsule flanked by cones, stars lead in */
   const lane = b.pickLane(x);
@@ -4171,31 +4176,50 @@ defBeat("breather", "rhythm", 1, (b, x) => {   /* empty road to breathe, maybe o
   return x + L;
 });
 
-/* ---- ramp beats: every ramp pushes {x, w:250, h:95} into RAMPS and leaves a high star
-   on the jump arc at rx+460 (the car flies rx .. rx+670: no obstacles in that zone) ---- */
+/* ---- ramp beats: every ramp pushes {x, w:250, h:95, tail} into RAMPS and leaves a high star
+   on the jump arc at rx+460. A full-throttle launch off the lip (rx+250) lands ~680 units
+   later on earth and ~1480 on the moon (gravity 640), so the ground stays clear of items
+   until rx + flightLen, and world 8 strings its high stars along the whole float. ---- */
+const FLIGHT_EARTH = 950, FLIGHT_MOON = 1850;
+const flightLen = w => w === 8 ? FLIGHT_MOON : FLIGHT_EARTH;
+const rampTail = w => flightLen(w) - 250;   /* beyond rp.x + rp.w: nothing on the ground where the car lands */
+/* star height that sits on the full-throttle flight path dx past the ramp start */
+function flightH(w, dx) {
+  const t = Math.max(0, dx - 250) / 650, g = w === 8 ? 640 : 1500;
+  return Math.max(LOW_STAR_H, Math.round(95 + 0.9 * 650 * t - 0.5 * g * t * t + LOW_STAR_H));
+}
 function rampAt(b, x, lane) {
   const rx = x + 200;
-  RAMPS.push({ x: rx, w: 250, h: 95 });
+  RAMPS.push({ x: rx, w: 250, h: 95, tail: rampTail(b.w) });
   if (lane == null) lane = Math.floor(b.rng() * 3);
-  addProp("star", rx + 460, lane, HIGH_STAR_H, starSVG, -32, -32); totalStars++;
+  addProp("star", rx + 460, lane, b.w === 8 ? flightH(8, 460) : HIGH_STAR_H, starSVG, -32, -32); totalStars++;
+  b.last = lane;
   return { rx, lane };
 }
-defBeat("ramp", "ramp", 1, (b, x) => { const r = rampAt(b, x); return r.rx + 700; });
+/* the moon float: a lazy arc of stars the whole way down */
+function moonArc(b, r) {
+  if (b.w !== 8) return;
+  for (const dx of [700, 950, 1200, 1450, 1650]) b.high(r.rx + dx, r.lane, flightH(8, dx));
+}
+defBeat("ramp", "ramp", 1, (b, x) => { const r = rampAt(b, x); moonArc(b, r); return r.rx + flightLen(b.w); });
 defBeat("rampArc", "ramp", 4, (b, x) => {   /* three high stars along the flight path */
   const r = rampAt(b, x);
-  b.high(r.rx + 370, r.lane); b.high(r.rx + 550, r.lane);
-  return r.rx + 700;
+  b.high(r.rx + 370, r.lane, flightH(b.w, 370)); b.high(r.rx + 550, r.lane, b.w === 8 ? flightH(8, 550) : HIGH_STAR_H);
+  moonArc(b, r);
+  return r.rx + flightLen(b.w);
 });
 defBeat("rampStairway", "ramp", 1, (b, x) => {   /* low stars run up to the lip, high ones fly */
   const lane = b.pickLane(x);
   b.star(x + 20, lane); b.star(x + 140, lane);
   const r = rampAt(b, x, lane);
-  b.high(r.rx + 370, lane);
-  return r.rx + 700;
+  b.high(r.rx + 370, lane, flightH(b.w, 370));
+  moonArc(b, r);
+  return r.rx + flightLen(b.w);
 });
 defBeat("rampShower", "ramp", 10, (b, x) => {   /* land into a burst of stars */
   const r = rampAt(b, x);
-  const sx = r.rx + 720;
+  moonArc(b, r);
+  const sx = r.rx + flightLen(b.w) + 20;
   for (let c = 0; c < 2; c++) for (let l = 0; l < 3; l++) b.star(sx + c * 120 + (l === 1 ? 60 : 0), l);
   return sx + 300;
 });
@@ -4253,12 +4277,12 @@ defBeat("sandcastles", "world7", 61, (b, x) => {   /* a beach of castles with a 
 });
 defBeat("craterField", "world8", 71, (b, x) => {   /* craters zigzag, the stars show the ridge */
   const k = 3 + Math.floor(b.d * 2);
-  let l = Math.floor(b.rng() * 3);
+  let s = b.last;   /* the safe ridge starts under the kid and steps one lane at a time */
   for (let i = 0; i < k; i++) {
+    const l = s === 1 ? (b.rng() < 0.5 ? 0 : 2) : 1;
     b.put("crater", x + i * 270, l);
-    const s = (l + 1 + Math.floor(b.rng() * 2)) % 3;
     b.star(x + i * 270, s); b.star(x + i * 270 + 135, s);
-    l = s;
+    s = l;
   }
   return x + k * 270;
 });
@@ -4296,7 +4320,7 @@ function buildLevel(n) {
   const finale = n % WORLD_SIZE === 0;
   buildCourse(n, mulberry32(n * 104729 + 7), LEVEL_LEN);
   const endX = LEVEL_LEN - 600;
-  const inRampZone = x => RAMPS.some(rp => x > rp.x - 200 && x < rp.x + rp.w + 420);
+  const inRampZone = x => RAMPS.some(rp => x > rp.x - 200 && x < rp.x + rp.w + (rp.tail || 420));
   const hardLanesNear = x => { const s = new Set(); for (const p of props) if (HARD_T(p.type) && Math.abs(p.x - x) < 240) s.add(p.lane); return s; };
   const laneFree = (x, lane, gap) => !props.some(p => p.lane === lane && p.type !== "finish" && Math.abs(p.x - x) < gap);
 
@@ -4304,9 +4328,12 @@ function buildLevel(n) {
   const b = {
     n, w, rng, d: Math.min(1, n / 60),
     S: 5 + Math.floor(Math.min(n, 40) / 6),           /* star-trail length base */
+    last: 1,                                          /* lane of the last star placed: where the kid probably is */
+    nearLane(want) { return Math.max(this.last - 1, Math.min(this.last + 1, want)); },   /* one lane step away at most */
     inside(x) { const k = curvAt(x); return k > 0.00003 ? 2 : k < -0.00003 ? 0 : 1; },
     outside(x) { const k = curvAt(x); return k > 0.00003 ? 0 : k < -0.00003 ? 2 : Math.floor(rng() * 3); },
-    pickLane(x) { return rng() < 0.6 ? this.inside(x) : Math.floor(rng() * 3); },
+    /* the middle lane gets a fair share: a toddler who never steers still finds stars */
+    pickLane(x) { const r = rng(); return r < 0.3 ? 1 : r < 0.72 ? this.inside(x) : Math.floor(rng() * 3); },
     /* a ground item; refuses ramp zones, 3-lane walls and stacking on another prop */
     put(t, x, lane) {
       x = Math.round(x); lane = Math.max(0, Math.min(2, lane));
@@ -4317,9 +4344,9 @@ function buildLevel(n) {
     star(x, lane) {
       x = Math.round(x); lane = Math.max(0, Math.min(2, lane));
       if (x < 300 || x > endX || inRampZone(x) || !laneFree(x, lane, 70)) return false;
-      addItem("star", x, lane); return true;
+      addItem("star", x, lane); this.last = lane; return true;
     },
-    high(x, lane) { if (x > LEVEL_LEN - 200 || !laneFree(x, lane, 70)) return false; addProp("star", Math.round(x), lane, HIGH_STAR_H, starSVG, -32, -32); totalStars++; return true; },
+    high(x, lane, h) { if (x > LEVEL_LEN - 200 || !laneFree(x, lane, 70)) return false; addProp("star", Math.round(x), lane, h || HIGH_STAR_H, starSVG, -32, -32); totalStars++; this.last = lane; return true; },
     capsule(x, lane) { return this.put("capsule", x, lane); },
     /* casting: what plays a hard / soft / slick part in this world and level */
     hard() {
@@ -4364,33 +4391,49 @@ function buildLevel(n) {
     for (const bt of wb) if (!rhythm.includes(bt)) rhythm.splice(1 + Math.floor(rng() * (rhythm.length - 1)), 0, bt);
   }
   /* ramps: 1-4 (one more on a finale), on cue at evenly spread targets */
-  const nRamps = 1 + (n > 8 ? 1 : 0) + (n > 20 ? 1 : 0) + (n > 50 ? 1 : 0) + (finale && n > 20 ? 1 : 0);
+  let nRamps = 1 + (n > 8 ? 1 : 0) + (n > 20 ? 1 : 0) + (n > 50 ? 1 : 0) + (finale && n > 20 ? 1 : 0);
+  if (w === 8) nRamps = Math.min(nRamps, finale ? 4 : 3);   /* moon flights are long: fewer, bigger jumps */
   const rampXs = []; for (let i = 0; i < nRamps; i++) rampXs.push(LEVEL_LEN * (i + 1) / (nRamps + 1) + (rng() - 0.5) * 300);
   const rampPool = beatPool(n, "ramp");
   const beats = [];
-  let x = 650, ri = 0, bi = 0, guard = 0;
+  let x = 1000, ri = 0, bi = 0, guard = 0;   /* a 700-unit runway: nothing in the road before the kid is rolling */
   const gap = finale ? 100 : 150;   /* finales pack their beats tighter */
-  const run = bt => { beats.push(bt.name); x = bt.fn(b, x) + gap + Math.floor(rng() * 120); };
-  while (x < endX - 350 && guard++ < 60) {
-    if (ri < nRamps && x >= rampXs[ri] - 450) { run(pick(rampPool)); ri++; continue; }
+  const run = bt => {
+    /* straight off a landing into a wall of barrels is a trap: obstacle formations get a run-up after a ramp */
+    if (beats.length && BEATS[beats[beats.length - 1]].kind === "ramp" && bt.kind !== "star" && bt.kind !== "rhythm") x += 350;
+    beats.push(bt.name); x = bt.fn(b, x) + gap + Math.floor(rng() * 120);
+  };
+  if (rhythm[0].kind !== "star") run(BEATS.trailStraight);   /* every road opens with stars, never a wall */
+  /* a finale keeps its last 560 units for the star shower; ramps must have landed by then */
+  const showerX = finale ? endX - 560 : Infinity, loopEnd = finale ? showerX - 200 : endX - 350;
+  while (x < loopEnd && guard++ < 60) {
+    const lastChance = x + 200 + flightLen(w) + 700 > loopEnd;   /* one more formation and the ramp wouldn't fit */
+    if (ri < nRamps && (x >= rampXs[ri] - 450 || lastChance)) {   /* a different ramp beat from the last one */
+      let rb = pick(rampPool); if (rampPool.length > 1 && beats[beats.length - 1] === rb.name) rb = rampPool[(rampPool.indexOf(rb) + 1) % rampPool.length];
+      run(rb); ri++; continue;
+    }
     run(rhythm[bi++ % rhythm.length]);
   }
-  while (ri < nRamps) { x = Math.min(x, LEVEL_LEN - 1000); run(BEATS.ramp); ri++; }   /* never a level without its jump */
-  if (finale) {   /* grand finale: a star shower right before the flags */
-    x = Math.min(x, endX - 560);
-    if (!inRampZone(x) && !inRampZone(x + 560)) run(BEATS.starShower);
-  }
+  /* never a level without its jump — but land well before the flags, so the gantry never
+     looks planted on the ramp lip and the car is on its wheels at the finish */
+  while (ri < nRamps) { x = Math.min(x, loopEnd - 200 - flightLen(w)); run(BEATS.ramp); ri++; }
+  if (finale) { x = Math.max(x, showerX); run(BEATS.starShower); }   /* grand finale: a star shower right before the flags */
 
   /* ---- guarantees: ingredients, budgets, and nothing where the car flies ---- */
   const removeProp = p => { p.wrap.remove(); props.splice(props.indexOf(p), 1); if (p.type === "star") totalStars--; };
   for (const p of props.slice()) if (BLOCKER_T(p.type) && inRampZone(p.x)) removeProp(p);
   const count = f => props.filter(f).length;
   /* drop one item into a free pocket: clear lane, no other ground item right beside it */
-  const spotFor = t => {
-    for (let tries = 0; tries < 80; tries++) {
-      const sx = 900 + Math.floor(rng() * (endX - 900)), lane = Math.floor(rng() * 3);
+  const spotFor = (t, want) => {
+    for (let tries = 0; tries < 160; tries++) {
+      const sx = 1100 + Math.floor(rng() * (endX - 1100)), lane = want == null ? Math.floor(rng() * 3) : want;
       if (inRampZone(sx) || !laneFree(sx, lane, 130)) continue;
       if (props.some(p => BLOCKER_T(p.type) && Math.abs(p.x - sx) < 110)) continue;
+      if (HARD_T(t) && tries < 120 && RAMPS.some(rp => rp.x > sx && rp.x < sx + 700)) continue;   /* the run-up to a ramp stays clean */
+      /* a stray barrel inside a star trail is a trap: the first 80 tries stay clear of any star */
+      /* a stray barrel inside a star trail is a trap: stay clear of stars, and when the road is
+         too busy for that, at least never in the lane a trail is running through */
+      if (HARD_T(t) && props.some(p => p.type === "star" && Math.abs(p.x - sx) < (tries < 100 ? 260 : 0) || (p.type === "star" && p.lane === lane && Math.abs(p.x - sx) < 220))) continue;
       if (HARD_T(t)) { const s = hardLanesNear(sx); s.add(lane); if (s.size >= 3) continue; }
       addItem(t, sx, lane); return true;
     }
@@ -4416,6 +4459,7 @@ function buildLevel(n) {
   for (const p of shuffled(props.filter(p => p.type === "cone"))) {
     if (hardPs().length >= minHard(n)) break;
     const s = hardLanesNear(p.x); s.add(p.lane); if (s.size >= 3) continue;
+    if (props.some(q => q.type === "star" && Math.abs(q.x - p.x) < 200 && q.lane === p.lane)) continue;   /* a cone in a star trail stays a cone */
     const px = p.x, pl = p.lane; removeProp(p); addItem(n >= 8 && rng() < 0.4 ? "rock" : "barrel", px, pl);
   }
   while (hardPs().length < minHard(n) && spotFor("barrel"));
@@ -4429,6 +4473,8 @@ function buildLevel(n) {
   }
   /* star budget: floors climb with the level, ceilings keep the early levels readable */
   while (count(p => p.type === "star") < minStars(n) && spotFor("star"));
+  /* early roads: a fifth of the stars sit in the middle lane, so gas-only toddlers still score */
+  if (n <= 20) while (count(p => p.type === "star" && p.lane === 1) < 0.2 * count(p => p.type === "star") && spotFor("star", 1));
   const lowStars = props.filter(p => p.type === "star" && p.h === LOW_STAR_H);
   for (let i = lowStars.length - 1; i >= 0 && count(p => p.type === "star") > maxStars(n); i--) removeProp(lowStars[i]);
 
@@ -5209,10 +5255,12 @@ function spawnFreeItem() {
   else if (r < 0.84 && pos > 16000) freeHard("tnt", x, lane);
   else if (r < 0.88) addItem("puddle", x, lane);
   else if (r < 0.93 && !RAMPS.some(rp => Math.abs(rp.x - x) < 900)) {
-    RAMPS.push({ x, w: 250, h: 95 });
+    const moon = freeThemeIdx === 7;
+    RAMPS.push({ x, w: 250, h: 95, tail: rampTail(moon ? 8 : 1) });
     const sl = Math.floor(Math.random() * 3);
-    addProp("star", x + 460, sl, HIGH_STAR_H, starSVG, -32, -32); totalStars++;
-    freeSpawnX += 500;
+    addProp("star", x + 460, sl, moon ? flightH(8, 460) : HIGH_STAR_H, starSVG, -32, -32); totalStars++;
+    if (moon) for (const dx of [800, 1150, 1450, 1650]) { addProp("star", x + dx, sl, flightH(8, dx), starSVG, -32, -32); totalStars++; }
+    freeSpawnX += moon ? 1650 : 750;
   }
   /* else: a stretch of open road to breathe */
   freeSpawnX += 280 + Math.random() * 260;
