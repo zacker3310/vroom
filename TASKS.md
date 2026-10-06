@@ -43,7 +43,7 @@
 
 ## v10 (2026-10-06, user-directed: chase cam)
 
-- [x] T10.1: Road goes head-on: pseudo-3D chase cam (horizon + vanishing point, camera follows lane changes), three lanes left/center/right. Canvas ground plane (world palettes, speed bands, rumble strips, dashes, sloped ramps, checkered finish stripe, horizon haze, ground shadow under jumps); props become depth-sorted perspective sprites; roadside scenery on both shoulders; finish gantry; parade fans line both sides with the trophy floating over the road. Rear-view art for all 15 bodies + 8 tire styles, extras (twin wings, center booster), night tail lights + headlight pool. Controls remapped: swipe sideways / left-right buttons / A-D steer, W/up gas, S/down brake. Collision/physics/level gen untouched (world x is unchanged). Suites updated, 161/161.
+- [x] T10.1: Road goes head-on: pseudo-3D chase cam (horizon + vanishing point, camera follows lane changes), three lanes left/center/right. Canvas ground plane (world palettes, speed bands, rumble strips, dashes, sloped ramps, checkered finish stripe, horizon haze, ground shadow under jumps); props become depth-sorted perspective sprites; roadside scenery on both shoulders; finish gantry; parade fans line both sides with the trophy floating over the road. Chase-cam vehicles built from projected 3D toy blocks (boxes, cylinders, hulls) for all 15 bodies, front + rear axles, 8 tire styles, extras (twin wings, center booster), night tail lights + headlight pool. Controls remapped: swipe sideways / left-right buttons / A-D steer, W/up gas, S/down brake. Collision/physics/level gen untouched (world x is unchanged). Suites updated, 161/161.
 
 ## Backlog (v2 candidates, from kid-testing)
 

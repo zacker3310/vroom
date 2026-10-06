@@ -402,8 +402,10 @@
     75% { transform: translate(2px, -2px); } 90% { transform: translate(-1px, 1px); }
   }
 
-  #carWrap { position: absolute; left: 450px; top: 462px; width: 300px; will-change: transform; cursor: pointer; touch-action: none; transform-origin: 50% 85%; pointer-events: auto; }
-  #carWrap svg { width: 100%; height: auto; overflow: visible; }
+  /* 400x500 box; svg origin (the rear bumper's ground point) lands on stage 600,650 */
+  #carWrap { position: absolute; left: 400px; top: 190px; width: 400px; will-change: transform; cursor: pointer; touch-action: none; transform-origin: 50% 92%; pointer-events: none; }
+  #carWrap svg { width: 100%; height: auto; overflow: visible; transform-origin: 50% 92%; }
+  #carWrap .hitbox { pointer-events: all; }
   #carWrap.wobble svg { animation: carWobble .55s ease; }
   @keyframes carWobble { 20% { transform: rotate(-7deg); } 40% { transform: rotate(6deg); } 60% { transform: rotate(-4deg); } 80% { transform: rotate(2deg); } }
   #carWrap.spin svg { animation: spinOut .65s ease; }
@@ -3382,7 +3384,8 @@ const LANE_W = 240;               /* lane spacing at the car's depth */
 const ROAD_HALF = LANE_W * 1.5;
 const CAM_FOLLOW = 0.6;           /* camera slides most of the way with lane changes */
 const DRAW_FAR = 3400, DRAW_NEAR = -260, FADE = 500;
-const CAR_TOP = 462;              /* rear-view svg (300px wide) ground line at y=650 */
+const CAR_TOP = 430;              /* roughly the roofline of the chase-cam car on stage */
+const CAR_HIT_Z = 200;            /* collisions land this far up the car (mid-hood), not at the bumper */
 const LOW_STAR_H = 85, HIGH_STAR_H = 240;
 let camX = 0;
 const laneX = l => (l - 1) * LANE_W;
@@ -3397,276 +3400,336 @@ function mulberry32(a) {
   };
 }
 
-/* ============ REAR-VIEW VEHICLE (the chase cam sees the back of the build) ============ */
-/* viewBox 0 0 320 230, ground y=200, centerline x=160. Per body:
-   half = chassis half-width (tire placement), roof = buddy/hat seat, mount = flag corner,
-   win = rear glass (crack), deco = tailgate decal spot, smoke = exhaust/engine puff */
-const tl = (x, y, w = 18, h = 12) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#e63946" class="tailLight"/>`;
-const bumper = (x1, x2, y = 158) => `<rect x="${x1}" y="${y}" width="${x2 - x1}" height="14" rx="6" fill="#495057"/>`;
-const REAR = {
-  dump: { half: 112, roof: [160, 90], mount: [46, 94], win: [204, 124], deco: [160, 132], smoke: [258, 82],
-    svg: () => `
-      <path d="M46 96 L274 96 L264 166 L56 166 Z" fill="var(--paint)" stroke="#00000033" stroke-width="4"/>
-      <rect x="38" y="88" width="244" height="14" rx="6" fill="var(--paint)" filter="brightness(.8)"/>
-      <path d="M68 114 H252 M72 150 H248" stroke="#00000022" stroke-width="5" stroke-linecap="round"/>
-      <circle cx="62" cy="104" r="5" fill="#495057"/><circle cx="258" cy="104" r="5" fill="#495057"/>
-      ${tl(60, 136)}${tl(242, 136)}
-      ${bumper(36, 284)}
-      <rect x="54" y="170" width="20" height="22" rx="3" fill="#212529"/><rect x="246" y="170" width="20" height="22" rx="3" fill="#212529"/>` },
-  digger: { half: 104, roof: [168, 74], mount: [60, 126], win: [168, 100], deco: [160, 150], smoke: [230, 70],
-    svg: () => `
-      <g stroke="#6c757d" stroke-width="13" stroke-linecap="round"><path d="M100 122 L92 48"/></g>
-      <path d="M74 30 L110 30 L106 52 L78 52 Z" fill="#6c757d"/>
-      <rect x="118" y="74" width="100" height="62" rx="10" fill="var(--paint)"/>
-      <rect x="130" y="84" width="76" height="34" rx="6" fill="#bde0fe"/>
-      <rect x="56" y="124" width="208" height="46" rx="12" fill="var(--paint)"/>
-      <rect x="66" y="132" width="188" height="9" rx="4" fill="#00000026"/>
-      ${tl(66, 148)}${tl(236, 148)}
-      ${bumper(44, 276, 160)}` },
-  mixer: { half: 108, roof: [160, 44], mount: [64, 140], win: [160, 104], deco: [160, 156], smoke: [246, 120],
-    svg: () => `
-      <rect x="54" y="138" width="212" height="30" rx="8" fill="var(--paint)" filter="brightness(.85)"/>
-      <circle cx="160" cy="104" r="62" fill="var(--paint)" stroke="#00000033" stroke-width="4"/>
-      <circle cx="160" cy="104" r="36" fill="#00000022"/>
-      <g transform="translate(160,104)"><g class="spinner" style="animation-duration:2.2s">
-        <path d="M0 -30 Q24 -24 20 0 Q16 22 -6 20 Q-22 16 -18 -2" stroke="#ffffffbb" stroke-width="7" fill="none" stroke-linecap="round"/>
-      </g></g>
-      ${tl(60, 146)}${tl(242, 146)}
-      ${bumper(46, 274, 160)}` },
-  fire: { half: 114, roof: [232, 96], mount: [52, 96], win: [214, 134], deco: [160, 134], smoke: [262, 88],
-    svg: () => `
-      <rect x="44" y="96" width="232" height="74" rx="12" fill="var(--paint)"/>
-      <path d="M118 98 L134 36 M202 98 L186 36" stroke="#adb5bd" stroke-width="7" stroke-linecap="round"/>
-      <path d="M121 84 H199 M125 68 H195 M129 52 H191" stroke="#adb5bd" stroke-width="5"/>
-      <rect x="60" y="110" width="88" height="44" rx="6" fill="#e9ecef"/>
-      <rect x="172" y="110" width="88" height="44" rx="6" fill="#e9ecef"/>
-      <circle cx="104" cy="132" r="14" fill="#ffd60a" stroke="#adb5bd" stroke-width="4"/>
-      <rect x="44" y="156" width="232" height="6" fill="#fff"/>
-      <rect x="50" y="100" width="14" height="10" rx="3" fill="#ffd60a"/><rect x="256" y="100" width="14" height="10" rx="3" fill="#ffd60a"/>
-      ${tl(46, 140, 12, 14)}${tl(262, 140, 12, 14)}
-      ${bumper(32, 288, 162)}` },
-  monster: { half: 112, roof: [160, 76], mount: [58, 118], win: [160, 100], deco: [160, 146], smoke: [250, 108],
-    svg: () => `
-      <path d="M92 120 L104 76 L216 76 L228 120 Z" fill="var(--paint)" filter="brightness(1.1)"/>
-      <path d="M112 86 L208 86 L218 114 L102 114 Z" fill="#bde0fe"/>
-      <rect x="52" y="118" width="216" height="48" rx="12" fill="var(--paint)"/>
-      <path d="M64 142 Q84 130 100 142 Q116 154 132 142 Q148 130 164 142 Q180 154 196 142 Q212 130 228 142 Q244 154 256 142" stroke="#ffd60a" stroke-width="7" fill="none" stroke-linecap="round"/>
-      ${tl(58, 124)}${tl(244, 124)}
-      ${bumper(40, 280, 158)}` },
-  police: { half: 112, roof: [124, 86], mount: [54, 116], win: [160, 102], deco: [160, 150], smoke: [92, 156],
-    svg: () => `
-      <path d="M86 118 L104 84 L216 84 L234 118 Z" fill="var(--paint)"/>
-      <path d="M104 112 L116 90 L204 90 L216 112 Z" fill="#bde0fe"/>
-      <rect x="150" y="76" width="64" height="10" rx="4" fill="#adb5bd"/>
-      <rect x="152" y="66" width="28" height="12" rx="3" fill="#e63946"/><rect x="184" y="66" width="28" height="12" rx="3" fill="#1e88e5"/>
-      <path d="M48 130 Q48 116 62 116 L258 116 Q272 116 272 130 L272 160 L48 160 Z" fill="var(--paint)"/>
-      <rect x="48" y="132" width="224" height="12" rx="5" fill="#f8f9fa"/>
-      <path d="M0 -9 L2.2 -3.1 L8.6 -2.8 L3.6 1.2 L5.3 7.3 L0 3.8 L-5.3 7.3 L-3.6 1.2 L-8.6 -2.8 L-2.2 -3.1 Z" fill="#1d3557" transform="translate(160,138)"/>
-      ${tl(56, 120, 30, 9)}${tl(234, 120, 30, 9)}
-      ${bumper(38, 282, 156)}` },
-  race: { half: 120, roof: [160, 84], mount: [50, 118], win: [160, 108], deco: [96, 140], smoke: [140, 150],
-    svg: () => `
-      <path d="M122 120 Q128 90 160 88 Q192 90 198 120 Z" fill="#bde0fe"/>
-      <path d="M36 158 L40 132 Q44 118 70 116 L250 116 Q276 118 280 132 L284 158 Z" fill="var(--paint)"/>
-      <rect x="152" y="116" width="16" height="42" fill="#ffffffaa"/>
-      <rect x="94" y="94" width="8" height="26" fill="#343a40"/><rect x="218" y="94" width="8" height="26" fill="#343a40"/>
-      <rect x="58" y="84" width="204" height="14" rx="5" fill="var(--paint)" filter="brightness(.75)"/>
-      ${tl(52, 126, 50, 8)}${tl(218, 126, 50, 8)}
-      <circle cx="140" cy="148" r="7" fill="#343a40"/><circle cx="180" cy="148" r="7" fill="#343a40"/>
-      ${bumper(40, 280, 154)}` },
-  tractor: { half: 92, roof: [160, 52], mount: [110, 54], win: [160, 92], deco: [160, 140], smoke: [231, 34],
-    svg: () => `
-      <rect x="226" y="40" width="10" height="64" fill="#495057"/><rect x="222" y="34" width="18" height="10" rx="4" fill="#6c757d"/>
-      <rect x="104" y="52" width="112" height="108" rx="12" fill="var(--paint)"/>
-      <rect x="116" y="64" width="88" height="54" rx="8" fill="#bde0fe"/>
-      <path d="M28 152 Q28 96 82 96 Q118 96 118 152 Z" fill="var(--paint)" filter="brightness(.85)"/>
-      <path d="M202 152 Q202 96 238 96 Q292 96 292 152 Z" fill="var(--paint)" filter="brightness(.85)"/>
-      ${tl(122, 128, 16, 12)}${tl(182, 128, 16, 12)}
-      <rect x="146" y="150" width="28" height="16" rx="4" fill="#343a40"/>
-      ${bumper(90, 230, 158)}` },
-  icecream: { half: 112, roof: [100, 74], mount: [54, 80], win: [107, 106], deco: [213, 150], smoke: [250, 160],
-    svg: () => `
-      <path d="M145 40 L175 40 L160 76 Z" fill="#e6a23c"/>
-      <circle cx="160" cy="32" r="16" fill="#ff70a6"/><circle cx="160" cy="15" r="9" fill="#fff"/><circle cx="160" cy="4" r="5" fill="#e63946"/>
-      <rect x="48" y="74" width="224" height="96" rx="12" fill="var(--paint)"/>
-      <rect x="48" y="74" width="224" height="14" rx="6" fill="#e63946"/>
-      <rect x="66" y="74" width="14" height="14" fill="#fff"/><rect x="98" y="74" width="14" height="14" fill="#fff"/>
-      <rect x="130" y="74" width="14" height="14" fill="#fff"/><rect x="162" y="74" width="14" height="14" fill="#fff"/>
-      <rect x="194" y="74" width="14" height="14" fill="#fff"/><rect x="226" y="74" width="14" height="14" fill="#fff"/>
-      <rect x="70" y="94" width="74" height="40" rx="6" fill="#bde0fe"/><rect x="176" y="94" width="74" height="40" rx="6" fill="#bde0fe"/>
-      <path d="M160 92 V166" stroke="#00000033" stroke-width="4"/>
-      <rect x="146" y="138" width="8" height="18" rx="3" fill="#adb5bd"/><rect x="166" y="138" width="8" height="18" rx="3" fill="#adb5bd"/>
-      ${tl(54, 140, 14, 20)}${tl(252, 140, 14, 20)}
-      ${bumper(38, 282, 162)}` },
-  rocket: { half: 104, roof: [160, 70], mount: [104, 96], win: [194, 102], deco: [204, 146], smoke: [160, 124],
-    svg: () => `
-      <path d="M160 72 L148 36 L172 36 Z" fill="var(--paint)" filter="brightness(.8)"/>
-      <path d="M112 142 L58 176 L102 116 Z" fill="var(--paint)" filter="brightness(.8)"/>
-      <path d="M208 142 L262 176 L218 116 Z" fill="var(--paint)" filter="brightness(.8)"/>
-      <circle cx="160" cy="124" r="56" fill="var(--paint)"/>
-      <circle cx="160" cy="124" r="54" fill="none" stroke="#00000022" stroke-width="5"/>
-      <circle cx="160" cy="124" r="30" fill="#adb5bd"/><circle cx="160" cy="124" r="22" fill="#495057"/>
-      <g class="rearFlame"><circle cx="160" cy="124" r="17" fill="#ff9f1c"/><circle cx="160" cy="124" r="9" fill="#ffd60a"/></g>
-      <rect x="70" y="164" width="180" height="10" rx="5" fill="#495057"/>` },
-  ufo: { half: 100, roof: [160, 60], mount: [42, 128], win: [160, 92], deco: [160, 140], smoke: [160, 160],
-    svg: () => `
-      <path d="M112 122 Q112 60 160 60 Q208 60 208 122 Z" fill="#bde0fe"/>
-      <path d="M140 72 Q160 64 176 72" stroke="#ffffffcc" stroke-width="5" fill="none" stroke-linecap="round"/>
-      <path d="M180 66 L190 42" stroke="#adb5bd" stroke-width="5" stroke-linecap="round"/><circle cx="191" cy="38" r="7" fill="#ffd60a"/>
-      <ellipse cx="160" cy="134" rx="132" ry="30" fill="var(--paint)"/>
-      <ellipse cx="160" cy="144" rx="96" ry="18" fill="var(--paint)" filter="brightness(.8)"/>
-      <circle cx="44" cy="134" r="6" fill="#ffd60a"/><circle cx="92" cy="148" r="6" fill="#ffd60a"/><circle cx="160" cy="153" r="6" fill="#ffd60a"/>
-      <circle cx="228" cy="148" r="6" fill="#ffd60a"/><circle cx="276" cy="134" r="6" fill="#ffd60a"/>
-      <rect x="80" y="158" width="160" height="12" rx="6" fill="#495057"/>` },
-  limo: { half: 122, roof: [160, 90], mount: [38, 118], win: [160, 104], deco: [160, 148], smoke: [86, 160],
-    svg: () => `
-      <path d="M74 120 L92 90 L228 90 L246 120 Z" fill="var(--paint)"/>
-      <path d="M96 114 L108 96 L212 96 L224 114 Z" fill="#bde0fe"/>
-      <path d="M28 132 Q28 118 42 118 L278 118 Q292 118 292 132 L292 160 L28 160 Z" fill="var(--paint)"/>
-      <path d="M32 134 H288" stroke="#ffd700" stroke-width="5" stroke-linecap="round"/>
-      ${tl(34, 122, 36, 9)}${tl(250, 122, 36, 9)}
-      <rect x="24" y="156" width="272" height="14" rx="6" fill="#adb5bd"/>` },
-  dragon: { half: 104, roof: [160, 50], mount: [72, 102], win: [160, 126], deco: [116, 138], smoke: [160, 56],
-    svg: () => `
-      <path d="M130 72 L118 44 L144 64 Z" fill="#ffd60a"/><path d="M190 72 L202 44 L176 64 Z" fill="#ffd60a"/>
-      <circle cx="160" cy="80" r="30" fill="var(--paint)"/>
-      <path d="M76 122 Q28 88 40 50 Q64 86 102 104 Z" fill="var(--paint)" filter="brightness(1.15)"/>
-      <path d="M244 122 Q292 88 280 50 Q256 86 218 104 Z" fill="var(--paint)" filter="brightness(1.15)"/>
-      <rect x="62" y="98" width="196" height="72" rx="32" fill="var(--paint)"/>
-      <path d="M148 102 L160 78 L172 102 Z M151 84 L160 64 L169 84 Z" fill="var(--paint)" filter="brightness(.75)"/>
-      <path d="M86 132 Q96 122 106 132 Q116 122 126 132 M194 132 Q204 122 214 132 Q224 122 234 132" stroke="#00000026" stroke-width="5" fill="none"/>
-      <path d="M160 156 Q160 190 196 190 Q214 190 212 176" stroke="var(--paint)" stroke-width="13" fill="none" stroke-linecap="round"/>
-      <path d="M204 180 L224 162 L224 186 Z" fill="var(--paint)" filter="brightness(.8)"/>
-      ${bumper(56, 264, 158)}` },
-  train: { half: 112, roof: [110, 60], mount: [56, 62], win: [208, 106], deco: [110, 146], smoke: [181, 40],
-    svg: () => `
-      <circle cx="182" cy="24" r="11" fill="#fff" opacity=".95"/><circle cx="198" cy="14" r="8" fill="#fff" opacity=".9"/><circle cx="166" cy="14" r="7" fill="#fff" opacity=".9"/>
-      <rect x="172" y="38" width="18" height="30" rx="3" fill="#343a40"/>
-      <rect x="62" y="68" width="196" height="98" rx="10" fill="var(--paint)"/>
-      <rect x="52" y="58" width="216" height="16" rx="6" fill="var(--paint)" filter="brightness(.8)"/>
-      <rect x="82" y="88" width="56" height="36" rx="6" fill="#bde0fe"/><rect x="182" y="88" width="56" height="36" rx="6" fill="#bde0fe"/>
-      <rect x="146" y="92" width="28" height="70" rx="4" fill="var(--paint)" filter="brightness(.85)"/>
-      <circle cx="80" cy="148" r="7" fill="#e63946" class="tailLight"/><circle cx="240" cy="148" r="7" fill="#e63946" class="tailLight"/>
-      <rect x="148" y="164" width="24" height="12" rx="3" fill="#343a40"/>
-      ${bumper(46, 274, 160)}` },
-  royal: { half: 104, roof: [216, 94], mount: [72, 100], win: [160, 122], deco: [98, 130], smoke: [160, 160],
-    svg: () => `
-      <rect x="64" y="90" width="192" height="76" rx="30" fill="var(--paint)"/>
-      <ellipse cx="160" cy="92" rx="36" ry="10" fill="#e63946"/>
-      <path d="M132 70 L132 44 L146 58 L160 36 L174 58 L188 44 L188 70 Z" fill="#ffd700"/>
-      <rect x="132" y="68" width="56" height="22" rx="5" fill="#ffd700"/>
-      <circle cx="132" cy="42" r="4.5" fill="#ffd700"/><circle cx="160" cy="33" r="4.5" fill="#ffd700"/><circle cx="188" cy="42" r="4.5" fill="#ffd700"/>
-      <circle cx="144" cy="79" r="4" fill="#e63946"/><circle cx="160" cy="79" r="4" fill="#1e88e5"/><circle cx="176" cy="79" r="4" fill="#43a047"/>
-      <rect x="128" y="102" width="64" height="42" rx="12" fill="#bde0fe"/>
-      <path d="M132 102 Q142 122 132 144 L128 144 L128 102 Z M188 102 Q178 122 188 144 L192 144 L192 102 Z" fill="#e63946"/>
-      <rect x="126" y="100" width="68" height="46" rx="12" fill="none" stroke="#ffd700" stroke-width="4"/>
-      <path d="M222 120 Q238 112 242 128 Q244 140 232 136" stroke="#ffd700" stroke-width="4" fill="none" stroke-linecap="round"/>
-      <rect x="72" y="150" width="176" height="6" fill="#ffd700"/>
-      <circle cx="84" cy="158" r="7" fill="#ffd700"/><circle cx="114" cy="158" r="7" fill="#ffd700"/><circle cx="144" cy="158" r="7" fill="#ffd700"/>
-      <circle cx="176" cy="158" r="7" fill="#ffd700"/><circle cx="206" cy="158" r="7" fill="#ffd700"/><circle cx="236" cy="158" r="7" fill="#ffd700"/>
-      ${bumper(56, 264, 162)}` }
-};
-/* rear tire: tread bands scroll down as the wheels roll (class treadRoll), outer
-   sidewall shows the hub color, plus a per-style accent */
-function rearTire(type, cx, side, uid) {
-  const r = WHEELS[type].r, hub = WHEELS[type].hub;
-  const th = Math.round(r * 1.75);
-  const tw = type === "racing" ? 48 : type === "tank" ? 60 : Math.round(28 + r * 0.45);
-  const x = cx - tw / 2, y = 200 - th, id = "tc" + uid + (side < 0 ? "l" : "r");
-  const outerX = side < 0 ? x - 3 : x + tw - 5;
-  let tread = "";
-  for (let ty = y - 14; ty < 214; ty += 14) tread += `<rect x="${x + 4}" y="${ty}" width="${tw - 8}" height="5" rx="2" fill="#41444a"/>`;
-  let decor = "";
-  if (type === "monster" || type === "tank") {
-    for (let ty = y + 6; ty < 196; ty += 13) decor += `<rect x="${side < 0 ? x - 6 : x + tw - 2}" y="${ty}" width="8" height="8" rx="2" fill="#111"/>`;
-  }
-  if (type === "gold") decor = `<rect x="${outerX - 1}" y="${y + 4}" width="9" height="${th - 8}" rx="4" fill="#ffd700"/><rect x="${outerX + 1}" y="${y + 10}" width="3" height="${th * 0.35}" rx="1.5" fill="#fff8c4"/>`;
-  if (type === "flower") for (let k = 0; k < 3; k++) decor += `<circle cx="${outerX + 3}" cy="${y + th * (0.25 + k * 0.25)}" r="6" fill="#fff"/><circle cx="${outerX + 3}" cy="${y + th * (0.25 + k * 0.25)}" r="2.5" fill="#ff70a6"/>`;
-  if (type === "glow") decor = `<rect x="${x - 4}" y="${y - 4}" width="${tw + 8}" height="${th + 8}" rx="${tw * 0.4}" fill="none" stroke="#b388ff" stroke-width="5" opacity=".55"/>`;
-  if (type === "star") decor = `<path d="M0 -5.5 L1.7 -1.9 L5.6 -1.6 L2.7 1 L3.5 5 L0 2.9 L-3.5 5 L-2.7 1 L-5.6 -1.6 L-1.7 -1.9 Z" fill="#fff" transform="translate(${cx},${y + th / 2}) scale(1.6)"/>`;
-  return `<clipPath id="${id}"><rect x="${x}" y="${y}" width="${tw}" height="${th}" rx="${Math.min(tw, th) * 0.3}"/></clipPath>
-    <rect x="${x}" y="${y}" width="${tw}" height="${th}" rx="${Math.min(tw, th) * 0.3}" fill="#2b2d31"/>
-    <g clip-path="url(#${id})"><g class="treadRoll">${tread}</g></g>
-    <rect x="${outerX}" y="${y + th * 0.18}" width="8" height="${th * 0.64}" rx="4" fill="${hub}"/>
-    ${decor}`;
+/* ============ CHASE-CAM VEHICLE: the build as chunky 3D toy blocks, seen from behind ============ */
+/* Each body is boxes / cylinders / hulls in car space (x lateral, y up, z forward from the rear
+   bumper), projected through the same camera as the road, so you see the roof, the cab past
+   the bed, the hood running off toward the horizon and the front wheels poking out ahead.
+   SVG origin = the rear bumper's ground point (stage 600,650); units = stage px at the car.
+   Painter's order: far z0 first, then low y0 first. A part resting on another shares its z0
+   (split the one underneath otherwise); `late` parts (rails, stacks, horns) draw last. */
+const VS = z => CAM_D / (z + CAM_D);
+const vp = (x, y, z) => { const s = VS(z); return [x * s, (CAM_H - y) * s - CAM_H]; };
+const fx = n => n.toFixed(1);
+const ptStr = a => a.map(p => fx(p[0]) + "," + fx(p[1])).join(" ");
+const vpoly = (pts, fill, extra = "") => `<polygon points="${ptStr(pts)}" fill="${fill}" stroke-linejoin="round" ${extra}/>`;
+function hull2(pts) {
+  pts = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const p of pts) { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; while (up.length > 1 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+  lo.pop(); up.pop();
+  return lo.concat(up);
 }
-function rearExtrasSVG(R, extras, hasBuddy) {
-  const [rx, ry] = R.roof, [fx, fy] = R.mount;
-  let out = "";
-  if (extras.horn) out += `<g transform="translate(${rx - 70},${ry - 14}) scale(-1,1)"><path d="M4 14 Q4 4 16 4 L30 -4 L30 24 L16 16 Q4 16 4 14Z" fill="#ffd60a" stroke="#023047" stroke-width="3"/></g>`;
-  if (extras.beacon) out += `
-    <g transform="translate(${rx + 52},${ry - 26})">
-      <rect x="-14" y="18" width="28" height="8" rx="4" fill="#adb5bd"/>
-      <path d="M-10 18 Q-10 -2 0 -2 Q10 -2 10 18Z" fill="#ff9f1c" stroke="#e76f51" stroke-width="2"/>
-      <g class="spinner"><path d="M0 8 L0 -14" stroke="#ffd60a" stroke-width="5" stroke-linecap="round"/></g>
-    </g>`;
-  if (extras.flag) out += `
-    <g transform="translate(${fx},${fy})">
-      <path d="M0 0 V-52" stroke="#6c757d" stroke-width="5" stroke-linecap="round"/>
-      <path d="M-2 -50 L-38 -42 L-2 -30 Z" fill="#e63946"/>
-    </g>`;
-  if (typeof NEW_EXTRAS_SVG !== "undefined") {
-    const wy = 120, wx = 160 - R.half - 2;
-    if (extras.wings) out += NEW_EXTRAS_SVG.wings(wx, wy) + `<g transform="translate(320,0) scale(-1,1)">${NEW_EXTRAS_SVG.wings(wx, wy)}</g>`;
-    if (extras.booster) out += `
-      <g transform="translate(160,${R.deco[1]})">
-        <circle r="17" fill="#ced4da" stroke="#023047" stroke-width="3"/><circle r="11" fill="#495057"/>
-        <g class="rearFlame"><circle r="9" fill="#ff9f1c"/><circle r="4.5" fill="#ffd60a"/></g>
-      </g>`;
-    if (extras.partyhat) out += NEW_EXTRAS_SVG.partyhat(hasBuddy ? rx : rx + 34, hasBuddy ? ry - 40 : ry);
+/* a ring around the z axis (cylinder end) and one in the ground plane (saucer/dome slice) */
+const ringZ = (cx, cy, r, z) => [...Array(20)].map((_, i) => [cx + r * Math.cos(i * Math.PI / 10), cy + r * Math.sin(i * Math.PI / 10), z]);
+const ringY = (y, R, zc) => [...Array(24)].map((_, i) => [R * Math.cos(i * Math.PI / 12), y, zc + R * Math.sin(i * Math.PI / 12)]);
+
+const VP = "var(--paint)", VG = "#bde0fe", VD = "#495057", VM = "#6c757d", VK = "#343a40", VR = "#e63946";
+/* part constructors */
+const box = (x0, x1, y0, y1, z0, z1, fill, o = {}) => ({ k: "box", x0, x1, y0, y1, z0, z1, y1f: o.y1f ?? y1, fill, ...o });
+const cbox = (w, y0, y1, z0, z1, fill, o) => box(-w, w, y0, y1, z0, z1, fill, o);
+const cyl = (yb, rb, z0, yf, rf, z1, fill, o = {}) => ({ k: "cyl", x: 0, yb, rb, z0, yf, rf, z1, y0: yb - rb, fill, ...o });
+const hullP = (rings, fill, o = {}) => ({ k: "hull", rings, fill, z0: o.z0 ?? 0, y0: o.y0 ?? 0, ...o });
+const spr = (x, y, z, svg, sc = 1, o = {}) => ({ k: "spr", x, y, z, svg, sc, z0: z, y0: y, ...o });
+
+/* helpers for paint on a box's back face (y measured before lift; the face knows its lift) */
+const tail = (x, y, w = 22, h = 14) => F => F(x, y, x + w, y + h, VR, 'class="tailLight"');
+
+const CAR3D = {
+  dump: { len: 450, half: 104, axles: [80, 370],
+    roof: [0, 196, 350], mount: [-104, 126, 8], deco: [0, 88, 0], win: [0, 160, 300], smoke: [73, 240, 296],
+    parts: () => [
+      cbox(108, 40, 126, 0, 250, VP, { topDark: true, deco: (F) =>
+        F(-92, 104, 92, 110, "#00000022") + F(-92, 66, 92, 72, "#00000022") + tail(-100, 50)(F) + tail(78, 50)(F) + F(-108, 34, 108, 48, VD) }),
+      spr(0, 126, 125, `<path d="M-90 0 Q-60 -34 -20 -22 Q10 -44 40 -24 Q76 -32 92 0 Z" fill="#b08968"/>`, 1, { late: true }),
+      cbox(94, 40, 64, 250, 300, VD),
+      cbox(96, 40, 196, 300, 400, VP, { deco: F => F(-64, 136, 64, 178, VG) }),
+      cbox(90, 40, 120, 400, 450, VP),
+      box(66, 80, 196, 240, 292, 300, VM, { late: true })
+    ] },
+  digger: { len: 340, half: 104, axles: [70, 270],
+    roof: [-43, 206, 105], mount: [-100, 110, 4], deco: [0, 75, 0], win: [-43, 172, 40], smoke: [78, 150, 34],
+    parts: () => [
+      cbox(104, 40, 110, 0, 40, VP, { deco: F => F(-104, 92, 104, 98, "#00000026") + tail(-96, 58)(F) + tail(74, 58)(F) }),
+      cbox(104, 40, 96, 40, 340, VP),
+      box(-96, 10, 96, 206, 40, 170, VP, { deco: F => F(-84, 150, -2, 192, VG) }),
+      box(30, 54, 96, 120, 40, 300, VM, { y1f: 250 }),
+      box(22, 62, 180, 252, 300, 340, VM),
+      box(72, 84, 110, 150, 28, 40, VM, { late: true })
+    ] },
+  mixer: { len: 470, half: 98, axles: [80, 380],
+    roof: [0, 160, 380], mount: [-98, 64, 10], deco: [62, 44, 0], win: [0, 130, 330], smoke: [80, 175, 330],
+    parts: () => [
+      cbox(98, 34, 54, 0, 20, VD, { deco: F => tail(-94, 38)(F) + tail(72, 38)(F) }),
+      box(-16, 16, 54, 92, 0, 20, VM),
+      cbox(90, 36, 64, 20, 330, VD),
+      cyl(140, 78, 20, 162, 58, 300, VP, { deco: (F, C) => C(0, 140, 40, "#00000022") +
+        `<g transform="translate(${fx(vp(0, 140, 20)[0])},${fx(vp(0, 140, 20)[1])}) scale(${fx(VS(20))})"><g class="spinner" style="animation-duration:2.2s"><path d="M0 -36 Q30 -28 24 0 Q18 26 -8 24 Q-26 18 -22 -2" stroke="#ffffffbb" stroke-width="9" fill="none" stroke-linecap="round"/></g></g>` }),
+      cbox(94, 40, 160, 330, 430, VP, { deco: F => F(-62, 106, 62, 142, VG) }),
+      cbox(88, 40, 110, 430, 470, VP),
+      box(74, 86, 160, 200, 322, 330, VM, { late: true })
+    ] },
+  fire: { len: 450, half: 104, axles: [80, 370],
+    roof: [64, 172, 392], mount: [-104, 152, 6], deco: [0, 100, 0], win: [52, 124, 0], smoke: [90, 178, 360],
+    parts: () => [
+      cbox(104, 40, 152, 0, 330, VP, { deco: (F, C) => F(-92, 66, -8, 140, "#e9ecef") + F(8, 66, 92, 140, "#e9ecef") +
+        F(22, 112, 82, 134, VG) + C(-50, 104, 16, "#ffd60a", 'stroke="#adb5bd" stroke-width="4"') + F(-104, 50, 104, 58, "#fff") +
+        F(-100, 140, -84, 150, "#ffd60a") + F(84, 140, 100, 150, "#ffd60a") + tail(-102, 76, 12, 16)(F) + tail(90, 76, 12, 16)(F) +
+        F(-110, 34, 110, 48, VD) }),
+      cbox(100, 40, 172, 330, 440, VP),
+      box(-56, -44, 152, 164, 0, 410, "#adb5bd", { late: true }),
+      box(44, 56, 152, 164, 0, 410, "#adb5bd", { late: true }),
+      ...[30, 80, 130, 180, 230, 280, 330, 380].map(z => box(-44, 44, 154, 161, z, z + 9, "#ced4da", { late: true }))
+    ] },
+  monster: { len: 400, half: 100, axles: [80, 320],
+    roof: [0, 198, 215], mount: [-100, 118, 6], deco: [0, 90, 0], win: [0, 165, 130], smoke: [86, 206, 256],
+    parts: () => [
+      cbox(100, 62, 118, 0, 130, VP, { topDark: true, deco: F => tail(-96, 98)(F) + tail(74, 98)(F) + F(-104, 62, 104, 76, VD) +
+        `<path d="M-90 -86 Q-70 -98 -54 -86 Q-38 -74 -22 -86 Q-6 -98 10 -86 Q26 -74 42 -86 Q58 -98 74 -86 Q84 -80 90 -86" stroke="#ffd60a" stroke-width="7" fill="none" stroke-linecap="round"/>` }),
+      cbox(100, 62, 118, 130, 400, VP),
+      cbox(82, 118, 198, 130, 300, VP, { deco: F => F(-62, 140, 62, 186, VG) }),
+      box(80, 92, 118, 206, 250, 262, VM, { late: true })
+    ] },
+  police: { len: 440, half: 100, axles: [80, 360],
+    roof: [-52, 152, 175], mount: [-100, 92, 6], deco: [0, 58, 0], win: [0, 125, 140], smoke: [-60, 42, 0],
+    parts: () => [
+      cbox(100, 36, 92, 0, 140, VP, { deco: F => F(-100, 70, 100, 82, "#f8f9fa") + tail(-94, 84, 34, 8)(F) + tail(60, 84, 34, 8)(F) +
+        F(-104, 30, 104, 44, VD) + F(-22, 48, 22, 62, "#fff") +
+        `<path d="M0 -9 L2.2 -3.1 L8.6 -2.8 L3.6 1.2 L5.3 7.3 L0 3.8 L-5.3 7.3 L-3.6 1.2 L-8.6 -2.8 L-2.2 -3.1 Z" fill="#1d3557" transform="translate(0,-76)"/>` }),
+      cbox(100, 36, 92, 140, 320, VP),
+      cbox(86, 92, 152, 140, 320, VP, { deco: F => F(-70, 100, 70, 144, VG) }),
+      cbox(100, 36, 88, 320, 440, VP),
+      cbox(56, 152, 162, 205, 245, "#adb5bd", { late: true }),
+      box(-52, -4, 162, 178, 210, 240, VR, { late: true }),
+      box(4, 52, 162, 178, 210, 240, "#1e88e5", { late: true })
+    ] },
+  race: { len: 470, half: 112, axles: [90, 380],
+    roof: [0, 144, 24], mount: [-112, 78, 6], deco: [-62, 52, 0], win: [0, 100, 200], smoke: [-30, 42, 0],
+    parts: () => [
+      cbox(112, 30, 78, 0, 200, VP, { deco: (F, C) => tail(-104, 60, 50, 9)(F) + tail(54, 60, 50, 9)(F) + F(-10, 30, 10, 78, "#ffffffaa") +
+        C(-30, 42, 8, VK) + C(30, 42, 8, VK) }),
+      cbox(112, 30, 74, 200, 330, VP),
+      cbox(48, 74, 120, 200, 300, VG),
+      cbox(104, 30, 58, 330, 470, VP, { y1f: 44 }),
+      box(-68, -58, 78, 130, 14, 30, VK, { late: true }), box(58, 68, 78, 130, 14, 30, VK, { late: true }),
+      cbox(118, 130, 144, 0, 50, VP, { late: true, shade: .25 })
+    ] },
+  tractor: { len: 400, half: 92, axles: [70, 330], wheelScale: [1.45, 0.8],
+    roof: [0, 214, 75], mount: [-78, 214, 4], deco: [0, 100, 0], win: [0, 160, 0], smoke: [35, 225, 327],
+    parts: () => [
+      cbox(78, 60, 214, 0, 150, VP, { deco: F => F(-62, 124, 62, 198, VG) + tail(-70, 76, 16, 14)(F) + tail(54, 76, 16, 14)(F) + F(-16, 60, 16, 72, VK) }),
+      box(80, 142, 70, 128, 0, 150, VP, { shade: .2 }), box(-142, -80, 70, 128, 0, 150, VP, { shade: .2 }),
+      cbox(52, 60, 132, 150, 400, VP),
+      box(28, 42, 132, 216, 320, 334, VK, { late: true })
+    ] },
+  icecream: { len: 440, half: 104, axles: [80, 360],
+    roof: [-58, 196, 90], mount: [-104, 196, 6], deco: [52, 76, 0], win: [-48, 150, 0], smoke: [-60, 42, 0],
+    parts: () => [
+      cbox(104, 40, 196, 0, 330, VP, { deco: F => {
+        let s = F(-104, 178, 104, 196, VR);
+        for (let i = 0; i < 7; i++) s += F(-94 + i * 28, 178, -80 + i * 28, 196, "#fff");
+        return s + F(-88, 124, -12, 166, VG) + F(12, 124, 88, 166, VG) + F(-2, 46, 2, 176, "#00000033") +
+          F(-12, 92, -6, 112, "#adb5bd") + F(6, 92, 12, 112, "#adb5bd") + tail(-100, 60, 14, 22)(F) + tail(86, 60, 14, 22)(F) + F(-108, 34, 108, 48, VD);
+      } }),
+      cbox(96, 40, 148, 330, 440, VP),
+      spr(0, 196, 170, `<path d="M-17 -2 L17 -2 L0 40 Z" fill="#e6a23c" transform="translate(0,-40)"/><circle cx="0" cy="-50" r="19" fill="#ff70a6"/><circle cx="0" cy="-70" r="11" fill="#fff"/><circle cx="0" cy="-83" r="6" fill="#e63946"/>`, 1.4, { late: true })
+    ] },
+  rocket: { len: 480, half: 80, axles: [90, 380],
+    roof: [0, 184, 200], mount: [-58, 160, 30], deco: [44, 150, 0], win: [0, 150, 0], smoke: [0, 112, 0],
+    parts: () => [
+      cyl(112, 10, 470, 112, 10, 471, VP),
+      cyl(112, 70, 360, 112, 10, 470, VP),
+      box(-150, -60, 40, 128, 10, 120, VP, { y1f: 60, shade: .2 }), box(60, 150, 40, 128, 10, 120, VP, { y1f: 60, shade: .2 }),
+      cyl(112, 70, 0, 112, 70, 360, VP, { deco: (F, C) => C(0, 112, 64, "#00000014") + C(0, 112, 32, "#adb5bd") + C(0, 112, 24, VD) +
+        `<g class="rearFlame">${C(0, 112, 18, "#ff9f1c")}${C(0, 112, 10, "#ffd60a")}</g>` }),
+      box(-7, 7, 176, 240, 20, 130, VP, { y1f: 182, late: true })
+    ] },
+  ufo: { len: 300, half: 110, axles: [70, 230],
+    roof: [0, 146, 150], mount: [-140, 76, 150], deco: [0, 58, 2], win: [0, 112, 108], smoke: [0, 44, 30],
+    parts: () => [
+      hullP([ringY(40, 112, 150), ringY(58, 150, 150)], VP, { shade: .22 }),
+      hullP([ringY(58, 150, 150), ringY(76, 140, 150)], VP, { lite: .12, z0: -1 }),
+      hullP([ringY(76, 62, 150), ringY(104, 54, 150), ringY(126, 36, 150), ringY(138, 10, 150)], VG, { z0: -2 }),
+      spr(0, 0, 0, "", 1, { z0: -3, raw: L => [200, 230, 260, 290, 320, 340].map(a => {
+        const t = a * Math.PI / 180, p = vp(150 * Math.cos(t), 62 + L, 150 + 150 * Math.sin(t));
+        return `<circle cx="${fx(p[0])}" cy="${fx(p[1])}" r="6" fill="#ffd60a"/>`;
+      }).join("") })
+    ] },
+  limo: { len: 600, half: 104, axles: [90, 510],
+    roof: [0, 148, 250], mount: [-104, 90, 6], deco: [0, 60, 0], win: [0, 122, 150], smoke: [-60, 42, 0],
+    parts: () => [
+      cbox(104, 36, 90, 0, 150, VP, { deco: F => F(-104, 66, 104, 72, "#ffd700") + tail(-98, 76, 40, 9)(F) + tail(58, 76, 40, 9)(F) + F(-108, 30, 108, 44, "#adb5bd") }),
+      cbox(104, 36, 90, 150, 470, VP),
+      cbox(90, 90, 148, 150, 470, VP, { deco: F => F(-72, 98, 72, 140, VG) }),
+      cbox(104, 36, 86, 470, 600, VP)
+    ] },
+  dragon: { len: 400, half: 96, axles: [80, 320],
+    roof: [0, 232, 345], mount: [-90, 150, 6], deco: [-44, 100, 0], win: [0, 100, 0], smoke: [0, 242, 388],
+    parts: () => [
+      box(-28, 28, 36, 74, -116, -90, VP, { shade: .2 }),
+      box(-12, 12, 46, 70, -90, 0, VP, { y1f: 74 }),
+      box(96, 214, 118, 134, 60, 200, VP, { y1f: 212, lite: .15 }), box(-214, -96, 118, 134, 60, 200, VP, { y1f: 212, lite: .15 }),
+      cbox(96, 44, 150, 0, 300, VP, { deco: F => `<path d="M-80 -110 Q-70 -120 -60 -110 Q-50 -120 -40 -110 M40 -110 Q50 -120 60 -110 Q70 -120 80 -110" stroke="#00000026" stroke-width="5" fill="none"/>` + F(-100, 34, 100, 48, VD) }),
+      ...[20, 80, 140, 200, 260].map(z => box(-8, 8, 150, 178, z, z + 30, VP, { late: true, shade: .25 })),
+      cbox(54, 130, 232, 300, 390, VP),
+      box(-50, -34, 232, 272, 310, 330, "#ffd60a", { late: true }), box(34, 50, 232, 272, 310, 330, "#ffd60a", { late: true })
+    ] },
+  train: { len: 480, half: 100, axles: [80, 400],
+    roof: [-52, 220, 70], mount: [-100, 206, 4], deco: [-50, 92, 0], win: [52, 150, 0], smoke: [0, 262, 415],
+    parts: () => [
+      cbox(92, 40, 60, 150, 480, VD),
+      cyl(118, 74, 150, 118, 74, 460, VP, { deco: (F, C) => C(0, 118, 74, "#00000022") }),
+      box(-18, 18, 186, 252, 400, 430, VK, { late: true }), box(-22, 22, 186, 214, 290, 330, VP, { late: true, lite: .15 }),
+      cbox(100, 40, 206, 0, 150, VP, { deco: (F, C) => F(-84, 128, -28, 168, VG) + F(28, 128, 84, 168, VG) +
+        F(-14, 46, 14, 120, "#00000026") + C(-78, 66, 8, VR, 'class="tailLight"') + C(78, 66, 8, VR, 'class="tailLight"') + F(-104, 34, 104, 48, VD) }),
+      cbox(112, 206, 220, -10, 160, VP, { shade: .2 }),
+      spr(0, 262, 415, `<circle cx="0" cy="-14" r="18" fill="#fff" opacity=".95"/><circle cx="20" cy="-30" r="13" fill="#fff" opacity=".9"/><circle cx="-16" cy="-34" r="11" fill="#fff" opacity=".9"/>`, 1.2, { late: true })
+    ] },
+  royal: { len: 380, half: 96, axles: [70, 300],
+    roof: [62, 200, 120], mount: [-96, 200, 44], deco: [-52, 140, 40], win: [0, 150, 40], smoke: [0, 50, 0],
+    parts: () => [
+      box(-70, 70, 50, 62, 0, 40, "#8a5a2b"),
+      cbox(96, 60, 200, 40, 300, VP, { deco: (F, C) => F(-36, 120, 36, 172, VG) + F(-36, 120, -24, 172, VR) + F(24, 120, 36, 172, VR) +
+        F(-40, 116, 40, 120, "#ffd700") + F(-40, 172, 40, 176, "#ffd700") + F(-96, 78, 96, 84, "#ffd700") +
+        [-80, -48, -16, 16, 48, 80].map(x => C(x, 72, 7, "#ffd700")).join("") }),
+      cbox(70, 90, 130, 300, 370, "#8a5a2b"),
+      spr(0, 200, 170, `<ellipse cx="0" cy="-2" rx="40" ry="11" fill="#e63946"/><path d="M-28 -10 L-28 -40 L-14 -24 L0 -48 L14 -24 L28 -40 L28 -10 Z" fill="#ffd700"/><circle cx="-14" cy="-18" r="4" fill="#e63946"/><circle cx="0" cy="-18" r="4" fill="#1e88e5"/><circle cx="14" cy="-18" r="4" fill="#43a047"/>`, 1.3, { late: true })
+    ] }
+};
+
+function partSVG(p, L) {
+  /* paint-on-face helpers bound to this part's back plane */
+  const F = (x0, y0, x1, y1, fill, extra = "") => {
+    const a = vp(x0, y0 + L, p.z0), b = vp(x1, y1 + L, p.z0);
+    return `<rect x="${fx(Math.min(a[0], b[0]))}" y="${fx(Math.min(a[1], b[1]))}" width="${fx(Math.abs(b[0] - a[0]))}" height="${fx(Math.abs(b[1] - a[1]))}" rx="${fx(Math.min(6, Math.abs(b[1] - a[1]) / 2))}" fill="${fill}" ${extra}/>`;
+  };
+  const C = (x, y, r, fill, extra = "") => { const c = vp(x, y + L, p.z0); return `<circle cx="${fx(c[0])}" cy="${fx(c[1])}" r="${fx(r * VS(p.z0))}" fill="${fill}" ${extra}/>`; };
+  if (p.k === "box") {
+    const y0 = p.y0 + L, y1 = p.y1 + L, yf = p.y1f + L;
+    let out = "";
+    const sideAt = x => [vp(x, y0, p.z0), vp(x, y1, p.z0), vp(x, yf, p.z1), vp(x, y0, p.z1)];
+    if (p.x0 > 0) { const f = sideAt(p.x0); out += vpoly(f, p.fill) + vpoly(f, "#000", 'opacity=".2"'); }
+    if (p.x1 < 0) { const f = sideAt(p.x1); out += vpoly(f, p.fill) + vpoly(f, "#000", 'opacity=".2"'); }
+    if (Math.max(y1, yf) < CAM_H) {
+      const t = [vp(p.x0, y1, p.z0), vp(p.x1, y1, p.z0), vp(p.x1, yf, p.z1), vp(p.x0, yf, p.z1)];
+      out += vpoly(t, p.fill) + vpoly(t, p.topDark ? "#000" : "#fff", `opacity="${p.topDark ? .28 : .2}"`);
+    }
+    const bk = [vp(p.x0, y0, p.z0), vp(p.x1, y0, p.z0), vp(p.x1, y1, p.z0), vp(p.x0, y1, p.z0)];
+    out += vpoly(bk, p.fill, 'stroke="#00000026" stroke-width="3"');
+    if (p.shade) out += vpoly(bk, "#000", `opacity="${p.shade}"`);
+    if (p.lite) out += vpoly(bk, "#fff", `opacity="${p.lite}"`);
+    return out + (p.deco ? p.deco(F, C) : "");
   }
+  if (p.k === "cyl") {
+    const back = ringZ(0, p.yb + L, p.rb, p.z0).map(q => vp(...q));
+    const front = ringZ(0, p.yf + L, p.rf, p.z1).map(q => vp(...q));
+    const h = hull2(back.concat(front));
+    return vpoly(h, p.fill) + vpoly(h, "#fff", 'opacity=".14"') + vpoly(back, p.fill, 'stroke="#00000026" stroke-width="3"') + (p.deco ? p.deco(F, C) : "");
+  }
+  if (p.k === "hull") {
+    const pts = hull2(p.rings.flat().map(q => vp(q[0], q[1] + L, q[2])));
+    return vpoly(pts, p.fill, 'stroke="#00000026" stroke-width="3"') + (p.shade ? vpoly(pts, "#000", `opacity="${p.shade}"`) : "") + (p.lite ? vpoly(pts, "#fff", `opacity="${p.lite}"`) : "");
+  }
+  if (p.k === "spr") {
+    if (p.raw) return p.raw(L);
+    const [px, py] = vp(p.x, p.y + L, p.z);
+    return `<g transform="translate(${fx(px)},${fx(py)}) scale(${(VS(p.z) * p.sc).toFixed(3)})">${p.svg}</g>`;
+  }
+  if (p.k === "tire") return tire3D(p);
+  return "";
+}
+/* tires: dark blocks; rear ones show scrolling tread + the style accent on their back face */
+function tire3D(t) {
+  const x0 = t.cx - t.tw / 2, x1 = t.cx + t.tw / 2, h = t.r * 1.84, z0 = t.zc - t.r * 0.8, z1 = t.zc + t.r * 0.8;
+  let out = "";
+  const inner = t.cx > 0 ? x0 : x1;
+  out += vpoly([vp(inner, 0, z0), vp(inner, h, z0), vp(inner, h, z1), vp(inner, 0, z1)], "#1d1f23");
+  out += vpoly([vp(x0, h, z0), vp(x1, h, z0), vp(x1, h, z1), vp(x0, h, z1)], "#3a3d43", 'stroke="#3a3d43" stroke-width="6"');
+  const a = vp(x0, h, z0), b = vp(x1, 0, z0);
+  const x = a[0], y = a[1], tw = b[0] - a[0], th = b[1] - a[1], rr = Math.min(tw, th) * 0.3;
+  const id = "tc" + t.uid + (t.cx < 0 ? "l" : "r") + (t.rear ? "b" : "f");
+  out += `<rect x="${fx(x)}" y="${fx(y)}" width="${fx(tw)}" height="${fx(th)}" rx="${fx(rr)}" fill="#2b2d31"/>`;
+  if (t.rear) {
+    let tread = "";
+    for (let ty = y - 14; ty < y + th + 14; ty += 14) tread += `<rect x="${fx(x + 4)}" y="${fx(ty)}" width="${fx(tw - 8)}" height="5" rx="2" fill="#41444a"/>`;
+    out += `<clipPath id="${id}"><rect x="${fx(x)}" y="${fx(y)}" width="${fx(tw)}" height="${fx(th)}" rx="${fx(rr)}"/></clipPath><g clip-path="url(#${id})"><g class="treadRoll">${tread}</g></g>`;
+  }
+  const side = t.cx < 0 ? -1 : 1, hub = WHEELS[t.type].hub, type = t.type;
+  const outerX = side < 0 ? x - 3 : x + tw - 5;
+  out += `<rect x="${fx(outerX)}" y="${fx(y + th * 0.18)}" width="8" height="${fx(th * 0.64)}" rx="4" fill="${hub}"/>`;
+  if (type === "monster" || type === "tank") for (let ty = y + 6; ty < y + th - 4; ty += 13) out += `<rect x="${fx(side < 0 ? x - 6 : x + tw - 2)}" y="${fx(ty)}" width="8" height="8" rx="2" fill="#111"/>`;
+  if (type === "gold") out += `<rect x="${fx(outerX - 1)}" y="${fx(y + 4)}" width="9" height="${fx(th - 8)}" rx="4" fill="#ffd700"/>`;
+  if (type === "flower") for (let k = 0; k < 3; k++) out += `<circle cx="${fx(outerX + 3)}" cy="${fx(y + th * (0.25 + k * 0.25))}" r="6" fill="#fff"/><circle cx="${fx(outerX + 3)}" cy="${fx(y + th * (0.25 + k * 0.25))}" r="2.5" fill="#ff70a6"/>`;
+  if (type === "glow") out += `<rect x="${fx(x - 4)}" y="${fx(y - 4)}" width="${fx(tw + 8)}" height="${fx(th + 8)}" rx="${fx(rr + 4)}" fill="none" stroke="#b388ff" stroke-width="5" opacity=".55"/>`;
+  if (type === "star") out += `<path d="M0 -5.5 L1.7 -1.9 L5.6 -1.6 L2.7 1 L3.5 5 L0 2.9 L-3.5 5 L-2.7 1 L-5.6 -1.6 L-1.7 -1.9 Z" fill="#fff" transform="translate(${fx(x + tw / 2)},${fx(y + th / 2)}) scale(1.6)"/>`;
   return out;
 }
+let carLen = 450, carHalf = 104;
 function vehicleRearSVG(st) {
-  const R = REAR[st.body] || REAR.dump;
-  const lift = Math.max(0, WHEELS[st.wheels].r - 26);
+  const R = CAR3D[st.body] || CAR3D.dump;
   const uid = ++svgUid;
+  const r = WHEELS[st.wheels].r;
+  const L = 12 + Math.max(0, r - 26) * 1.3;   /* ride height: big wheels jack the body up */
+  carLen = R.len; carHalf = R.half;
   let paint = st.color, defs = "";
   if (st.color === "rainbow") {
-    defs = `<defs><linearGradient id="rg${uid}" x1="0" y1="0" x2="1" y2="0">
+    defs = `<defs><linearGradient id="rg${uid}" gradientUnits="userSpaceOnUse" x1="-130" y1="0" x2="130" y2="0">
       <stop offset="0" stop-color="#e53935"/><stop offset=".2" stop-color="#fb8c00"/>
       <stop offset=".4" stop-color="#fdd835"/><stop offset=".6" stop-color="#43a047"/>
       <stop offset=".8" stop-color="#1e88e5"/><stop offset="1" stop-color="#8e24aa"/>
     </linearGradient></defs>`;
     paint = `url(#rg${uid})`;
   }
+  /* tires: rear + front axle, outboard of the body */
+  const tw = st.wheels === "racing" ? 48 : st.wheels === "tank" ? 60 : Math.round(28 + r * 0.45);
+  const [wsR, wsF] = R.wheelScale || [1, 1];
+  const tires = [];
+  [[R.axles[0], wsR, true], [R.axles[1], wsF, false]].forEach(([zc, ws, rear]) => {
+    for (const side of [-1, 1]) tires.push({ k: "tire", type: st.wheels, uid, rear, cx: side * (R.half + tw / 2 - 6), tw: tw * Math.min(1.3, ws), r: r * ws, zc, z0: zc - r * ws * 0.8, y0: 0 });
+  });
+  const parts = R.parts().concat(tires);
+  const normal = parts.filter(p => !p.late).sort((a, b) => (b.z0 - a.z0) || (a.y0 - b.y0));
+  const late = parts.filter(p => p.late).sort((a, b) => (b.z0 - a.z0) || (a.y0 - b.y0));
+  const body = normal.concat(late).map(p => p.k === "tire" ? partSVG(p, 0) : partSVG(p, L)).join("");
+
+  /* overlay anchors: project a car-space point, return [x, y, scale] */
+  const A = (q, dx = 0, dy = 0) => { const [x, y] = vp(q[0] + dx, q[1] + L + dy, q[2]); return [x, y, VS(q[2])]; };
+  const at = (q, inner, k = 1, mirror = false) => { const [x, y, s] = A(q); return `<g transform="translate(${fx(x)},${fx(y)}) scale(${mirror ? "-" : ""}${(s * k).toFixed(3)},${(s * k).toFixed(3)})">${inner}</g>`; };
   const hasBuddy = !!(st.buddy && progress.owned.buddy.includes(st.buddy));
-  const buddy = hasBuddy
-    ? `<g transform="translate(${R.roof[0] - 32},${R.roof[1] + 4})"><g class="buddyBob">${BUDDY_SVG[st.buddy]}</g></g>` : "";
-  const tx = 160 + R.half + 4;   /* tires sit outboard so they read beside the body */
-  const [wx, wy] = R.win, [sx, sy] = R.smoke;
-  const dy = R.deco[1], dx = R.deco[0] - (st.extras.booster && Math.abs(R.deco[0] - 160) < 40 ? 66 : 0);   /* booster owns the center */
-  return `<svg viewBox="0 0 320 230" style="--paint:${paint}">
+  let over = "";
+  if (hasBuddy) over += at(R.roof, `<g transform="translate(-32,4)"><g class="buddyBob">${BUDDY_SVG[st.buddy]}</g></g>`, 1.2);
+  const ex = st.extras;
+  if (ex.horn) over += at(R.roof, `<g transform="translate(-58,-14) scale(-1,1)"><path d="M4 14 Q4 4 16 4 L30 -4 L30 24 L16 16 Q4 16 4 14Z" fill="#ffd60a" stroke="#023047" stroke-width="3"/></g>`, 1.2);
+  if (ex.beacon) over += at(R.roof, `<g transform="translate(52,-26)"><rect x="-14" y="18" width="28" height="8" rx="4" fill="#adb5bd"/>
+      <path d="M-10 18 Q-10 -2 0 -2 Q10 -2 10 18Z" fill="#ff9f1c" stroke="#e76f51" stroke-width="2"/>
+      <g class="spinner"><path d="M0 8 L0 -14" stroke="#ffd60a" stroke-width="5" stroke-linecap="round"/></g></g>`, 1.2);
+  if (ex.flag) over += at(R.mount, `<path d="M0 0 V-60" stroke="#6c757d" stroke-width="5" stroke-linecap="round"/><path d="M-2 -58 L-40 -49 L-2 -36 Z" fill="#e63946"/>`, 1.1);
+  if (typeof NEW_EXTRAS_SVG !== "undefined") {
+    const wq = [-R.half, 110, 60], wq2 = [R.half, 110, 60];
+    if (ex.wings) over += at(wq, NEW_EXTRAS_SVG.wings(0, 0), 1.6) + at(wq2, NEW_EXTRAS_SVG.wings(0, 0), 1.6, true);
+    if (ex.booster) over += at([0, R.deco[1], R.deco[2]], `<circle r="17" fill="#ced4da" stroke="#023047" stroke-width="3"/><circle r="11" fill="#495057"/>
+        <g class="rearFlame"><circle r="9" fill="#ff9f1c"/><circle r="4.5" fill="#ffd60a"/></g>`, 1.2);
+    if (ex.partyhat) over += at(hasBuddy ? R.roof : [R.roof[0] + 34, R.roof[1], R.roof[2]], NEW_EXTRAS_SVG.partyhat(0, hasBuddy ? -40 : 0), 1.2);
+  }
+  const dq = [R.deco[0] - (ex.booster && Math.abs(R.deco[0]) < 40 ? 62 : 0), R.deco[1], R.deco[2]];
+  if (st.decal && st.decal !== "none" && DECAL_SVG[st.decal]) over += at(dq, DECAL_SVG[st.decal], 0.6);
+  const rz = R.deco[2];
+  over += `<g class="mudSpots" style="opacity:${progress.muddy ? 1 : 0}">${
+    [[-R.half + 22, 52, 9], [-30, 44, 7], [34, 48, 8], [R.half - 20, 56, 6]].map(([x, y, rr]) => { const [px, py, s] = A([x, y, rz]); return `<circle cx="${fx(px)}" cy="${fx(py)}" r="${fx(rr * s)}" fill="#6b4423"/>`; }).join("")}</g>`;
+  over += `<g class="dmgScuff" style="display:${progress.damage >= 1 ? "" : "none"}">${at(dq, `<g stroke="#37474f" stroke-width="3" stroke-linecap="round" opacity=".75" fill="none"><path d="M-52 -6 l22 -6 M-46 4 l16 -4 M34 -8 l18 6"/></g>`)}${
+    at([R.mount[0] + 18, R.mount[1] - 14, R.mount[2]], `<g transform="rotate(-18)"><rect x="-16" y="-6" width="32" height="12" rx="6" fill="#e9d8c3"/><rect x="-6" y="-16" width="12" height="32" rx="6" fill="#e9d8c3"/><circle r="3" fill="#c9b697"/></g>`)}</g>`;
+  over += `<g class="dmgCrack" style="display:${progress.damage >= 3 ? "" : "none"}">${at(R.win, `<path d="M6 -12 l-9 9 l11 7 l-7 9 M-3 -3 l-9 3 M8 4 l10 5" stroke="#f8f9fa" stroke-width="3" fill="none" opacity=".9"/>`, 1.2)}</g>`;
+  const [sx, sy, ss] = A(R.smoke);
+  over += `<g class="dmgSmoke" style="display:${progress.damage >= 5 ? "" : "none"}" fill="#90a4ae">
+      <circle cx="${fx(sx)}" cy="${fx(sy)}" r="${fx(13 * ss)}" opacity=".85"/>
+      <circle cx="${fx(sx + 8 * ss)}" cy="${fx(sy - 6 * ss)}" r="${fx(10 * ss)}" opacity=".7" style="animation-delay:.45s"/>
+      <circle cx="${fx(sx - 7 * ss)}" cy="${fx(sy - 9 * ss)}" r="${fx(8 * ss)}" opacity=".6" style="animation-delay:.9s"/></g>`;
+  return `<svg viewBox="-200 -460 400 500" style="--paint:${paint}">
     ${defs}
-    <ellipse cx="160" cy="201" rx="${R.half + 26}" ry="9" fill="#00000033"/>
-    ${rearTire(st.wheels, 320 - tx, -1, uid)}
-    ${rearTire(st.wheels, tx, 1, uid)}
-    <g transform="translate(0,${-lift})">
-      ${buddy}
-      ${R.svg()}
-      ${rearExtrasSVG(R, st.extras, hasBuddy)}
-      ${st.decal && st.decal !== "none" && DECAL_SVG[st.decal] ? `<g transform="translate(${dx},${dy}) scale(.55)">${DECAL_SVG[st.decal]}</g>` : ""}
-      <g class="mudSpots" style="opacity:${progress.muddy ? 1 : 0}">
-        <circle cx="${160 - R.half + 22}" cy="160" r="9" fill="#6b4423"/><circle cx="128" cy="166" r="7" fill="#6b4423"/>
-        <circle cx="196" cy="162" r="8" fill="#6b4423"/><circle cx="${160 + R.half - 20}" cy="156" r="6" fill="#6b4423"/>
-      </g>
-      <g class="dmgScuff" style="display:${progress.damage >= 1 ? "" : "none"}" stroke="#37474f" stroke-width="3" stroke-linecap="round" opacity=".75">
-        <path d="M${dx - 52} ${dy - 6} l22 -6 M${dx - 46} ${dy + 4} l16 -4 M${dx + 34} ${dy - 8} l18 6" fill="none"/>
-        <g stroke="none" transform="translate(${R.mount[0] + 14},${R.mount[1] + 14}) rotate(-18)">
-          <rect x="-16" y="-6" width="32" height="12" rx="6" fill="#e9d8c3"/>
-          <rect x="-6" y="-16" width="12" height="32" rx="6" fill="#e9d8c3"/>
-          <circle r="3" fill="#c9b697"/>
-        </g>
-      </g>
-      <g class="dmgCrack" style="display:${progress.damage >= 3 ? "" : "none"}" stroke="#f8f9fa" stroke-width="3" fill="none" opacity=".9">
-        <path d="M${wx + 6} ${wy - 12} l-9 9 l11 7 l-7 9 M${wx - 3} ${wy - 3} l-9 3 M${wx + 8} ${wy + 4} l10 5"/>
-      </g>
-      <g class="dmgSmoke" style="display:${progress.damage >= 5 ? "" : "none"}" fill="#90a4ae">
-        <circle cx="${sx}" cy="${sy}" r="13" opacity=".85"/>
-        <circle cx="${sx + 8}" cy="${sy - 6}" r="10" opacity=".7" style="animation-delay:.45s"/>
-        <circle cx="${sx - 7}" cy="${sy - 9}" r="8" opacity=".6" style="animation-delay:.9s"/>
-      </g>
-    </g>
+    ${body}
+    ${over}
+    <rect class="hitbox" x="${-R.half - 30}" y="-260" width="${2 * R.half + 60}" height="270" fill="transparent"/>
   </svg>`;
 }
 
@@ -3958,6 +4021,7 @@ function buildScenery(len, world = 1) {
 }
 
 /* ---- projection: one sprite onto the stage ---- */
+const FLAT_PROPS = new Set(["puddle", "oil", "ice", "finish", "fan", "trophy", "scenery"]);
 function placeSprite(p, carX) {
   const z = p.x - carX;
   if (z > DRAW_FAR || z < DRAW_NEAR) {
@@ -3969,7 +4033,9 @@ function placeSprite(p, carX) {
   const sx = 600 + (p.lx - camX) * s;
   const sy = HORIZON + (CAM_H - p.h) * s;
   p.wrap.style.transform = `translate(${sx.toFixed(1)}px,${sy.toFixed(1)}px) scale(${(s * p.k).toFixed(4)})`;
-  const zi = 20000 - Math.round(z);   /* nearer = higher; the car sits at depth 10 */
+  /* nearer = higher; the car sits at depth 10. Something the car just hit or grabbed
+     pops out over it (it happens up by the hood, which the body otherwise hides) */
+  const zi = (p.done && !FLAT_PROPS.has(p.type) ? 25000 : 20000) - Math.round(z);
   if (zi !== p.zi) { p.wrap.style.zIndex = zi; p.zi = zi; }
   const op = z > DRAW_FAR - FADE ? ((DRAW_FAR - z) / FADE).toFixed(2) : "";
   if (op !== p.op) { p.wrap.style.opacity = op; p.op = op; }
@@ -4038,13 +4104,12 @@ function drawRoad(carX) {
   g.addColorStop(0, P.haze); g.addColorStop(1, P.haze + "00");
   c.fillStyle = g;
   c.fillRect(0, HORIZON, 1200, 46);
-  /* the car's shadow stays on the ground while it flies */
-  const cx = carScreenX(), sh = Math.max(0.35, 1 - jumpY / 320);
-  c.fillStyle = "rgba(0,0,0,.22)";
-  c.beginPath(); c.ellipse(cx, 652, 140 * sh, 14 * sh, 0, 0, Math.PI * 2); c.fill();
+  /* the car's footprint shadow stays on the ground while it flies */
+  const lx = (laneVis - 1) * LANE_W, sh = Math.max(0.3, 1 - jumpY / 320), w = (carHalf + 22) * sh;
+  quad(c, 4, carLen * sh, lx - w, lx + w, `rgba(0,0,0,${(0.2 * sh).toFixed(3)})`);
 }
 function renderWorld() {
-  const carX = pos + CAR_SCREEN_X;
+  const carX = pos + CAR_SCREEN_X - CAR_HIT_Z;   /* z=0 is the car's rear bumper */
   camX = (laneVis - 1) * LANE_W * CAM_FOLLOW;
   drawRoad(carX);
   for (const p of props) placeSprite(p, carX);
@@ -4099,9 +4164,9 @@ function bankFreeRun() {
   if (freeMode && runStars > 0) { progress.wallet += runStars; save(); }
   freeMode = false;
 }
-const BEAMS_SVG = `<g class="beams"><path d="M70 150 L250 150 L205 -150 L115 -150 Z" fill="#ffd60a" opacity=".2"/>
-       <path d="M110 150 L210 150 L180 -60 L140 -60 Z" fill="#fff9c4" opacity=".18"/>
-       <circle cx="104" cy="132" r="9" fill="#fff9c4"/><circle cx="216" cy="132" r="9" fill="#fff9c4"/></g>`;
+const BEAMS_SVG = `<g class="beams"><path d="M-120 -150 L120 -150 L60 -330 L-60 -330 Z" fill="#ffd60a" opacity=".2"/>
+       <path d="M-70 -160 L70 -160 L36 -290 L-36 -290 Z" fill="#fff9c4" opacity=".18"/>
+       <circle cx="-60" cy="-170" r="9" fill="#fff9c4"/><circle cx="60" cy="-170" r="9" fill="#fff9c4"/></g>`;
 function setHeadlights(on) {
   const svg = carWrap.querySelector("svg");
   if (!svg) return;
@@ -4688,7 +4753,9 @@ function tick(now) {
   let bank = (targetLane - laneVis) * 7;
   if (airborne) bank += Math.sin(now / 90) * 2;
   const squat = Math.max(-6, Math.min(6, bodyTilt * 0.7));
-  carWrap.style.transform = `translate(${(carScreenX() - 600).toFixed(1)}px,${(squat - jumpY).toFixed(1)}px) rotate(${bank.toFixed(2)}deg)`;
+  /* off-center lanes: lean the car's far end toward the vanishing point */
+  const cdx = carScreenX() - 600;
+  carWrap.style.transform = `translate(${cdx.toFixed(1)}px,${(squat - jumpY).toFixed(1)}px) skewX(${Math.atan(cdx / CAM_H).toFixed(4)}rad) rotate(${bank.toFixed(2)}deg)`;
 
   rafId = requestAnimationFrame(tick);
 }
