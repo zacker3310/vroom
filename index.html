@@ -490,23 +490,25 @@
   #celebrate {
     position: absolute; inset: 0; display: none; z-index: 30;
     background: rgba(2,48,71,.55); align-items: center; justify-content: center;
-    flex-direction: column; gap: 34px;
+    flex-direction: column; gap: 30px;
   }
   #celebrate.active { display: flex; }
   #celebrateWallet { position: absolute; right: 24px; top: 24px; }
   /* one anchored results card instead of parts floating on the scrim */
   #resultsCard {
     background: #fdf6ea; border: 8px solid #ffb703; border-radius: 32px;
-    padding: 26px 44px; display: flex; flex-direction: column; gap: 20px; align-items: center;
+    padding: 22px 40px 24px; display: flex; flex-direction: column; gap: 14px; align-items: center;
     box-shadow: 0 8px 0 rgba(63,50,34,.2);
   }
   #celebrate.active #resultsCard { animation: popIn .35s cubic-bezier(.2,1.6,.4,1) backwards; }
-  #resultsMeta { display: flex; gap: 18px; }
+  #resultsMeta { display: flex; gap: 14px; }
+  #resultsMeta .chip { height: 80px; font-size: 40px; padding: 0 20px; }
+  #resultsMeta .chip svg { width: 46px; height: 46px; }
   #resultsCard .chip { position: static; box-shadow: none; }
   #celebrateDamage { position: static; }
   #celebrateDamage.clean { border-color: #38b000; color: #38b000; }
   #celebrateDamage .medal { display: flex; }
-  #celebrateDamage .medal svg { width: 68px; height: 68px; animation: medalPop .5s cubic-bezier(.2,2,.4,1) .4s backwards; }
+  #celebrateDamage .medal svg { width: 56px; height: 56px; animation: medalPop .5s cubic-bezier(.2,2,.4,1) .4s backwards; }
   @keyframes medalPop { 0% { transform: scale(0) rotate(-180deg); } 100% { transform: scale(1) rotate(0); } }
   .lvlBtn .tierBadge {
     position: absolute; right: -8px; top: -12px; width: 34px; height: 34px;
@@ -518,21 +520,22 @@
   }
   .flyStar svg { width: 100%; height: 100%; }
   #tallyChip {
-    position: static; height: 130px; border-radius: 34px; padding: 0 36px;
-    font-size: 64px; gap: 16px; border-width: 8px;
+    position: static; height: 104px; border-radius: 30px; padding: 0 32px;
+    font-size: 58px; gap: 14px; border-width: 7px;
   }
-  #tallyChip svg { width: 76px; height: 76px; }
-  #ratingRow { display: flex; gap: 18px; }
-  #ratingRow .rateStar { width: 104px; height: 104px; opacity: .25; transform: scale(.6); }
+  #tallyChip svg { width: 62px; height: 62px; }
+  #ratingRow { display: flex; gap: 16px; }
+  #ratingRow .rateStar { width: 88px; height: 88px; opacity: .25; transform: scale(.6); }
   #ratingRow .rateStar.lit { opacity: 1; transform: scale(1); transition: transform .3s cubic-bezier(.2,2,.4,1), opacity .2s; }
-  #celebrateRow { display: flex; gap: 30px; align-items: center; }
-  #replayBtn, #celebrateHomeBtn { width: 150px; height: 150px; border-radius: 50%; background: #219ebc; border: 10px solid #fff; }
-  #replayBtn svg, #celebrateHomeBtn svg { width: 80px; height: 80px; }
+  /* reads left to right: home, again, NEXT (the big pulsing one, on the right) */
+  #celebrateRow { display: flex; gap: 36px; align-items: center; }
+  #replayBtn, #celebrateHomeBtn { width: 124px; height: 124px; border-radius: 50%; background: #219ebc; border: 8px solid #fff; }
+  #replayBtn svg, #celebrateHomeBtn svg { width: 64px; height: 64px; }
   #nextBtn {
-    width: 220px; height: 220px; border-radius: 50%; background: #38b000;
-    border: 12px solid #d8f3dc; animation: pulse 1.1s ease infinite;
+    width: 172px; height: 172px; border-radius: 50%; background: #38b000; margin-left: 10px;
+    border: 10px solid #d8f3dc; animation: pulse 1.1s ease infinite;
   }
-  #nextBtn svg { width: 110px; height: 110px; }
+  #nextBtn svg { width: 92px; height: 92px; }
   @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.09); } }
   .confetti {
     position: absolute; top: -30px; width: 16px; height: 16px; z-index: 29;
@@ -600,7 +603,7 @@
   #goBtn.nudge { animation: pulse 1.1s ease infinite; }
   #celebrateTime { position: static; }
   #celebrateTime .medal { display: flex; }
-  #celebrateTime .medal svg { width: 68px; height: 68px; animation: medalPop .5s cubic-bezier(.2,2,.4,1) .4s backwards; }
+  #celebrateTime .medal svg { width: 56px; height: 56px; animation: medalPop .5s cubic-bezier(.2,2,.4,1) .4s backwards; }
   #celebrateRow { opacity: 0; pointer-events: none; transform: translateY(30px); transition: opacity .35s, transform .35s; }
   #celebrateRow.ready { opacity: 1; pointer-events: auto; transform: none; }
 
@@ -1243,14 +1246,14 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
       </div>
       </div>
       <div id="celebrateRow">
+        <button class="bigBtn" id="celebrateHomeBtn" aria-label="back to garage">
+          <svg viewBox="0 0 100 100"><path d="M50 10 L94 42 H84 V90 H16 V42 H6 Z" fill="#fff"/><rect x="40" y="58" width="20" height="32" fill="#219ebc"/></svg>
+        </button>
         <button class="bigBtn" id="replayBtn" aria-label="drive this road again">
           <svg viewBox="0 0 100 100"><path d="M50 16 A34 34 0 1 1 18 46" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M8 24 L36 22 L22 48 Z" fill="#fff"/></svg>
         </button>
         <button class="bigBtn" id="nextBtn" aria-label="next level">
           <svg viewBox="0 0 100 100"><path d="M20 18 L64 50 L20 82 Z" fill="#fff"/><rect x="68" y="18" width="14" height="64" rx="7" fill="#fff"/></svg>
-        </button>
-        <button class="bigBtn" id="celebrateHomeBtn" aria-label="back to garage">
-          <svg viewBox="0 0 100 100"><path d="M50 10 L94 42 H84 V90 H16 V42 H6 Z" fill="#fff"/><rect x="40" y="58" width="20" height="32" fill="#219ebc"/></svg>
         </button>
       </div>
     </div>
