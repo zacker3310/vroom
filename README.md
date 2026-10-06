@@ -54,8 +54,8 @@ saves a polaroid of that exact build. All of it lives in a scrapbook.
 
 | | Touch (the real way) | Keyboard (desktop) |
 |---|---|---|
-| Drive | hold the green pedal, or anywhere on the road | W, up arrow, or space |
-| Brake | red pedal | S or down arrow |
+| Drive | hold the green gas pedal, or anywhere on the road | W, up arrow, or space |
+| Brake | red brake pedal | S or down arrow |
 | Steer | swipe left/right, or the arrow buttons | A/D or left/right arrows |
 | Honk | tap your car | |
 
