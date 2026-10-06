@@ -3978,83 +3978,433 @@ function clearWorld() {
   props = []; scenery = []; RAMPS = []; totalStars = 0;
 }
 
+/* ============ BEAT SEQUENCER: a level is a seeded sequence of formations ============
+   Every level has a signature beat (repeated with variations) plus 1-2 contrasting
+   beats and breathers, so level 7 feels like "the snake-trail level" and level 8 like
+   "the barrel-bowling level". Beats read curvAt(x) so star trails hug the inside of a
+   bend and obstacles crowd the outside. Required ingredients (puddles, capsules, oil,
+   tnt, world hazards) and the hard/star budgets are guaranteed by passes at the end. */
+const BEATS = {};
+function defBeat(name, kind, minLvl, fn) { BEATS[name] = { name, kind, minLvl, fn }; }
+/* hard obstacle / star / level budgets (tests pin the ordering L5 <= L15 <= L30) */
+const minHard = n => n < 3 ? 0 : Math.floor(1 + n * 0.3);
+const maxHard = n => n < 3 ? 0 : Math.floor(2 + n * 0.45);
+const minStars = n => 12 + Math.floor(Math.min(n, 45) / 2);
+const maxStars = n => 22 + Math.floor(n * 1.2);
+const HARD_T = t => t === "barrel" || t === "rock" || t === "tnt" || !!(EXTRA_PROPS[t] && EXTRA_PROPS[t].hard);
+const SOFT_T = t => t === "cone" || !!(EXTRA_PROPS[t] && !EXTRA_PROPS[t].hard && t !== "ice");
+const BLOCKER_T = t => HARD_T(t) || SOFT_T(t) || t === "oil" || t === "ice" || t === "puddle" || t === "capsule";
+
+/* ---- star trails ---- */
+defBeat("trailStraight", "star", 1, (b, x) => {
+  const lane = b.pickLane(x), k = b.S + Math.floor(b.rng() * 3);
+  for (let i = 0; i < k; i++) b.star(x + i * 115, lane);
+  return x + k * 115;
+});
+defBeat("snake", "star", 1, (b, x) => {
+  const k = b.S + 2 + Math.floor(b.rng() * 3), dir = b.rng() < 0.5 ? 1 : -1;
+  let lane = dir > 0 ? 0 : 2, d = dir;
+  for (let i = 0; i < k; i++) {
+    b.star(x + i * 135, lane);
+    if (lane + d < 0 || lane + d > 2) d = -d;
+    lane += d;
+  }
+  return x + k * 135;
+});
+defBeat("rainbow", "star", 1, (b, x) => {
+  const seq = b.rng() < 0.5 ? [0, 1, 2, 1, 0, 1, 2, 1, 0] : [2, 1, 0, 1, 2, 1, 0, 1, 2];
+  const k = Math.min(seq.length, b.S + 3);
+  for (let i = 0; i < k; i++) b.star(x + i * 120, seq[i]);
+  return x + k * 120;
+});
+defBeat("arc", "star", 3, (b, x) => {   /* hugs the inside of the bend, drifts with it */
+  const k = b.S + 3;
+  for (let i = 0; i < k; i++) { const sx = x + i * 125; b.star(sx, b.inside(sx)); }
+  /* a cone on the outside halfway: the bend pushes you in */
+  if (b.n >= 2) b.put(b.soft(), x + Math.floor(k / 2) * 125, b.outside(x + Math.floor(k / 2) * 125));
+  return x + k * 125;
+});
+defBeat("doubleRow", "star", 1, (b, x) => {
+  const skip = Math.floor(b.rng() * 3), lanes = [0, 1, 2].filter(l => l !== skip), k = 3 + Math.floor(b.S / 2);
+  for (let i = 0; i < k; i++) for (const l of lanes) b.star(x + i * 130, l);
+  if (b.n >= 2) b.put(b.soft(), x + Math.floor(k / 2) * 130, skip);
+  return x + k * 130;
+});
+defBeat("starGate", "star", 3, (b, x) => {   /* two lanes of stars, one lane blocked */
+  const cols = 2 + Math.floor(b.rng() * 2);
+  for (let c = 0; c < cols; c++) {
+    const gx = x + c * 320, blk = b.rng() < 0.6 ? b.outside(gx) : Math.floor(b.rng() * 3);
+    for (let l = 0; l < 3; l++) l === blk ? b.put(b.hardOrSoft(), gx, l) : b.star(gx, l);
+    b.star(gx + 130, b.rng() < 0.5 ? (blk + 1) % 3 : (blk + 2) % 3);
+  }
+  return x + cols * 320;
+});
+defBeat("starShower", "star", 6, (b, x) => {   /* a confetti burst of stars, every lane */
+  const cols = 3 + Math.floor(b.rng() * 2);
+  for (let c = 0; c < cols; c++) for (let l = 0; l < 3; l++) b.star(x + c * 120 + (l === 1 ? 60 : 0), l);
+  return x + cols * 120 + 60;
+});
+defBeat("stairway", "star", 1, (b, x) => {   /* zig low stars climbing lane by lane toward a bend */
+  const k = b.S + 2, up = b.inside(x + k * 60) === 2;
+  for (let i = 0; i < k; i++) b.star(x + i * 120, up ? Math.min(2, Math.floor(i / 2)) : Math.max(0, 2 - Math.floor(i / 2)));
+  return x + k * 120;
+});
+
+/* ---- obstacle shapes ---- */
+defBeat("slalom", "obs", 2, (b, x) => {
+  const k = 3 + Math.floor(b.d * 4), lanes = b.rng() < 0.5 ? [0, 2] : [2, 0];
+  for (let i = 0; i < k; i++) {
+    const ox = x + i * 270, l = lanes[i % 2];
+    b.put(b.hardOrSoft(), ox, l);
+    b.star(ox + 135, 2 - l);         /* the hint: the star sits where you should be */
+  }
+  return x + k * 270;
+});
+defBeat("gate", "obs", 5, (b, x) => {   /* two lanes shut, one open with a star */
+  const gates = 1 + Math.floor(b.d * 2.5);
+  for (let g = 0; g < gates; g++) {
+    const gx = x + g * 460, open = b.rng() < 0.5 ? b.inside(gx) : Math.floor(b.rng() * 3);
+    for (let l = 0; l < 3; l++) if (l !== open) b.put(g === 0 || b.rng() < 0.6 ? b.hard() : b.soft(), gx, l);
+    b.star(gx, open); b.star(gx + 120, open);
+  }
+  return x + gates * 460;
+});
+defBeat("closingWalls", "obs", 8, (b, x) => {   /* the open lane walks across the road */
+  let open = Math.floor(b.rng() * 3);
+  const dir = open === 0 ? 1 : open === 2 ? -1 : (b.rng() < 0.5 ? 1 : -1), k = 3;
+  for (let g = 0; g < k; g++) {
+    const gx = x + g * 330;
+    for (let l = 0; l < 3; l++) if (l !== open) b.put(l === (open + dir + 3) % 3 || b.rng() < 0.5 ? b.hard() : b.soft(), gx, l);
+    b.star(gx, open);
+    open = Math.max(0, Math.min(2, open + dir));
+  }
+  return x + k * 330;
+});
+defBeat("coneForest", "obs", 1, (b, x) => {   /* soft and silly: cones everywhere, stars between */
+  const cols = 4 + Math.floor(b.rng() * 3);
+  for (let c = 0; c < cols; c++) {
+    const cx = x + c * 170, free = Math.floor(b.rng() * 3), other = [0, 1, 2].filter(l => l !== free);
+    const i = Math.floor(b.rng() * 2);
+    b.put(b.soft(), cx, other[i]);
+    if (b.rng() < 0.5) b.put(b.soft(), cx, other[1 - i]);
+    if (c % 2 === 1) b.star(cx, free);
+  }
+  return x + cols * 170;
+});
+defBeat("bowling", "obs", 3, (b, x) => {   /* barrels in a V, the star sits at the tip */
+  const flip = b.rng() < 0.5;
+  const L = l => flip ? 2 - l : l;
+  b.put(b.hardOrSoft(), x, L(0));
+  b.star(x, L(2)); b.star(x + 130, L(1));
+  b.put(b.hardOrSoft(), x + 270, L(0)); b.put(b.hardOrSoft(), x + 270, L(2));
+  b.star(x + 400, L(1)); b.star(x + 530, L(1));
+  b.put(b.hardOrSoft(), x + 540, L(2)); b.put(b.hardOrSoft(), x + 540, L(0));
+  b.star(x + 670, L(1));
+  return x + 700;
+});
+defBeat("minefield", "obs", 12, (b, x) => {   /* sparse tnt, stars mark the safe lane */
+  const cols = 3 + Math.floor(b.d * 2);
+  let safe = Math.floor(b.rng() * 3);
+  for (let c = 0; c < cols; c++) {
+    const cx = x + c * 290;
+    b.put("tnt", cx, (safe + 1 + Math.floor(b.rng() * 2)) % 3);
+    b.star(cx, safe); b.star(cx + 145, safe);
+    if (b.rng() < 0.5) safe = (safe + (b.rng() < 0.5 ? 1 : 2)) % 3;
+  }
+  return x + cols * 290;
+});
+defBeat("capsuleAlley", "rhythm", 3, (b, x) => {   /* a capsule flanked by cones, stars lead in */
+  const lane = b.pickLane(x);
+  b.star(x, lane); b.star(x + 120, lane);
+  b.capsule(x + 300, lane);
+  for (let l = 0; l < 3; l++) if (l !== lane) b.put(b.soft(), x + 300, l);
+  b.star(x + 450, lane);
+  return x + 500;
+});
+defBeat("puddleParty", "rhythm", 2, (b, x) => {   /* splash through every lane, then stars */
+  const order = b.rng() < 0.5 ? [0, 1, 2] : [2, 1, 0];
+  for (let i = 0; i < 3; i++) b.put("puddle", x + i * 160, order[i]);
+  for (let i = 0; i < 3; i++) b.star(x + 560 + i * 115, order[2]);
+  return x + 560 + 3 * 115;
+});
+defBeat("oilSlalom", "rhythm", 5, (b, x) => {   /* slick lanes alternate, stars on the dry side */
+  const k = 2 + Math.floor(b.d * 2), a = Math.floor(b.rng() * 3);
+  for (let i = 0; i < k; i++) {
+    const ox = x + i * 300, l = (a + i) % 3;
+    b.put(b.slick(), ox, l);
+    b.star(ox + 60, (l + 1) % 3); b.star(ox + 180, (l + 1) % 3);
+  }
+  return x + k * 300;
+});
+defBeat("breather", "rhythm", 1, (b, x) => {   /* empty road to breathe, maybe one lonely star */
+  const L = 400 + Math.floor(b.rng() * 300);
+  if (b.rng() < 0.5) b.star(x + L / 2, b.pickLane(x + L / 2));
+  return x + L;
+});
+
+/* ---- ramp beats: every ramp pushes {x, w:250, h:95} into RAMPS and leaves a high star
+   on the jump arc at rx+460 (the car flies rx .. rx+670: no obstacles in that zone) ---- */
+function rampAt(b, x, lane) {
+  const rx = x + 200;
+  RAMPS.push({ x: rx, w: 250, h: 95 });
+  if (lane == null) lane = Math.floor(b.rng() * 3);
+  addProp("star", rx + 460, lane, HIGH_STAR_H, starSVG, -32, -32); totalStars++;
+  return { rx, lane };
+}
+defBeat("ramp", "ramp", 1, (b, x) => { const r = rampAt(b, x); return r.rx + 700; });
+defBeat("rampArc", "ramp", 4, (b, x) => {   /* three high stars along the flight path */
+  const r = rampAt(b, x);
+  b.high(r.rx + 370, r.lane); b.high(r.rx + 550, r.lane);
+  return r.rx + 700;
+});
+defBeat("rampStairway", "ramp", 1, (b, x) => {   /* low stars run up to the lip, high ones fly */
+  const lane = b.pickLane(x);
+  b.star(x + 20, lane); b.star(x + 140, lane);
+  const r = rampAt(b, x, lane);
+  b.high(r.rx + 370, lane);
+  return r.rx + 700;
+});
+defBeat("rampShower", "ramp", 10, (b, x) => {   /* land into a burst of stars */
+  const r = rampAt(b, x);
+  const sx = r.rx + 720;
+  for (let c = 0; c < 2; c++) for (let l = 0; l < 3; l++) b.star(sx + c * 120 + (l === 1 ? 60 : 0), l);
+  return sx + 300;
+});
+
+/* ---- world beats (worlds 5-8 bring their own cast) ---- */
+defBeat("snowmanChoir", "world5", 41, (b, x) => {   /* a row of snowmen singing across the lanes */
+  const k = 4 + Math.floor(b.rng() * 2), start = Math.floor(b.rng() * 3);
+  for (let i = 0; i < k; i++) {
+    const l = (start + i) % 3;
+    b.put("snowman", x + i * 150, l);
+    b.star(x + i * 150, (l + 1) % 3);
+  }
+  return x + k * 150;
+});
+defBeat("icePatch", "world5", 41, (b, x) => {   /* slick lanes, one dry line of stars */
+  const dry = b.pickLane(x);
+  for (let l = 0; l < 3; l++) if (l !== dry) b.put("ice", x + (l === 1 ? 120 : 0), l);
+  for (let i = 0; i < 4; i++) b.star(x + i * 120, dry);
+  if (b.d > 0.7) for (let l = 0; l < 3; l++) if (l !== dry) b.put("ice", x + 520 + (l === 1 ? 120 : 0), l);
+  return x + 700;
+});
+defBeat("cactusCanyon", "world6", 51, (b, x) => {   /* cacti line both edges, stars run the middle */
+  const k = 3 + Math.floor(b.d * 2);
+  for (let i = 0; i < k; i++) {
+    b.put("cactus", x + i * 260, i % 2 ? 2 : 0);
+    b.star(x + i * 260 + 40, 1);
+  }
+  return x + k * 260;
+});
+defBeat("tumbleweeds", "world6", 51, (b, x) => {   /* a few roll down at you, stars on the clear side */
+  const k = 2 + Math.floor(b.d * 2), l = b.pickLane(x);
+  for (let i = 0; i < k; i++) b.put("tumbleweed", x + 200 + i * 260, (l + i) % 3);
+  for (let i = 0; i < 3; i++) b.star(x + i * 120, (l + 2) % 3);
+  return x + 200 + k * 260;
+});
+defBeat("crabCrossing", "world7", 61, (b, x) => {   /* crabs scuttle lanes between sandcastles */
+  b.put("sandcastle", x, 1);
+  b.put("crab", x + 220, b.rng() < 0.5 ? 0 : 2);
+  b.star(x + 220, 1); b.star(x + 350, 1);
+  b.put("crab", x + 520, b.rng() < 0.5 ? 0 : 2);
+  b.put("sandcastle", x + 700, b.rng() < 0.5 ? 0 : 2);
+  b.star(x + 700, 1);
+  return x + 760;
+});
+defBeat("sandcastles", "world7", 61, (b, x) => {   /* a beach of castles with a star path through */
+  const cols = 3 + Math.floor(b.rng() * 2);
+  let free = Math.floor(b.rng() * 3);
+  for (let c = 0; c < cols; c++) {
+    const cx = x + c * 200;
+    for (let l = 0; l < 3; l++) if (l !== free && b.rng() < 0.7) b.put("sandcastle", cx, l);
+    b.star(cx, free);
+    if (b.rng() < 0.5) free = Math.max(0, Math.min(2, free + (b.rng() < 0.5 ? 1 : -1)));
+  }
+  return x + cols * 200;
+});
+defBeat("craterField", "world8", 71, (b, x) => {   /* craters zigzag, the stars show the ridge */
+  const k = 3 + Math.floor(b.d * 2);
+  let l = Math.floor(b.rng() * 3);
+  for (let i = 0; i < k; i++) {
+    b.put("crater", x + i * 270, l);
+    const s = (l + 1 + Math.floor(b.rng() * 2)) % 3;
+    b.star(x + i * 270, s); b.star(x + i * 270 + 135, s);
+    l = s;
+  }
+  return x + k * 270;
+});
+defBeat("alienWelcome", "world8", 71, (b, x) => {   /* a welcome line of aliens, stars alongside */
+  const l = b.pickLane(x), k = 4;
+  for (let i = 0; i < k; i++) { b.put("alien", x + i * 150, l); b.star(x + i * 150, (l + 1) % 3); }
+  b.star(x + k * 150, (l + 2) % 3);
+  return x + k * 150 + 60;
+});
+
+/* which beats a level may draw its signature / contrast from */
+function beatPool(n, kind) {
+  const wk = "world" + worldOf(n);   /* a world's own beats can lead or contrast */
+  return Object.values(BEATS).filter(bt => bt.minLvl <= n && bt.name !== "breather" && (bt.kind === kind || (kind !== "rhythm" && kind !== "ramp" && bt.kind === wk)));
+}
+/* the signature beat: seeded per level, never one the last four levels already led with */
+const SIG_CACHE = {};
+function signatureOf(n) {
+  if (SIG_CACHE[n]) return SIG_CACHE[n];
+  const kind = n % 2 ? "star" : "obs";                /* odd levels star-led, even levels obstacle-led */
+  const pool = beatPool(n, kind);
+  if (!pool.length) return SIG_CACHE[n] = BEATS.trailStraight;
+  const recent = [1, 2, 3, 4].filter(k => n - k >= 1).map(k => signatureOf(n - k).name);
+  let idx = Math.floor(mulberry32(n * 31 + 5)() * pool.length), guard = 0;
+  while (recent.includes(pool[idx].name) && guard++ < pool.length) idx = (idx + 1) % pool.length;
+  return SIG_CACHE[n] = pool[idx];
+}
+let lastBeats = [];   /* the beat names of the last built level (for tooling/reports) */
+
 function buildLevel(n) {
   clearWorld();
   const rng = mulberry32(n * 7919 + 13);
   LEVEL_LEN = levelLen(n);
   const w = worldOf(n);
+  const finale = n % WORLD_SIZE === 0;
   buildCourse(n, mulberry32(n * 104729 + 7), LEVEL_LEN);
-
-  /* ramps: 1-4, spread across the level, spanning the whole road */
-  const nRamps = 1 + (n > 8 ? 1 : 0) + (n > 20 ? 1 : 0) + (n > 50 ? 1 : 0);
-  for (let i = 0; i < nRamps; i++) {
-    const rx = Math.floor(LEVEL_LEN * (i + 1) / (nRamps + 1) + (rng() - 0.5) * 400);
-    RAMPS.push({ x: rx, w: 250, h: 95 });
-    /* a high bonus star on the jump arc */
-    const lane = Math.floor(rng() * 3);
-    addProp("star", rx + 460, lane, HIGH_STAR_H, starSVG, -32, -32);
-    totalStars++;
-  }
-  const inRampZone = x => RAMPS.some(rp => x > rp.x - 200 && x < rp.x + rp.w + 420);
-
-  /* slots along the road — density and hard-obstacle share climb with the level (capped) */
-  const nObs = 3 + Math.floor(Math.min(n, 40) * 0.75) + Math.floor(Math.max(0, n - 40) * 0.3);
-  const nStars = 6 + Math.floor(Math.min(n, 45) / 3);
-  const items = [];
-  for (let i = 0; i < nObs; i++) {
-    const roll = rng();
-    let t = "cone";
-    if (n >= 3 && roll > Math.max(0.35, 0.6 - n * 0.008)) t = "barrel";
-    if (n >= 8 && roll > Math.max(0.6, 0.85 - n * 0.006)) t = "rock";
-    if (n >= 12 && roll > Math.max(0.8, 0.95 - n * 0.004)) t = "tnt";
-    if (n >= 5 && roll > 0.42 && roll <= 0.52) t = "oil";
-    if (n >= 2 && roll < 0.18) t = "puddle";
-    /* world flavor: rain doubles down on puddles; later worlds bring their own hazards */
-    if (w === 4 && roll < 0.3) t = "puddle";
-    if (WORLD_ITEMS[w]) {
-      if (roll > 0.3 && roll <= 0.42) t = WORLD_ITEMS[w][0];
-      if (roll > 0.18 && roll <= 0.3) t = WORLD_ITEMS[w][1];
-    }
-    items.push(t);
-  }
-  for (let i = 0; i < nStars; i++) items.push("star");
-  const nCaps = (n >= 2 ? 1 : 0) + (n > 8 ? 1 : 0);   /* surprise capsules */
-  for (let i = 0; i < nCaps; i++) items.push("capsule");
-  /* shuffle */
-  for (let i = items.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [items[i], items[j]] = [items[j], items[i]];
-  }
-
-  let x = 700;
   const endX = LEVEL_LEN - 600;
-  const recentHard = [];   /* keep at least one lane free within any 260px window */
-  /* ramp zones are unusable for obstacles, so budget the spacing on usable road only */
-  const zoneAhead = from => RAMPS.reduce((s, rp) => {
-    const a = Math.max(from, rp.x - 200), b = Math.min(endX, rp.x + rp.w + 420);
-    return s + Math.max(0, b - a);
-  }, 0);
-  for (let i = 0; i < items.length; i++) {
-    const t = items[i];
-    /* adaptive spacing: divide the remaining usable road across the remaining
-       items, capped so the ones still queued can fit before endX */
-    const step = Math.max(0, (endX - x - zoneAhead(x)) / (items.length - i));
-    x += Math.max(170, Math.min(step * (0.6 + rng() * 0.8), endX - x - (items.length - 1 - i) * 170));
-    while (inRampZone(x) && t !== "star") x += 300;
-    if (x > endX) continue;
-    let lane = Math.floor(rng() * 3);
-    const hard = t === "barrel" || t === "rock" || t === "tnt" || (EXTRA_PROPS[t] && EXTRA_PROPS[t].hard);
-    if (hard) {
-      const near = recentHard.filter(h => Math.abs(h.x - x) < 260);
-      if (near.length >= 2) continue;                       /* never block all 3 lanes */
-      while (near.some(h => h.lane === lane)) lane = (lane + 1) % 3;
-      recentHard.push({ x, lane });
-      if (recentHard.length > 6) recentHard.shift();
-    }
-    addItem(t, x, lane);
+  const inRampZone = x => RAMPS.some(rp => x > rp.x - 200 && x < rp.x + rp.w + 420);
+  const hardLanesNear = x => { const s = new Set(); for (const p of props) if (HARD_T(p.type) && Math.abs(p.x - x) < 240) s.add(p.lane); return s; };
+  const laneFree = (x, lane, gap) => !props.some(p => p.lane === lane && p.type !== "finish" && Math.abs(p.x - x) < gap);
+
+  /* the beat context: safe placement helpers every formation uses */
+  const b = {
+    n, w, rng, d: Math.min(1, n / 60),
+    S: 5 + Math.floor(Math.min(n, 40) / 6),           /* star-trail length base */
+    inside(x) { const k = curvAt(x); return k > 0.00003 ? 2 : k < -0.00003 ? 0 : 1; },
+    outside(x) { const k = curvAt(x); return k > 0.00003 ? 0 : k < -0.00003 ? 2 : Math.floor(rng() * 3); },
+    pickLane(x) { return rng() < 0.6 ? this.inside(x) : Math.floor(rng() * 3); },
+    /* a ground item; refuses ramp zones, 3-lane walls and stacking on another prop */
+    put(t, x, lane) {
+      x = Math.round(x); lane = Math.max(0, Math.min(2, lane));
+      if (x < 300 || x > endX || inRampZone(x) || !laneFree(x, lane, 100)) return false;
+      if (HARD_T(t)) { const s = hardLanesNear(x); s.add(lane); if (s.size >= 3) return false; }
+      addItem(t, x, lane); return true;
+    },
+    star(x, lane) {
+      x = Math.round(x); lane = Math.max(0, Math.min(2, lane));
+      if (x < 300 || x > endX || inRampZone(x) || !laneFree(x, lane, 70)) return false;
+      addItem("star", x, lane); return true;
+    },
+    high(x, lane) { if (x > LEVEL_LEN - 200 || !laneFree(x, lane, 70)) return false; addProp("star", Math.round(x), lane, HIGH_STAR_H, starSVG, -32, -32); totalStars++; return true; },
+    capsule(x, lane) { return this.put("capsule", x, lane); },
+    /* casting: what plays a hard / soft / slick part in this world and level */
+    hard() {
+      if (n < 3) return "cone";
+      if (w === 6 && rng() < 0.4) return "cactus";
+      if (w === 8 && rng() < 0.4) return "crater";
+      const r = rng();
+      if (n >= 12 && r < 0.2) return "tnt";
+      if (n >= 8 && r < 0.55) return "rock";
+      return "barrel";
+    },
+    soft() {
+      if (w === 5 && rng() < 0.4) return "snowman";
+      if (w === 7 && rng() < 0.4) return "sandcastle";
+      if (w === 8 && rng() < 0.4) return "alien";
+      return "cone";
+    },
+    hardOrSoft() { return rng() < 0.3 + this.d * 0.5 ? this.hard() : this.soft(); },
+    slick() { return w === 5 && rng() < 0.6 ? "ice" : w === 4 && rng() < 0.4 ? "puddle" : "oil"; }
+  };
+
+  /* ---- the sequence: signature + contrasts in a rhythm, ramps dropped in on cue ---- */
+  const sig = signatureOf(n);
+  const contrastKind = sig.kind === "obs" || sig.kind.startsWith("world") ? "star" : "obs";
+  const cPool = beatPool(n, contrastKind).filter(bt => bt !== sig);
+  const rPool = beatPool(n, "rhythm");
+  const pick = pool => pool[Math.floor(rng() * pool.length)];
+  const con1 = cPool.length ? pick(cPool) : BEATS.trailStraight;
+  const con2 = rPool.length ? pick(rPool) : BEATS.breather;
+  const rhythms = [
+    [sig, con1, sig, "breather", sig, con2, sig],
+    [sig, sig, "breather", con1, sig, con2, "breather", sig],
+    [con1, sig, sig, "breather", con2, sig, sig]
+  ];
+  let rhythm = rhythms[Math.floor(rng() * rhythms.length)].map(r => r === "breather" ? BEATS.breather : r);
+  if (finale) rhythm = rhythm.filter(bt => bt !== BEATS.breather);   /* finales never let up */
+  /* required cameos: level 2 splashes, early levels find capsules, worlds 5-8 bring both hazards */
+  if (n === 2) rhythm.splice(1, 0, BEATS.puddleParty);
+  if (n >= 3 && n <= 30 && !rhythm.includes(BEATS.capsuleAlley)) rhythm.splice(2, 0, BEATS.capsuleAlley);
+  if (w >= 5) {
+    const wb = Object.values(BEATS).filter(bt => bt.kind === "world" + w);
+    for (const bt of wb) if (!rhythm.includes(bt)) rhythm.splice(1 + Math.floor(rng() * (rhythm.length - 1)), 0, bt);
   }
+  /* ramps: 1-4 (one more on a finale), on cue at evenly spread targets */
+  const nRamps = 1 + (n > 8 ? 1 : 0) + (n > 20 ? 1 : 0) + (n > 50 ? 1 : 0) + (finale && n > 20 ? 1 : 0);
+  const rampXs = []; for (let i = 0; i < nRamps; i++) rampXs.push(LEVEL_LEN * (i + 1) / (nRamps + 1) + (rng() - 0.5) * 300);
+  const rampPool = beatPool(n, "ramp");
+  const beats = [];
+  let x = 650, ri = 0, bi = 0, guard = 0;
+  const gap = finale ? 100 : 150;   /* finales pack their beats tighter */
+  const run = bt => { beats.push(bt.name); x = bt.fn(b, x) + gap + Math.floor(rng() * 120); };
+  while (x < endX - 350 && guard++ < 60) {
+    if (ri < nRamps && x >= rampXs[ri] - 450) { run(pick(rampPool)); ri++; continue; }
+    run(rhythm[bi++ % rhythm.length]);
+  }
+  while (ri < nRamps) { x = Math.min(x, LEVEL_LEN - 1000); run(BEATS.ramp); ri++; }   /* never a level without its jump */
+  if (finale) {   /* grand finale: a star shower right before the flags */
+    x = Math.min(x, endX - 560);
+    if (!inRampZone(x) && !inRampZone(x + 560)) run(BEATS.starShower);
+  }
+
+  /* ---- guarantees: ingredients, budgets, and nothing where the car flies ---- */
+  const removeProp = p => { p.wrap.remove(); props.splice(props.indexOf(p), 1); if (p.type === "star") totalStars--; };
+  for (const p of props.slice()) if (BLOCKER_T(p.type) && inRampZone(p.x)) removeProp(p);
+  const count = f => props.filter(f).length;
+  /* drop one item into a free pocket: clear lane, no other ground item right beside it */
+  const spotFor = t => {
+    for (let tries = 0; tries < 80; tries++) {
+      const sx = 900 + Math.floor(rng() * (endX - 900)), lane = Math.floor(rng() * 3);
+      if (inRampZone(sx) || !laneFree(sx, lane, 130)) continue;
+      if (props.some(p => BLOCKER_T(p.type) && Math.abs(p.x - sx) < 110)) continue;
+      if (HARD_T(t)) { const s = hardLanesNear(sx); s.add(lane); if (s.size >= 3) continue; }
+      addItem(t, sx, lane); return true;
+    }
+    return false;
+  };
+  if (n >= 2 && !count(p => p.type === "puddle")) spotFor("puddle");
+  if (n >= 3 && !count(p => p.type === "capsule")) spotFor("capsule");
+  if (n >= 5 && !count(p => p.type === "oil")) spotFor("oil");
+  if (n >= 5 && !count(p => p.type === "barrel" || p.type === "rock")) spotFor("barrel");
+  if (n >= 12 && !count(p => p.type === "tnt")) { const bp = props.find(p => p.type === "barrel"); if (bp) { const bx = bp.x, bl = bp.lane; removeProp(bp); addItem("tnt", bx, bl); } else spotFor("tnt"); }
+  if (WORLD_ITEMS[w]) for (const t of WORLD_ITEMS[w]) if (!count(p => p.type === t)) spotFor(t);
+  while (count(p => p.type === "capsule") > 2) { const c = props.filter(p => p.type === "capsule").pop(); const cx = c.x, cl = c.lane; removeProp(c); addItem("star", cx, cl); }
+  /* hard budget: demote extras to cones, promote cones to barrels when short */
+  let hardPs = () => props.filter(p => HARD_T(p.type));
+  const shuffled = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  for (const p of shuffled(hardPs())) {
+    if (hardPs().length <= maxHard(n)) break;
+    if (p.type === "tnt" && count(q => q.type === "tnt") <= 1) continue;
+    if ((p.type === "barrel" || p.type === "rock") && count(q => q.type === "barrel" || q.type === "rock") <= 1) continue;
+    if (WORLD_ITEMS[w] && WORLD_ITEMS[w].includes(p.type) && count(q => q.type === p.type) <= 1) continue;
+    const px = p.x, pl = p.lane; removeProp(p); addItem("cone", px, pl);
+  }
+  for (const p of shuffled(props.filter(p => p.type === "cone"))) {
+    if (hardPs().length >= minHard(n)) break;
+    const s = hardLanesNear(p.x); s.add(p.lane); if (s.size >= 3) continue;
+    const px = p.x, pl = p.lane; removeProp(p); addItem(n >= 8 && rng() < 0.4 ? "rock" : "barrel", px, pl);
+  }
+  while (hardPs().length < minHard(n) && spotFor("barrel"));
+  /* barrels and rocks stay the backbone even on a tnt-heavy level */
+  const isBR = p => p.type === "barrel" || p.type === "rock";
+  while (count(isBR) < Math.ceil(minHard(n) / 2)) {
+    const t = count(q => q.type === "tnt") > 1 ? props.find(p => p.type === "tnt") : null;
+    const c = t || props.find(p => p.type === "cone" && !hardLanesNear(p.x).has(p.lane) && hardLanesNear(p.x).size < 2);
+    if (!c) { if (!spotFor("barrel")) break; continue; }
+    const px = c.x, pl = c.lane; removeProp(c); addItem("barrel", px, pl);
+  }
+  /* star budget: floors climb with the level, ceilings keep the early levels readable */
+  while (count(p => p.type === "star") < minStars(n) && spotFor("star"));
+  const lowStars = props.filter(p => p.type === "star" && p.h === LOW_STAR_H);
+  for (let i = lowStars.length - 1; i >= 0 && count(p => p.type === "star") > maxStars(n); i--) removeProp(lowStars[i]);
 
   addProp("finish", LEVEL_LEN, 1, 0, finishSVG, -400, -380);
+  lastBeats = beats;
 
   buildScenery(LEVEL_LEN + 1600, w);
   applyTheme(w);
