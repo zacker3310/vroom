@@ -45,6 +45,9 @@
 
 - [x] T10.1: Road goes head-on: pseudo-3D chase cam (horizon + vanishing point, camera follows lane changes), three lanes left/center/right. Canvas ground plane (world palettes, speed bands, rumble strips, dashes, sloped ramps, checkered finish stripe, horizon haze, ground shadow under jumps); props become depth-sorted perspective sprites; roadside scenery on both shoulders; finish gantry; parade fans line both sides with the trophy floating over the road. Chase-cam vehicles built from projected 3D toy blocks (boxes, cylinders, hulls) for all 15 bodies, front + rear axles, 8 tire styles, extras (twin wings, center booster), night tail lights + headlight pool. Controls remapped: swipe sideways / left-right buttons / A-D steer, W/up gas, S/down brake. Collision/physics/level gen untouched (world x is unchanged). Suites updated, 161/161.
 
+- [x] T10.2-10.6: real gas/brake pedals; steering wheel (tap a side or turn it); chase-cam cars rebuilt as projected 3D toy blocks with front + rear axles, then halved in car space; swept rocket fins + raised dragon bat wings.
+- [x] T10.7: New-version gate. The page fingerprints its own code at boot and re-fetches itself (no-store) on boot, on return to foreground, and every 10 min; when the hosted code differs, a green refresh badge appears in the garage. Press-and-hold (1.6s ring) saves and reloads via a cache-busting URL. Suite update-check.cjs 5/5; all 11 suites 166/166.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

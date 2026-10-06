@@ -1,6 +1,6 @@
 # Vroom test suites
 
-Ten Playwright regression suites (161 checks) covering the full game.
+Eleven Playwright regression suites (166 checks) covering the full game.
 
 ## Run
 
@@ -9,7 +9,7 @@ Ten Playwright regression suites (161 checks) covering the full game.
 # profile-check also wants jsqr (in tests/ or the repo root)
 python3 -m http.server 4173 &          # from the repo root
 cd tests
-for f in verify polish-check damage-check free-check feel-check worlds-check album-check profile-check washdecals-check parade-check; do node $f.cjs; done
+for f in verify polish-check damage-check free-check feel-check worlds-check album-check profile-check washdecals-check parade-check update-check; do node $f.cjs; done
 ```
 
 Each suite expects `http://localhost:4173/index.html` and a Chromium at
@@ -26,3 +26,4 @@ env var points (e.g. `CHROMIUM=/opt/pw-browsers/chromium-1194/chrome-linux/chrom
 - `profile-check.cjs` — 3 kid profiles, save codes, QR round-trip via jsQR (14)
 - `washdecals-check.cjs` — wash mini-game and decal shop/persistence (11)
 - `parade-check.cjs` — victory parade: unlock, finale level, jackpot, champ badge (12)
+- `update-check.cjs` — new-version gate: detection, tap-proof hold-to-reload (5)

@@ -113,6 +113,19 @@
     border-radius: 50%; background: #fff; border: 6px solid #023047; z-index: 20;
   }
   #profileBtn svg { width: 74px; height: 74px; }
+  /* new version gate: appears only when the hosted game changed; hold to reload
+     (a press-and-hold so a stray toddler tap can't restart the app) */
+  #updateBtn {
+    position: absolute; left: 136px; top: 24px; width: 96px; height: 96px; padding: 0;
+    border-radius: 50%; background: #74c465; border: 6px solid #fff; z-index: 20;
+    box-shadow: 0 6px 0 #438a3b; display: none; touch-action: none;
+    animation: pulse 1.4s ease infinite;
+  }
+  #updateBtn.show { display: block; }
+  #updateBtn svg { width: 100%; height: 100%; }
+  #updateBtn .ring { transition: stroke-dashoffset .1s linear; }
+  #updateBtn.holding { animation: none; transform: scale(.94); }
+  #updateBtn.holding .arrows { animation: spin 1s linear infinite; transform-origin: 50px 50px; }
   #profileOverlay {
     position: absolute; inset: 0; z-index: 80; display: none;
     background: rgba(2,48,71,.6); align-items: center; justify-content: center;
@@ -1090,6 +1103,17 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     </button>
     <button class="bigBtn" id="quietBtn" aria-label="quiet mode for the car"></button>
     <button class="bigBtn" id="profileBtn" aria-label="who is playing"></button>
+    <button id="updateBtn" aria-label="new version ready: press and hold to update">
+      <svg viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="40" fill="none" stroke="#ffffff55" stroke-width="8"/>
+        <circle class="ring" cx="50" cy="50" r="40" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"
+          stroke-dasharray="251.3" stroke-dashoffset="251.3" transform="rotate(-90 50 50)"/>
+        <g class="arrows" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round">
+          <path d="M30 44 A21 21 0 0 1 68 38"/><path d="M70 56 A21 21 0 0 1 32 62"/>
+        </g>
+        <path d="M60 30 L72 38 L60 46 Z M40 54 L28 62 L40 70 Z" fill="#fff"/>
+      </svg>
+    </button>
     <button class="bigBtn" id="albumBtn" aria-label="sticker album">
       <svg viewBox="0 0 100 100"><path d="M50 18 Q30 8 14 14 V78 Q30 72 50 82 Q70 72 86 78 V14 Q70 8 50 18 Z" fill="#fff" stroke="#023047" stroke-width="5"/><path d="M50 18 V82" stroke="#023047" stroke-width="4"/><path d="M30 34 L33 41 L41 42 L35 47 L37 55 L30 50 L23 55 L25 47 L19 42 L27 41 Z" fill="#ffd60a"/><circle cx="68" cy="44" r="9" fill="#74c69d"/></svg>
     </button>
@@ -5011,6 +5035,66 @@ function finishLevel() {
     }, banked > 15 ? 60 : 120);   /* long tallies (world bonus) tick twice as fast */
   }, 700);
 }
+
+/* ============ NEW VERSION GATE ============ */
+/* No service worker here: a stale game is Safari's cache or a home-screen app left running.
+   Fingerprint the code this page booted with, and quietly compare it against a fresh copy
+   from the server on boot, whenever the app comes back to the foreground, and every 10 min. */
+const updateBtn = document.getElementById("updateBtn");
+const bootCode = (() => {
+  const st = document.querySelector("style"), sc = document.querySelector("script");
+  return (st ? st.textContent : "") + (sc ? sc.textContent : "");
+})();
+function codeHash(str) {   /* FNV-1a: plenty for "did it change" */
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return h >>> 0;
+}
+const bootHash = codeHash(bootCode);
+let lastUpdateCheck = 0;
+async function checkForUpdate() {
+  if (location.protocol === "file:" || Date.now() - lastUpdateCheck < 30000) return;
+  lastUpdateCheck = Date.now();
+  try {
+    const res = await fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) return;
+    const doc = new DOMParser().parseFromString(await res.text(), "text/html");
+    const st = doc.querySelector("style"), sc = doc.querySelector("script");
+    if (!st || !sc) return;
+    if (codeHash(st.textContent + sc.textContent) !== bootHash) updateBtn.classList.add("show");
+  } catch (e) { /* offline in the car: keep playing what we have */ }
+}
+const UPDATE_HOLD_MS = 1600;
+let updateHoldT = null, updateHoldStart = 0, updateHoldRaf = null;
+const updateRing = updateBtn.querySelector(".ring");
+function updateHoldEnd() {
+  clearTimeout(updateHoldT); cancelAnimationFrame(updateHoldRaf);
+  updateHoldT = null;
+  updateBtn.classList.remove("holding");
+  updateRing.style.strokeDashoffset = 251.3;
+}
+updateBtn.addEventListener("pointerdown", e => {
+  e.stopPropagation();
+  try { updateBtn.setPointerCapture(e.pointerId); } catch (err) {}
+  sfx.pop();
+  updateBtn.classList.add("holding");
+  updateHoldStart = performance.now();
+  (function fill() {
+    const f = Math.min(1, (performance.now() - updateHoldStart) / UPDATE_HOLD_MS);
+    updateRing.style.strokeDashoffset = 251.3 * (1 - f);
+    if (f < 1) updateHoldRaf = requestAnimationFrame(fill);
+  })();
+  updateHoldT = setTimeout(() => {
+    save();
+    sfx.tada();
+    /* cache-busting navigation so Safari can't hand back the old page */
+    setTimeout(() => location.replace(location.pathname + "?v=" + Date.now() + location.hash), 350);
+  }, UPDATE_HOLD_MS);
+});
+for (const ev of ["pointerup", "pointercancel", "pointerleave"]) updateBtn.addEventListener(ev, () => { if (updateHoldT) updateHoldEnd(); });
+setTimeout(checkForUpdate, 2500);
+setInterval(checkForUpdate, 10 * 60 * 1000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkForUpdate(); });
 </script>
 </body>
 </html>
