@@ -107,7 +107,8 @@
   #washBtn { position: absolute; right: 96px; top: 246px; width: 88px; height: 88px; border-radius: 26px; background: #6fc0df; border: 6px solid #fff; z-index: 5; display: none; animation: pulse 1.1s ease infinite; }
   #washBtn.show { display: flex; }
   #washBtn svg { width: 60px; height: 60px; }
-  #quietBtn { right: 200px; top: 24px; background: #e9ecef; z-index: 20; }
+  /* garage top row, right side: album 352-448 | quiet 240-336 | wallet 24-224, even 16px gaps */
+  #quietBtn { right: 240px; top: 24px; background: #e9ecef; z-index: 20; }
   #profileBtn {
     position: absolute; left: 24px; top: 24px; width: 96px; height: 96px;
     border-radius: 50%; background: #fff; border: 6px solid #023047; z-index: 20;
@@ -298,7 +299,7 @@
   }
   #stickerToast.show { transform: translateX(-50%) scale(1); }
   #stickerToast svg { width: 64px; height: 64px; }
-  #albumBtn { position: absolute; right: 320px; top: 24px; width: 96px; height: 96px; border-radius: 26px; background: #fff; border: 6px solid #023047; z-index: 20; }
+  #albumBtn { position: absolute; right: 352px; top: 24px; width: 96px; height: 96px; border-radius: 26px; background: #fff; border: 6px solid #023047; z-index: 20; }
   #albumBtn svg { width: 60px; height: 60px; }
   .buddyPop { animation: buddyPopUp 1.9s ease forwards; }
   @keyframes buddyPopUp {
@@ -453,6 +454,8 @@
   #road.celebrating #hudStars, #road.celebrating #hudLevel, #road.celebrating #hudProgress,
   #road.celebrating #hudDamage, #road.celebrating .pedal, #road.celebrating #steerWheel,
   #road.celebrating #homeBtn { display: none; }
+  /* wallets are fixed width (fits 3 digits) so the row never shifts as stars pile up */
+  #garageWallet, #albumWallet, #mapWallet, #celebrateWallet { width: 200px; justify-content: center; padding: 0; box-sizing: border-box; }
   #garageWallet { right: 24px; top: 24px; cursor: pointer; }
   #albumWallet { right: 24px; top: 24px; }
   #mapWallet { right: 24px; top: 24px; }
