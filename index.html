@@ -3493,34 +3493,57 @@ function elevAt(x) {
   return e;
 }
 function addHill(x0, len, amp) { HILLS.push({ x0, x1: x0 + len, amp }); return x0 + len; }
-/* course authoring: a seeded sequence of bends that gets bolder with the level */
+/* course authoring: every world has a road character (how hard it bends, whether it has
+   hairpins, how long its straights run) and every level in a world gets a different shape
+   from a fixed, hand-ordered menu: a single giant sweeper, a chicane festival, a drag strip
+   with a hairpin at the end... so level 3 and level 4 are recognizably different roads and
+   the finale of each world is a tour of everything. All bends stay out of the first 600
+   and last 700 units (CURVE_EASE is already inside those margins). */
 function addBend(x0, len, k) { COURSE.push({ x0, x1: x0 + len, k }); return x0 + len; }
+const WORLD_ROAD = {
+  /*  k: base curvature, hp: hairpin strength (0 = none in this world), len/gap: bend length and
+      straight multipliers, order: the ten level shapes */
+  1: { k: CURVE.gentle * 0.8,  hp: 0,   len: 1.0, gap: 1.0, order: ["sweeper", "bookends", "esses", "twin", "sweeper", "wiggle", "spiral", "esses", "drag", "tour"] },      /* construction: wide and forgiving */
+  2: { k: CURVE.gentle * 1.3,  hp: 0,   len: 1.3, gap: 1.2, order: ["esses", "sweeper", "twin", "spiral", "bookends", "esses", "drag", "sweeper", "wiggle", "tour"] },      /* farm: long lazy sweepers over hills */
+  3: { k: CURVE.medium,        hp: 0.8, len: 0.8, gap: 0.8, order: ["chicanes", "esses", "hairpins", "wiggle", "twin", "chicanes", "spiral", "drag", "esses", "tour"] },    /* night: twisty mountain road */
+  4: { k: CURVE.gentle * 1.15, hp: 0,   len: 1.7, gap: 1.6, order: ["drag", "bookends", "sweeper", "twin", "esses", "drag", "sweeper", "bookends", "twin", "tour"] },       /* rain: highway, long straights, wide curves */
+  5: { k: CURVE.medium * 1.1,  hp: 1.0, len: 0.9, gap: 0.9, order: ["hairpins", "wiggle", "chicanes", "spiral", "hairpins", "esses", "drag", "chicanes", "hairpins", "tour"] }, /* snow: the mountain pass, switchbacks */
+  6: { k: CURVE.medium * 0.9,  hp: 0.9, len: 1.4, gap: 1.5, order: ["drag", "sweeper", "bookends", "chicanes", "drag", "twin", "hairpins", "sweeper", "drag", "tour"] },    /* desert: drag strips and one giant sweeper */
+  7: { k: CURVE.medium,        hp: 0.7, len: 1.1, gap: 1.0, order: ["esses", "twin", "sweeper", "wiggle", "esses", "spiral", "hairpins", "esses", "twin", "tour"] },        /* beach: rhythmic coast road */
+  8: { k: CURVE.tight * 0.9,   hp: 1.1, len: 0.8, gap: 0.7, order: ["chicanes", "wiggle", "hairpins", "spiral", "chicanes", "drag", "wiggle", "hairpins", "chicanes", "tour"] } /* moon: wild */
+};
 function buildCourse(n, rng, len) {
   COURSE = [];
-  const w = worldOf(n);
-  const strength = w <= 1 ? CURVE.gentle : w <= 3 ? CURVE.medium : CURVE.tight;
-  /* shapes: each returns the x where it ends */
-  const S = {
-    sweepL: (x, L) => addBend(x, L, -strength * 0.8),
-    sweepR: (x, L) => addBend(x, L, strength * 0.8),
-    sBend:  (x, L) => addBend(addBend(x, L / 2, strength) + 120, L / 2 - 120, -strength),
-    zBend:  (x, L) => addBend(addBend(x, L / 2, -strength) + 120, L / 2 - 120, strength),
-    hairpinL: (x, L) => addBend(x, L * 0.6, -CURVE.tight * 1.15),
-    hairpinR: (x, L) => addBend(x, L * 0.6, CURVE.tight * 1.15),
-    chicane: (x, L) => { let e = x; const seg = L / 4; e = addBend(e, seg, strength * 1.3); e = addBend(e + 80, seg, -strength * 1.3); e = addBend(e + 80, seg, strength * 1.3); return e; },
-    straight: (x, L) => x + L
+  const w = worldOf(n), i = (n - 1) % WORLD_SIZE, P = WORLD_ROAD[w];
+  const k = P.k * (0.85 + 0.3 * i / 9);                      /* later levels in a world bend a little harder */
+  const hk = P.hp ? CURVE.tight * 1.15 * P.hp : k * 1.7;     /* no hairpins in this world: a firm sweep instead */
+  const x0 = 950, x1 = len - 1020;
+  let dir = rng() < 0.5 ? 1 : -1;
+  /* a bend clipped to the course window; returns where it ends (or x unchanged if no room) */
+  const bend = (x, L, kk) => { L = Math.min(L, x1 - x); return L < 200 ? x : addBend(Math.max(x, x0), L, kk); };
+  const Lm = m => Math.round(m * P.len * (0.9 + rng() * 0.2)), Gm = m => Math.round(m * P.gap * (0.8 + rng() * 0.4));
+  const sweep = (x, L, d) => bend(x, L, d * k);
+  const hairpin = (x, d) => bend(x, Lm(560), d * hk);
+  const chicane = (x, d) => { let e = bend(x, Lm(260), d * k * 1.4); e = bend(e + 60, Lm(260), -d * k * 1.4); return bend(e + 60, Lm(260), d * k * 1.4); };
+  const span = x1 - x0;
+  const T = {
+    sweeper() { sweep(x0 + span * 0.12, span * 0.76, dir); },                                  /* one giant bend */
+    esses() { for (let x = x0; x < x1 - 400; dir = -dir) x = sweep(x, Lm(900), dir) + Gm(240); },  /* alternating sweepers */
+    twin() { const L = span * 0.36; sweep(x0, L, dir); sweep(x1 - L, L, -dir); },             /* two long bends, straight between */
+    bookends() { sweep(x0, Lm(650), dir); sweep(x1 - Lm(650), Lm(650), -dir); },             /* bends at both ends, long straight middle */
+    drag() { hairpin(x1 - Lm(560) - Gm(200), dir); },                                        /* drag strip, hairpin at the end */
+    wiggle() { for (let x = x0 + Gm(300), j = 0; x < x1 - 300 && j < 9; dir = -dir, j++) x = bend(x, Lm(380), dir * k * 1.2) + Gm(120); }, /* a run of short flicks */
+    spiral() { let x = x0 + Gm(200); for (let j = 0; j < 3 && x < x1 - 400; j++) x = bend(x, Lm(700), dir * k * (0.7 + 0.3 * j)) + Gm(260); }, /* same way, tightening */
+    chicanes() { for (let x = x0 + Gm(150), j = 0; x < x1 - 500 && j < 5; dir = -dir, j++) x = chicane(x, dir) + Gm(420); },   /* chicane festival */
+    hairpins() { const x = hairpin(x0 + span * 0.15, dir); hairpin(Math.max(x + Gm(900), x1 - span * 0.15 - Lm(560)), -dir); }, /* two hairpins, straight between */
+    tour() {   /* the finale: a sweeper, a chicane, a hairpin and esses, back to back */
+      let x = sweep(x0, Lm(900), dir) + Gm(200);
+      x = chicane(x, -dir) + Gm(200);
+      x = hairpin(x, dir) + Gm(260);
+      for (; x < x1 - 400; dir = -dir) x = sweep(x, Lm(700), -dir) + Gm(180);
+    }
   };
-  const menu = n <= 2 ? ["straight", "sweepL", "straight", "sweepR"]
-    : n <= 10 ? ["sweepL", "sweepR", "straight", "sBend", "zBend"]
-    : n <= 30 ? ["sweepL", "sweepR", "sBend", "zBend", "chicane", "straight"]
-    : ["sBend", "zBend", "hairpinL", "hairpinR", "chicane", "sweepL", "sweepR"];
-  let x = 900;
-  const endX = len - 700;
-  while (x < endX - 400) {
-    const shape = menu[Math.floor(rng() * menu.length)];
-    const L = Math.min(endX - x, 900 + rng() * 1100);
-    x = S[shape](x, L) + 200 + rng() * 300;
-  }
+  T[P.order[i]]();
   COURSE = COURSE.filter(c => c.x1 > c.x0 + 80);
   /* hills by world: flat construction/rain/beach, rolling farmland and dunes, big snowy
      rises, lumpy moon; later levels in a world roll harder */
