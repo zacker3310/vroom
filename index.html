@@ -3475,6 +3475,18 @@ function offAt(z) {
   const i = Math.floor(f), t = f - i;
   return i >= OFF_N - 1 ? OFF[OFF_N - 1] : OFF[i] * (1 - t) + OFF[i + 1] * t;
 }
+/* ---- hills: smooth cosine bumps/dips along the road. The camera rides the road at the
+   car, so a crest ahead lifts the far road toward the sky and a dip hides it. ---- */
+let HILLS = [], curCarX = 0, camElev = 0;
+function elevAt(x) {
+  let e = 0;
+  for (const hl of HILLS) {
+    if (x <= hl.x0 || x >= hl.x1) continue;
+    e += hl.amp * (1 - Math.cos((x - hl.x0) / (hl.x1 - hl.x0) * Math.PI * 2)) / 2;
+  }
+  return e;
+}
+function addHill(x0, len, amp) { HILLS.push({ x0, x1: x0 + len, amp }); return x0 + len; }
 /* course authoring: a seeded sequence of bends that gets bolder with the level */
 function addBend(x0, len, k) { COURSE.push({ x0, x1: x0 + len, k }); return x0 + len; }
 function buildCourse(n, rng, len) {
@@ -3504,6 +3516,18 @@ function buildCourse(n, rng, len) {
     x = S[shape](x, L) + 200 + rng() * 300;
   }
   COURSE = COURSE.filter(c => c.x1 > c.x0 + 80);
+  /* hills by world: flat construction/rain/beach, rolling farmland and dunes, big snowy
+     rises, lumpy moon; later levels in a world roll harder */
+  HILLS = [];
+  const hillAmp = [0, 0, 70, 40, 0, 110, 80, 0, 130][w] * (0.7 + 0.3 * ((n - 1) % 10) / 9);
+  if (hillAmp) {
+    let hx = 600 + rng() * 600;
+    while (hx < len - 1400) {
+      const L = 1100 + rng() * 1300;
+      const amp = hillAmp * (0.5 + rng() * 0.5) * (rng() < 0.3 ? -0.6 : 1);   /* mostly rises, some dips */
+      hx = addHill(hx, L, amp) + rng() * 500;
+    }
+  }
   return COURSE;
 }
 function carScreenX() { return 600 + (laneVis - 1) * LANE_W * (1 - CAM_FOLLOW); }
@@ -4176,7 +4200,7 @@ function placeSprite(p, carX) {
   if (!p.vis) { p.wrap.style.display = "block"; p.vis = true; }
   const s = CAM_D / (z + CAM_D);
   const sx = 600 + (p.lx + offAt(z) - camX) * s;
-  const sy = HORIZON + (CAM_H - p.h) * s;
+  const sy = HORIZON + (CAM_H + camElev - elevAt(p.x) - p.h) * s;
   p.wrap.style.transform = `translate(${sx.toFixed(1)}px,${sy.toFixed(1)}px) scale(${(s * p.k).toFixed(4)})`;
   /* nearer = higher; the car sits at depth 10. Something the car just hit or grabbed
      pops out over it (it happens up by the hood, which the body otherwise hides) */
@@ -4190,7 +4214,7 @@ function placeSprite(p, carX) {
 const SEG = 160;
 function proj(z, lx, h) {
   const s = CAM_D / (z + CAM_D);
-  return [600 + (lx + offAt(z) - camX) * s, HORIZON + (CAM_H - (h || 0)) * s, s];
+  return [600 + (lx + offAt(z) - camX) * s, HORIZON + (CAM_H + camElev - elevAt(curCarX + z) - (h || 0)) * s, s];
 }
 function quad(c, z0, z1, l0, l1, col, h0, h1) {
   const a = proj(z0, l0, h0), b = proj(z0, l1, h0), d = proj(z1, l1, h1), e = proj(z1, l0, h1);
@@ -4202,6 +4226,8 @@ function drawRoad(carX) {
   c.clearRect(0, 0, 1200, 700);
   c.fillStyle = P.ground;
   c.fillRect(0, HORIZON, 1200, 700 - HORIZON);
+  /* the ground plane itself follows the hills, so a rise lifts the whole landscape */
+  for (let z = DRAW_FAR + 1200; z > DRAW_NEAR; z -= 400) quad(c, Math.max(DRAW_NEAR, z - 400), z, -7000, 7000, P.ground);
   /* the far road: coarse bands out past the fade, so a bend keeps curving to the haze */
   for (let z = DRAW_FAR + 1200; z >= 2400; z -= 400) quad(c, z - 400, z, -ROAD_HALF, ROAD_HALF, P.road);
   /* banded near road: alternating stripes sell the speed */
@@ -4256,6 +4282,7 @@ function drawRoad(carX) {
 function renderWorld() {
   const carX = pos + CAR_SCREEN_X - CAR_HIT_Z;   /* z=0 is the car's rear bumper */
   camX = (laneVis - 1) * LANE_W * CAM_FOLLOW;
+  curCarX = carX; camElev = elevAt(carX);
   buildOffsets(carX);
   drawRoad(carX);
   for (const p of props) placeSprite(p, carX);
@@ -4372,8 +4399,9 @@ function buildParade() {
   clearWorld();
   const rng = mulberry32(4242);
   LEVEL_LEN = 6200;
-  /* party road: one long lazy S after another */
-  COURSE = [];
+  /* party road: one long lazy S after another, with a gentle roll */
+  COURSE = []; HILLS = [];
+  for (let x = 1200; x < LEVEL_LEN - 1500; x += 2200) addHill(x, 1600, 50);
   for (let x = 800, d = 1; x < LEVEL_LEN - 1200; x += 1500, d = -d) addBend(x, 1100, d * CURVE.gentle);
   applyTheme(1);
   roadScene.classList.add("parade");
@@ -4430,7 +4458,7 @@ function spawnFirework() {
 function buildFree() {
   clearWorld();
   freeSpawnX = 1000; freeThemeIdx = 0;
-  COURSE = []; freeCourseX = 1200;
+  COURSE = []; HILLS = []; freeCourseX = 1200;
   applyTheme(1);
   buildScenery(0, 1);
 }
@@ -4474,9 +4502,11 @@ function tickFree() {
     const r = Math.random(), L = 900 + Math.random() * 1200;
     const k = r < 0.3 ? 0 : (Math.random() < 0.5 ? -1 : 1) * (r < 0.7 ? CURVE.gentle : CURVE.medium);
     if (k) addBend(freeCourseX, L, k);
+    if (Math.random() < 0.35) addHill(freeCourseX + 200, L, 40 + Math.random() * 60);
     freeCourseX += L + 300 + Math.random() * 400;
   }
   COURSE = COURSE.filter(c => c.x1 > pos - 1500);
+  HILLS = HILLS.filter(h => h.x1 > pos - 1500);
   for (let i = props.length - 1; i >= 0; i--) {
     if (props[i].x < pos - 700) { props[i].wrap.remove(); props.splice(i, 1); }
   }
