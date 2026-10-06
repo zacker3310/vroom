@@ -2108,6 +2108,12 @@ const WORLD_SCENERY = {
 /* ---------- 2b. WORLD_FAR — one far hill variant per 520px tile ----------
    Same two-hump quad structure as the existing #74c69d hills. */
 const WORLD_FAR = {
+  /* sunset: golden hills */
+  w2: x => `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#c9a04a" opacity=".8"/>`,
+
+  /* night: deep blue hills */
+  w3: x => `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#1b2a41" opacity=".9"/>`,
+
   /* rainy hills: desaturated wet green */
   w4: x => `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#617d70" opacity=".8"/>`,
 
@@ -3828,7 +3834,7 @@ function paradeUnlocked() {
   return true;
 }
 let LEVEL_LEN = 5200, RAMPS = [], props = [], scenery = [], totalStars = 0, runStars = 0, runDamage = 0, runTime = 0;
-let freeSpawnX = 0, freeThemeIdx = 0, freeSceneryX = 0, sceneryFn = null, sceneryWorld = 1;
+let freeSpawnX = 0, freeThemeIdx = 0, freeSceneryX = 0, sceneryWorld = 1;
 
 function rampElev(x) {
   for (const rp of RAMPS) {
@@ -3941,7 +3947,7 @@ function buildLevel(n) {
 
   addProp("finish", LEVEL_LEN, 1, 0, finishSVG, -400, -380);
 
-  buildScenery(LEVEL_LEN + 1600, w);
+  buildScenery(LEVEL_LEN + 1600, w, n);
   applyTheme(w);
 }
 /* one road item on the ground of a lane (stars float at belly height) */
@@ -4022,8 +4028,10 @@ function tickMovers(dt) {
   }
 }
 
-/* scenery: the far skyline is a static backdrop on the horizon; the old mid-layer
-   set pieces (cranes, pines, palms...) now line both roadsides and rush past */
+/* scenery: the far skyline is a static backdrop on the horizon with a landmark or two per
+   world; the roadsides are lined with set dressing drawn from a per-world pool (seeded per
+   level, so no two levels line up the same) and, every so often, a structure spanning the
+   whole road that the car drives under */
 function defaultMid(x) {
   return `
       <g transform="translate(${x},462)">
@@ -4039,30 +4047,368 @@ function defaultMid(x) {
         <rect x="88" y="-150" width="16" height="150" fill="#6c757d"/>
       </g>`;
 }
+
+/* ---- roadside pieces ----
+   a piece is flat SVG with its ground line at local y=0 spanning x 0..w; x=0 is the edge
+   nearest the road. k scales it up on the road, back pushes it away from the shoulder
+   (world units). The old 900px vignettes stay in the pools via legacyPiece. */
+const pc = (w, h, g, k = 1, back = 0) => ({ w, h, k, back, yOff: -h, svg: `<svg width="${w}" height="${h}" viewBox="0 ${-h} ${w} ${h}">${g}</svg>` });
+const legacyPiece = fn => ({ w: 660, h: 250, k: 0.9, back: 0, yOff: -240,
+  svg: `<svg width="660" height="250" viewBox="-80 -240 660 250"><g transform="translate(0,-462)">${fn(0)}</g></svg>` });
+/* little shape helpers shared by the pools */
+const R = (x, y, w, h, c, rx = 0) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"${rx ? ` rx="${rx}"` : ""}/>`;
+const C = (x, y, r, c, o) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"${o ? ` opacity="${o}"` : ""}/>`;
+const T = (x, y, w, h, c) => `<path d="M${x} ${y} L${x + w / 2} ${y - h} L${x + w} ${y} Z" fill="${c}"/>`;
+const pineG = (x, h, c = "#2d6a4f", cap = true) =>
+  R(x - 7, -h * 0.14, 14, h * 0.14, "#6b4423") +
+  `<path d="M${x} ${-h} L${x + h * 0.26} ${-h * 0.46} H${x - h * 0.26} Z" fill="${c}"/>` +
+  `<path d="M${x} ${-h * 0.74} L${x + h * 0.34} ${-h * 0.14} H${x - h * 0.34} Z" fill="${c}"/>` +
+  (cap ? `<path d="M${x} ${-h} L${x + h * 0.12} ${-h * 0.77} H${x - h * 0.12} Z" fill="#f1faee"/>` : "");
+const palmG = (x, h) => {
+  const tx = x + 10, ty = -h;
+  return `<path d="M${x} 0 Q${x - 8} ${-h * 0.55} ${tx} ${ty}" stroke="#b08968" stroke-width="14" fill="none" stroke-linecap="round"/>` +
+    `<path d="M${tx} ${ty} Q${tx - 36} ${ty - 16} ${tx - 60} ${ty + 4} Q${tx - 34} ${ty - 34} ${tx + 4} ${ty - 12} Z" fill="#2a9d8f"/>` +
+    `<path d="M${tx} ${ty} Q${tx + 36} ${ty - 16} ${tx + 60} ${ty + 4} Q${tx + 34} ${ty - 34} ${tx - 4} ${ty - 12} Z" fill="#2a9d8f"/>` +
+    `<path d="M${tx} ${ty - 4} Q${tx - 14} ${ty - 40} ${tx - 40} ${ty - 44} Q${tx - 8} ${ty - 54} ${tx + 8} ${ty - 18} Z" fill="#2a9d8f"/>` +
+    `<path d="M${tx} ${ty - 4} Q${tx + 18} ${ty - 40} ${tx + 42} ${ty - 42} Q${tx + 10} ${ty - 54} ${tx - 6} ${ty - 18} Z" fill="#2a9d8f"/>` +
+    C(tx - 6, ty + 2, 7, "#6b4423") + C(tx + 8, ty + 4, 7, "#6b4423");
+};
+const cactusG = (x, h, c = "#588157") =>
+  R(x - 11, -h, 22, h, c, 11) + R(x - 33, -h * 0.75, 14, h * 0.33, c, 7) + R(x - 33, -h * 0.48, 28, 14, c, 7) +
+  R(x + 19, -h * 0.84, 14, h * 0.3, c, 7) + R(x + 5, -h * 0.6, 28, 14, c, 7);
+const snowmanG = (x, s) =>
+  C(x, -s * 0.9, s * 0.9, "#fff") + C(x, -s * 2.1, s * 0.65, "#fff") + C(x, -s * 3, s * 0.45, "#fff") +
+  C(x - s * 0.17, -s * 3.1, 2.5, "#023047") + C(x + s * 0.17, -s * 3.1, 2.5, "#023047") +
+  `<path d="M${x} ${-s * 2.95} L${x + s * 0.6} ${-s * 2.8} L${x} ${-s * 2.75} Z" fill="#f77f00"/>` +
+  `<path d="M${x - s * 0.6} ${-s * 2.15} L${x - s * 1.3} ${-s * 2.6} M${x + s * 0.6} ${-s * 2.15} L${x + s * 1.3} ${-s * 2.6}" stroke="#6b4423" stroke-width="4" stroke-linecap="round"/>`;
+const cowG = (x, flip) => `<g transform="translate(${x},0)${flip ? " scale(-1,1)" : ""}">` +
+  R(-30, -44, 60, 32, "#f1faee", 12) + R(-8, -40, 18, 14, "#212529", 6) + R(-26, -14, 8, 14, "#212529") + R(14, -14, 8, 14, "#212529") +
+  R(30, -54, 22, 22, "#f1faee", 7) + R(36, -36, 12, 8, "#f4a6a6", 3) + C(38, -48, 2.5, "#212529") + `</g>`;
+const lampG = (x, h, glow = true) =>
+  (glow ? C(x, -h, 46, "#ffd60a", 0.18) + C(x, -h, 24, "#ffd60a", 0.3) : "") +
+  R(x - 4, -h, 8, h, "#343a40") + R(x - 16, -h - 10, 32, 14, "#343a40", 4) + R(x - 11, -h - 2, 22, 8, "#ffd60a", 2);
+
+const WORLD_SET = {
+  /* construction: crane + building (legacy), tower crane, half-built tower, cement silo,
+     dirt pile + excavator, porta-potty row, pipe stack, dump truck */
+  w1: [
+    legacyPiece(defaultMid),
+    pc(400, 330, R(60, -300, 22, 300, "#e76f51") + R(0, -312, 380, 14, "#e76f51") + R(300, -332, 60, 24, "#495057") +
+      `<path d="M71 -300 L0 -240 M71 -300 L140 -240" stroke="#e76f51" stroke-width="6"/>` +
+      `<path d="M40 -298 V-150" stroke="#495057" stroke-width="4"/>` + R(22, -150, 36, 30, "#ffb703", 4) +
+      R(40, -24, 70, 24, "#6c757d", 4), 1.3, 140),
+    pc(300, 260, R(0, -16, 260, 16, "#adb5bd") + R(10, -96, 240, 14, "#adb5bd") + R(10, -176, 240, 14, "#adb5bd") + R(10, -256, 240, 14, "#adb5bd") +
+      R(24, -80, 14, 64, "#ced4da") + R(123, -80, 14, 64, "#ced4da") + R(222, -80, 14, 64, "#ced4da") +
+      R(24, -160, 14, 64, "#ced4da") + R(123, -160, 14, 64, "#ced4da") + R(222, -160, 14, 64, "#ced4da") +
+      R(24, -242, 14, 66, "#ced4da") + R(222, -242, 14, 66, "#ced4da") + R(38, -162, 184, 66, "#f77f00") +
+      R(60, -144, 40, 30, "#ffb703") + R(120, -144, 40, 30, "#ffb703"), 1.1, 70),
+    pc(180, 290, R(44, -40, 12, 40, "#495057") + R(124, -40, 12, 40, "#495057") + `<path d="M30 -110 L90 -40 L150 -110 Z" fill="#adb5bd"/>` +
+      R(30, -270, 120, 160, "#ced4da", 10) + R(30, -200, 120, 22, "#4cc9f0") + R(80, -290, 20, 24, "#6c757d") +
+      `<path d="M30 -140 H150" stroke="#adb5bd" stroke-width="6"/>`, 1, 60),
+    pc(420, 170, `<path d="M0 0 Q90 -130 200 0 Z" fill="#b08968"/><path d="M40 0 Q90 -90 150 0 Z" fill="#8d5a2f"/>` +
+      R(230, -24, 150, 24, "#495057", 8) + R(250, -74, 100, 50, "#ffb703", 8) + R(305, -110, 48, 40, "#ffb703", 6) + R(312, -102, 34, 22, "#4cc9f0", 4) +
+      `<path d="M270 -74 L200 -150 L120 -120" stroke="#ffb703" stroke-width="14" fill="none" stroke-linecap="round"/>` +
+      `<path d="M120 -120 L96 -60 L140 -72 Z" fill="#495057"/>` + C(260, -14, 14, "#343a40") + C(350, -14, 14, "#343a40"), 1, 30),
+    pc(240, 140, [0, 80, 160].map(x => R(x, -120, 64, 120, "#1d7fd1", 4) + R(x - 4, -128, 72, 12, "#e9ecef", 4) + R(x + 14, -104, 36, 94, "#1565c0") + C(x + 42, -58, 4, "#e9ecef")).join(""), 0.9, 0),
+    pc(300, 150, C(60, -50, 50, "#adb5bd") + C(60, -50, 32, "#495057") + C(160, -50, 50, "#adb5bd") + C(160, -50, 32, "#495057") +
+      C(110, -130, 50, "#adb5bd") + C(110, -130, 32, "#495057") + R(230, -70, 60, 70, "#ffb703") +
+      `<path d="M230 -70 L290 -10 M230 -40 L260 -10 M260 -70 L290 -40" stroke="#212529" stroke-width="8"/>`, 1, 40),
+    pc(260, 120, R(0, -44, 160, 44, "#ffb703", 6) + `<path d="M160 -44 L170 -96 H230 L250 -60 V-20 H160 Z" fill="#ffb703"/>` +
+      R(180, -88, 44, 30, "#4cc9f0", 4) + `<path d="M4 -48 Q80 -120 156 -48 Z" fill="#b08968"/>` +
+      C(40, -14, 20, "#343a40") + C(120, -14, 20, "#343a40") + C(210, -14, 20, "#343a40"), 1, 10)
+  ],
+  /* sunset farm: windmill, red barn, hay bales, silo, sunflower row, farmhouse, cows at a fence */
+  w2: [
+    pc(260, 330, `<path d="M70 0 L90 -210 H170 L190 0 Z" fill="#b08968"/><path d="M80 -210 Q130 -260 180 -210 Z" fill="#6b4423"/>` +
+      R(112, -60, 36, 60, "#6b4423", 6) + R(118, -170, 24, 24, "#ffd60a") +
+      `<g transform="translate(130,-238) rotate(20)">` + [0, 90, 180, 270].map(a => `<g transform="rotate(${a})"><rect x="-8" y="-100" width="16" height="96" fill="#f1faee"/><rect x="-14" y="-96" width="6" height="80" fill="#ced4da"/></g>`).join("") + C(0, 0, 10, "#6b4423") + `</g>`, 1.3, 160),
+    pc(360, 260, `<path d="M0 -120 L180 -240 L360 -120 Z" fill="#9d0208"/>` + R(0, -120, 360, 120, "#e63946") + R(120, -90, 120, 90, "#fff3e0") +
+      `<path d="M120 -90 L240 0 M240 -90 L120 0" stroke="#e63946" stroke-width="12"/>` + R(160, -180, 40, 40, "#fff3e0") +
+      R(60, -70, 10, 70, "#ffd60a") + R(290, -70, 10, 70, "#ffd60a") + R(290, -210, 14, 70, "#fff3e0") +
+      `<path d="M320 -210 H290 L290 -190 Z" fill="#fff3e0"/>`, 1.1, 90),
+    pc(330, 110, [0, 115, 230].map(x => C(x + 50, -50, 50, "#e9c46a") + `<path d="M${x + 50} -50 m-30 0 a30 30 0 1 1 30 30 M${x + 50} -50 m-14 0 a14 14 0 1 1 14 14" stroke="#c99a3a" stroke-width="8" fill="none"/>`).join(""), 1, 10),
+    pc(140, 300, R(20, -240, 100, 240, "#adb5bd") + `<path d="M14 -240 Q70 -300 126 -240 Z" fill="#e63946"/>` +
+      R(20, -200, 100, 12, "#6c757d") + R(20, -120, 100, 12, "#6c757d") + R(60, -50, 20, 50, "#495057"), 1.1, 80),
+    pc(400, 150, [0, 65, 130, 195, 260, 325].map((x, i) => { const h = 110 + (i % 2) * 20; return R(x + 34, -h, 8, h, "#40916c") + `<path d="M${x + 38} ${-h * 0.5} Q${x + 10} ${-h * 0.5 - 20} ${x + 20} ${-h * 0.5 - 40}" stroke="#40916c" stroke-width="10" fill="none" stroke-linecap="round"/>` +
+      [0, 45, 90, 135, 180, 225, 270, 315].map(a => `<ellipse cx="${x + 38}" cy="${-h}" rx="7" ry="20" transform="rotate(${a} ${x + 38} ${-h})" fill="#ffd60a"/>`).join("") + C(x + 38, -h, 12, "#6b4423"); }).join(""), 1, 20),
+    pc(320, 240, `<path d="M0 -120 L150 -220 L300 -120 Z" fill="#6b4423"/>` + R(10, -120, 280, 120, "#fff3e0") + R(220, -230, 24, 60, "#8d5a2f") +
+      R(40, -90, 40, 44, "#ffd60a") + R(220, -90, 40, 44, "#ffd60a") + R(130, -70, 44, 70, "#8d5a2f", 4) +
+      R(-10, -24, 320, 10, "#b08968") + R(0, -60, 8, 60, "#b08968") + R(296, -60, 8, 60, "#b08968") + R(0, -120, 300, 8, "#b08968"), 1, 60),
+    pc(380, 100, R(0, -34, 380, 8, "#b08968") + R(0, -62, 380, 8, "#b08968") + [10, 130, 250, 366].map(x => R(x, -72, 10, 72, "#8d5a2f")).join("") +
+      `<g transform="translate(0,-10)">` + cowG(80) + cowG(220, true) + `</g>`, 1, 0)
+  ],
+  /* night: lit cottages, a glowing streetlamp, lighthouse, owl tree, campfire with tents, firefly bushes */
+  w3: [
+    pc(380, 190, `<path d="M0 -100 L90 -160 L180 -100 Z" fill="#1b263b"/>` + R(10, -100, 160, 100, "#3d405b") + R(40, -80, 30, 30, "#ffd60a") + R(110, -80, 30, 30, "#ffd60a") + R(75, -50, 30, 50, "#1b263b", 3) +
+      `<path d="M200 -120 L290 -180 L380 -120 Z" fill="#1b263b"/>` + R(210, -120, 160, 120, "#4a4e69") + R(240, -96, 30, 30, "#ffd60a") + R(310, -96, 30, 30, "#ffd60a") + R(240, -50, 30, 30, "#ffd60a") + R(300, -50, 30, 50, "#1b263b", 3) +
+      R(330, -190, 18, 40, "#1b263b"), 1, 60),
+    pc(120, 200, lampG(60, 170), 1, 0),
+    pc(200, 340, `<path d="M60 0 L75 -260 H125 L140 0 Z" fill="#f1faee"/>` + `<path d="M66 -80 H134 L130 -130 H70 Z M72 -170 H128 L126 -210 H74 Z" fill="#e63946"/>` +
+      R(50, -270, 100, 12, "#343a40") + R(70, -310, 60, 40, "#ffd60a") + `<path d="M70 -300 L0 -336 L0 -254 Z M130 -300 L200 -336 L200 -254 Z" fill="#ffd60a" opacity=".22"/>` +
+      `<path d="M66 -310 L100 -340 L134 -310 Z" fill="#e63946"/>` + R(92, -60, 16, 60, "#343a40"), 1.4, 260),
+    pc(220, 260, `<path d="M110 0 L104 -120 L60 -160 L40 -200 M104 -120 L150 -170 L170 -220 M104 -120 L108 -200 M60 -160 L30 -170" stroke="#1b263b" stroke-width="16" fill="none" stroke-linecap="round"/>` +
+      R(100, -40, 20, 40, "#1b263b") + `<ellipse cx="150" cy="-196" rx="22" ry="28" fill="#6b4423"/>` + C(142, -206, 8, "#ffd60a") + C(158, -206, 8, "#ffd60a") + C(142, -206, 3.5, "#212529") + C(158, -206, 3.5, "#212529") +
+      `<path d="M146 -194 L150 -186 L154 -194 Z" fill="#f77f00"/><path d="M134 -222 L140 -210 M166 -222 L160 -210" stroke="#6b4423" stroke-width="6" stroke-linecap="round"/>`, 1.1, 90),
+    pc(400, 170, C(200, -20, 90, "#ffb703", 0.14) + `<path d="M0 0 L70 -120 L140 0 Z" fill="#e63946"/><path d="M50 0 L70 -40 L90 0 Z" fill="#1b263b"/>` +
+      `<path d="M260 0 L330 -110 L400 0 Z" fill="#4cc9f0"/><path d="M310 0 L330 -36 L350 0 Z" fill="#1b263b"/>` +
+      `<path d="M170 -14 L230 -14 M176 -8 L224 -20" stroke="#6b4423" stroke-width="10" stroke-linecap="round"/>` +
+      `<path d="M200 -90 Q230 -50 200 -22 Q170 -50 200 -90 Z" fill="#f77f00"/><path d="M200 -66 Q214 -44 200 -24 Q186 -44 200 -66 Z" fill="#ffd60a"/>`, 1, 30),
+    pc(300, 110, `<path d="M0 0 Q70 -120 140 0 Z M120 0 Q200 -90 280 0 Z" fill="#1b4332"/>` +
+      [[40, -60], [90, -90], [150, -40], [200, -70], [250, -50], [70, -30]].map(([x, y]) => C(x, y, 5, "#ffd60a") + C(x, y, 10, "#ffd60a", 0.3)).join(""), 1, 0)
+  ],
+  /* rain: legacy city block, bus shelter, tall towers, shop fronts, puddled corner, umbrella bunch */
+  w4: [
+    legacyPiece(WORLD_SCENERY.w4),
+    pc(220, 150, R(10, -140, 200, 14, "#495057", 4) + R(20, -126, 10, 126, "#6c757d") + R(190, -126, 10, 126, "#6c757d") +
+      R(30, -126, 160, 90, "#4cc9f0", 0) + R(40, -50, 140, 12, "#6c757d") + R(50, -38, 8, 38, "#6c757d") + R(162, -38, 8, 38, "#6c757d") +
+      `<path d="M80 -110 Q110 -140 140 -110 Z" fill="#e63946"/>` + R(108, -110, 4, 60, "#343a40"), 1, 0),
+    pc(360, 330, R(0, -200, 100, 200, "#6c757d") + R(120, -300, 120, 300, "#495057") + R(260, -240, 100, 240, "#5c677d") +
+      [0, 1, 2, 3].map(r => R(14, -184 + r * 46, 22, 22, r % 2 ? "#adb5bd" : "#ffd60a") + R(60, -184 + r * 46, 22, 22, r % 3 ? "#ffd60a" : "#adb5bd") + R(274, -224 + r * 52, 22, 22, "#ffd60a") + R(318, -224 + r * 52, 22, 22, r % 2 ? "#ffd60a" : "#adb5bd")).join("") +
+      [0, 1, 2, 3, 4, 5].map(r => R(138, -284 + r * 46, 22, 22, r % 2 ? "#ffd60a" : "#adb5bd") + R(200, -284 + r * 46, 22, 22, r % 3 ? "#ffd60a" : "#adb5bd")).join("") +
+      R(170, -330, 20, 30, "#343a40") + C(180, -332, 6, "#e63946"), 1.3, 220),
+    pc(360, 190, R(0, -150, 170, 150, "#9d4edd") + R(10, -170, 150, 24, "#ff6b6b") + [0, 1, 2, 3, 4].map(i => R(10 + i * 30, -170, 15, 24, "#fff3e0")).join("") +
+      R(20, -110, 130, 90, "#4cc9f0") + C(85, -140, 20, "#fff") + `<path d="M70 -150 Q85 -170 100 -150 M72 -142 H98" stroke="#e63946" stroke-width="5" stroke-linecap="round"/>` +
+      R(190, -130, 170, 130, "#f77f00") + R(200, -150, 150, 24, "#2a9d8f") + [0, 1, 2, 3, 4].map(i => R(200 + i * 30, -150, 15, 24, "#fff3e0")).join("") +
+      R(210, -100, 60, 70, "#4cc9f0") + R(290, -100, 50, 100, "#343a40", 4) + C(275, -124, 12, "#ffd60a") + `<path d="M263 -120 L275 -96 L287 -120 Z" fill="#e9c46a"/>` + C(275, -128, 8, "#ff6b6b"), 1, 20),
+    pc(260, 120, `<ellipse cx="90" cy="-10" rx="90" ry="14" fill="#4cc9f0" opacity=".55"/><ellipse cx="200" cy="-8" rx="56" ry="9" fill="#4cc9f0" opacity=".55"/>` +
+      `<path d="M30 -16 H70 M90 -12 H130" stroke="#fff" stroke-width="3" opacity=".7"/>` + R(170, -110, 24, 100, "#e63946", 6) + R(166, -116, 32, 10, "#ffd60a", 4) + R(160, -80, 44, 12, "#e63946", 4) +
+      lampG(240, 110, false), 1, 0),
+    pc(240, 150, `<path d="M0 -70 Q50 -130 100 -70 Z" fill="#ffd60a"/>` + R(47, -70, 6, 70, "#343a40") + `<path d="M70 -90 Q130 -150 190 -90 Z" fill="#2a9d8f"/>` + R(127, -90, 6, 90, "#343a40") +
+      `<path d="M150 -60 Q195 -116 240 -60 Z" fill="#e63946"/>` + R(192, -60, 6, 60, "#343a40"), 1, 0)
+  ],
+  /* snow: legacy pines + snowman, ski lodge, igloo, frozen pond, sled hill, tall pines, snowman family */
+  w5: [
+    legacyPiece(WORLD_SCENERY.w5),
+    pc(360, 300, `<path d="M0 0 L180 -260 L360 0 Z" fill="#6b4423"/><path d="M20 -20 L180 -250 L340 -20 L310 -20 L180 -210 L50 -20 Z" fill="#fff"/>` +
+      R(150, -80, 60, 80, "#ffd60a", 4) + R(100, -130, 40, 40, "#ffd60a") + R(220, -130, 40, 40, "#ffd60a") + R(240, -300, 30, 70, "#6c757d") +
+      C(270, -320, 14, "#e9ecef", 0.8) + C(295, -340, 18, "#e9ecef", 0.6), 1.2, 110),
+    pc(220, 130, `<path d="M0 0 Q110 -240 220 0 Z" fill="#fff"/><path d="M20 -40 H200 M50 -80 H170 M10 -20 H210" stroke="#cfe3f0" stroke-width="5"/>` +
+      `<path d="M80 0 Q110 -70 140 0 Z" fill="#1b263b"/>`, 1, 20),
+    pc(360, 150, `<ellipse cx="180" cy="-16" rx="180" ry="30" fill="#bde0fe"/><ellipse cx="180" cy="-18" rx="150" ry="20" fill="#dff3ff"/>` +
+      `<path d="M80 -20 Q150 -36 220 -14 Q260 -4 300 -20" stroke="#fff" stroke-width="4" fill="none"/>` + pineG(330, 130, "#40916c"), 1, 0),
+    pc(400, 180, `<path d="M0 0 Q200 -300 400 0 Z" fill="#fff"/><path d="M60 -30 Q190 -140 330 -8" stroke="#cfe3f0" stroke-width="12" fill="none" stroke-linecap="round"/>` +
+      R(150, -120, 60, 14, "#e63946", 6) + `<path d="M150 -120 Q140 -140 160 -140" stroke="#e63946" stroke-width="8" fill="none"/>` + R(156, -106, 8, 10, "#6b4423") + R(196, -106, 8, 10, "#6b4423") +
+      R(240, -100, 60, 14, "#1d7fd1", 6) + `<path d="M240 -100 Q230 -120 250 -120" stroke="#1d7fd1" stroke-width="8" fill="none"/>`, 1.1, 60),
+    pc(380, 300, pineG(70, 280) + pineG(200, 300) + pineG(320, 250), 1.1, 110),
+    pc(300, 160, snowmanG(50, 32) + snowmanG(150, 44) + snowmanG(255, 26) + R(130, -82, 40, 10, "#e63946") + R(40, -56, 20, 8, "#1d7fd1"), 1, 0)
+  ],
+  /* desert: legacy mesa + saguaro, big banded mesa, skull rock, tumbleweed pile, oasis, pueblo, wind pump, saguaro trio */
+  w6: [
+    legacyPiece(WORLD_SCENERY.w6),
+    pc(500, 260, `<path d="M0 0 L60 -200 H440 L500 0 Z" fill="#b5651d"/><path d="M60 -200 H440 L452 -160 H48 Z" fill="#d68c45"/>` +
+      `<path d="M40 -130 H460 M80 -70 H420" stroke="#8f4a12" stroke-width="10"/>` + `<path d="M120 -200 L150 -240 H350 L380 -200 Z" fill="#b5651d"/>` + R(150, -240, 200, 14, "#d68c45"), 1.4, 320),
+    pc(260, 200, `<path d="M20 0 Q0 -120 70 -170 Q130 -210 200 -160 Q260 -100 230 0 Z" fill="#e9ecef"/>` +
+      `<ellipse cx="90" cy="-110" rx="26" ry="30" fill="#343a40"/><ellipse cx="170" cy="-110" rx="26" ry="30" fill="#343a40"/>` +
+      `<path d="M130 -80 L115 -50 H145 Z" fill="#343a40"/>` + `<path d="M80 -24 H180" stroke="#343a40" stroke-width="6"/>` + [90, 110, 130, 150, 170].map(x => R(x - 3, -30, 6, 12, "#343a40")).join(""), 1.1, 60),
+    pc(300, 130, [10, 90, 180, 280].map(x => R(x, -70, 10, 70, "#8d5a2f")).join("") + R(0, -60, 300, 6, "#8d5a2f") + R(0, -30, 300, 6, "#8d5a2f") +
+      [[60, -34, 32], [120, -46, 44], [200, -36, 34], [250, -30, 28]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#b08968" stroke-width="6"/><circle cx="${x}" cy="${y}" r="${r * 0.55}" fill="none" stroke="#b08968" stroke-width="4"/>`).join(""), 1, 0),
+    pc(360, 180, `<ellipse cx="180" cy="-14" rx="170" ry="26" fill="#0096c7"/><ellipse cx="180" cy="-16" rx="130" ry="16" fill="#48cae4"/>` + palmG(60, 140) + palmG(300, 110) +
+      `<path d="M120 -10 Q130 -30 150 -10 M210 -8 Q220 -26 240 -8" stroke="#2a9d8f" stroke-width="6" fill="none"/>`, 1.1, 90),
+    pc(360, 220, R(0, -110, 360, 110, "#c47a3a", 6) + R(60, -190, 180, 80, "#d68c45", 6) + R(100, -220, 90, 30, "#c47a3a", 6) +
+      R(30, -70, 36, 44, "#6b4423", 4) + R(150, -70, 36, 44, "#6b4423", 4) + R(270, -70, 36, 44, "#6b4423", 4) + R(100, -170, 30, 30, "#6b4423", 3) + R(180, -170, 30, 30, "#6b4423", 3) +
+      `<path d="M260 -110 L300 -200 M280 -110 L320 -200 M268 -140 H306 M276 -170 H314" stroke="#8d5a2f" stroke-width="6"/>` + [40, 100, 160, 220, 280].map(x => R(x, -124, 10, 14, "#8d5a2f")).join(""), 1.1, 80),
+    pc(220, 300, `<path d="M70 0 L100 -240 H120 L150 0 Z M70 0 L150 -240 M150 0 L70 -240 M80 -60 H140 M90 -130 H130 M96 -190 H124" stroke="#6c757d" stroke-width="7" fill="none"/>` +
+      `<g transform="translate(110,-250)">` + [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(a => `<path d="M0 0 L-9 -46 H9 Z" fill="#e9ecef" transform="rotate(${a})"/>`).join("") + C(0, 0, 9, "#6c757d") +
+      `<path d="M0 0 H60 L80 -16 V16 L60 0" stroke="#6c757d" stroke-width="5" fill="#e76f51"/></g>`, 1.1, 140),
+    pc(320, 180, cactusG(50, 110) + cactusG(160, 160) + cactusG(270, 90, "#6a994e") + C(160, -160, 8, "#e76f51"), 1, 10)
+  ],
+  /* beach: legacy palm + umbrella + boat, lifeguard tower, surf shack, sandcastle, whale out at sea, umbrella row, tall palms */
+  w7: [
+    legacyPiece(WORLD_SCENERY.w7),
+    pc(220, 270, R(40, -150, 14, 150, "#b08968") + R(150, -150, 14, 150, "#b08968") + `<path d="M70 -150 L130 -150 M70 -120 H130 M70 -90 H130 M70 -60 H130 M80 -150 V0 M120 -150 V0" stroke="#b08968" stroke-width="6"/>` +
+      R(20, -230, 170, 80, "#f1faee", 6) + R(20, -230, 170, 20, "#e63946") + R(60, -200, 90, 40, "#4cc9f0") + `<path d="M0 -250 L210 -250 L190 -230 H20 Z" fill="#e63946"/>` +
+      R(100, -270, 6, 40, "#6c757d") + `<path d="M106 -270 L140 -258 L106 -246 Z" fill="#ffd60a"/>` + C(120, -180, 7, "#e63946") + C(120, -180, 3, "#fff"), 1.1, 20),
+    pc(300, 230, R(30, -130, 220, 130, "#b08968") + `<path d="M0 -130 L140 -220 L280 -130 Z" fill="#e9c46a"/><path d="M20 -130 H260 M50 -150 H230 M90 -180 H190" stroke="#c99a3a" stroke-width="6"/>` +
+      R(110, -90, 60, 90, "#6b4423", 4) + R(50, -100, 40, 36, "#4cc9f0") + R(200, -100, 40, 36, "#4cc9f0") +
+      `<ellipse cx="275" cy="-70" rx="16" ry="66" fill="#e63946" transform="rotate(10 275 -70)"/><ellipse cx="275" cy="-70" rx="6" ry="50" fill="#fff3e0" transform="rotate(10 275 -70)"/>` +
+      `<ellipse cx="20" cy="-62" rx="14" ry="58" fill="#4cc9f0" transform="rotate(-10 20 -62)"/>`, 1.1, 40),
+    pc(260, 150, `<ellipse cx="130" cy="-8" rx="130" ry="14" fill="#48cae4"/>` + R(30, -70, 200, 70, "#e9c46a") + R(20, -110, 50, 110, "#e9c46a") + R(190, -110, 50, 110, "#e9c46a") + R(105, -130, 50, 130, "#e9c46a") +
+      [20, 36, 52].map(x => R(x, -118, 10, 10, "#e9c46a")).join("") + [190, 206, 222].map(x => R(x, -118, 10, 10, "#e9c46a")).join("") + [105, 121, 137].map(x => R(x, -138, 10, 10, "#e9c46a")).join("") +
+      `<path d="M115 -40 Q130 -70 145 -40 Z" fill="#6b4423"/>` + R(128, -160, 4, 30, "#6c757d") + `<path d="M132 -160 L150 -152 L132 -144 Z" fill="#e63946"/>`, 1, 0),
+    pc(560, 200, R(0, -60, 560, 20, "#0096c7") + R(0, -52, 560, 12, "#48cae4") + `<path d="M80 -60 L170 -60 L150 -36 H100 Z" fill="#e63946"/>` + R(120, -130, 5, 70, "#6b4423") + `<path d="M128 -128 L170 -64 L128 -64 Z" fill="#f1faee"/>` +
+      `<path d="M300 -60 Q330 -110 400 -100 Q470 -90 500 -60 Z" fill="#457b9d"/><path d="M480 -92 L520 -130 L530 -100 Z M500 -84 L540 -110 L548 -78 Z" fill="#457b9d"/>` +
+      `<path d="M380 -100 Q380 -140 360 -170 M380 -100 Q380 -150 400 -180 M380 -100 V-190" stroke="#90e0ef" stroke-width="7" fill="none" stroke-linecap="round"/>` + C(340, -80, 4, "#023047"), 1.2, 200),
+    pc(320, 130, `<path d="M0 -70 Q50 -130 100 -70 Z" fill="#ffd60a"/><path d="M20 -70 Q50 -110 80 -70 Z" fill="#fff"/>` + R(47, -70, 6, 70, "#8d99ae") +
+      `<path d="M110 -80 Q165 -140 220 -80 Z" fill="#2a9d8f"/><path d="M135 -80 Q165 -122 195 -80 Z" fill="#fff"/>` + R(162, -80, 6, 80, "#8d99ae") +
+      `<path d="M220 -60 Q270 -116 320 -60 Z" fill="#e63946"/>` + R(267, -60, 6, 60, "#8d99ae") + R(60, -22, 80, 18, "#ff6b6b", 4) + R(230, -18, 80, 14, "#4cc9f0", 4), 1, 0),
+    pc(320, 300, palmG(70, 240) + palmG(220, 290), 1.2, 60)
+  ],
+  /* space: legacy dome + dish + rocket, big habitat dome, rocket on its gantry, moon buggy, alien camp, crater, flag, dish array */
+  w8: [
+    legacyPiece(WORLD_SCENERY.w8),
+    pc(420, 260, `<path d="M20 0 Q210 -340 400 0 Z" fill="#4cc9f0" opacity=".55"/><path d="M20 0 Q210 -340 400 0" stroke="#adb5bd" stroke-width="12" fill="none"/>` +
+      `<path d="M210 -250 V0 M70 -140 Q210 -200 350 -140" stroke="#adb5bd" stroke-width="8" fill="none"/>` + R(0, -70, 60, 70, "#6c757d", 10) + R(360, -70, 60, 70, "#6c757d", 10) +
+      R(150, -120, 120, 120, "#495057", 8) + R(170, -100, 30, 30, "#ffd60a") + R(220, -100, 30, 30, "#ffd60a") + R(190, -50, 40, 50, "#ffd60a", 4), 1.3, 150),
+    pc(260, 340, R(0, -24, 260, 24, "#6c757d", 6) + `<path d="M190 -24 V-300 M230 -24 V-300 M190 -60 H230 M190 -120 H230 M190 -180 H230 M190 -240 H230 M190 -300 H230" stroke="#adb5bd" stroke-width="9"/>` +
+      `<path d="M110 -320 Q150 -270 150 -170 V-50 H70 V-170 Q70 -270 110 -320 Z" fill="#f1faee"/>` + R(70, -130, 80, 24, "#e63946") + C(110, -200, 18, "#4cc9f0") +
+      `<path d="M70 -110 L30 -40 L70 -60 Z M150 -110 L190 -40 L150 -60 Z" fill="#e63946"/>` + `<path d="M150 -160 H190" stroke="#adb5bd" stroke-width="8"/>` + R(86, -50, 48, 26, "#6c757d"), 1.3, 120),
+    pc(220, 130, R(40, -70, 140, 36, "#e9ecef", 8) + R(70, -100, 70, 32, "#4cc9f0", 6) + `<path d="M150 -100 L160 -126" stroke="#adb5bd" stroke-width="4"/>` + C(161, -128, 5, "#e63946") +
+      C(60, -22, 24, "#343a40") + C(60, -22, 10, "#adb5bd") + C(160, -22, 24, "#343a40") + C(160, -22, 10, "#adb5bd") + R(20, -60, 30, 8, "#e9ecef") + R(170, -60, 40, 8, "#e9ecef"), 1, 0),
+    pc(280, 170, `<path d="M0 0 L80 -140 L160 0 Z" fill="#9d4edd"/><path d="M50 0 L80 -56 L110 0 Z" fill="#1b263b"/>` + C(80, -150, 10, "#ffd60a") +
+      `<ellipse cx="220" cy="-40" rx="26" ry="36" fill="#74c69d"/>` + R(200, -70, 40, 36, "#74c69d", 14) + C(212, -62, 8, "#212529") + C(230, -62, 8, "#212529") + C(214, -64, 3, "#fff") + C(232, -64, 3, "#fff") +
+      `<path d="M220 -84 Q216 -104 232 -108" stroke="#74c69d" stroke-width="5" fill="none"/>` + C(234, -110, 6, "#ffd60a") + R(206, -14, 10, 14, "#74c69d") + R(226, -14, 10, 14, "#74c69d") +
+      `<path d="M194 -40 L170 -60 M246 -40 L270 -56" stroke="#74c69d" stroke-width="8" stroke-linecap="round"/>`, 1, 20),
+    pc(460, 110, `<path d="M0 0 Q60 -90 230 -90 Q400 -90 460 0 Z" fill="#adb5bd"/><ellipse cx="230" cy="-20" rx="190" ry="40" fill="#495057"/><ellipse cx="230" cy="-28" rx="150" ry="24" fill="#343a40"/>` +
+      `<path d="M60 -70 H400" stroke="#ced4da" stroke-width="8"/>`, 1, 60),
+    pc(160, 200, R(76, -180, 8, 180, "#adb5bd") + R(84, -180, 70, 46, "#e63946") + `<path d="M119 -170 L124 -158 L137 -157 L127 -149 L130 -136 L119 -143 L108 -136 L111 -149 L101 -157 L114 -158 Z" fill="#ffd60a"/>` +
+      [[20, -10], [40, -6], [26, -30], [46, -26]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="6" ry="10" fill="#495057"/>`).join(""), 1, 0),
+    pc(360, 190, [[60, 120, 40], [190, 170, 56], [310, 100, 34]].map(([x, h, r]) => R(x - 5, -h, 10, h, "#6c757d") + `<path d="M${x - r} ${-h - 16} Q${x} ${-h + 24} ${x + r} ${-h - 16} Z" fill="#e9ecef"/>` +
+      `<path d="M${x} ${-h + 2} V${-h - 34}" stroke="#adb5bd" stroke-width="4"/>` + C(x, -h - 36, 5, "#e63946")).join(""), 1, 40)
+  ],
+  /* parade: balloon bunches, bunting poles, a star on a pole, a stack of gifts */
+  parade: [
+    pc(200, 230, `<path d="M100 0 L70 -140 M100 0 L110 -150 M100 0 L140 -130" stroke="#6c757d" stroke-width="3"/>` +
+      `<ellipse cx="70" cy="-170" rx="28" ry="36" fill="#e63946"/><ellipse cx="112" cy="-190" rx="30" ry="38" fill="#ffd60a"/><ellipse cx="146" cy="-160" rx="26" ry="34" fill="#4cc9f0"/>` +
+      C(62, -184, 7, "#fff", 0.6) + C(104, -206, 7, "#fff", 0.6) + C(138, -174, 6, "#fff", 0.6), 1, 0),
+    pc(360, 220, R(20, -200, 12, 200, "#b08968") + R(328, -200, 12, 200, "#b08968") + `<path d="M26 -196 Q180 -120 334 -196" stroke="#343a40" stroke-width="4" fill="none"/>` +
+      [0, 1, 2, 3, 4, 5, 6].map(i => { const t = (i + 0.5) / 7, x = 26 + 308 * t, y = -196 + 76 * 4 * t * (1 - t); return `<path d="M${x - 14} ${y} L${x} ${y + 34} L${x + 14} ${y} Z" fill="${["#ef7d6d", "#ff9f1c", "#ffd60a", "#74c465", "#6fc0df", "#b388ff", "#ec407a"][i]}"/>`; }).join(""), 1, 10),
+    pc(160, 260, R(74, -200, 12, 200, "#6c757d") + `<path d="M80 -250 L94 -214 L132 -210 L104 -186 L112 -148 L80 -168 L48 -148 L56 -186 L28 -210 L66 -214 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="5" stroke-linejoin="round"/>`, 1.1, 40),
+    pc(240, 170, R(20, -70, 100, 70, "#ef7d6d", 6) + R(60, -70, 20, 70, "#ffd60a") + R(10, -80, 120, 16, "#ffd60a", 4) +
+      R(130, -90, 90, 90, "#6fc0df", 6) + R(165, -90, 20, 90, "#fff") + R(122, -100, 106, 16, "#fff", 4) +
+      R(50, -150, 70, 70, "#b388ff", 6) + R(78, -150, 14, 70, "#ffd60a") + R(44, -160, 82, 14, "#ffd60a", 4), 1, 0)
+  ]
+};
+
+/* ---- overheads: one structure per world spanning the whole road (880 wide, centered) ---- */
+const arch = (h, g) => ({ w: 880, h, svg: `<svg width="880" height="${h}" viewBox="0 ${-h} 880 ${h}">${g}</svg>` });
+const postsG = (c, w = 30, h = 300, x0 = 30, x1 = 820) => R(x0, -h, w, h, c) + R(x1, -h, w, h, c);
+const WORLD_ARCH = {
+  /* construction: scaffold bridge — lattice posts, plank deck, hazard stripe */
+  w1: arch(400, postsG("#e76f51", 26, 330, 24, 830) + postsG("#e76f51", 26, 330, 70, 784) +
+    `<path d="M24 -300 L96 -230 M96 -300 L24 -230 M24 -200 L96 -130 M96 -200 L24 -130 M784 -300 L856 -230 M856 -300 L784 -230 M784 -200 L856 -130 M856 -200 L784 -130" stroke="#e76f51" stroke-width="8"/>` +
+    R(0, -360, 880, 30, "#b08968") + R(0, -330, 880, 12, "#8d5a2f") + [...Array(22)].map((_, i) => R(i * 40, -400, 20, 36, i % 2 ? "#ffd60a" : "#212529")).join("") +
+    R(0, -400, 880, 8, "#495057") + C(440, -414, 10, "#e63946") + C(440, -414, 5, "#ffd60a")),
+  /* sunset: covered-bridge entry — timber frame with a barn-red gable */
+  w2: arch(440, postsG("#8d5a2f", 40, 300, 20, 820) + R(0, -330, 880, 36, "#8d5a2f") +
+    `<path d="M0 -330 L440 -440 L880 -330 Z" fill="#9d0208"/><path d="M60 -330 L440 -425 L820 -330 Z" fill="#e63946"/>` +
+    R(395, -400, 90, 60, "#fff3e0", 8) + `<path d="M395 -370 H485 M440 -400 V-340" stroke="#e63946" stroke-width="8"/>` +
+    `<path d="M20 -300 L60 -200 M60 -300 L20 -200 M820 -300 L860 -200 M860 -300 L820 -200" stroke="#6b4423" stroke-width="8"/>`),
+  /* night: string-lights arch — a sagging cable of glowing bulbs */
+  w3: arch(400, postsG("#343a40", 16, 360, 36, 828) + `<path d="M44 -360 Q440 -230 836 -360" stroke="#495057" stroke-width="5" fill="none"/>` +
+    [...Array(11)].map((_, i) => { const t = (i + 0.5) / 11, x = 44 + 792 * t, y = -360 + 65 * 4 * t * (1 - t) + 14, col = ["#ffd60a", "#ef7d6d", "#6fc0df", "#74c465", "#ec407a"][i % 5]; return C(x, y + 10, 26, col, 0.25) + R(x - 4, y - 14, 8, 10, "#6c757d") + C(x, y + 10, 12, col); }).join("") +
+    C(44, -370, 30, "#ffd60a", 0.3) + C(836, -370, 30, "#ffd60a", 0.3) + C(44, -370, 12, "#ffd60a") + C(836, -370, 12, "#ffd60a")),
+  /* rain: highway sign gantry — gray truss with a big pictogram board (no words) */
+  w4: arch(420, postsG("#6c757d", 28, 320, 24, 828) + R(0, -360, 880, 40, "#6c757d") +
+    `<path d="M20 -360 L60 -320 M60 -360 L100 -320 M100 -360 L140 -320 M740 -360 L780 -320 M780 -360 L820 -320 M820 -360 L860 -320" stroke="#adb5bd" stroke-width="5"/>` +
+    R(280, -420, 320, 110, "#2d6a4f", 10) + `<path d="M440 -400 L480 -360 H455 V-325 H425 V-360 H400 Z" fill="#fff"/>` +
+    R(310, -350, 60, 30, "#ffd60a", 6) + C(325, -318, 9, "#212529") + C(355, -318, 9, "#212529") +
+    R(520, -395, 50, 30, "#fff", 5) + `<path d="M520 -380 H570 M545 -395 V-350" stroke="#2d6a4f" stroke-width="4"/>` + C(545, -400, 6, "#e63946")),
+  /* snow: ice arch dripping icicles */
+  w5: arch(420, `<path d="M20 0 V-280 Q440 -520 860 -280 V0 H780 V-250 Q440 -440 100 -250 V0 Z" fill="#bde0fe"/>` +
+    `<path d="M100 -250 Q440 -440 780 -250" stroke="#fff" stroke-width="14" fill="none"/>` +
+    [120, 190, 260, 330, 400, 470, 540, 610, 680, 750].map((x, i) => { const y = -250 - 190 * Math.sin(Math.PI * (x - 100) / 680) * 0.92; return `<path d="M${x - 12} ${y} L${x} ${y + 40 + (i % 3) * 20} L${x + 12} ${y} Z" fill="#dff3ff"/>`; }).join("") +
+    `<path d="M20 -280 L40 -300 M860 -280 L840 -300" stroke="#fff" stroke-width="6"/>` + R(10, -20, 90, 20, "#fff") + R(780, -20, 90, 20, "#fff")),
+  /* desert: canyon rock arch with red bands */
+  w6: arch(440, `<path d="M0 0 V-260 Q60 -360 200 -380 Q440 -460 680 -380 Q820 -360 880 -260 V0 H740 V-220 Q700 -300 560 -320 Q440 -350 320 -320 Q180 -300 140 -220 V0 Z" fill="#b5651d"/>` +
+    `<path d="M0 -200 Q60 -260 140 -260 M740 -260 Q820 -260 880 -200 M200 -370 Q440 -440 680 -370" stroke="#8f4a12" stroke-width="12" fill="none"/>` +
+    `<path d="M0 -120 H120 M760 -120 H880" stroke="#d68c45" stroke-width="12"/>` + C(60, -300, 10, "#d68c45") + C(820, -300, 10, "#d68c45") + C(440, -420, 8, "#8f4a12")),
+  /* beach: boardwalk bunting arch on bamboo poles with a life ring */
+  w7: arch(400, postsG("#e9c46a", 18, 340, 34, 828) + `<path d="M43 -200 H60 M43 -300 H60 M837 -200 H820 M837 -300 H820" stroke="#c99a3a" stroke-width="10"/>` +
+    `<path d="M43 -340 Q440 -230 837 -340" stroke="#343a40" stroke-width="4" fill="none"/>` +
+    [...Array(13)].map((_, i) => { const t = (i + 0.5) / 13, x = 43 + 794 * t, y = -340 + 55 * 4 * t * (1 - t) + 6; return `<path d="M${x - 16} ${y} L${x} ${y + 40} L${x + 16} ${y} Z" fill="${["#e63946", "#ffd60a", "#2a9d8f", "#fff", "#f77f00"][i % 5]}"/>`; }).join("") +
+    `<circle cx="440" cy="-250" r="36" fill="none" stroke="#e63946" stroke-width="18"/><path d="M440 -286 V-266 M440 -234 V-214 M404 -250 H424 M456 -250 H476" stroke="#fff" stroke-width="18"/>`),
+  /* space: airlock ring — rounded steel frame with running lights */
+  w8: arch(420, `<path d="M20 0 V-320 Q20 -400 100 -400 H780 Q860 -400 860 -320 V0 H800 V-310 Q800 -340 770 -340 H110 Q80 -340 80 -310 V0 Z" fill="#6c757d"/>` +
+    `<path d="M50 0 V-320 Q50 -370 100 -370 H780 Q830 -370 830 -320 V0" stroke="#adb5bd" stroke-width="6" fill="none"/>` +
+    [160, 260, 360, 460, 560, 660, 760].map((x, i) => C(x, -370, 10, i % 2 ? "#4cc9f0" : "#ffd60a") + C(x, -370, 20, i % 2 ? "#4cc9f0" : "#ffd60a", 0.3)).join("") +
+    R(380, -420, 120, 40, "#495057", 8) + C(410, -400, 9, "#e63946") + C(440, -400, 9, "#74c69d") + C(470, -400, 9, "#ffd60a") +
+    R(20, -140, 60, 30, "#4cc9f0", 4) + R(800, -140, 60, 30, "#4cc9f0", 4)),
+  /* parade: a balloon arch */
+  parade: arch(420, postsG("#6c757d", 10, 200, 40, 830) +
+    [...Array(15)].map((_, i) => { const t = i / 14, x = 45 + 790 * t, y = -200 - 190 * Math.sin(Math.PI * t); return `<ellipse cx="${x}" cy="${y}" rx="30" ry="38" fill="${["#ef7d6d", "#ff9f1c", "#ffd60a", "#74c465", "#6fc0df", "#b388ff"][i % 6]}"/>` + C(x - 8, y - 14, 7, "#fff", 0.6); }).join(""))
+};
+
+/* ---- far landmarks: silhouettes on the horizon strip, tiling at 1200 (drawn 3x) ---- */
+const WORLD_LANDMARK = {
+  /* construction: two tower cranes over a block */
+  w1: x => `<g fill="#4f9d7a">` + R(x + 190, 375, 90, 90, "#4f9d7a") + R(x + 300, 285, 10, 180) + R(x + 210, 281, 200, 8) + R(x + 370, 289, 3, 60) + R(x + 362, 345, 16, 12) +
+    R(x + 760, 315, 10, 150) + R(x + 650, 311, 190, 8) + R(x + 680, 319, 3, 50) + R(x + 672, 365, 16, 12) + R(x + 820, 300, 24, 16) + `</g>`,
+  /* sunset: windmills on the ridge */
+  w2: x => [[x + 240, 150], [x + 820, 110]].map(([cx, h]) => `<path d="M${cx - 16} 465 L${cx - 10} ${465 - h} H${cx + 10} L${cx + 16} 465 Z" fill="#8a6f3b"/>` +
+    [0, 90, 180, 270].map(a => `<rect x="-4" y="${-h * 0.42}" width="8" height="${h * 0.4}" fill="#8a6f3b" transform="translate(${cx} ${465 - h}) rotate(${a + 20})"/>`).join("")).join(""),
+  /* night: a sleepy village with lit windows under a church spire + a radio mast */
+  w3: x => `<g fill="#0d1b2a">` + R(x + 260, 405, 80, 60) + R(x + 360, 395, 60, 70) + R(x + 420, 410, 90, 55) + `<path d="M${x + 395} 395 L${x + 405} 320 L${x + 415} 395 Z" fill="#0d1b2a"/>` +
+    R(x + 830, 330, 6, 135) + `<path d="M${x + 800} 465 L${x + 833} 330 L${x + 866} 465" stroke="#0d1b2a" stroke-width="5" fill="none"/>` + `</g>` +
+    [[x + 280, 425], [x + 310, 425], [x + 375, 420], [x + 440, 430], [x + 480, 430]].map(([wx, wy]) => R(wx, wy, 10, 10, "#ffd60a")).join("") + C(x + 833, 326, 5, "#e63946"),
+  /* rain: city skyline */
+  w4: x => `<g fill="#495057">` + R(x + 80, 395, 70, 70) + R(x + 160, 345, 60, 120) + R(x + 230, 375, 80, 90) + R(x + 330, 305, 70, 160) + R(x + 410, 365, 50, 100) + R(x + 480, 395, 90, 70) +
+    R(x + 700, 355, 60, 110) + R(x + 770, 405, 80, 60) + R(x + 870, 325, 60, 140) + R(x + 940, 385, 70, 80) + R(x + 1030, 405, 90, 60) + R(x + 362, 285, 6, 20) + `</g>` +
+    [[x + 180, 365], [x + 350, 330], [x + 350, 380], [x + 720, 375], [x + 890, 350], [x + 890, 400], [x + 250, 395], [x + 960, 405]].map(([wx, wy]) => R(wx, wy, 10, 10, "#ffd60a")).join(""),
+  /* snow: mountains with a tall snowy peak */
+  w5: x => `<path d="M${x + 60} 465 L${x + 260} 250 L${x + 460} 465 Z" fill="#9fb3c8"/><path d="M${x + 212} 302 L${x + 260} 250 L${x + 308} 302 L${x + 284} 296 L${x + 260} 310 L${x + 236} 296 Z" fill="#fff"/>` +
+    `<path d="M${x + 560} 465 L${x + 720} 320 L${x + 880} 465 Z" fill="#9fb3c8"/><path d="M${x + 684} 352 L${x + 720} 320 L${x + 756} 352 L${x + 738} 348 L${x + 720} 358 L${x + 702} 348 Z" fill="#fff"/>` +
+    `<path d="M${x + 820} 465 L${x + 980} 360 L${x + 1140} 465 Z" fill="#b4c5d6"/>`,
+  /* desert: pyramids and a far mesa */
+  w6: x => `<path d="M${x + 120} 465 L${x + 300} 300 L${x + 480} 465 Z" fill="#c47a3a"/><path d="M${x + 300} 300 L${x + 480} 465 H${x + 300} Z" fill="#a8622b"/>` +
+    `<path d="M${x + 420} 465 L${x + 540} 360 L${x + 660} 465 Z" fill="#c47a3a"/><path d="M${x + 540} 360 L${x + 660} 465 H${x + 540} Z" fill="#a8622b"/>` +
+    `<path d="M${x + 780} 465 L${x + 820} 350 H${x + 1060} L${x + 1100} 465 Z" fill="#b5651d"/>` + R(x + 820, 350, 240, 14, "#d68c45"),
+  /* beach: an island with a palm and a smoking volcano */
+  w7: x => `<path d="M${x + 120} 465 Q${x + 300} 360 ${x + 480} 465 Z" fill="#2d6a4f"/>` + R(x + 296, 365, 8, 50, "#1b4332") +
+    `<ellipse cx="${x + 300}" cy="352" rx="44" ry="30" fill="#1b4332"/><ellipse cx="${x + 300}" cy="340" rx="24" ry="24" fill="#1b4332"/>` +
+    `<path d="M${x + 700} 465 L${x + 850} 280 L${x + 1000} 465 Z" fill="#6c757d"/><path d="M${x + 825} 310 L${x + 850} 280 L${x + 875} 310 Z" fill="#e63946"/>` +
+    `<ellipse cx="${x + 860}" cy="258" rx="34" ry="18" fill="#adb5bd" opacity=".8"/><ellipse cx="${x + 895}" cy="240" rx="24" ry="14" fill="#adb5bd" opacity=".7"/>`,
+  /* space: ringed Saturn and a little blue planet hanging over the crater ridge */
+  w8: x => `<ellipse cx="${x + 300}" cy="290" rx="60" ry="109" fill="#e9c46a"/><ellipse cx="${x + 300}" cy="290" rx="112" ry="46" fill="none" stroke="#f4a261" stroke-width="14" transform="rotate(-14 ${x + 300} 290)"/>` +
+    `<ellipse cx="${x + 300}" cy="330" rx="56" ry="60" fill="#d4a24c" opacity=".4"/>` + `<ellipse cx="${x + 880}" cy="350" rx="30" ry="55" fill="#4cc9f0"/><ellipse cx="${x + 870}" cy="335" rx="9" ry="16" fill="#90e0ef"/><ellipse cx="${x + 892}" cy="368" rx="6" ry="11" fill="#90e0ef"/>`,
+  /* parade: hot-air balloons */
+  parade: x => [[x + 200, 330, "#ef7d6d"], [x + 760, 300, "#6fc0df"], [x + 980, 360, "#b388ff"]].map(([bx, by, c]) =>
+    `<path d="M${bx - 44} ${by} Q${bx - 44} ${by - 70} ${bx} ${by - 70} Q${bx + 44} ${by - 70} ${bx + 44} ${by} Q${bx + 20} ${by + 40} ${bx + 8} ${by + 60} H${bx - 8} Q${bx - 20} ${by + 40} ${bx - 44} ${by} Z" fill="${c}"/>` +
+    R(bx - 12, by + 60, 24, 14, "#6b4423")).join("")
+};
+
 const SCENERY_STEP = 450;
-function addScenery(x, side) {
-  /* each tile is a ~620-wide side-view vignette with its ground at local y=0;
-     left-side tiles hang off the left edge so nothing ever overlaps the road */
-  const art = `<svg width="660" height="250" viewBox="-80 -240 660 250"><g transform="translate(0,-462)">${sceneryFn(0)}</g></svg>`;
-  const lx = side < 0 ? -(ROAD_HALF + 80) : ROAD_HALF + 80;
-  const p = makeSprite("scenery", x, lx, 0, art, side < 0 ? -660 : 0, -240, 0.9);
+const inArchZone = x => RAMPS.some(rp => x > rp.x - 300 && x < rp.x + rp.w + 500);
+let scPool = null, scArch = null, scLast = [-1, -1], freeArchX = 0;
+function addScenery(x, side, r = Math.random) {
+  const pool = scPool || WORLD_SET.w1, si = side < 0 ? 0 : 1;
+  /* never the same piece twice in a row on one side */
+  let i = Math.floor(r() * pool.length);
+  if (pool.length > 1 && i === scLast[si]) i = (i + 1 + Math.floor(r() * (pool.length - 1))) % pool.length;
+  scLast[si] = i;
+  const pz = pool[i];
+  const lx = side < 0 ? -(ROAD_HALF + 80 + pz.back) : ROAD_HALF + 80 + pz.back;
+  /* left-side pieces hang off their right edge so nothing ever overlaps the road */
+  const p = makeSprite("scenery", x, lx, 0, pz.svg, side < 0 ? -pz.w : 0, pz.yOff, pz.k);
   scenery.push(p);
 }
-function buildScenery(len, world = 1) {
-  const farFn = (typeof WORLD_FAR !== "undefined") && WORLD_FAR["w" + world];
-  const midFn = (typeof WORLD_SCENERY !== "undefined") && WORLD_SCENERY["w" + world];
-  sceneryFn = midFn || defaultMid;
+/* a structure over the road: wide art anchored at lane center, like the finish gantry */
+function addArch(x) {
+  const a = scArch;
+  if (!a) return;
+  const p = makeSprite("scenery", x, 0, 0, a.svg, -a.w / 2, -a.h);
+  scenery.push(p);
+}
+function buildScenery(len, world = 1, seed = 0) {
+  const key = typeof world === "number" ? "w" + world : world;
+  const farFn = (typeof WORLD_FAR !== "undefined") && WORLD_FAR[key];
+  const lmFn = WORLD_LANDMARK[key];
+  scPool = WORLD_SET[key] || WORLD_SET.w1;
+  scArch = WORLD_ARCH[key] || null;
+  scLast = [-1, -1];
   sceneryWorld = world;
   let far = "";
   for (let x = -520; x < 1800; x += 520) {
     far += farFn ? farFn(x)
       : `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#74c69d" opacity=".8"/>`;
   }
+  if (lmFn) for (let x = -1200; x <= 1200; x += 1200) far += lmFn(x);
   /* squash the old 165px-tall skyline onto the horizon */
   farLayer.innerHTML = `<svg width="1200" height="700" viewBox="0 0 1200 700" style="overflow:visible"><g transform="translate(0,${HORIZON}) scale(1,.55) translate(0,-465)">${far}</g></svg>`;
+  /* roadside pool picks and overhead spacing are seeded so the level is the same every run */
+  const rng = mulberry32(seed * 7919 + (typeof world === "number" ? world : 99) * 131 + 5);
   let side = 1, x = 150;
-  for (; x < len; x += SCENERY_STEP) { addScenery(x, side); side = -side; }
-  freeSceneryX = x;
+  let nextArch = 1500 + Math.floor(rng() * 800);
+  const archEnd = len - 2300;   /* the finish gantry sits at len - 1600; leave it room */
+  for (; x < len; x += SCENERY_STEP) {
+    addScenery(x, side, rng); side = -side;
+    if (x >= nextArch && x < archEnd) {
+      let ax = x + 225;
+      while (inArchZone(ax)) ax += 300;
+      if (ax < archEnd) addArch(ax);
+      nextArch = ax + (key === "parade" ? 1200 : 1700 + Math.floor(rng() * 1000));   /* the parade keeps them coming */
+    }
+  }
+  freeSceneryX = x; freeArchX = x;
   /* night sky pinpricks, built once */
   const sky = document.getElementById("skyStars");
   if (!sky.childElementCount) {
@@ -4280,11 +4626,11 @@ function buildParade() {
   applyTheme(1);
   roadScene.classList.add("parade");
   roadPal = ROAD_PAL.parade;
-  buildScenery(LEVEL_LEN + 1600, 1);
   /* three party ramps */
   for (const rx of [1600, 3200, 4800]) {
     RAMPS.push({ x: rx, w: 250, h: 95 });
   }
+  buildScenery(LEVEL_LEN + 1600, "parade");
   /* star waves rolling across the lanes */
   for (let x = 700; x < LEVEL_LEN - 500; x += 90) {
     const lane = Math.round(1 + Math.sin(x / 260) * 1);
@@ -4369,7 +4715,19 @@ function tickFree() {
   /* spawn out to the edge of the draw distance so nothing pops in mid-road */
   const horizonX = pos + CAR_SCREEN_X + DRAW_FAR + 200;
   while (freeSpawnX < horizonX) spawnFreeItem();
-  while (freeSceneryX < horizonX) { addScenery(freeSceneryX, (freeSceneryX / SCENERY_STEP) & 1 ? -1 : 1); freeSceneryX += SCENERY_STEP; }
+  while (freeSceneryX < horizonX) {
+    addScenery(freeSceneryX, (freeSceneryX / SCENERY_STEP) & 1 ? -1 : 1);
+    if (freeSceneryX > freeArchX + 1600 && Math.random() < 0.22) {
+      const ax = freeSceneryX + 225;
+      if (!inArchZone(ax)) { addArch(ax); freeArchX = ax; }
+    }
+    freeSceneryX += SCENERY_STEP;
+  }
+  /* a ramp that spawned after an overhead did can land right behind it; drop that overhead
+     while it is still out past the haze so the jump never sails through a crossbar */
+  for (let i = scenery.length - 1; i >= 0; i--) {
+    if (scenery[i].lx === 0 && inArchZone(scenery[i].x)) { scenery[i].wrap.remove(); scenery.splice(i, 1); }
+  }
   for (let i = props.length - 1; i >= 0; i--) {
     if (props[i].x < pos - 700) { props[i].wrap.remove(); props.splice(i, 1); }
   }
@@ -4381,11 +4739,15 @@ function tickFree() {
   if (themeIdx !== freeThemeIdx) {
     freeThemeIdx = themeIdx;
     applyTheme(themeIdx + 1);
-    /* new skyline now; roadside set pieces switch as fresh ones roll in from the horizon */
-    const keep = scenery, nextX = freeSceneryX;
+    /* new skyline now; roadside pieces already faded in stay, the ones still out past the
+       haze are rebuilt from the new world's pool so the change rolls in from the horizon */
+    const cut = pos + CAR_SCREEN_X + DRAW_FAR - FADE + 120;
+    const keep = scenery.filter(p => { if (p.x < cut) return true; p.wrap.remove(); return false; });
     scenery = [];
     buildScenery(0, themeIdx + 1);
-    scenery = keep; freeSceneryX = nextX;
+    scenery = keep;
+    freeSceneryX = Math.ceil(cut / SCENERY_STEP) * SCENERY_STEP;
+    freeArchX = pos;
     setHeadlights(themeIdx === 2 || themeIdx === 7);
   }
 }
