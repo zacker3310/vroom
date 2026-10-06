@@ -27,3 +27,6 @@ env var points (e.g. `CHROMIUM=/opt/pw-browsers/chromium-1194/chrome-linux/chrom
 - `washdecals-check.cjs` — wash mini-game and decal shop/persistence (11)
 - `parade-check.cjs` — victory parade: unlock, finale level, jackpot, champ badge (12)
 - `update-check.cjs` — new-version gate: detection, tap-proof hold-to-reload (5)
+
+Not a suite: `level-report.cjs` builds all 80 levels and prints each one's beat
+sequence and prop counts (add `--shots` for mid-drive screenshots of a few levels).
