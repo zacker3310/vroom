@@ -3414,8 +3414,98 @@ const DRAW_FAR = 3400, DRAW_NEAR = -260, FADE = 500;
 const CAR_TOP = 540;              /* roughly the roofline of the chase-cam car on stage */
 const CAR_HIT_Z = 100;            /* collisions land this far up the car (mid-hood), not at the bumper */
 const LOW_STAR_H = 85, HIGH_STAR_H = 240;
-let camX = 0;
+let camX = 0, camSkyX = 0;
 const laneX = l => (l - 1) * LANE_W;
+
+/* ---- the course: curvature along the road (OutRun style) ----
+   COURSE is a list of stretches {x0, x1, k}: signed curvature (px of lateral drift per
+   unit² of depth), eased in and out over CURVE_EASE so bends start and end smoothly.
+   The car always drives the road's centerline, so at depth z the road sits
+   off(z) = ∬ k to the side; everything projected (asphalt, sprites, scenery) adds that. */
+let COURSE = [];
+const CURVE_EASE = 320;
+const CURVE = { gentle: 0.0001, medium: 0.00018, tight: 0.0003 };
+function curvAt(x) {
+  let k = 0;
+  for (const c of COURSE) {
+    if (x < c.x0 - CURVE_EASE || x > c.x1 + CURVE_EASE) continue;
+    let w = 1;
+    if (x < c.x0) w = (x - (c.x0 - CURVE_EASE)) / CURVE_EASE;
+    else if (x > c.x1) w = ((c.x1 + CURVE_EASE) - x) / CURVE_EASE;
+    k += c.k * w;
+  }
+  return k;
+}
+/* heading angle (radians-ish) accumulated along the road: drives the skyline parallax */
+function headingAt(x) {
+  let h = 0;
+  for (const c of COURSE) {
+    const a = Math.max(c.x0 - CURVE_EASE, 0), b = Math.min(c.x1 + CURVE_EASE, x);
+    if (b <= a) continue;
+    h += c.k * (b - a) * 900;   /* flat approximation of the eased ends: good enough for a sky */
+  }
+  return h;
+}
+/* per-frame lateral offset table, sampled every OFF_STEP of depth from the car */
+const OFF_STEP = 40, OFF_N = Math.ceil((DRAW_FAR - DRAW_NEAR) / OFF_STEP) + 2;
+const OFF = new Float32Array(OFF_N);
+let offBaseZ = DRAW_NEAR;
+function buildOffsets(carX) {
+  /* integrate outward from the car (z=0, where the road is dead ahead) */
+  const i0 = Math.round(-DRAW_NEAR / OFF_STEP);
+  offBaseZ = -i0 * OFF_STEP;
+  let dx = 0, off = 0;
+  OFF[i0] = 0;
+  for (let i = i0 + 1; i < OFF_N; i++) {
+    const z = offBaseZ + i * OFF_STEP;
+    dx += curvAt(carX + z) * OFF_STEP;
+    off += dx * OFF_STEP;
+    OFF[i] = off;
+  }
+  dx = 0; off = 0;
+  for (let i = i0 - 1; i >= 0; i--) {
+    const z = offBaseZ + i * OFF_STEP;
+    dx -= curvAt(carX + z) * OFF_STEP;
+    off -= dx * OFF_STEP;
+    OFF[i] = off;
+  }
+}
+function offAt(z) {
+  const f = (Math.min(Math.max(z, offBaseZ), offBaseZ + (OFF_N - 1) * OFF_STEP) - offBaseZ) / OFF_STEP;
+  const i = Math.floor(f), t = f - i;
+  return i >= OFF_N - 1 ? OFF[OFF_N - 1] : OFF[i] * (1 - t) + OFF[i + 1] * t;
+}
+/* course authoring: a seeded sequence of bends that gets bolder with the level */
+function addBend(x0, len, k) { COURSE.push({ x0, x1: x0 + len, k }); return x0 + len; }
+function buildCourse(n, rng, len) {
+  COURSE = [];
+  const w = worldOf(n);
+  const strength = w <= 1 ? CURVE.gentle : w <= 3 ? CURVE.medium : CURVE.tight;
+  /* shapes: each returns the x where it ends */
+  const S = {
+    sweepL: (x, L) => addBend(x, L, -strength * 0.8),
+    sweepR: (x, L) => addBend(x, L, strength * 0.8),
+    sBend:  (x, L) => addBend(addBend(x, L / 2, strength) + 120, L / 2 - 120, -strength),
+    zBend:  (x, L) => addBend(addBend(x, L / 2, -strength) + 120, L / 2 - 120, strength),
+    hairpinL: (x, L) => addBend(x, L * 0.6, -CURVE.tight * 1.15),
+    hairpinR: (x, L) => addBend(x, L * 0.6, CURVE.tight * 1.15),
+    chicane: (x, L) => { let e = x; const seg = L / 4; e = addBend(e, seg, strength * 1.3); e = addBend(e + 80, seg, -strength * 1.3); e = addBend(e + 80, seg, strength * 1.3); return e; },
+    straight: (x, L) => x + L
+  };
+  const menu = n <= 2 ? ["straight", "sweepL", "straight", "sweepR"]
+    : n <= 10 ? ["sweepL", "sweepR", "straight", "sBend", "zBend"]
+    : n <= 30 ? ["sweepL", "sweepR", "sBend", "zBend", "chicane", "straight"]
+    : ["sBend", "zBend", "hairpinL", "hairpinR", "chicane", "sweepL", "sweepR"];
+  let x = 900;
+  const endX = len - 700;
+  while (x < endX - 400) {
+    const shape = menu[Math.floor(rng() * menu.length)];
+    const L = Math.min(endX - x, 900 + rng() * 1100);
+    x = S[shape](x, L) + 200 + rng() * 300;
+  }
+  COURSE = COURSE.filter(c => c.x1 > c.x0 + 80);
+  return COURSE;
+}
 function carScreenX() { return 600 + (laneVis - 1) * LANE_W * (1 - CAM_FOLLOW); }
 
 function mulberry32(a) {
@@ -3828,7 +3918,7 @@ function paradeUnlocked() {
   return true;
 }
 let LEVEL_LEN = 5200, RAMPS = [], props = [], scenery = [], totalStars = 0, runStars = 0, runDamage = 0, runTime = 0;
-let freeSpawnX = 0, freeThemeIdx = 0, freeSceneryX = 0, sceneryFn = null, sceneryWorld = 1;
+let freeSpawnX = 0, freeThemeIdx = 0, freeSceneryX = 0, freeCourseX = 0, sceneryFn = null, sceneryWorld = 1;
 
 function rampElev(x) {
   for (const rp of RAMPS) {
@@ -3869,6 +3959,7 @@ function buildLevel(n) {
   const rng = mulberry32(n * 7919 + 13);
   LEVEL_LEN = levelLen(n);
   const w = worldOf(n);
+  buildCourse(n, mulberry32(n * 104729 + 7), LEVEL_LEN);
 
   /* ramps: 1-4, spread across the level, spanning the whole road */
   const nRamps = 1 + (n > 8 ? 1 : 0) + (n > 20 ? 1 : 0) + (n > 50 ? 1 : 0);
@@ -4054,12 +4145,13 @@ function buildScenery(len, world = 1) {
   sceneryFn = midFn || defaultMid;
   sceneryWorld = world;
   let far = "";
-  for (let x = -520; x < 1800; x += 520) {
+  for (let x = 0; x < 1200; x += 520) {   /* 1200 isn't a 520 multiple: hills overlap the seam harmlessly */
     far += farFn ? farFn(x)
       : `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#74c69d" opacity=".8"/>`;
   }
   /* squash the old 165px-tall skyline onto the horizon */
-  farLayer.innerHTML = `<svg width="1200" height="700" viewBox="0 0 1200 700" style="overflow:visible"><g transform="translate(0,${HORIZON}) scale(1,.55) translate(0,-465)">${far}</g></svg>`;
+  /* three copies side by side so the heading-driven parallax can wrap seamlessly */
+  farLayer.innerHTML = `<svg width="3600" height="700" viewBox="0 0 3600 700" style="overflow:visible"><g transform="translate(0,${HORIZON}) scale(1,.55) translate(0,-465)">${far}<g transform="translate(1200,0)">${far}</g><g transform="translate(2400,0)">${far}</g></g></svg>`;
   let side = 1, x = 150;
   for (; x < len; x += SCENERY_STEP) { addScenery(x, side); side = -side; }
   freeSceneryX = x;
@@ -4083,7 +4175,7 @@ function placeSprite(p, carX) {
   }
   if (!p.vis) { p.wrap.style.display = "block"; p.vis = true; }
   const s = CAM_D / (z + CAM_D);
-  const sx = 600 + (p.lx - camX) * s;
+  const sx = 600 + (p.lx + offAt(z) - camX) * s;
   const sy = HORIZON + (CAM_H - p.h) * s;
   p.wrap.style.transform = `translate(${sx.toFixed(1)}px,${sy.toFixed(1)}px) scale(${(s * p.k).toFixed(4)})`;
   /* nearer = higher; the car sits at depth 10. Something the car just hit or grabbed
@@ -4098,7 +4190,7 @@ function placeSprite(p, carX) {
 const SEG = 160;
 function proj(z, lx, h) {
   const s = CAM_D / (z + CAM_D);
-  return [600 + (lx - camX) * s, HORIZON + (CAM_H - (h || 0)) * s, s];
+  return [600 + (lx + offAt(z) - camX) * s, HORIZON + (CAM_H - (h || 0)) * s, s];
 }
 function quad(c, z0, z1, l0, l1, col, h0, h1) {
   const a = proj(z0, l0, h0), b = proj(z0, l1, h0), d = proj(z1, l1, h1), e = proj(z1, l0, h1);
@@ -4110,8 +4202,8 @@ function drawRoad(carX) {
   c.clearRect(0, 0, 1200, 700);
   c.fillStyle = P.ground;
   c.fillRect(0, HORIZON, 1200, 700 - HORIZON);
-  /* the far road, one long wedge to the vanishing point */
-  quad(c, 2400, 60000, -ROAD_HALF, ROAD_HALF, P.road);
+  /* the far road: coarse bands out past the fade, so a bend keeps curving to the haze */
+  for (let z = DRAW_FAR + 1200; z >= 2400; z -= 400) quad(c, z - 400, z, -ROAD_HALF, ROAD_HALF, P.road);
   /* banded near road: alternating stripes sell the speed */
   const first = Math.floor((carX + DRAW_NEAR) / SEG);
   for (let k = Math.floor((carX + 2400) / SEG); k >= first; k--) {
@@ -4164,10 +4256,13 @@ function drawRoad(carX) {
 function renderWorld() {
   const carX = pos + CAR_SCREEN_X - CAR_HIT_Z;   /* z=0 is the car's rear bumper */
   camX = (laneVis - 1) * LANE_W * CAM_FOLLOW;
+  buildOffsets(carX);
   drawRoad(carX);
   for (const p of props) placeSprite(p, carX);
   for (const p of scenery) placeSprite(p, carX);
-  farLayer.style.transform = `translateX(${(-camX * 0.06).toFixed(1)}px)`;
+  /* the skyline slides as the road's heading swings through a bend (wraps every 1200) */
+  camSkyX = ((-camX * 0.06 - headingAt(carX) * 0.9) % 1200 + 1200) % 1200;
+  farLayer.style.transform = `translateX(${(camSkyX - 1200).toFixed(1)}px)`;
 }
 
 /* drive physics */
@@ -4277,6 +4372,9 @@ function buildParade() {
   clearWorld();
   const rng = mulberry32(4242);
   LEVEL_LEN = 6200;
+  /* party road: one long lazy S after another */
+  COURSE = [];
+  for (let x = 800, d = 1; x < LEVEL_LEN - 1200; x += 1500, d = -d) addBend(x, 1100, d * CURVE.gentle);
   applyTheme(1);
   roadScene.classList.add("parade");
   roadPal = ROAD_PAL.parade;
@@ -4332,6 +4430,7 @@ function spawnFirework() {
 function buildFree() {
   clearWorld();
   freeSpawnX = 1000; freeThemeIdx = 0;
+  COURSE = []; freeCourseX = 1200;
   applyTheme(1);
   buildScenery(0, 1);
 }
@@ -4370,6 +4469,14 @@ function tickFree() {
   const horizonX = pos + CAR_SCREEN_X + DRAW_FAR + 200;
   while (freeSpawnX < horizonX) spawnFreeItem();
   while (freeSceneryX < horizonX) { addScenery(freeSceneryX, (freeSceneryX / SCENERY_STEP) & 1 ? -1 : 1); freeSceneryX += SCENERY_STEP; }
+  /* endless road keeps bending: a fresh stretch rolls in whenever the course runs out ahead */
+  while (freeCourseX < horizonX) {
+    const r = Math.random(), L = 900 + Math.random() * 1200;
+    const k = r < 0.3 ? 0 : (Math.random() < 0.5 ? -1 : 1) * (r < 0.7 ? CURVE.gentle : CURVE.medium);
+    if (k) addBend(freeCourseX, L, k);
+    freeCourseX += L + 300 + Math.random() * 400;
+  }
+  COURSE = COURSE.filter(c => c.x1 > pos - 1500);
   for (let i = props.length - 1; i >= 0; i--) {
     if (props[i].x < pos - 700) { props[i].wrap.remove(); props.splice(i, 1); }
   }
@@ -4804,6 +4911,7 @@ function tick(now) {
   /* world + car. From behind: bank into lane changes, squat on the gas, lift on the brake */
   renderWorld();
   let bank = (targetLane - laneVis) * 7;
+  bank += curvAt(pos + CAR_SCREEN_X) * v * 60;   /* lean into the bend at speed */
   if (airborne) bank += Math.sin(now / 90) * 2;
   const squat = Math.max(-6, Math.min(6, bodyTilt * 0.7));
   /* off-center lanes: lean the car's far end toward the vanishing point */

@@ -2,7 +2,7 @@ const pw = require('playwright-core');
 const os = require('os');
 const fs = require('fs');
 const EXE = process.env.CHROMIUM || os.homedir() + '/Library/Caches/ms-playwright/chromium-1117/chrome-mac/Chromium.app/Contents/MacOS/Chromium';
-const URL = 'http://localhost:4173/index.html';
+const URL = process.env.VROOM_URL || 'http://localhost:4173/index.html';
 const SHOT = __dirname + '/shots/';
 fs.mkdirSync(SHOT, { recursive: true });
 /* jsQR is a TEST-ONLY dependency used to prove the hand-rolled encoder emits real QRs */
