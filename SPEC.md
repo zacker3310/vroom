@@ -48,8 +48,18 @@ MOVE — the first moving obstacles. First clear of a world's last level banks a
 
 ## Scene 3: Road
 
-Chase-cam (v10): the road runs straight out into the screen toward a vanishing point, 3 lanes
-left/center/right. The exact vehicle built in the garage drives it, seen from behind (a parallel
+Chase-cam (v10): the road runs out into the screen toward a vanishing point, 3 lanes
+left/center/right. v11: the road **bends and rolls**. Each level has a seeded course of
+curvature stretches (sweepers, S/Z bends, chicanes, hairpins; bolder by world) and cosine
+hills (flat construction/rain/beach, rolling farmland and dunes, big snowy crests, lumpy moon);
+the camera rides the road's centerline so bends swing the whole world and crests lift the far
+road into the sky. Levels are built by a **beat sequencer**: a library of 30 formations
+(star trails/snakes/rainbows/arcs, slaloms, gates, closing walls, bowling, minefield, cone
+forest, capsule alley, puddle party, oil slalom, breather, four ramp beats, two beats per
+world 5-8) sequenced per level from a signature beat + contrasts, with guarantee passes for
+the economy and difficulty curve; finales on levels 10/20/.../80. Each world has roadside
+pools, an overhead structure, a horizon landmark, a start jingle, an ambience bed, its own
+star-chime scale, and seeded live sky events. The exact vehicle built in the garage drives it, seen from behind (a parallel
 rear-view art set per body, with tires, extras, buddy, decal, mud and damage). Props are
 perspective-scaled sprites; the ground plane (bands, rumble strips, dashes, ramps, finish
 stripe) is painted on a canvas each frame; roadside set pieces rush past on both shoulders.

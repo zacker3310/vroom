@@ -48,8 +48,15 @@
 - [x] T10.2-10.6: real gas/brake pedals; steering wheel (tap a side or turn it); chase-cam cars rebuilt as projected 3D toy blocks with front + rear axles, then halved in car space; swept rocket fins + raised dragon bat wings.
 - [x] T10.7: New-version gate. The page fingerprints its own code at boot and re-fetches itself (no-store) on boot, on return to foreground, and every 10 min; when the hosted code differs, a green refresh badge appears in the garage. Press-and-hold (1.6s ring) saves and reloads via a cache-busting URL. Suite update-check.cjs 5/5; all 11 suites 166/166.
 
+## v11 (2026-10-06, user-directed: "review every level, make turns, make them very different")
+
+- [x] T11.0: Curve engine (OutRun-style curvature stretches eased in/out, per-frame lateral offset table, skyline parallax by heading, lean into bends). T11.1: hills (cosine elevation through the projector, per-world amplitude).
+- [x] T11.2 (agent): beat sequencer — 30 formations, per-level signature + contrast templates, world beats, finales, guarantee passes; `tests/level-report.cjs`.
+- [x] T11.3 (agent): every world is a place — roadside pools (5-8 pieces each), overhead arches, horizon landmarks, festive parade set, free-drive re-skin.
+- [x] T11.4 (agent): per-world audio (jingles, ambience beds, star scales, bend scrub) + 10 live sky events; suite `world-check-audio-events.cjs` (16).
+- [ ] T11.5 (agent, in progress): adversarial audit of all 80 levels — visual sweep, course variety, fairness bots, pacing; `tests/fairness-check.cjs`.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
-- [ ] T2.2: Road variation between runs (shuffle prop layout) so replays stay fresh.
 - [ ] T2.3: Speed-linked mixer drum spin and idle engine putter in garage.
