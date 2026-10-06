@@ -435,12 +435,15 @@
   }
   #homeBtn svg, #mapHomeBtn svg, #albumHomeBtn svg { width: 56px; height: 56px; }
 
-  #hudLevel { left: 136px; top: 24px; }
-  #hudStars { right: 24px; top: 24px; }
-  #hudDamage { right: 24px; top: 132px; }
+  /* HUD row: home 24-120 | level 136-300 | progress fills the middle | stars 1000-1176.
+     Level and star chips are fixed width so a 1- or 3-digit number never shifts the row. */
+  #hudLevel { left: 136px; top: 24px; width: 164px; justify-content: center; padding: 0; box-sizing: border-box; }
+  #hudStars { right: 24px; top: 24px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; }
+  #hudDamage { right: 24px; top: 132px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; }
   #hudDamage.hurt { border-color: #e63946; color: #e63946; }
-  #hudProgress { left: 300px; top: 24px; padding: 0 20px; gap: 12px; }
-  #progTrack { position: relative; width: 170px; height: 12px; background: #e9ecef; border-radius: 6px; }
+  #hudProgress { left: 316px; right: 216px; top: 24px; padding: 0 24px; gap: 16px; box-sizing: border-box; }
+  #progTrack { position: relative; flex: 1; height: 12px; background: #e9ecef; border-radius: 6px; }
+  #hudProgress #hudTime { min-width: 2ch; text-align: right; }
   #progDot {
     position: absolute; top: -9px; left: 0; margin-left: -14px; width: 28px; height: 28px;
     border-radius: 50%; background: #e63946; border: 5px solid #fff;
