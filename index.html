@@ -3943,6 +3943,7 @@ function buildLevel(n) {
 
   buildScenery(LEVEL_LEN + 1600, w);
   applyTheme(w);
+  scheduleEvents(n, w);   /* seeded live sky events for this level */
 }
 /* one road item on the ground of a lane (stars float at belly height) */
 function addItem(t, x, lane) {
@@ -4257,6 +4258,7 @@ function startDrive() {
   renderHudStars(false);
   renderHudDamage(false);
   engineStart();
+  worldAudioStart();   /* per-world jingle + ambience bed + bend-scrub layer */
   lastT = performance.now();
   renderWorld();
   rafId = requestAnimationFrame(tick);
@@ -4268,6 +4270,7 @@ function stopDrive() {
   clearInterval(tallyTimer); tallyTimer = null;
   rateTimers.forEach(clearTimeout); rateTimers = [];
   gagTimers.forEach(clearTimeout); gagTimers = [];
+  worldAudioStop();
   engineStop();
 }
 
@@ -4334,6 +4337,7 @@ function buildFree() {
   freeSpawnX = 1000; freeThemeIdx = 0;
   applyTheme(1);
   buildScenery(0, 1);
+  resetEvents();
 }
 function freeHard(t, x, lane) {
   const near = props.filter(p => (p.type === "barrel" || p.type === "rock" || p.type === "tnt") && Math.abs(p.x - x) < 260);
@@ -4387,6 +4391,7 @@ function tickFree() {
     buildScenery(0, themeIdx + 1);
     scenery = keep; freeSceneryX = nextX;
     setHeadlights(themeIdx === 2 || themeIdx === 7);
+    ambSwitch(themeIdx + 1);   /* the ambience bed follows the new world */
   }
 }
 function renderHudStars(pop) {
@@ -4598,7 +4603,7 @@ const PROP_HIT = {
       const nw = performance.now();
       starCombo = nw - lastStarT < 1500 ? Math.min(starCombo + 1, 8) : 0;
       lastStarT = nw;
-      const f = 880 * Math.pow(1.12, starCombo);
+      const f = starChimeFreq(starCombo);   /* per-world scale (WORLD AUDIO block) */
       tone("sine", f, f, 0.15, 0.22); tone("sine", f * 1.5, f * 1.5, 0.25, 0.18, 0.08);
       runStars++; renderHudStars(true);
     } else if (near && d > -(150 + mag * 40) && d < 75 && Math.abs(dy) < 160 + mag * 20) {
@@ -4719,6 +4724,7 @@ function tick(now) {
     pos += v * dt;
   } else v = 0;
   engineSet(v);
+  worldTick(dt);   /* ambience level, bend scrub, live sky events */
 
   /* idle nudge: a parked car pulses the gas pedal for first-timers */
   if (v === 0 && !finished && !gas) {
@@ -4912,6 +4918,447 @@ carWrap.addEventListener("pointerdown", () => {
   sfx.honk(state.body);
   if (state.buddy) setTimeout(() => sfx.squeak(), 160);
 });
+
+/* ============ WORLD AUDIO + LIVE EVENTS ============ */
+/* Everything here is additive: a per-world start jingle, a whisper-quiet looping ambience bed,
+   per-world star-chime scales, a tire-scrub layer through bends, and small sky "events" that
+   play out mid-level (birds, owls, lightning, UFOs...). All audio is synthesized and every
+   function early-returns when `actx` is null (audio unlocks on the first tap). Hook-ins:
+   worldAudioStart() in startDrive, worldAudioStop() in stopDrive, worldTick() in tick,
+   scheduleEvents() at the end of buildLevel, resetEvents() in buildFree, ambSwitch() in tickFree. */
+function curWorld() { return paradeMode ? 1 : freeMode ? freeThemeIdx + 1 : worldOf(level); }
+
+/* ---- level-start jingles: 1-2s, 3-6 notes, one personality per world ---- */
+const JINGLES = {
+  1() { /* construction: truck horn + hammer taps */
+    tone("square", 190, 190, 0.22, 0.22); tone("square", 150, 150, 0.3, 0.22, 0.24);
+    [0.62, 0.8, 0.98].forEach(d => { noiseBurst(0.05, 2600, 0.14, d); tone("square", 320, 180, 0.06, 0.12, d); });
+    tone("triangle", 392, 392, 0.3, 0.16, 1.15);
+  },
+  2() { /* sunset: lazy country slide */
+    tone("triangle", 392, 523, 0.5, 0.18); tone("triangle", 523, 523, 0.3, 0.16, 0.5);
+    tone("triangle", 587, 659, 0.45, 0.16, 0.8); tone("triangle", 659, 659, 0.6, 0.14, 1.25);
+  },
+  3() { /* night: music-box twinkle */
+    [1047, 1319, 1568, 2093, 1568].forEach((f, i) => tone("sine", f, f, 0.5, 0.14, i * 0.17));
+    tone("sine", 2637, 2637, 0.7, 0.08, 0.9);
+  },
+  4() { /* rain: soft chimes over a thunder rumble */
+    tone("sine", 60, 34, 1.1, 0.16); noiseBurst(0.9, 160, 0.14);
+    [1175, 1397, 1760].forEach((f, i) => tone("sine", f, f, 0.6, 0.12, 0.35 + i * 0.22));
+  },
+  5() { /* snow: sleigh bells */
+    [0, 0.16, 0.32, 0.48, 0.72, 0.88].forEach(d => {
+      tone("sine", 2800, 2800, 0.12, 0.08, d); tone("sine", 3600, 3600, 0.1, 0.06, d); noiseBurst(0.04, 6000, 0.06, d);
+    });
+    tone("triangle", 1047, 1047, 0.5, 0.14, 1.05);
+  },
+  6() { /* desert: twangy western two-note */
+    tone("sawtooth", 196, 185, 0.5, 0.12); tone("triangle", 392, 370, 0.5, 0.14);
+    tone("sawtooth", 262, 247, 0.7, 0.12, 0.55); tone("triangle", 523, 494, 0.7, 0.14, 0.55);
+  },
+  7() { /* beach: steel-drum plinks */
+    [523, 659, 784, 1047].forEach((f, i) => { tone("sine", f * 2, f, 0.22, 0.16, i * 0.2); tone("triangle", f, f, 0.3, 0.1, i * 0.2); });
+    tone("sine", 1568, 784, 0.4, 0.12, 0.85);
+  },
+  8() { /* space: theremin glide + blips */
+    tone("sine", 330, 880, 0.7, 0.14); tone("sine", 880, 660, 0.45, 0.12, 0.7);
+    [1400, 1900, 2400].forEach((f, i) => tone("square", f, f, 0.05, 0.06, 1.1 + i * 0.12));
+  },
+  parade() { /* brass fanfare */
+    [523, 523, 523, 659, 784].forEach((f, i) => tone("sawtooth", f, f, 0.16, 0.12, i * 0.14));
+    tone("sawtooth", 1047, 1047, 0.6, 0.14, 0.7); tone("triangle", 1047, 1047, 0.6, 0.14, 0.7);
+    noiseBurst(0.4, 4000, 0.08, 0.75);
+  }
+};
+function playJingle() { if (!actx) return; (paradeMode ? JINGLES.parade : JINGLES[curWorld()] || JINGLES[1])(); }
+
+/* ---- ambience beds: looping noise/osc nodes through one master gain (quiet-mode re-read live) ---- */
+const AMB_LEVEL = 0.04;
+function ambTargetLevel() { return AMB_LEVEL * volScale(); }
+let amb = null;              /* { master, nodes, timers, world } */
+let ambNoiseBuf = null;
+function noiseBuffer() {
+  if (ambNoiseBuf) return ambNoiseBuf;
+  const len = actx.sampleRate * 2, buf = actx.createBuffer(1, len, actx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  return ambNoiseBuf = buf;
+}
+/* a looping noise voice: type/freq/Q filter -> gain (relative to the bed master) */
+function ambNoise(type, freq, q, gain) {
+  const src = actx.createBufferSource(); src.buffer = noiseBuffer(); src.loop = true;
+  const f = actx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+  const g = actx.createGain(); g.gain.value = gain;
+  src.connect(f).connect(g).connect(amb.master);
+  src.start();
+  amb.nodes.push(src);
+  return { src, f, g };
+}
+/* a slow LFO wobbling an AudioParam by +-depth around its own value */
+function ambLFO(param, hz, depth) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.frequency.value = hz; g.gain.value = depth;
+  o.connect(g).connect(param); o.start();
+  amb.nodes.push(o);
+}
+function ambOsc(type, freq, gain) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.value = freq; g.gain.value = gain;
+  o.connect(g).connect(amb.master); o.start();
+  amb.nodes.push(o);
+  return { o, g };
+}
+/* one-shot voices for the periodic flourishes, routed through the bed master (not volScale'd twice) */
+function ambPing(type, f0, f1, dur, gain, delay = 0) {
+  const t = actx.currentTime + delay;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + Math.min(0.03, dur / 3));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(amb.master); o.start(t); o.stop(t + dur + 0.02);
+}
+function ambHiss(freq, dur, gain, delay = 0) {
+  const t = actx.currentTime + delay;
+  const src = actx.createBufferSource(); src.buffer = noiseBuffer();
+  const f = actx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = freq;
+  const g = actx.createGain();
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + Math.min(0.08, dur / 3));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f).connect(g).connect(amb.master); src.start(t); src.stop(t + dur + 0.02);
+}
+/* repeat fn every min..max ms with jitter, until the bed stops */
+function ambEvery(min, max, fn) {
+  const go = () => { if (!amb) return; fn(); amb.timers.push(setTimeout(go, min + Math.random() * (max - min))); };
+  amb.timers.push(setTimeout(go, min * 0.5 + Math.random() * min));
+}
+const AMBIENCE = {
+  1() { /* construction: wind + distant hammering */
+    const w = ambNoise("lowpass", 420, 0.5, 0.7); ambLFO(w.g.gain, 0.09, 0.35);
+    ambEvery(900, 1700, () => { ambPing("square", 260, 140, 0.05, 0.5); ambHiss(2400, 0.05, 0.4); });
+  },
+  2() { /* sunset: crickets warming up + a soft breeze */
+    const w = ambNoise("lowpass", 300, 0.5, 0.4); ambLFO(w.g.gain, 0.07, 0.2);
+    ambEvery(700, 1500, () => { for (let i = 0; i < 3; i++) ambPing("sine", 4300, 4100, 0.035, 0.35, i * 0.07); });
+  },
+  3() { /* night: a full cricket chorus + very low hush */
+    ambNoise("lowpass", 180, 0.5, 0.3);
+    ambEvery(350, 900, () => { for (let i = 0; i < 4; i++) ambPing("sine", 4600, 4400, 0.03, 0.3, i * 0.06); });
+  },
+  4() { /* rain: a steady hiss, gently swelling, with far-off rumbles */
+    const r = ambNoise("bandpass", 1800, 0.5, 1.0); ambLFO(r.g.gain, 0.11, 0.25);
+    ambNoise("lowpass", 500, 0.5, 0.25);
+    ambEvery(9000, 16000, () => { ambPing("sine", 52, 30, 1.6, 0.9); ambHiss(140, 1.4, 0.9); });
+  },
+  5() { /* snow: wind whistling through a slowly sweeping bandpass */
+    const w = ambNoise("bandpass", 620, 5, 0.9); ambLFO(w.f.frequency, 0.08, 260); ambLFO(w.g.gain, 0.13, 0.4);
+    ambNoise("lowpass", 350, 0.5, 0.35);
+  },
+  6() { /* desert: hot dry wind + a hawk far overhead */
+    const w = ambNoise("lowpass", 320, 0.5, 0.6); ambLFO(w.g.gain, 0.06, 0.3);
+    ambEvery(7000, 13000, () => { ambPing("sine", 1500, 950, 0.55, 0.35); ambPing("sine", 1500, 950, 0.45, 0.25, 0.7); });
+  },
+  7() { /* beach: slow surf swells + a gull now and then */
+    const s = ambNoise("lowpass", 900, 0.5, 0.55); ambLFO(s.g.gain, 0.12, 0.45);
+    ambEvery(6000, 11000, () => { ambPing("sine", 1250, 850, 0.18, 0.3); ambPing("sine", 1250, 850, 0.18, 0.25, 0.25); });
+  },
+  8() { /* space: a deep hum with random console blips */
+    ambOsc("sine", 55, 0.5); const h = ambOsc("triangle", 82.5, 0.18); ambLFO(h.o.frequency, 0.05, 1.5);
+    ambEvery(1800, 4200, () => ambPing("sine", 900 + Math.random() * 900, 1200 + Math.random() * 600, 0.07, 0.4));
+  },
+  parade() { /* parade: a warm breeze and a far-off happy crowd */
+    const w = ambNoise("lowpass", 380, 0.5, 0.5); ambLFO(w.g.gain, 0.1, 0.25);
+    const c = ambNoise("bandpass", 700, 1.2, 0.3); ambLFO(c.g.gain, 0.3, 0.15);
+  }
+};
+function ambStart() {
+  if (!actx) return;
+  ambStop();
+  const key = paradeMode ? "parade" : curWorld();
+  amb = { master: actx.createGain(), nodes: [], timers: [], world: key };
+  amb.master.gain.value = 0;
+  amb.master.connect(masterBus);
+  (AMBIENCE[key] || AMBIENCE[1])();
+  amb.master.gain.setTargetAtTime(ambTargetLevel(), actx.currentTime, 0.8);   /* fade in */
+}
+function ambStop() {
+  if (!amb) return;
+  const a = amb; amb = null;
+  a.timers.forEach(clearTimeout);
+  try {
+    const t = actx.currentTime;
+    a.master.gain.cancelScheduledValues(t);
+    a.master.gain.setTargetAtTime(0, t, 0.25);
+    for (const n of a.nodes) n.stop(t + 1.2);
+    setTimeout(() => { try { a.master.disconnect(); } catch (e) {} }, 1500);
+  } catch (e) {}
+}
+function ambSwitch(w) { if (amb && amb.world !== w) ambStart(); }   /* free drive: theme rolled over */
+let ambTickT = 0;
+function ambTick(dt) {   /* re-read quiet mode every ~0.3s so a mid-drive toggle glides */
+  if (!amb) return;
+  ambTickT += dt;
+  if (ambTickT < 0.3) return;
+  ambTickT = 0;
+  amb.master.gain.setTargetAtTime(ambTargetLevel(), actx.currentTime, 0.3);
+}
+
+/* ---- star chimes: the combo ladder climbs a per-world scale ---- */
+const STAR_SCALES = {
+  1: [1, 9/8, 5/4, 3/2, 5/3, 2, 9/4, 5/2, 3],                  /* major pentatonic */
+  2: [1, 9/8, 5/4, 3/2, 5/3, 2, 9/4, 5/2, 3],                  /* major pentatonic, lower & lazier */
+  3: [1, 6/5, 4/3, 3/2, 9/5, 2, 12/5, 8/3, 3],                 /* minor pentatonic */
+  4: [1, 9/8, 4/3, 3/2, 2, 9/4, 8/3, 3, 4],                    /* sus chimes */
+  5: [1, 9/8, 5/4, 3/2, 5/3, 2, 9/4, 5/2, 3],                  /* major pentatonic, bright & high */
+  6: [1, 6/5, 4/3, Math.SQRT2, 3/2, 9/5, 2, 12/5, 8/3],        /* blues */
+  7: [1, 9/8, 5/4, 3/2, 5/3, 16/9, 2, 9/4, 5/2],               /* mixolydian */
+  8: [0, 2, 4, 6, 8, 10, 12, 14, 16].map(s => Math.pow(2, s / 12))   /* whole tone */
+};
+const STAR_BASE = { 1: 880, 2: 660, 3: 784, 4: 988, 5: 1047, 6: 660, 7: 880, 8: 880 };
+function starChimeFreq(combo) {
+  const w = curWorld(), sc = STAR_SCALES[w] || STAR_SCALES[1];
+  return (STAR_BASE[w] || 880) * sc[Math.max(0, Math.min(sc.length - 1, combo | 0))];
+}
+
+/* ---- bend whoosh: tire scrub when carving a curve at speed ---- */
+let scrub = null;
+const SCRUB_K = 500;   /* |curvature| * SCRUB_K ~ 1 at a tight bend (tune with the course's curvature units) */
+function scrubStart() {
+  if (!actx || scrub) return;
+  const src = actx.createBufferSource(); src.buffer = noiseBuffer(); src.loop = true;
+  const f = actx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 2600; f.Q.value = 1.1;
+  const g = actx.createGain(); g.gain.value = 0;
+  src.connect(f).connect(g).connect(masterBus); src.start();
+  scrub = { src, f, g };
+}
+function scrubStop() {
+  if (!scrub) return;
+  try { scrub.g.gain.cancelScheduledValues(actx.currentTime); scrub.g.gain.value = 0; scrub.src.stop(); } catch (e) {}
+  scrub = null;
+}
+function scrubSet() {
+  if (!scrub) return;
+  let c = 0;
+  if (typeof curvAt === "function") { try { c = Math.abs(curvAt(pos + CAR_SCREEN_X)) || 0; } catch (e) { c = 0; } }
+  const amt = v > 400 && !airborne ? Math.min(1, c * SCRUB_K) * ((v - 400) / 300) : 0;
+  const t = actx.currentTime;
+  scrub.g.gain.setTargetAtTime(amt * 0.06 * volScale(), t, 0.1);
+  scrub.f.frequency.setTargetAtTime(2200 + amt * 1400, t, 0.1);
+}
+
+/* ---- live events: tiny sky moments that happen mid-level, one at a time ---- */
+let LEVEL_EVENTS = [], eventIdx = 0, eventsFired = 0, freeNextEventX = 0;
+const EVENT_GAP = 1200, EVENT_LEAD = 600, EVENT_TAIL = 800;
+const WORLD_EVENTS = {
+  1: ["crane", "birds"],
+  2: ["birds", "balloon", "plane"],
+  3: ["owl", "shooting"],
+  4: ["lightning"],
+  5: ["snowball", "shooting"],
+  6: ["balloon", "birds"],
+  7: ["birds", "whale", "plane"],
+  8: ["shooting", "ufo"],
+  parade: ["plane", "balloon", "birds"]
+};
+/* built once per level from the level seed; fires in order as pos passes each x */
+function scheduleEvents(n, w) {
+  LEVEL_EVENTS = []; eventIdx = 0; eventsFired = 0;
+  if (n < 3 && !paradeMode) return;                 /* the first two levels stay calm for first-timers */
+  const rng = mulberry32(n * 331 + 7);
+  const list = WORLD_EVENTS[paradeMode ? "parade" : w] || WORLD_EVENTS[1];
+  let x = EVENT_LEAD + rng() * 600, last = "";
+  while (x < LEVEL_LEN - EVENT_TAIL) {
+    let kind = list[Math.floor(rng() * list.length)];
+    if (kind === last && list.length > 1) kind = list[(list.indexOf(kind) + 1) % list.length];
+    LEVEL_EVENTS.push({ x: Math.round(x), kind, fn: LIVE_EVENTS[kind] });
+    last = kind;
+    x += EVENT_GAP + rng() * 1400;
+  }
+}
+function resetEvents() { LEVEL_EVENTS = []; eventIdx = 0; eventsFired = 0; freeNextEventX = 2600; }
+function eventsTick() {
+  if (finished) return;
+  const carX = pos + CAR_SCREEN_X;
+  if (freeMode) {   /* endless: roll the next sky moment for whatever world we're touring */
+    if (carX >= freeNextEventX) {
+      const list = WORLD_EVENTS[curWorld()] || WORLD_EVENTS[1];
+      fireEvent({ kind: list[Math.floor(Math.random() * list.length)] });
+      freeNextEventX = carX + EVENT_GAP + 800 + Math.random() * 1600;
+    }
+    return;
+  }
+  while (eventIdx < LEVEL_EVENTS.length && carX >= LEVEL_EVENTS[eventIdx].x) fireEvent(LEVEL_EVENTS[eventIdx++]);
+}
+function fireEvent(ev) {
+  eventsFired++;
+  injectEventCSS();
+  try { (ev.fn || LIVE_EVENTS[ev.kind])(); } catch (e) { /* a broken sky gag must never stop the car */ }
+}
+function evEl(cls, html, left, top, ms) {
+  const el = document.createElement("div");
+  el.className = "liveEv " + cls;
+  el.innerHTML = html;
+  el.style.left = left + "px"; el.style.top = top + "px";
+  roadScene.appendChild(el);
+  gagTimer(() => el.remove(), ms);
+  return el;
+}
+/* the birds' colour follows the sky: dark silhouettes by day, pale at night */
+function skyInk() { return roadScene.classList.contains("night") || roadScene.classList.contains("w8") ? "#dfe7f5" : "#2b2d42"; }
+const LIVE_EVENTS = {
+  birds() {   /* a V of five birds flaps across the sky */
+    const ink = skyInk(), top = 60 + Math.random() * 110;
+    const bird = (x, y, d) => `<svg class="evBird" style="left:${x}px;top:${y}px;animation-delay:${d}s" viewBox="0 0 40 20"><path d="M2 12 Q11 2 20 12 Q29 2 38 12" stroke="${ink}" stroke-width="3.5" fill="none" stroke-linecap="round"/></svg>`;
+    evEl("evFlock", bird(0, 24, 0) + bird(44, 12, 0.1) + bird(88, 0, 0.2) + bird(44, 36, 0.15) + bird(88, 48, 0.25), -140, top, 3200);
+    [0, 0.5, 1.1, 1.7].forEach(d => { tone("sine", 2400, 3000, 0.07, 0.07, d); tone("sine", 3000, 2300, 0.07, 0.06, d + 0.09); });
+  },
+  owl() {   /* an owl in a treetop: eyes blink, two soft hoots */
+    const x = Math.random() < 0.5 ? 60 : 980;
+    evEl("evOwl", `<svg viewBox="0 0 120 150" width="120" height="150">
+      <path d="M10 150 Q20 90 60 60 Q100 90 110 150 Z" fill="#0b1320"/>
+      <ellipse cx="60" cy="86" rx="22" ry="26" fill="#1c2541"/>
+      <g class="evEyes"><circle cx="51" cy="80" r="7" fill="#ffd60a"/><circle cx="69" cy="80" r="7" fill="#ffd60a"/><circle cx="51" cy="80" r="3" fill="#0b1320"/><circle cx="69" cy="80" r="3" fill="#0b1320"/></g>
+      <path d="M56 92 L60 98 L64 92 Z" fill="#fb8500"/></svg>`, x, 140, 3000);
+    [0.3, 0.75].forEach(d => { tone("sine", 430, 390, 0.22, 0.12, d); tone("sine", 410, 380, 0.3, 0.1, d + 0.25); });
+  },
+  lightning() {   /* a soft whole-sky flash, a far rumble, and a rainbow on later rain levels */
+    evEl("evFlash", "", 0, 0, 700);
+    noiseBurst(0.08, 5000, 0.05);
+    tone("sine", 70, 36, 1.3, 0.14, 0.45); noiseBurst(1.1, 200, 0.14, 0.45);
+    if (freeMode || (level - 1) % WORLD_SIZE >= 4) {
+      const cols = ["#e63946", "#fb8c00", "#ffd60a", "#43a047", "#1e88e5", "#8e44ad"];
+      evEl("evRainbow", `<svg viewBox="0 0 600 300" width="440" height="220">${cols.map((c, i) =>
+        `<path d="M${20 + i * 14} 300 A${280 - i * 14} ${280 - i * 14} 0 0 1 ${580 - i * 14} 300" stroke="${c}" stroke-width="12" fill="none"/>`).join("")}</svg>`, 380, 80, 4000);
+      [784, 988, 1175].forEach((f, i) => tone("sine", f, f, 0.5, 0.08, 1.2 + i * 0.2));
+    }
+  },
+  snowball() {   /* a snowball rolls along the skyline, growing, then poofs */
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    const el = evEl("evSnowball" + (dir < 0 ? " flip" : ""), `<svg class="evBall" viewBox="0 0 60 60" width="60" height="60"><circle cx="30" cy="30" r="27" fill="#fff"/><circle cx="20" cy="22" r="4" fill="#d6e4f0"/><circle cx="38" cy="36" r="5" fill="#d6e4f0"/><circle cx="30" cy="12" r="3" fill="#d6e4f0"/></svg>`, dir > 0 ? -70 : 1210, 205, 3000);
+    [0.3, 0.7, 1.1, 1.5].forEach(d => noiseBurst(0.08, 900, 0.05, d));
+    gagTimer(() => {
+      el.innerHTML = `<svg class="evPoof" viewBox="0 0 120 120" width="120" height="120" style="left:-30px;top:-30px">${[...Array(8)].map((_, i) => {
+        const a = i * Math.PI / 4; return `<circle cx="${60 + Math.cos(a) * 36}" cy="${60 + Math.sin(a) * 36}" r="9" fill="#fff"/>`; }).join("")}</svg>`;
+      noiseBurst(0.25, 1800, 0.12); tone("sine", 600, 300, 0.2, 0.1);
+    }, 2000);
+  },
+  shooting() {   /* a shooting star streaks down the sky */
+    evEl("evShoot", `<svg viewBox="0 0 220 40" width="220" height="40"><path d="M0 20 H190" stroke="url(#evTrail)" stroke-width="5" stroke-linecap="round"/><defs><linearGradient id="evTrail"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff9c4"/></linearGradient></defs><circle cx="200" cy="20" r="9" fill="#fff9c4"/></svg>`, 200 + Math.random() * 500, 20 + Math.random() * 80, 1600);
+    tone("sine", 2200, 600, 0.7, 0.08); [2637, 3136].forEach((f, i) => tone("sine", f, f, 0.2, 0.05, 0.1 + i * 0.12));
+  },
+  ufo() {   /* a saucer hovers over the road and beams a star down into the car */
+    const el = evEl("evUfo", `<svg viewBox="0 0 160 70" width="160" height="70"><ellipse cx="80" cy="46" rx="74" ry="18" fill="#b0bec5"/><ellipse cx="80" cy="40" rx="40" ry="22" fill="#80deea" opacity=".9"/><ellipse cx="80" cy="50" rx="74" ry="10" fill="#78909c"/>${[20, 50, 80, 110, 140].map(x => `<circle class="evUfoLight" cx="${x}" cy="52" r="5" fill="#ffd60a"/>`).join("")}</svg>
+      <div class="evBeam"></div><div class="evBeamStar">${starIcon}</div>`, -180, 70, 3600);
+    HONKS.ufo();
+    gagTimer(() => { el.classList.add("beaming"); tone("sine", 300, 900, 0.5, 0.08); }, 1300);
+    gagTimer(() => {
+      /* the star lands: it counts, and it sails up into the HUD */
+      const st = el.querySelector(".evBeamStar");
+      if (st && document.body.contains(st)) flyStar(st, hudStars);
+      runStars++; renderHudStars(true); sfx.chime();
+    }, 2300);
+  },
+  whale() {   /* out at sea: a whale back arcs up and spouts */
+    evEl("evWhale", `<svg viewBox="0 0 240 120" width="240" height="120">
+      <g class="evSpout"><path d="M86 60 Q80 20 70 10 M86 60 Q86 15 86 5 M86 60 Q92 20 102 10" stroke="#eaf6ff" stroke-width="5" fill="none" stroke-linecap="round"/></g>
+      <path class="evBack" d="M20 110 Q60 48 120 60 Q180 72 220 110 Z" fill="#355070"/>
+      <path class="evBack" d="M190 95 Q215 70 236 86 Q228 100 210 110 Z" fill="#355070"/></svg>`, 560 + Math.random() * 300, 190, 3000);
+    tone("sine", 130, 95, 0.9, 0.1, 0.2); noiseBurst(0.5, 1200, 0.1, 0.9); tone("sine", 700, 1400, 0.25, 0.05, 0.9);
+  },
+  balloon() {   /* a hot-air balloon drifts up and across */
+    const cols = [["#e63946", "#ffd60a"], ["#1e88e5", "#fff"], ["#8e44ad", "#ffb703"]][Math.floor(Math.random() * 3)];
+    evEl("evBalloon", `<svg viewBox="0 0 80 120" width="80" height="120"><path d="M40 4 C70 4 76 44 56 72 L48 90 H32 L24 72 C4 44 10 4 40 4 Z" fill="${cols[0]}"/><path d="M40 4 C50 4 54 44 46 72 L44 90 H36 L34 72 C26 44 30 4 40 4 Z" fill="${cols[1]}"/><path d="M32 90 L30 106 H50 L48 90" stroke="#5d4037" stroke-width="2" fill="none"/><rect x="30" y="104" width="20" height="14" rx="3" fill="#8d6e63"/></svg>`, 150 + Math.random() * 700, 230, 3800);
+    noiseBurst(0.5, 500, 0.12, 0.3); noiseBurst(0.4, 500, 0.1, 1.8);
+  },
+  crane() {   /* a crane swings a girder across the top of the sky */
+    evEl("evCrane", `<svg viewBox="0 0 1200 180" width="1200" height="180"><g class="evArm"><rect x="0" y="20" width="760" height="14" fill="#ffb703"/><path d="M0 20 L760 34 M0 34 L760 20" stroke="#e09f00" stroke-width="3"/><g class="evHook"><rect x="620" y="34" width="3" height="60" fill="#5d4037"/><rect x="560" y="94" width="130" height="18" rx="3" fill="#e63946"/></g></g><rect x="-30" y="0" width="34" height="180" fill="#e09f00"/></svg>`, 0, 125, 3400);
+    sfx.clank(); tone("square", 880, 880, 0.12, 0.08, 0.6); tone("square", 880, 880, 0.12, 0.08, 1.4); tone("square", 880, 880, 0.12, 0.08, 2.2);
+    tone("sawtooth", 95, 80, 2.4, 0.03, 0.2);
+  },
+  plane() {   /* a little plane tows a picture banner across the sky */
+    const pics = [starIcon,
+      `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="#ffd60a"/><circle cx="23" cy="26" r="4" fill="#2b2d42"/><circle cx="41" cy="26" r="4" fill="#2b2d42"/><path d="M20 38 Q32 50 44 38" stroke="#2b2d42" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`,
+      `<svg viewBox="0 0 64 64"><path d="M32 56 L8 30 A14 14 0 0 1 32 16 A14 14 0 0 1 56 30 Z" fill="#e63946"/></svg>`];
+    const pic = pics[Math.floor(Math.random() * pics.length)];
+    evEl("evPlane", `<svg viewBox="0 0 120 50" width="120" height="50"><rect x="20" y="20" width="80" height="16" rx="8" fill="#e63946"/><path d="M50 22 L70 4 L84 4 L72 22 Z" fill="#ffd60a"/><path d="M60 36 L72 46 L84 46 L74 36 Z" fill="#ffd60a"/><circle cx="104" cy="28" r="8" fill="#6fc0df"/><rect x="0" y="26" width="22" height="4" fill="#5d4037"/></svg><div class="evBanner">${pic}</div>`, -300, 55 + Math.random() * 80, 4600);
+    tone("sawtooth", 95, 88, 3.6, 0.025); tone("square", 190, 176, 3.6, 0.015);
+  }
+};
+let eventCSSDone = false;
+function injectEventCSS() {
+  if (eventCSSDone) return;
+  eventCSSDone = true;
+  const st = document.createElement("style");
+  st.textContent = `
+  .liveEv { position: absolute; z-index: 16; pointer-events: none; }
+  .liveEv svg { position: absolute; left: 0; top: 0; }
+  .evFlock { width: 140px; height: 70px; animation: evFly 3.1s linear forwards; }
+  .evFlock .evBird { width: 40px; height: 20px; animation: evFlap .32s ease-in-out infinite alternate; }
+  @keyframes evFly { 0% { transform: translateX(0); } 100% { transform: translateX(1420px) translateY(-30px); } }
+  @keyframes evFlap { 0% { transform: scaleY(1); } 100% { transform: scaleY(.3); } }
+  .evOwl { width: 120px; height: 150px; animation: evRise 3s ease-out forwards; }
+  @keyframes evRise { 0% { opacity: 0; } 12% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
+  .evEyes { animation: evBlink 3s step-end both; transform-box: fill-box; transform-origin: center; }
+  @keyframes evBlink { 0%, 40%, 46%, 70%, 76%, 100% { transform: scaleY(1); } 42%, 72% { transform: scaleY(.1); } }
+  .evFlash { inset: 0; background: #fff; z-index: 30; animation: evFlash .7s ease-out forwards; }
+  @keyframes evFlash { 0% { opacity: .32; } 25% { opacity: .08; } 40% { opacity: .22; } 100% { opacity: 0; } }
+  .evRainbow { width: 440px; height: 220px; animation: evRise 4s ease-in-out forwards; opacity: 0; }
+  .evRainbow svg { opacity: .5; }
+  .evSnowball { width: 60px; height: 60px; animation: evRoll 2s linear forwards; }
+  .evSnowball.flip { animation-name: evRollBack; }
+  .evSnowball .evBall { animation: evSpin .5s linear infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes evRoll { 0% { transform: translateX(0) scale(.5); } 100% { transform: translateX(1000px) scale(1.4); } }
+  @keyframes evRollBack { 0% { transform: translateX(0) scale(.5); } 100% { transform: translateX(-1000px) scale(1.4); } }
+  @keyframes evSpin { 100% { transform: rotate(360deg); } }
+  .evPoof { animation: evPoof .9s ease-out forwards; transform-box: fill-box; transform-origin: center; }
+  @keyframes evPoof { 0% { transform: scale(.3); opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
+  .evShoot { width: 220px; height: 40px; animation: evShoot 1.5s ease-in forwards; transform: rotate(25deg); }
+  @keyframes evShoot { 0% { transform: translate(-200px, -90px) rotate(25deg); opacity: 0; } 15% { opacity: 1; } 70% { opacity: 1; } 100% { transform: translate(260px, 120px) rotate(25deg); opacity: 0; } }
+  .evUfo { width: 160px; height: 70px; animation: evUfo 3.6s ease-in-out forwards; }
+  @keyframes evUfo { 0% { transform: translateX(0); } 30% { transform: translateX(680px); } 72% { transform: translateX(690px) translateY(6px); } 100% { transform: translateX(1500px) translateY(-80px); } }
+  .evUfoLight { animation: evLight .4s steps(2) infinite; }
+  @keyframes evLight { 50% { fill: #ff5252; } }
+  .evBeam { position: absolute; left: 50px; top: 60px; width: 60px; height: 0; background: linear-gradient(rgba(255,249,196,.6), rgba(255,249,196,0)); clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%); }
+  .evUfo.beaming .evBeam { animation: evBeam 1.1s ease-out forwards; }
+  @keyframes evBeam { 0% { height: 0; } 60% { height: 480px; } 100% { height: 480px; opacity: 0; } }
+  .evBeamStar { position: absolute; left: 58px; top: 60px; width: 44px; height: 44px; opacity: 0; }
+  .evUfo.beaming .evBeamStar { animation: evBeamStar 1s ease-in .1s forwards; }
+  @keyframes evBeamStar { 0% { transform: translateY(0) scale(.3); opacity: 1; } 100% { transform: translateY(400px) scale(1); opacity: 1; } }
+  .evWhale { width: 240px; height: 120px; animation: evRise 3s ease-in-out forwards; }
+  .evWhale .evBack { animation: evWhaleUp 3s ease-in-out forwards; transform-box: fill-box; transform-origin: bottom; }
+  @keyframes evWhaleUp { 0% { transform: translateY(60px); } 30% { transform: translateY(0); } 75% { transform: translateY(0); } 100% { transform: translateY(70px); } }
+  .evSpout { animation: evSpout 3s ease-out forwards; transform-box: fill-box; transform-origin: bottom; opacity: 0; }
+  @keyframes evSpout { 0%, 30% { transform: scaleY(0); opacity: 0; } 50% { transform: scaleY(1); opacity: 1; } 80% { opacity: .6; } 100% { transform: scaleY(1.2); opacity: 0; } }
+  .evBalloon { width: 80px; height: 120px; animation: evBalloon 3.8s ease-in-out forwards; }
+  @keyframes evBalloon { 0% { transform: translate(0, 0) scale(.7); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(140px, -230px) scale(1); opacity: 0; } }
+  .evCrane { width: 1200px; height: 180px; animation: evRise 3.4s ease-in-out forwards; }
+  .evCrane .evArm { animation: evSwing 3.4s ease-in-out forwards; transform-box: fill-box; transform-origin: 0 27px; }
+  @keyframes evSwing { 0% { transform: rotate(-9deg); } 50% { transform: rotate(3deg); } 100% { transform: rotate(-8deg); } }
+  .evCrane .evHook { animation: evHook 3.4s ease-in-out forwards; }
+  @keyframes evHook { 0% { transform: translateX(-300px); } 55% { transform: translateX(80px); } 100% { transform: translateX(-280px); } }
+  .evPlane { width: 300px; height: 60px; animation: evPlane 4.6s linear forwards; }
+  @keyframes evPlane { 0% { transform: translateX(0); } 100% { transform: translateX(1600px); } }
+  .evPlane svg { left: 180px; top: 0; animation: evBob .7s ease-in-out infinite alternate; }
+  @keyframes evBob { 100% { transform: translateY(5px); } }
+  .evBanner { position: absolute; left: 20px; top: 8px; width: 150px; height: 46px; background: #fff8ec; border: 3px solid #4a3523; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+  .evBanner svg { position: static; width: 36px; height: 36px; }
+  `;
+  document.head.appendChild(st);
+}
+
+/* ---- the three hook-ins ---- */
+function worldAudioStart() {
+  if (paradeMode) { /* parade keeps its own fixed schedule */ LEVEL_EVENTS = []; eventIdx = 0; eventsFired = 0; scheduleEvents(PARADE_LEVEL, 1); }
+  if (!actx) return;
+  try { playJingle(); ambStart(); scrubStart(); } catch (e) { /* audio hiccups never stop a level */ }
+}
+function worldAudioStop() {
+  document.querySelectorAll(".liveEv").forEach(e => e.remove());   /* their removal timers die with gagTimers */
+  try { ambStop(); scrubStop(); } catch (e) {}
+}
+function worldTick(dt) {
+  if (actx) { ambTick(dt); scrubSet(); }
+  eventsTick();
+}
 
 /* ============ FINISH + CELEBRATION ============ */
 function confettiBurst(sceneEl, count) {
