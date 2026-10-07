@@ -54,7 +54,8 @@
 - [x] T11.2 (agent): beat sequencer — 30 formations, per-level signature + contrast templates, world beats, finales, guarantee passes; `tests/level-report.cjs`.
 - [x] T11.3 (agent): every world is a place — roadside pools (5-8 pieces each), overhead arches, horizon landmarks, festive parade set, free-drive re-skin.
 - [x] T11.4 (agent): per-world audio (jingles, ambience beds, star scales, bend scrub) + 10 live sky events; suite `world-check-audio-events.cjs` (16).
-- [ ] T11.5 (agent, in progress): adversarial audit of all 80 levels — visual sweep, course variety, fairness bots, pacing; `tests/fairness-check.cjs`.
+- [x] T11.5 (agent): adversarial audit of all 80 levels (240 screenshots): owl/whale/snowball events redrawn, arches clear of ramp lips, landmarks drawn once; `buildCourse` rewritten with per-world road character (WORLD_ROAD: highway, switchback pass, drag strips, coast, moon chicanes) and a 10-shape menu so no level after L2 is straight and no neighbours match; fairness bots (greedy star-seeker + center-lane 'lazy toddler') drive all 80 levels: moon flights get a float arc and 950/1850 ramp tails, walls open within one lane of the kid, 700-unit runways, fills never trap a star trail; finales always end in a star shower. Suite `fairness-check.cjs` (9). 13 suites, 191/191.
+- [x] T11.6-11.7: HUD row fills the width; garage top row spacing with fixed-width wallets.
 
 ## Backlog (v2 candidates, from kid-testing)
 
