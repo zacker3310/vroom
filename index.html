@@ -205,7 +205,7 @@
   #controls {
     position: absolute; left: 0; right: 0; bottom: 0; height: 260px;
     background: #023047; border-top: 8px solid #ffb703;
-    display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 8px;
+    display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 8px;   /* 8px gap: the paint tray grew a flip chip */
   }
   .tray {
     display: flex; align-items: center; gap: 10px;
@@ -235,6 +235,19 @@
     background: #023047; display: flex; align-items: center; justify-content: center;
   }
   .lockDot svg { width: 16px; height: 16px; }
+  /* pattern swatches carry a mini SVG circle of the real paint; the ring stays the button's border */
+  .swatch > svg { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; pointer-events: none; }
+  /* two-page paint tray: page 1 = colors, page 2 = patterns; the flip chip toggles #swatches.pg2 */
+  #swatches:not(.pg2) .swatch[data-pg="2"], #swatches.pg2 .swatch[data-pg="1"] { display: none; }
+  #trayPaint { gap: 6px; padding: 8px 6px; }
+  #paintFlip {
+    width: 76px; height: 76px; border-radius: 50%; flex: none; cursor: pointer; touch-action: none;
+    background: #fff; border: 5px solid rgba(255,255,255,.85); box-shadow: 0 4px 0 rgba(0,0,0,.35);
+    display: flex; align-items: center; justify-content: center; transition: transform .08s;
+  }
+  #paintFlip svg { width: 48px; height: 48px; }
+  #paintFlip .flipArrow { transform-box: fill-box; transform-origin: center; transition: transform .2s; }
+  #paintFlip.pg2 .flipArrow { transform: scaleX(-1); }   /* arrow points back to the colors page */
 
   #extras { display: grid; grid-template-columns: repeat(3, 76px); gap: 7px; }
   .extraBtn {
@@ -791,6 +804,11 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
   box-shadow: 0 4px 0 rgba(74, 53, 35, .25);
 }
 .swatch.selected { border-color: var(--v-accent-yellow); }
+#paintFlip {
+  background: var(--v-surface);
+  border: 5px solid var(--v-surface-line);
+  box-shadow: 0 4px 0 var(--v-surface-down);
+}
 
 /* --- price tag: putty until affordable, then green --- */
 #priceTag {
@@ -1144,7 +1162,11 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
         <svg viewBox="0 0 100 100"><rect x="14" y="14" width="72" height="72" rx="16" fill="#fff"/><path d="M50 26 L57 42 L74 44 L61 55 L65 72 L50 63 L35 72 L39 55 L26 44 L43 42 Z" fill="#ffb703"/><path d="M70 24 Q80 18 82 28" stroke="#e63946" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
       </button>
       </div>
-      <div class="tray" id="trayPaint"><div id="swatches"></div></div>
+      <div class="tray" id="trayPaint"><div id="swatches"></div>
+        <button class="pressable" id="paintFlip" aria-label="more paints: flip between colors and patterns">
+          <svg viewBox="0 0 64 64"><path d="M10 14 h30 a8 8 0 0 1 8 8 v22 l-10 10 h-28 a8 8 0 0 1 -8 -8 v-24 a8 8 0 0 1 8 -8Z" fill="#fff"/><path d="M48 44 l-10 10 v-10Z" fill="#cfc0a6"/><circle cx="24" cy="30" r="7" fill="#e63946"/><circle cx="38" cy="26" r="4" fill="#1e88e5"/><circle cx="36" cy="40" r="4" fill="#43a047"/><path class="flipArrow" d="M52 10 l10 10 l-10 10" stroke="#5a4634" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
       <div class="tray" id="trayExtras">
       <div id="extras">
         <button class="bigBtn extraBtn" data-extra="horn" aria-label="horn">
@@ -1934,16 +1956,7 @@ const BUDDY_SVG = {
 let svgUid = 0;
 function vehicleSVG(st) {
   const lift = Math.max(0, WHEELS[st.wheels].r - 26);
-  let paint = st.color, defs = "";
-  if (st.color === "rainbow") {
-    const id = "rg" + (++svgUid);
-    defs = `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#e53935"/><stop offset=".2" stop-color="#fb8c00"/>
-      <stop offset=".4" stop-color="#fdd835"/><stop offset=".6" stop-color="#43a047"/>
-      <stop offset=".8" stop-color="#1e88e5"/><stop offset="1" stop-color="#8e24aa"/>
-    </linearGradient></defs>`;
-    paint = `url(#${id})`;
-  }
+  const { paint, defs } = paintDefs(st.color, ++svgUid, "side");   /* flat / rainbow / pattern paint */
   const buddy = st.buddy && progress.owned.buddy.includes(st.buddy)
     ? `<g transform="translate(${BODIES[st.body].roof[0] - 55},${BODIES[st.body].roof[1] + 4})"><g class="buddyBob">${BUDDY_SVG[st.buddy]}</g></g>`
     : "";
@@ -2587,8 +2600,94 @@ for (const exName in NEW_EXTRAS_SVG) {
    (append to BODY_ORDER, WHEEL_ORDER, CODE_* lists, PRICES; add garage buttons) — must run
    before loadState() so saved builds validate against the full catalog ======== */
 
-/* ======== PAINT PACK anchor: pattern paints register here (append to COLORS, CODE_COLORS,
-   PRICES.color; pattern defs are emitted by vehicleSVG/vehicleRearSVG) ======== */
+/* ======== PAINT PACK anchor: pattern paints ("p:*" ids keep COLORS a flat string list) ========
+   Each pattern emits an SVG def sized for a view band: v = { x0, y0, w, h, k } where (x0,y0,w,h) is the
+   paint area in that view's user space and k scales the tile so patterns read at the road car's size.
+   Views: side (vehicleSVG 320x230), rear (vehicleRearSVG, car-space), swatch (64x64 mini circle). */
+const PAINT_VIEWS = {
+  side:   { x0: 0,   y0: 70,   w: 320, h: 120, k: 1 },
+  rear:   { x0: -80, y0: -180, w: 160, h: 160, k: 0.8 },
+  swatch: { x0: 0,   y0: 0,    w: 64,  h: 64,  k: 0.55 }
+};
+/* tile: a repeating <pattern>; inner is drawn in a tw x th box and scaled by v.k */
+const paintTile = (id, v, tw, th, inner) =>
+  `<pattern id="${id}" patternUnits="userSpaceOnUse" x="${v.x0}" y="${v.y0}" width="${tw * v.k}" height="${th * v.k}"><g transform="scale(${v.k})">${inner}</g></pattern>`;
+/* band: a gradient spanning the paint area; dir "v" top->bottom, "h" left->right; stops = [[offset, color], ...] */
+const paintBand = (id, v, dir, stops) => {
+  const ax = dir === "h" ? `x1="${v.x0}" y1="0" x2="${v.x0 + v.w}" y2="0"` : `x1="0" y1="${v.y0}" x2="0" y2="${v.y0 + v.h}"`;
+  return `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" ${ax}>${stops.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join("")}</linearGradient>`;
+};
+const PATTERNS = {
+  "p:stripes": { name: "racing stripes", price: 40, def: (id, v) => {
+    /* twin white stripes run nose-to-tail: horizontal on the side view, vertical down the back */
+    const dir = v === PAINT_VIEWS.rear ? "h" : "v", a = .40, b = .47, c = .53, d = .60;
+    return paintBand(id, v, dir, [[0, "#d62828"], [a, "#d62828"], [a, "#fff"], [b, "#fff"], [b, "#d62828"], [c, "#d62828"], [c, "#fff"], [d, "#fff"], [d, "#d62828"], [1, "#d62828"]]);
+  } },
+  "p:flames": { name: "flames", price: 70, def: (id, v) => {
+    const H = v.h / v.k, f = H * .62;   /* licks rise from the sill to ~60% of the paint band */
+    const lick = (x, hh, w) => `M${x - w} ${H} Q${x - w * .9} ${H - hh * .45} ${x - w * .2} ${H - hh * .7} Q${x + w * .1} ${H - hh * .5} ${x} ${H - hh} Q${x + w * .3} ${H - hh * .55} ${x + w * .5} ${H - hh * .8} Q${x + w} ${H - hh * .4} ${x + w} ${H} Z`;
+    return paintTile(id, v, 72, H, `<rect width="72" height="${H}" fill="#1a1a1a"/>
+      <path d="${lick(18, f, 17)} ${lick(54, f * .8, 15)}" fill="#ff7b00"/>
+      <path d="${lick(18, f * .58, 9)} ${lick(54, f * .46, 8)}" fill="#ffd60a"/>`);
+  } },
+  "p:dots": { name: "polka dots", price: 45, def: (id, v) => paintTile(id, v, 30, 30,
+    `<rect width="30" height="30" fill="#f06292"/><circle cx="7.5" cy="7.5" r="5.5" fill="#fff"/><circle cx="22.5" cy="22.5" r="5.5" fill="#fff"/>`) },
+  "p:checker": { name: "checkerboard", price: 50, def: (id, v) => paintTile(id, v, 32, 32,
+    `<rect width="32" height="32" fill="#fff"/><rect width="16" height="16" fill="#212529"/><rect x="16" y="16" width="16" height="16" fill="#212529"/>`) },
+  "p:camo": { name: "camo", price: 55, def: (id, v) => paintTile(id, v, 84, 64,
+    `<rect width="84" height="64" fill="#6b8e3a"/>
+     <path d="M4 10 Q14 -2 30 8 Q44 14 36 26 Q24 36 10 28 Q-2 20 4 10Z" fill="#3b5a22"/>
+     <path d="M48 36 Q62 24 80 34 Q90 46 74 56 Q58 62 48 52 Q40 44 48 36Z" fill="#3b5a22"/>
+     <path d="M40 2 Q60 -6 70 8 Q74 20 58 20 Q44 18 40 2Z" fill="#a3b86c"/>
+     <path d="M8 44 Q20 36 32 46 Q38 58 24 62 Q8 62 8 44Z" fill="#a3b86c"/>
+     <path d="M62 24 Q72 18 80 26 Q80 34 70 34 Q60 32 62 24Z" fill="#5c4a2a"/>
+     <path d="M28 30 Q38 28 42 38 Q38 46 28 42 Q22 36 28 30Z" fill="#5c4a2a"/>`) },
+  "p:candy": { name: "candy stripe", price: 45, def: (id, v) =>
+    `<pattern id="${id}" patternUnits="userSpaceOnUse" x="${v.x0}" y="${v.y0}" width="${28 * v.k}" height="${28 * v.k}" patternTransform="rotate(45)"><rect width="${28 * v.k}" height="${28 * v.k}" fill="#fff"/><rect width="${14 * v.k}" height="${28 * v.k}" fill="#e63946"/></pattern>` },
+  "p:galaxy": { name: "galaxy", price: 110, def: (id, v) => paintTile(id, v, 96, 96,
+    `<rect width="96" height="96" fill="#1b0a3d"/>
+     <ellipse cx="30" cy="34" rx="34" ry="22" fill="#5b2a8a" opacity=".55"/><ellipse cx="74" cy="78" rx="30" ry="18" fill="#3a1f7a" opacity=".6"/>
+     <ellipse cx="60" cy="20" rx="16" ry="9" fill="#b04fc9" opacity=".3"/>
+     <g fill="#fff"><circle cx="12" cy="14" r="2"/><circle cx="48" cy="52" r="2.4"/><circle cx="84" cy="30" r="1.6"/><circle cx="26" cy="70" r="1.6"/><circle cx="70" cy="90" r="2"/><circle cx="90" cy="60" r="1.2"/><circle cx="40" cy="8" r="1.2"/><circle cx="6" cy="90" r="1.4"/></g>
+     <path d="M66 46 l2 6 6 2 -6 2 -2 6 -2 -6 -6 -2 6 -2Z M20 40 l1.5 4 4 1.5 -4 1.5 -1.5 4 -1.5 -4 -4 -1.5 4 -1.5Z" fill="#fff5c8"/>`) },
+  "p:gold": { name: "gold chrome", price: 120, def: (id, v) =>
+    paintBand(id, v, "v", [[0, "#8a5a00"], [.28, "#e3a81c"], [.42, "#fff3b0"], [.5, "#fde68a"], [.62, "#d49a12"], [1, "#6e4600"]]) },
+  "p:leopard": { name: "leopard", price: 60, def: (id, v) => paintTile(id, v, 64, 56,
+    `<rect width="64" height="56" fill="#d9a95b"/>
+     <g fill="none" stroke="#4a2c17" stroke-width="4.5" stroke-linecap="round">
+       <path d="M10 12 q8 -6 14 0 M8 20 q8 8 18 -2"/><path d="M40 26 q10 -8 16 2 M38 36 q10 8 20 -4"/>
+       <path d="M16 42 q6 -5 12 0 M14 50 q8 6 16 -2"/><path d="M50 4 q6 -2 8 4"/>
+     </g>
+     <g fill="#b8762e"><ellipse cx="17" cy="14" rx="5" ry="4"/><ellipse cx="48" cy="29" rx="6" ry="5"/><ellipse cx="22" cy="45" rx="4" ry="3.5"/></g>`) },
+  "p:bubblegum": { name: "bubblegum two-tone", price: 50, def: (id, v) =>
+    paintBand(id, v, "v", [[0, "#ff7eb6"], [.5, "#ff7eb6"], [.5, "#2ec4b6"], [1, "#2ec4b6"]]) },
+  "p:bolt": { name: "lightning", price: 65, def: (id, v) => paintTile(id, v, 60, 72,
+    `<rect width="60" height="72" fill="#1e62d6"/>
+     <path d="M26 4 L10 34 L22 34 L16 60 L40 24 L28 24 L34 4Z" fill="#ffd60a" stroke="#fb8500" stroke-width="2.5" stroke-linejoin="round"/>
+     <path d="M52 40 L44 54 L50 54 L47 68 L58 50 L52 50 L55 40Z" fill="#ffe66d"/>`) }
+};
+for (const id in PATTERNS) { COLORS.push(id); PRICES.color[id] = PATTERNS[id].price; }
+/* { defs, paint } for any paint id: flat color, rainbow, or a pattern. uid keeps ids unique per render */
+function paintDefs(color, uid, view) {
+  if (color === "rainbow") {
+    const id = "rg" + uid, units = view === "rear" ? `gradientUnits="userSpaceOnUse" x1="-130" y1="0" x2="130" y2="0"` : `x1="0" y1="0" x2="1" y2="0"`;
+    return { paint: `url(#${id})`, defs: `<defs><linearGradient id="${id}" ${units}>
+      <stop offset="0" stop-color="#e53935"/><stop offset=".2" stop-color="#fb8c00"/>
+      <stop offset=".4" stop-color="#fdd835"/><stop offset=".6" stop-color="#43a047"/>
+      <stop offset=".8" stop-color="#1e88e5"/><stop offset="1" stop-color="#8e24aa"/>
+    </linearGradient></defs>` };
+  }
+  if (PATTERNS[color]) {
+    const id = "pp" + uid;
+    return { paint: `url(#${id})`, defs: `<defs>${PATTERNS[color].def(id, PAINT_VIEWS[view] || PAINT_VIEWS.side)}</defs>` };
+  }
+  return { paint: color, defs: "" };
+}
+/* swatch picture: a mini circle filled with the pattern so the kid picks by eye */
+function paintSwatchSVG(color) {
+  const { defs, paint } = paintDefs(color, "sw" + color.replace(/\W/g, ""), "swatch");
+  return `<svg viewBox="0 0 64 64">${defs}<circle cx="32" cy="32" r="32" fill="${paint}"/></svg>`;
+}
 
 loadState();
 
@@ -2671,14 +2770,20 @@ document.getElementById("decalBtn").addEventListener("pointerdown", () => {
   save(); renderPreview(); sfx.splat();
 });
 const swatchesEl = document.getElementById("swatches");
-COLORS.forEach(c => {
+const paintFlip = document.getElementById("paintFlip");
+/* page 1 = the 12 colors, page 2 = pattern paints (4x3 each); --i restarts per page for popIn */
+COLORS.forEach((c, i) => {
   const b = document.createElement("button");
   b.className = "swatch pressable enter"; b.dataset.color = c;
-  b.style.setProperty("--i", COLORS.indexOf(c));
-  b.style.background = c === "rainbow"
-    ? "conic-gradient(#e53935,#fb8c00,#fdd835,#43a047,#1e88e5,#8e24aa,#e53935)"
-    : c;
-  b.setAttribute("aria-label", "paint color");
+  b.dataset.pg = PATTERNS[c] ? 2 : 1;
+  b.style.setProperty("--i", i % 12);
+  if (PATTERNS[c]) { b.innerHTML = paintSwatchSVG(c); b.setAttribute("aria-label", PATTERNS[c].name + " paint"); }
+  else {
+    b.style.background = c === "rainbow"
+      ? "conic-gradient(#e53935,#fb8c00,#fdd835,#43a047,#1e88e5,#8e24aa,#e53935)"
+      : c;
+    b.setAttribute("aria-label", "paint color");
+  }
   b.addEventListener("pointerdown", () => {
     state.color = c; save();
     swatchesEl.querySelectorAll(".swatch").forEach(s => s.classList.toggle("selected", s === b));
@@ -2687,6 +2792,14 @@ COLORS.forEach(c => {
   if (c === state.color) b.classList.add("selected");
   swatchesEl.appendChild(b);
 });
+function showPaintPage(pg, animate) {
+  swatchesEl.classList.toggle("pg2", pg === 2);
+  paintFlip.classList.toggle("pg2", pg === 2);
+  if (!animate) return;
+  swatchesEl.querySelectorAll(`.swatch[data-pg="${pg}"]`).forEach(s => { s.classList.remove("enter"); void s.offsetWidth; s.classList.add("enter"); });
+}
+showPaintPage(PATTERNS[state.color] ? 2 : 1, false);
+paintFlip.addEventListener("pointerdown", () => { showPaintPage(swatchesEl.classList.contains("pg2") ? 1 : 2, true); sfx.pop(); });
 function renderSwatchLocks() {
   swatchesEl.querySelectorAll(".swatch").forEach(s => {
     const locked = !owns("color", s.dataset.color);
@@ -2781,6 +2894,7 @@ diceBtn.addEventListener("pointerdown", () => {
       clearInterval(diceTimer); diceTimer = null;
       diceBtn.classList.remove("rolling");
       swatchesEl.querySelectorAll(".swatch").forEach(s => s.classList.toggle("selected", s.dataset.color === state.color));
+      showPaintPage(PATTERNS[state.color] ? 2 : 1, false);
       save(); sfx.tada();
     }
   }, 110);
@@ -2993,7 +3107,8 @@ const b64url = {
 /* paid-item orders are FROZEN for code compatibility — append only */
 const CODE_BODIES = ["police", "race", "tractor", "icecream", "rocket", "ufo", "limo", "dragon", "train", "royal"];
 const CODE_WHEELS = ["gold", "flower", "tank", "glow", "star"];
-const CODE_COLORS = ["#8e24aa", "#00acc1", "#9ccc65", "#f5f5f5", "#37474f", "rainbow"];
+const CODE_COLORS = ["#8e24aa", "#00acc1", "#9ccc65", "#f5f5f5", "#37474f", "rainbow", ...Object.keys(PATTERNS)];   /* v3 codes count-prefix this list */
+const CODE_COLORS_V2 = 6;   /* v1/v2 codes carry only the first six paid colors */
 const CODE_EXTRAS = ["wings", "booster", "partyhat"];
 const CODE_BADGES = ["jump", "clean", "s", "world", "buy", "gag"];   /* FROZEN for save-code layout; champ travels in full codes only */
 const CODE_DECALS = ["flame", "star", "heart", "bolt", "eyes"];
@@ -3084,8 +3199,10 @@ function unpackCompact(code) {
   const buddyIdx = read(3);
   out.upgrades = { engine: read(2), armor: read(2), magnet: read(2) };
   read(2);
-  for (const [list, kind] of [[CODE_BODIES, "body"], [CODE_WHEELS, "wheels"], [CODE_COLORS, "color"], [CODE_EXTRAS, "extras"]]) {
-    for (const id of list) if (read(1)) out.owned[kind].push(id);
+  /* formats 1-2 carried exactly the first six paid colors */
+  const colors = CODE_COLORS.slice(0, CODE_COLORS_V2);
+  for (const [list, kind] of [[CODE_BODIES, "body"], [CODE_WHEELS, "wheels"], [colors, "color"], [CODE_EXTRAS, "extras"]]) {
+    for (const id of list) if (read(1) && id) out.owned[kind].push(id);
   }
   for (const id of BUDDY_ORDER) if (read(1)) out.owned.buddy.push(id);
   for (const id of CODE_BADGES) if (read(1)) out.badges.push(id);
@@ -3929,15 +4046,7 @@ function vehicleRearSVG(st) {
   const r = WHEELS[st.wheels].r;
   const L = 12 + Math.max(0, r - 26) * 1.3;   /* ride height: big wheels jack the body up */
   carLen = R.len * CAR_K; carHalf = R.half * CAR_K;
-  let paint = st.color, defs = "";
-  if (st.color === "rainbow") {
-    defs = `<defs><linearGradient id="rg${uid}" gradientUnits="userSpaceOnUse" x1="-130" y1="0" x2="130" y2="0">
-      <stop offset="0" stop-color="#e53935"/><stop offset=".2" stop-color="#fb8c00"/>
-      <stop offset=".4" stop-color="#fdd835"/><stop offset=".6" stop-color="#43a047"/>
-      <stop offset=".8" stop-color="#1e88e5"/><stop offset="1" stop-color="#8e24aa"/>
-    </linearGradient></defs>`;
-    paint = `url(#rg${uid})`;
-  }
+  const { paint, defs } = paintDefs(st.color, uid, "rear");   /* flat / rainbow / pattern paint */
   /* tires: rear + front axle, outboard of the body */
   const tw = st.wheels === "racing" ? 48 : st.wheels === "tank" ? 60 : Math.round(28 + r * 0.45);
   const [wsR, wsF] = R.wheelScale || [1, 1];

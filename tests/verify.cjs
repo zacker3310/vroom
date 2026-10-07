@@ -34,7 +34,7 @@ function check(name, ok, detail) {
     bodyKeys: BODY_ORDER.every(b => !!BODIES[b]),
     wheelKeys: WHEEL_ORDER.every(w => !!WHEELS[w]),
   }));
-  check('garage: 12 swatches', inv.swatches === 12, 'got ' + inv.swatches);
+  check('garage: 23 swatches (12 colors + 11 patterns)', inv.swatches === 23, 'got ' + inv.swatches);
   check('garage: 15 bodies all defined', inv.bodies === 15 && inv.bodyKeys);
   check('garage: 8 wheels all defined', inv.wheels === 8 && inv.wheelKeys);
 
