@@ -132,7 +132,7 @@ function check(name, ok, detail) {
     const bgs = slots.map(sl => sl.querySelector('.photoCar').style.background);
     const stamps = slots.map(sl => sl.querySelector('.photoStamp svg') !== null);
     const parade = slots[5].querySelector('.photoCap').textContent.trim();
-    return { n: slots.length, distinctBgs: new Set(bgs).size, stamps: stamps.every(Boolean), paradeCapNoNumber: parade === '' };
+    return { n: slots.length, distinctBgs: new Set(bgs).size, stamps: stamps.every(Boolean), paradeCapNoNumber: parade === 'S' };   /* medal letter only, no level number */
   });
   check('photos: six memories from five worlds + the parade get six different backdrops and a world stamp each', distinct.n === 6 && distinct.distinctBgs === 6 && distinct.stamps && distinct.paradeCapNoNumber, JSON.stringify(distinct));
   await page.screenshot({ path: SHOT + 'a-album-worlds.png' });
