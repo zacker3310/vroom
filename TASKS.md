@@ -63,7 +63,7 @@
 - [x] T12.1 (agent): accessory anchor contract — per-body `anchors` in both views, all 15 bodies hand-tuned from contact sheets.
 - [x] T12.2 (agents): worlds 9 Volcano, 10 Candy Land, 11 Deep Sea, 12 Sky Kingdom — themes, palettes, scenery pools, arches, landmarks, weather, 2 hazards each (timed geysers, rolling donuts, bobbing jellyfish, lane-hopping crab king and kites, thunderclouds), road character, beats, jingles, ambience, star scales, events; flight length scales with gravity.
 - [x] T12.3 (agent): 11 pattern paints as SVG defs in both views, two-page swatch flipper; suite paint-check (22).
-- [x] T12.4 (agent): shop pack — 8 bodies (hover 1000 with no wheels + glow + trail, bulldozer, school bus, ambulance, submarine, pirate, dino, unicorn), 5 wheels, 4 extras, 4 buddies, 3 decals; hold-to-cycle-back + dot indicator; legacy decoder sliced to v2 catalog sizes; suite shop-check (21). 15 suites, 242/242.
+- [x] T12.4 (agent): shop pack — 8 bodies (hover 1000 with no wheels + glow + trail, bulldozer, school bus, ambulance, submarine, pirate, dino, unicorn), 5 wheels, 4 extras, 4 buddies, 3 decals; hold-to-cycle-back + dot indicator; legacy decoder sliced to v2 catalog sizes; suite shop-check (21). 15 suites, 237/237.
 
 ## Backlog (v2 candidates, from kid-testing)
 
