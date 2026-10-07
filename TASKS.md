@@ -80,6 +80,8 @@
 - [x] T14.4: Shine bonus. No mud + zero damage at the line = +50% of collected stars (rounded up), a sparkle chip on the results card, and the eighth album sticker. HUD grows fuel + tire gauges under the wrench in the same 108px rhythm (red when low, hidden during the celebration).
 - [x] T14.5: Persistence. `progress.fuel` / `progress.tread` in localStorage (older saves read full), v3 save-code tail (4 + 4 bits after the level run; tail-less codes decode as full). Fairness bots get a serviced car per level. Suite upkeep-check (20); jsQR lookup honours the module path. 17 suites, 276/276; lint 0.
 
+- [x] T14.6: Steering slider. The rotating wheel (hard for small hands) is replaced by a three-stop slider bottom-left: the finger's x on the track is the lane, a tap picks it, a drag keeps picking with the knob riding under the finger, release settles the knob on the car's lane; swipes and keys move the knob too; lit stop = current lane. verify.cjs covers tap + drag (36). 17 suites, 277/277.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

@@ -66,7 +66,7 @@ stripe) is painted on a canvas each frame; roadside set pieces rush past on both
 
 - **Gas pedal** (green, bottom-right): hold to drive. **Brake pedal** (red): squeal stop.
   Holding anywhere on the road also drives (v1 muscle memory).
-- **Lanes**: swipe left/right (or tap/turn the steering wheel, or A/D / arrow keys) to change lane.
+- **Lanes**: a three-stop steering slider bottom-left (tap a spot or drag; the knob sits on your lane), or swipe left/right on the road, or A/D / arrow keys.
   Steer INTO stars, AWAY from obstacles.
 - Tap vehicle = honk
 - Mud puddle -> splash, muddy wheels (lane-specific). The mud STAYS (v4.4b): the truck

@@ -385,7 +385,7 @@
   #hudProgress svg { width: 40px; height: 40px; }
   /* during the celebration the run HUD and controls step aside */
   #road.celebrating #hudStars, #road.celebrating #hudLevel, #road.celebrating #hudProgress,
-  #road.celebrating #hudDamage, #road.celebrating #hudFuel, #road.celebrating #hudTires, #road.celebrating .pedal, #road.celebrating #steerWheel,
+  #road.celebrating #hudDamage, #road.celebrating #hudFuel, #road.celebrating #hudTires, #road.celebrating .pedal, #road.celebrating #steerSlider,
   #road.celebrating #homeBtn { display: none; }
   /* wallets are fixed width (fits 3 digits) so the row never shifts as stars pile up */
   #garageWallet, #albumWallet, #mapWallet, #celebrateWallet { width: 200px; justify-content: center; padding: 0; box-sizing: border-box; }
@@ -411,13 +411,27 @@
   #brakePedal { right: 196px; bottom: 24px; width: 182px; height: 150px; transform-origin: 50% 0; }
   #brakePedal.held { transform: perspective(500px) rotateX(-30deg) scale(.97); }
 
-  /* steering wheel: tap a side to steer that way, or grab it and turn */
-  #steerWheel {
-    position: absolute; left: 18px; bottom: 12px; width: 220px; height: 220px; padding: 0;
-    border: 0; background: none; border-radius: 50%; z-index: 20; cursor: pointer; touch-action: none;
-    filter: drop-shadow(0 7px 0 rgba(74, 53, 35, .28));
+  /* steering slider: a three-stop track, the knob sits on the lane you are in.
+     Touch anywhere on the track to pick that lane; drag and the knob follows the finger. */
+  #steerSlider {
+    position: absolute; left: 24px; bottom: 24px; width: 360px; height: 104px; padding: 0;
+    border: 6px solid var(--v-blue-line, #4a94b5); border-radius: 52px; background: var(--v-surface, #fdf6ea);
+    box-shadow: 0 7px 0 var(--v-blue-down, #3f83a2); z-index: 20; cursor: pointer; touch-action: none;
   }
-  #steerWheel svg { width: 100%; height: 100%; will-change: transform; }
+  #steerSlider .stop {
+    position: absolute; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+    background: var(--v-blue-line, #4a94b5); opacity: .35;
+  }
+  #steerSlider .stop.on { opacity: 1; background: var(--v-accent-yellow, #ffd60a); }
+  #steerSlider .rail { position: absolute; left: 60px; right: 60px; top: 50%; height: 12px; margin-top: -6px; border-radius: 6px; background: var(--v-blue-line, #4a94b5); opacity: .35; }
+  #steerKnob {
+    position: absolute; left: 0; top: 50%; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%;
+    background: var(--v-accent-blue, #6fc0df); border: 6px solid var(--v-blue-line, #4a94b5);
+    box-shadow: 0 5px 0 var(--v-blue-down, #3f83a2); will-change: transform; pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #steerKnob svg { width: 58px; height: 58px; }
+  #steerSlider.held #steerKnob { transform: scale(1.08); box-shadow: 0 2px 0 var(--v-blue-down, #3f83a2); }
   /* soft control gutter lifts the touch layer off the game world */
   #road::before {
     content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 190px; z-index: 15;
@@ -1273,20 +1287,13 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     <div class="chip" id="hudDamage" aria-label="damage"></div>
     <div class="chip" id="hudFuel" aria-label="fuel left"></div>
     <div class="chip" id="hudTires" aria-label="tire tread left"></div>
-    <button id="steerWheel" aria-label="steering wheel: tap or turn left and right">
-      <svg viewBox="0 0 220 220">
-        <circle cx="110" cy="110" r="92" fill="none" stroke="var(--v-blue-down, #3f83a2)" stroke-width="30"/>
-        <circle cx="110" cy="110" r="92" fill="none" stroke="var(--v-accent-blue, #6fc0df)" stroke-width="22"/>
-        <path d="M22 96 Q16 110 22 124 M198 96 Q204 110 198 124" stroke="var(--v-blue-line, #4a94b5)" stroke-width="8" fill="none" stroke-linecap="round"/>
-        <path d="M110 6 V30" stroke="#ffd60a" stroke-width="14" stroke-linecap="round"/>
-        <g stroke="var(--v-blue-line, #4a94b5)" stroke-width="20" stroke-linecap="round">
-          <path d="M84 116 H26 M136 116 H194 M110 136 V196"/>
-        </g>
-        <circle cx="110" cy="114" r="36" fill="#fdf6ea" stroke="var(--v-blue-line, #4a94b5)" stroke-width="7"/>
-        <path d="M110 96 L115 108 L128 109 L118 117 L121 130 L110 123 L99 130 L102 117 L92 109 L105 108 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="2.5"/>
-        <path d="M44 103 L30 116 L44 129 Z M176 103 L190 116 L176 129 Z" fill="#fff"/>
-      </svg>
-    </button>
+    <div id="steerSlider" role="slider" aria-label="steer: slide left or right to pick a lane" aria-valuemin="0" aria-valuemax="2" aria-valuenow="1">
+      <div class="rail"></div>
+      <i class="stop" style="left:60px"></i><i class="stop on" style="left:174px"></i><i class="stop" style="left:288px"></i>
+      <div id="steerKnob">
+        <svg viewBox="0 0 64 64"><path d="M26 18 L12 32 L26 46 M38 18 L52 32 L38 46" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 22 V42" stroke="#ffd60a" stroke-width="7" stroke-linecap="round"/></svg>
+      </div>
+    </div>
     <button class="pedal" id="brakePedal" aria-label="brake">
       <svg viewBox="0 0 182 150"><rect x="78" y="0" width="26" height="40" rx="7" fill="#6c757d"/><rect x="8" y="34" width="168" height="112" rx="26" fill="var(--v-red-down, #a4161a)"/><rect x="6" y="28" width="168" height="108" rx="26" fill="var(--v-accent-red, #e63946)" stroke="var(--v-red-line, #a4161a)" stroke-width="6"/><rect x="26" y="48" width="128" height="9" rx="4.5" fill="#00000026"/><rect x="26" y="68" width="128" height="9" rx="4.5" fill="#00000026"/><rect x="26" y="88" width="128" height="9" rx="4.5" fill="#00000026"/><rect x="26" y="108" width="128" height="9" rx="4.5" fill="#00000026"/><path d="M30 38 H120" stroke="#ffffff66" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
     </button>
@@ -1407,7 +1414,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "12.2.0";
+const APP_VERSION = "12.2.1";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -6197,7 +6204,7 @@ function startDrive() {
   gasKey = false; brakeKey = false;
   targetLane = 1; laneVis = 1; runStars = 0; runDamage = 0; runTime = 0; idleT = 0; nearFinish = false;
   bodyTilt = 0; prevV = 0; freezeUntil = 0; starCombo = 0; lastStarT = 0; lastShownTime = -1;
-  steerHold = 0; steerPointers.clear();
+  steerPointers.clear(); steerKnobF = 0.5; steerEl.classList.remove("held");
   speedLines.style.opacity = 0;
   roadPointers.clear(); gasPointers.clear(); brakePointers.clear();
   resetRoadOverlays();
@@ -6862,44 +6869,51 @@ roadScene.addEventListener("pointermove", e => {
 });
 function pointerEnd(e) {
   roadPointers.delete(e.pointerId);
-  if (steerPointers.delete(e.pointerId) && steerPointers.size === 0) steerHold = 0;
+  if (steerPointers.delete(e.pointerId) && steerPointers.size === 0) steerEl.classList.remove("held");
   if (gasPointers.delete(e.pointerId) && gasPointers.size === 0) gasPedal.classList.remove("held");
   if (brakePointers.delete(e.pointerId) && brakePointers.size === 0) brakePedal.classList.remove("held");
 }
 addEventListener("pointerup", pointerEnd);
 addEventListener("pointercancel", pointerEnd);
 
-/* steering wheel: a tap on either half steers that way and holds the wheel turned;
-   grabbing and dragging sideways keeps turning, one lane per 70px */
-const steerEl = document.getElementById("steerWheel");
-const steerSvg = steerEl.querySelector("svg");
-const steerPointers = new Map();   /* pointerId -> last x */
-let steerHold = 0, steerAngle = 0;
+/* steering slider: the finger's x on the track IS the lane (left third, middle, right third).
+   A tap picks a lane; a drag keeps picking while the knob rides under the finger; on release the knob
+   settles on the lane the car is in. Swipes and keys move the knob too. */
+const steerEl = document.getElementById("steerSlider");
+const steerKnob = document.getElementById("steerKnob");
+const steerStops = steerEl.querySelectorAll(".stop");
+const STEER_INSET = 60, STEER_SPAN = 228;   /* stop centres at 60 / 174 / 288 inside the 348px inner track */
+const steerPointers = new Map();   /* pointerId -> last fraction (0..1) */
+let steerKnobF = 0.5;
+function steerFrac(e) {
+  const r = steerEl.getBoundingClientRect(), k = r.width / 360;   /* stage scale */
+  return Math.max(0, Math.min(1, (e.clientX - r.left - (STEER_INSET + 6) * k) / (STEER_SPAN * k)));
+}
+function steerTo(f) {
+  const lane = Math.round(f * 2);
+  if (lane !== targetLane) setLane(lane);
+}
 steerEl.addEventListener("pointerdown", e => {
   e.stopPropagation();
   try { steerEl.setPointerCapture(e.pointerId); } catch (err) {}
-  const r = steerEl.getBoundingClientRect();
-  const side = e.clientX < r.left + r.width / 2 ? -1 : 1;
-  steerPointers.set(e.pointerId, e.clientX);
-  steerHold = side;
-  setLane(targetLane + side);
+  const f = steerFrac(e);
+  steerPointers.set(e.pointerId, f);
+  steerEl.classList.add("held");
+  steerTo(f);
 });
 steerEl.addEventListener("pointermove", e => {
   if (!steerPointers.has(e.pointerId)) return;
-  const scale = stage.getBoundingClientRect().width / 1200;
-  const dx = (e.clientX - steerPointers.get(e.pointerId)) / scale;
-  if (Math.abs(dx) > 70) {
-    const side = Math.sign(dx);
-    steerHold = side;
-    setLane(targetLane + side);
-    steerPointers.set(e.pointerId, e.clientX);
-  }
+  const f = steerFrac(e);
+  steerPointers.set(e.pointerId, f);
+  steerTo(f);
 });
 function tickSteer(dt) {
-  /* turned while held, swings with every lane change (swipe/keys too), springs back */
-  const target = Math.max(-100, Math.min(100, steerHold * 30 + (targetLane - laneVis) * 90));
-  steerAngle += (target - steerAngle) * Math.min(1, dt * 14);
-  steerSvg.style.transform = `rotate(${steerAngle.toFixed(1)}deg)`;
+  /* under a finger the knob tracks it; otherwise it eases onto the lane the car is sliding into */
+  const want = steerPointers.size ? [...steerPointers.values()].pop() : laneVis / 2;
+  steerKnobF += (want - steerKnobF) * Math.min(1, dt * (steerPointers.size ? 30 : 14));
+  steerKnob.style.left = (STEER_INSET + steerKnobF * STEER_SPAN).toFixed(1) + "px";
+  steerStops.forEach((st, i) => st.classList.toggle("on", i === targetLane));
+  steerEl.setAttribute("aria-valuenow", targetLane);
 }
 
 /* keyboard: A/D or ←/→ steer, W/↑/space is gas, S/↓ is brake (mouse can ride the pedals) */

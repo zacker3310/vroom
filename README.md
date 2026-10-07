@@ -25,7 +25,7 @@
 
 - **Build it, then drive it.** 23 bodies, 13 wheel sets, 23 paints, 8 flank decals, 10 bolt-on extras and 10 buddies, every one of them drawn in code. The exact car you build in the garage is the car you see from behind on the road, party hat and all.
 - **Twelve worlds, 120 levels.** Construction, sunset, night, rain, snow, desert, beach, space, volcano, candy land, deep sea and sky kingdom. Each is a place with its own roadside, weather, hazards, hills, jingle, ambience and star-chime scale.
-- **A road that bends and rolls.** An OutRun-style chase cam with eased curvature stretches and cosine hills, three lanes, a gas pedal, a brake pedal and a steering wheel.
+- **A road that bends and rolls.** An OutRun-style chase cam with eased curvature stretches and cosine hills, three lanes, a gas pedal, a brake pedal and a three-stop steering slider.
 - **Levels with a signature.** Every level is sequenced from a library of 38 formations so level 7 feels like "the snake-trail level" and level 8 like "the barrel-bowling level". Two headless bots drive all of them in the test suite to prove each is fair.
 - **Nothing to read, nothing to lose.** Icons, pictures and numerals only. Stars only go up. Crashes are comedy.
 - **Grown-up friendly.** Three kid profiles, scan-to-open QR save codes, a quiet mode for the car, home-screen install, and a toddler-proof update badge.
@@ -61,7 +61,7 @@ scrollable strip of big picture tiles; tap a tile to equip it, swipe or use the 
 |---|---|---|
 | Drive | hold the green gas pedal, or anywhere on the road | W, up arrow, or space |
 | Brake | red brake pedal | S or down arrow |
-| Steer | turn or tap the steering wheel, or swipe left/right | A/D or left/right arrows |
+| Steer | tap or drag the steering slider (left / middle / right), or swipe left/right | A/D or left/right arrows |
 | Honk | tap your car | |
 
 ## For grown-ups
@@ -106,7 +106,7 @@ python3 -m http.server 4173     # then open http://localhost:4173/
 
 There is no build. Edit `index.html`, reload.
 
-The test suite is 17 Playwright suites (276 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the update gate, and the fairness bots that drive all 120 levels.
+The test suite is 17 Playwright suites (277 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the update gate, and the fairness bots that drive all 120 levels.
 
 ```bash
 npm ci                                   # playwright-core + jsqr, test-only
