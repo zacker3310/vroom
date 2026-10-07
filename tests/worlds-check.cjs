@@ -106,9 +106,9 @@ function check(name, ok, detail) {
   await page.waitForTimeout(150);
   const mapUi = await page.evaluate(() => {
     const tabs = [...document.querySelectorAll('.worldTab')];
-    return { tabs: tabs.length, w1open: !tabs[0].classList.contains('locked'), w2locked: tabs[1].classList.contains('locked'), grid: document.querySelectorAll('.lvlBtn').length };
+    return { tabs: tabs.length, worlds: WORLD_COUNT, w1open: !tabs[0].classList.contains('locked'), w2locked: tabs[1].classList.contains('locked'), grid: document.querySelectorAll('.lvlBtn').length };
   });
-  check('map: 8 tabs, sequential lock, 10-level page', mapUi.tabs === 8 && mapUi.w1open && mapUi.w2locked && mapUi.grid === 10, JSON.stringify(mapUi));
+  check('map: 8 tabs, sequential lock, 10-level page', mapUi.tabs === mapUi.worlds && mapUi.w1open && mapUi.w2locked && mapUi.grid === 10, JSON.stringify(mapUi));
 
   /* world unlock: finishing L10 opens world 2 tab */
   const unlock = await page.evaluate(async () => {

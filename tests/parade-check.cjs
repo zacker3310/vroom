@@ -93,12 +93,12 @@ function check(name, ok, detail) {
       banked: progress.wallet - w0,
       champ: progress.badges.includes('champ'),
       levels81: !!progress.levels[MAX_LEVEL + 1],
-      current: progress.current
+      current: progress.current, max: MAX_LEVEL
     };
   });
   /* 12 stars + 3 + 2 clean + 100 champion = 117; no level-81 record, current untouched */
   check('parade: first finish banks the +100 jackpot (117 total)', finale.banked === 117, JSON.stringify(finale));
-  check('parade: champion sticker earned, no phantom level-81 record', finale.champ && !finale.levels81 && finale.current === MAX_LEVEL, JSON.stringify(finale));
+  check('parade: champion sticker earned, no phantom level-81 record', finale.champ && !finale.levels81 && finale.current === finale.max, JSON.stringify(finale));
   await page.waitForTimeout(4200);
   const card = await page.evaluate(() => ({
     trophyOnCard: document.getElementById('celebrateTime').innerHTML.includes('M22 4'),

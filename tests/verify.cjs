@@ -246,14 +246,14 @@ function check(name, ok, detail) {
     const btns = [...document.querySelectorAll('.lvlBtn')];
     const tabs = [...document.querySelectorAll('.worldTab')];
     return {
-      count: btns.length, tabs: tabs.length,
+      count: btns.length, tabs: tabs.length, worlds: WORLD_COUNT,
       l1done: btns[0].classList.contains('done'),
       l2open: btns[1].classList.contains('open') && btns[1].classList.contains('current'),
       l3locked: btns[2].classList.contains('locked'),
       w2locked: tabs[1].classList.contains('locked')
     };
   });
-  check('map: world page of 10 + 8 tabs, states correct', map.count === 10 && map.tabs === 8 && map.l1done && map.l2open && map.l3locked && map.w2locked, JSON.stringify(map));
+  check('map: world page of 10 + 8 tabs, states correct', map.count === 10 && map.tabs === map.worlds && map.l1done && map.l2open && map.l3locked && map.w2locked, JSON.stringify(map));
   await page.screenshot({ path: SHOT + 'map.png' });
   /* tap level 2 from map */
   await page.evaluate(() => { const b = [...document.querySelectorAll('.lvlBtn')][1]; b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); });

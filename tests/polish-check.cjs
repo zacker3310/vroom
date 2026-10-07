@@ -62,11 +62,11 @@ function check(name, ok, detail) {
     return {
       lockedDeny: btns[4].classList.contains('deny'),
       tabDeny: tabs[3].classList.contains('deny'),
-      tabs: tabs.length
+      tabs: tabs.length, worlds: WORLD_COUNT
     };
   });
   check('map: locked level tap wiggles + grumbles', mapUi.lockedDeny);
-  check('map: 8 world tabs, locked tab grumbles too', mapUi.tabs === 8 && mapUi.tabDeny, JSON.stringify(mapUi));
+  check('map: 8 world tabs, locked tab grumbles too', mapUi.tabs === mapUi.worlds && mapUi.tabDeny, JSON.stringify(mapUi));
   await page.screenshot({ path: SHOT + 'p-map.png' });
 
   /* drive: progress dot moves; near-star magnet collects from adjacent glide */
