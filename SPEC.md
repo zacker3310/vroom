@@ -33,8 +33,8 @@ Any owned combination is valid. Vehicle preview updates live with bounce + pop.
 
 ## Scene 2: World map (v5)
 
-80 levels across 8 themed worlds of 10: construction day, sunset, night, rain,
-snow, desert, beach, space. A row of 8 themed world tabs (locked until the
+120 levels across 12 themed worlds of 10: construction day, sunset, night, rain,
+snow, desert, beach, space, volcano, candy land, deep sea, sky kingdom (v12). A row of 8 themed world tabs (locked until the
 previous world's last level is beaten) selects a page of 10 big level buttons.
 Finished level N unlocks N+1. Locked = gray + padlock. Done = number + 1-3 star
 rating + S/A/B/C medal badge. Free-drive button up top. House returns to garage.
