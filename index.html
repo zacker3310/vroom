@@ -4242,7 +4242,10 @@ defBeat("breather", "rhythm", 1, (b, x) => {   /* empty road to breathe, maybe o
    later on earth and ~1480 on the moon (gravity 640), so the ground stays clear of items
    until rx + flightLen, and world 8 strings its high stars along the whole float. ---- */
 const FLIGHT_EARTH = 950, FLIGHT_MOON = 1850;
-const flightLen = w => w === 8 ? FLIGHT_MOON : FLIGHT_EARTH;
+const flightLen = w => {   /* follows the world's gravity: earth 950, moon 1850, anything between interpolates */
+  const g = worldMeta(w).gravity;
+  return g >= 1500 ? FLIGHT_EARTH : g <= 640 ? FLIGHT_MOON : Math.round(FLIGHT_EARTH + (FLIGHT_MOON - FLIGHT_EARTH) * (1500 - g) / (1500 - 640));
+};
 const rampTail = w => flightLen(w) - 250;   /* beyond rp.x + rp.w: nothing on the ground where the car lands */
 /* star height that sits on the full-throttle flight path dx past the ramp start */
 function flightH(w, dx) {
@@ -4259,8 +4262,8 @@ function rampAt(b, x, lane) {
 }
 /* the moon float: a lazy arc of stars the whole way down */
 function moonArc(b, r) {
-  if (b.w !== 8) return;
-  for (const dx of [700, 950, 1200, 1450, 1650]) b.high(r.rx + dx, r.lane, flightH(8, dx));
+  if (worldMeta(b.w).gravity >= 1500) return;   /* any floaty world: stars as far as its flight reaches */
+  for (const dx of [700, 950, 1200, 1450, 1650]) if (dx <= flightLen(b.w) - 200) b.high(r.rx + dx, r.lane, flightH(b.w, dx));
 }
 defBeat("ramp", "ramp", 1, (b, x) => { const r = rampAt(b, x); moonArc(b, r); return r.rx + flightLen(b.w); });
 defBeat("rampArc", "ramp", 4, (b, x) => {   /* three high stars along the flight path */
@@ -6481,6 +6484,347 @@ function finishLevel() {
    WORLD_ICONS/WORLD_TINT). Everything above is defined by now. ======== */
 
 /* ======== WORLD PACK anchor B: worlds 11-12 register here (same contract) ======== */
+/* ============ WORLD PACK B: 11 DEEP SEA (101-110) + 12 SKY KINGDOM (111-120) ============ */
+/* Everything registers by assignment into the tables above; the art follows the pc()/arch()
+   conventions (flat SVG, ground at y=0, no gradients/filters/ids in scenery). */
+(() => {
+  /* ---- meta, tints, map icons ---- */
+  WORLD_META[11] = { dark: true,  gravity: 1100, hill: 40 };    /* the glass tunnel glows: headlights on, floaty water jumps */
+  WORLD_META[12] = { dark: false, gravity: 900,  hill: 120 };   /* thin air: long floaty flights over big cloud hills */
+  WORLD_TINT.w11 = "#0077b6";   /* deep sea blue */
+  WORLD_TINT.w12 = "#8e7dbe";   /* sunrise lavender (gold would swallow the selected-tab ring) */
+  WORLD_ICONS.w11 = `<svg viewBox="0 0 100 100"><circle cx="50" cy="42" r="26" fill="#fff"/><circle cx="41" cy="40" r="6" fill="#0077b6"/><circle cx="59" cy="40" r="6" fill="#0077b6"/><circle cx="43" cy="38" r="2" fill="#fff"/><circle cx="61" cy="38" r="2" fill="#fff"/><path d="M42 52 Q50 60 58 52" stroke="#0077b6" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M30 62 Q18 80 8 72 M41 66 Q38 88 26 90 M59 66 Q62 88 74 90 M70 62 Q82 80 92 72" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round"/><circle cx="82" cy="18" r="5" fill="none" stroke="#fff" stroke-width="3"/><circle cx="90" cy="30" r="3" fill="none" stroke="#fff" stroke-width="2.5"/></svg>`;
+  WORLD_ICONS.w12 = `<svg viewBox="0 0 100 100"><path d="M14 66 A36 36 0 0 1 86 66" stroke="#ffd60a" stroke-width="7" fill="none"/><path d="M22 66 A28 28 0 0 1 78 66" stroke="#4cc9f0" stroke-width="7" fill="none"/><rect x="28" y="42" width="14" height="36" fill="#fff"/><rect x="58" y="42" width="14" height="36" fill="#fff"/><path d="M26 44 L35 26 L44 44 Z M56 44 L65 26 L74 44 Z" fill="#fff"/><rect x="41" y="56" width="18" height="22" fill="#fff"/><rect x="47" y="64" width="6" height="14" fill="#e9a23b"/><ellipse cx="50" cy="84" rx="38" ry="11" fill="#fff"/><circle cx="26" cy="80" r="11" fill="#fff"/><circle cx="74" cy="80" r="11" fill="#fff"/></svg>`;
+
+  /* ---- ground palettes (canvas) ---- */
+  ROAD_PAL[11] = { ground: "#7fa99b", ground2: "#76a092", road: "#dcc897", road2: "#d4c08e", dash: "#f1faee", rumA: "#f8edeb", rumB: "#f4a261", haze: "#0470b0" };
+  ROAD_PAL[12] = { ground: "#f6dcd6", ground2: "#f0d1cb", road: "#6c7a92", road2: "#65738a", dash: "#ffd60a", rumA: "#ff5d8f", rumB: "#ffd60a", haze: "#ff9f85" };
+
+  /* ---- themes + prop/scenery animations + weather + live-event CSS ---- */
+  document.head.insertAdjacentHTML("beforeend", `<style>
+  /* ----- world 11: DEEP SEA — glass tunnel on the seabed, the sun a wobble far above ----- */
+  #road.w11 { background: linear-gradient(#03045e 0%, #0353a4 35%, #0096c7 62%); }
+  #road.w11 #sun { background: #caf0f8; opacity: .55; top: 14px; right: 140px; width: 96px; height: 96px; box-shadow: 0 0 90px 44px rgba(202,240,248,.35); }
+  #road.w11 .cloud { opacity: 0; }
+  .seaShaft { position: absolute; background: linear-gradient(rgba(255,255,255,.26), rgba(255,255,255,0)); transform: skewX(-14deg); pointer-events: none; z-index: 15; animation: seaShaft ease-in-out infinite alternate; }
+  @keyframes seaShaft { from { opacity: .35; } to { opacity: 1; } }
+  .seaBubble { position: absolute; border-radius: 50%; border: 2px solid rgba(255,255,255,.75); background: rgba(255,255,255,.14); pointer-events: none; z-index: 15; animation: seaRise linear infinite; }
+  @keyframes seaRise { 0% { transform: translate(0, 0); opacity: 0; } 8% { opacity: 1; } 50% { transform: translate(18px, -420px); } 100% { transform: translate(-10px, -860px); opacity: .6; } }
+  .scenery .kelpSway { animation: kelpSway 3.2s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: bottom center; }
+  @keyframes kelpSway { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+  .prop.jellyfish svg { animation: jellyBob 2.4s ease-in-out infinite alternate; }
+  @keyframes jellyBob { from { transform: translateY(-10px) scale(1, .96); } to { transform: translateY(8px) scale(.96, 1.04); } }
+  .prop.crabKing svg { animation: crabScuttle .5s ease-in-out infinite alternate; }
+  @keyframes crabScuttle { from { transform: translateY(0); } to { transform: translateY(-5px); } }
+  /* ----- world 12: SKY KINGDOM — sunrise above the cloud sea, the sun on the horizon ----- */
+  #road.w12 { background: linear-gradient(#4a4e8f 0%, #b388ff 18%, #ff8fab 38%, #ffb86b 52%, #ffe8a3 62%); }
+  #road.w12 #sun { background: #ffd166; width: 150px; height: 150px; top: 142px; right: 180px; box-shadow: 0 0 100px 40px rgba(255,209,102,.55); }
+  #road.w12 .cloud { opacity: 1; background: #fff4f6; }
+  #road.w12 .cloud::before, #road.w12 .cloud::after { background: #fff4f6; }
+  .skyPuff { position: absolute; border-radius: 50%; background: rgba(255,255,255,.75); pointer-events: none; z-index: 15; animation: skyDrift linear infinite; }
+  @keyframes skyDrift { from { transform: translateX(-200px); } to { transform: translateX(1500px); } }
+  .skySpark { position: absolute; width: 6px; height: 6px; background: #fff9c4; border-radius: 50%; pointer-events: none; z-index: 15; animation: skySpark ease-in-out infinite alternate; }
+  @keyframes skySpark { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1.3); } }
+  .scenery .turbineSpin { animation: turbineSpin 4s linear infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes turbineSpin { to { transform: rotate(360deg); } }
+  .scenery .kiteSway { animation: kiteSway 2.2s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: bottom center; }
+  @keyframes kiteSway { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+  .prop.kite svg { animation: kiteSwoop 1.4s ease-in-out infinite alternate; transform-origin: 50% 90%; }
+  @keyframes kiteSwoop { from { transform: rotate(-14deg) translateY(0); } to { transform: rotate(14deg) translateY(-12px); } }
+  .prop.thundercloud .bolt { animation: boltFlick .6s steps(2) infinite; }
+  @keyframes boltFlick { 50% { opacity: .25; } }
+  /* ----- live events: sea + sky ----- */
+  .evWhaleShadow { width: 1200px; height: 700px; animation: evRise 4.2s ease-in-out forwards; }
+  .evWhaleShadow .evWhaleBody { left: 0; top: 0; animation: evWhaleX 4.2s ease-in-out forwards; }
+  .evWhaleShadow .evShade { position: absolute; left: 0; top: 330px; width: 1200px; height: 300px; background: rgba(3,4,94,.28); clip-path: ellipse(300px 110px at 50% 50%); animation: evWhaleX 4.2s ease-in-out forwards; }
+  @keyframes evWhaleX { from { transform: translateX(1300px); } to { transform: translateX(-700px); } }
+  .evDolphins { width: 300px; height: 200px; animation: evRise 3s ease-in-out forwards; }
+  .evDolphins .evLeap { width: 120px; height: 60px; animation: evLeap 1.6s ease-in-out 2 forwards; }
+  .evDolphins .evLeap.two { animation-delay: .35s; left: 90px; }
+  @keyframes evLeap { 0% { transform: translate(0, 60px) rotate(-30deg); opacity: 0; } 15% { opacity: 1; } 50% { transform: translate(200px, -110px) rotate(0deg); } 85% { opacity: 1; } 100% { transform: translate(400px, 60px) rotate(32deg); opacity: 0; } }
+  .evBubbles { width: 300px; height: 300px; }
+  .evBubbles .evBub { position: absolute; left: 0; top: 0; border-radius: 50%; border: 3px solid rgba(255,255,255,.85); background: rgba(255,255,255,.18); animation: evBub 2.2s ease-out forwards; }
+  @keyframes evBub { 0% { transform: translateY(0) scale(.3); opacity: 0; } 15% { opacity: 1; } 80% { opacity: 1; transform: translateY(-380px) scale(1); } 100% { transform: translateY(-420px) scale(1.6); opacity: 0; } }
+  .evFlock .evStork { width: 84px; height: 40px; animation: evFlap .55s ease-in-out infinite alternate; }
+  .evAirship { width: 420px; height: 160px; animation: evAirship 6.5s linear forwards; }
+  @keyframes evAirship { from { transform: translateX(0); } to { transform: translateX(1700px); } }
+  .evAirship .evProp { animation: turbineSpin .3s linear infinite; transform-box: fill-box; transform-origin: center; }
+  .liveEv.evBigBow { width: 900px; height: 450px; animation: evRise 5s ease-in-out forwards; opacity: 0; }
+  .liveEv.evBigBow svg { opacity: .72; }
+  .evSunburst { width: 520px; height: 520px; animation: evSunburst 3.2s ease-in-out forwards; }
+  @keyframes evSunburst { 0% { transform: rotate(0deg) scale(.6); opacity: 0; } 30% { opacity: 1; } 100% { transform: rotate(40deg) scale(1.1); opacity: 0; } }
+  </style>`);
+
+  /* ---- weather: light shafts + rising bubbles / drifting puffs + sparkles ---- */
+  WORLD_WEATHER.w11 = {
+    count: 22,
+    make: (i, rng) => i < 4
+      ? { className: "seaShaft", cssText: `left:${120 + i * 270 + Math.floor(rng() * 90)}px; top:-40px; width:${60 + Math.floor(rng() * 60)}px; height:${420 + Math.floor(rng() * 160)}px; animation-duration:${(3.5 + rng() * 3).toFixed(2)}s; animation-delay:${(rng() * 3).toFixed(2)}s;` }
+      : (() => { const s = 6 + Math.floor(rng() * 14); return { className: "seaBubble", cssText: `left:${Math.floor(rng() * 1200)}px; top:${700 + Math.floor(rng() * 160)}px; width:${s}px; height:${s}px; animation-duration:${(6 + rng() * 6).toFixed(2)}s; animation-delay:${(-rng() * 10).toFixed(2)}s;` }; })()
+  };
+  WORLD_WEATHER.w12 = {
+    count: 16,
+    make: (i, rng) => i < 6
+      ? (() => { const w = 90 + Math.floor(rng() * 120); return { className: "skyPuff", cssText: `left:${Math.floor(rng() * 1200)}px; top:${30 + Math.floor(rng() * 230)}px; width:${w}px; height:${Math.round(w * 0.36)}px; animation-duration:${(26 + rng() * 20).toFixed(1)}s; animation-delay:${(-rng() * 40).toFixed(1)}s;` }; })()
+      : { className: "skySpark", cssText: `left:${Math.floor(rng() * 1200)}px; top:${Math.floor(rng() * 270)}px; animation-duration:${(1.2 + rng() * 1.6).toFixed(2)}s; animation-delay:${(rng() * 2).toFixed(2)}s;` }
+  };
+
+  /* ---- far strips + landmarks ---- */
+  /* deep sea: dark reef humps, lower than hills */
+  WORLD_FAR.w11 = x => `<path d="M${x} 465 Q${x + 130} 350 ${x + 260} 465 Q${x + 390} 370 ${x + 520} 465" fill="#1b5e7a" opacity=".9"/>` +
+    C(x + 130, 420, 6, "#48cae4", 0.5) + C(x + 390, 432, 4, "#48cae4", 0.5);
+  /* sky kingdom: the cloud sea — rounded fluffy tops */
+  WORLD_FAR.w12 = x => `<path d="M${x} 465 Q${x + 40} 400 ${x + 100} 410 Q${x + 150} 360 ${x + 210} 400 Q${x + 260} 380 ${x + 300} 415 Q${x + 350} 355 ${x + 420} 400 Q${x + 470} 390 ${x + 520} 465 Z" fill="#fff6f8" opacity=".95"/>` +
+    `<path d="M${x} 465 Q${x + 90} 430 ${x + 180} 440 Q${x + 300} 420 ${x + 400} 445 Q${x + 470} 430 ${x + 520} 465 Z" fill="#ffd6e0" opacity=".7"/>`;
+  /* deep sea: a sunken ship listing on the reef + a rock stack */
+  WORLD_LANDMARK.w11 = x => `<g fill="#0b3a53">` + `<path d="M${x + 200} 465 L${x + 236} 392 H${x + 540} L${x + 586} 465 Z"/>` + R(x + 236, 380, 304, 14) +
+    `<path d="M${x + 310} 390 L${x + 288} 250 M${x + 450} 390 L${x + 436} 290" stroke="#0b3a53" stroke-width="9" stroke-linecap="round"/>` +
+    `<path d="M${x + 290} 262 L${x + 380} 300 L${x + 302} 340 Z M${x + 438} 300 L${x + 500} 330 L${x + 444} 360 Z"/>` +
+    `<path d="M${x + 820} 465 L${x + 850} 380 L${x + 900} 400 L${x + 940} 350 L${x + 990} 420 L${x + 1030} 465 Z"/>` + `</g>` +
+    [[x + 330, 430], [x + 400, 430], [x + 470, 430]].map(([wx, wy]) => C(wx, wy, 7, "#48cae4", 0.6)).join("");
+  /* sky kingdom: floating islands trailing waterfalls */
+  WORLD_LANDMARK.w12 = x => [[x + 260, 300, 130], [x + 820, 330, 170], [x + 1060, 360, 90]].map(([cx, cy, w]) =>
+    `<path d="M${cx - w / 2} ${cy} Q${cx - w / 2 + 10} ${cy - 20} ${cx} ${cy - 24} Q${cx + w / 2 - 10} ${cy - 20} ${cx + w / 2} ${cy} Q${cx + w / 4} ${cy + 60} ${cx} ${cy + 80} Q${cx - w / 4} ${cy + 60} ${cx - w / 2} ${cy} Z" fill="#8e7dbe"/>` +
+    `<path d="M${cx - w / 2} ${cy} Q${cx} ${cy - 30} ${cx + w / 2} ${cy} Q${cx} ${cy + 6} ${cx - w / 2} ${cy} Z" fill="#9fdf9f"/>` +
+    R(cx - 10, cy - 50, 20, 30, "#f8edeb") + `<path d="M${cx - 14} ${cy - 50} L${cx} ${cy - 66} L${cx + 14} ${cy - 50} Z" fill="#ff5d8f"/>` +
+    `<path d="M${cx + w / 5} ${cy + 4} Q${cx + w / 5 + 6} ${cy + 80} ${cx + w / 5 + 2} 465" stroke="#caf0f8" stroke-width="7" fill="none" opacity=".85"/>`).join("");
+
+  /* ---- roadside pools ---- */
+  WORLD_SET.w11 = [
+    /* coral clump: pink branches, orange brain coral, purple fan */
+    pc(300, 170, `<path d="M0 0 Q150 -34 300 0 Z" fill="#c9b98a"/>` +
+      `<path d="M60 0 V-70 M60 -40 L30 -90 M60 -60 L90 -110 M30 -90 L14 -120 M90 -110 L110 -140 M60 -70 L60 -130" stroke="#ff7096" stroke-width="14" fill="none" stroke-linecap="round"/>` +
+      `<ellipse cx="175" cy="-32" rx="52" ry="42" fill="#f4a261"/><path d="M140 -42 Q155 -22 175 -42 Q195 -62 210 -42 M145 -20 Q165 -4 185 -22 M160 -62 Q180 -50 200 -64" stroke="#e76f51" stroke-width="6" fill="none" stroke-linecap="round"/>` +
+      `<path d="M262 0 L222 -90 Q262 -160 300 -90 Z" fill="#b388ff"/><path d="M262 -4 L240 -92 M262 -4 L262 -120 M262 -4 L284 -92" stroke="#9d4edd" stroke-width="4"/>`, 1, 10),
+    /* kelp towers swaying in the current */
+    pc(220, 320, `<path d="M0 0 Q110 -26 220 0 Z" fill="#c9b98a"/><g class="kelpSway">` +
+      [[50, 300], [110, 260], [170, 220]].map(([x, h]) => `<path d="M${x} 0 Q${x - 26} ${-h * 0.3} ${x + 4} ${-h * 0.55} Q${x + 30} ${-h * 0.8} ${x - 6} ${-h}" stroke="#2d6a4f" stroke-width="10" fill="none" stroke-linecap="round"/>` +
+        [0.2, 0.45, 0.7, 0.9].map(t => `<ellipse cx="${x + (t % 0.4 < 0.2 ? -22 : 22)}" cy="${-h * t}" rx="20" ry="9" fill="#40916c" transform="rotate(${t % 0.4 < 0.2 ? -30 : 30} ${x + (t % 0.4 < 0.2 ? -22 : 22)} ${-h * t})"/>`).join("")).join("") + `</g>`, 1.1, 40),
+    /* treasure chest spilling gold and pearls */
+    pc(220, 150, R(30, -80, 150, 80, "#8d5a2f", 8) + `<path d="M30 -80 Q30 -140 105 -140 Q180 -140 180 -80 Z" fill="#6b4423"/>` + R(30, -86, 150, 12, "#ffd60a") + R(96, -70, 18, 24, "#ffd60a", 3) +
+      [[52, -90], [80, -98], [110, -96], [140, -92], [160, -86]].map(([x, y]) => C(x, y, 9, "#ffd60a")).join("") + [[66, -94], [126, -98]].map(([x, y]) => C(x, y, 7, "#f8edeb")).join("") +
+      [[14, -8], [196, -10], [40, -4]].map(([x, y]) => C(x, y, 9, "#ffd60a")).join("") + C(205, -22, 7, "#f8edeb"), 1, 20),
+    /* a friendly octopus waving */
+    pc(240, 210, `<ellipse cx="120" cy="-110" rx="70" ry="64" fill="#9d4edd"/>` + C(96, -118, 16, "#fff") + C(144, -118, 16, "#fff") + C(99, -116, 8, "#212529") + C(147, -116, 8, "#212529") +
+      `<path d="M100 -84 Q120 -64 140 -84" stroke="#5a189a" stroke-width="5" fill="none" stroke-linecap="round"/>` + C(78, -96, 10, "#ff8fab", 0.7) + C(162, -96, 10, "#ff8fab", 0.7) +
+      `<path d="M60 -70 Q20 -40 10 0 M86 -56 Q60 -30 70 0 M120 -50 Q110 -24 126 0 M154 -56 Q180 -30 170 0 M180 -70 Q220 -40 230 0 M190 -100 Q236 -120 232 -160" stroke="#9d4edd" stroke-width="16" fill="none" stroke-linecap="round"/>` +
+      [[24, -22], [70, -14], [126, -18], [172, -14], [214, -22]].map(([x, y]) => C(x, y, 5, "#c77dff")).join(""), 1, 30),
+    /* a clam opening on a glowing pearl */
+    pc(200, 120, `<path d="M20 -10 Q100 -30 180 -10 Q180 20 100 20 Q20 20 20 -10 Z" fill="#ffb5a7"/>` +
+      `<path d="M20 -10 Q30 -100 100 -104 Q170 -100 180 -10 Z" fill="#fcd5ce"/><path d="M100 -104 L100 -10 M62 -94 L50 -12 M138 -94 L150 -12 M36 -70 L30 -14 M164 -70 L170 -14" stroke="#ffb5a7" stroke-width="4"/>` +
+      C(100, -28, 34, "#f8edeb", 0.35) + C(100, -28, 18, "#f8edeb") + C(93, -34, 6, "#fff"), 1, 0),
+    /* an anchor against a rock, chain trailing */
+    pc(200, 240, `<path d="M90 0 Q150 -70 200 0 Z" fill="#6c757d"/>` + R(56, -200, 14, 170, "#495057", 6) + C(63, -214, 18, "#495057") + C(63, -214, 8, "#7fa99b") + R(26, -170, 74, 12, "#495057", 6) +
+      `<path d="M20 -60 Q63 10 106 -60" stroke="#495057" stroke-width="14" fill="none" stroke-linecap="round"/><path d="M20 -60 L6 -84 M106 -60 L120 -84" stroke="#495057" stroke-width="12" stroke-linecap="round"/>` +
+      [0, 1, 2, 3].map(i => `<ellipse cx="${100 + i * 22}" cy="${-226 + i * 10}" rx="9" ry="6" fill="none" stroke="#adb5bd" stroke-width="4"/>`).join(""), 1, 20),
+    /* a sea turtle paddling by */
+    pc(260, 130, `<ellipse cx="130" cy="-60" rx="80" ry="52" fill="#588157"/><ellipse cx="130" cy="-66" rx="62" ry="38" fill="#6a994e"/>` +
+      `<path d="M100 -84 L130 -92 L160 -84 L164 -58 L130 -44 L96 -58 Z" fill="none" stroke="#386641" stroke-width="5" stroke-linejoin="round"/><path d="M130 -92 V-44 M100 -84 L164 -58 M160 -84 L96 -58" stroke="#386641" stroke-width="4"/>` +
+      `<ellipse cx="226" cy="-58" rx="26" ry="18" fill="#80b918"/>` + C(236, -64, 5, "#212529") + `<path d="M232 -50 Q242 -44 250 -52" stroke="#386641" stroke-width="3" fill="none"/>` +
+      `<path d="M70 -40 Q30 -20 24 -4 M110 -20 Q100 -4 84 2 M180 -24 Q190 -6 206 -2 M66 -80 Q30 -100 10 -92" stroke="#80b918" stroke-width="14" fill="none" stroke-linecap="round"/>`, 1, 60),
+    /* a school of little fish, set back from the road */
+    pc(380, 170, [[20, -60], [80, -100], [90, -40], [150, -130], [160, -70], [220, -110], [230, -50], [300, -90], [310, -140], [350, -60]].map(([x, y], i) =>
+      `<path d="M${x} ${y} Q${x + 24} ${y - 20} ${x + 48} ${y} Q${x + 24} ${y + 20} ${x} ${y} Z M${x} ${y} L${x - 16} ${y - 14} V${y + 14} Z" fill="${i % 3 ? "#f77f00" : "#ffd60a"}"/>` + C(x + 36, y - 4, 3, "#212529")).join(""), 1.1, 240)
+  ];
+  WORLD_SET.w12 = [
+    /* cloud puffs you could nap on */
+    pc(320, 130, `<ellipse cx="90" cy="-30" rx="90" ry="30" fill="#fff"/><circle cx="60" cy="-56" r="40" fill="#fff"/><circle cx="120" cy="-66" r="46" fill="#fff"/>` +
+      `<ellipse cx="250" cy="-22" rx="70" ry="22" fill="#fff6f8"/><circle cx="230" cy="-44" r="30" fill="#fff6f8"/><circle cx="272" cy="-50" r="34" fill="#fff6f8"/>`, 1, 0),
+    /* a floating island with a little castle and a waterfall */
+    pc(300, 330, `<path d="M20 -170 Q150 -200 280 -170 Q260 -60 150 -10 Q40 -60 20 -170 Z" fill="#8d5a2f"/><path d="M20 -170 Q150 -220 280 -170 Q150 -150 20 -170 Z" fill="#74c69d"/>` +
+      `<path d="M212 -168 Q226 -100 220 -20 Q216 10 224 20" stroke="#caf0f8" stroke-width="12" fill="none" stroke-linecap="round"/>` + C(224, 22, 20, "#fff", 0.8) +
+      R(90, -270, 30, 90, "#f8edeb") + R(160, -250, 30, 70, "#f8edeb") + R(118, -240, 44, 60, "#f8edeb") + `<path d="M86 -270 L105 -306 L124 -270 Z M156 -250 L175 -282 L194 -250 Z" fill="#ff5d8f"/>` +
+      R(130, -220, 14, 24, "#6c7a92", 3) + R(98, -256, 10, 12, "#4cc9f0") + R(168, -238, 10, 12, "#4cc9f0") + `<path d="M105 -306 V-326 L124 -318 L105 -310" fill="#ffd60a"/>`, 1.2, 160),
+    /* a tethered hot-air balloon */
+    pc(200, 320, `<path d="M100 -316 C170 -316 184 -220 134 -150 L120 -110 H80 L66 -150 C16 -220 30 -316 100 -316 Z" fill="#e63946"/><path d="M100 -316 C124 -316 134 -220 116 -150 L112 -110 H88 L84 -150 C66 -220 76 -316 100 -316 Z" fill="#ffd60a"/>` +
+      `<path d="M82 -110 L78 -70 H122 L118 -110" stroke="#5d4037" stroke-width="3" fill="none"/>` + R(76, -72, 48, 32, "#8d6e63", 5) + `<path d="M90 -40 L84 0 M110 -40 L116 0" stroke="#5d4037" stroke-width="3"/>` + R(70, -10, 60, 10, "#6c757d", 4), 1.2, 90),
+    /* a wind turbine, blades turning */
+    pc(240, 330, `<path d="M106 0 L112 -230 H128 L134 0 Z" fill="#f1f5f9"/><ellipse cx="120" cy="-6" rx="40" ry="8" fill="#e2e8f0"/>` +
+      `<g transform="translate(120,-236)"><g class="turbineSpin">` + [0, 90, 180, 270].map(a => `<path d="M0 0 L-9 -22 L0 -92 L9 -22 Z" fill="#f8f9fa" transform="rotate(${a})"/>`).join("") + `</g>` + C(0, 0, 11, "#ff5d8f") + `</g>`, 1.2, 120),
+    /* a giant kite on a long string */
+    pc(240, 320, `<path d="M30 0 Q90 -120 150 -220" stroke="#495057" stroke-width="3" fill="none"/>` + `<g class="kiteSway">` +
+      `<path d="M150 -316 L210 -246 L150 -140 L90 -246 Z" fill="#4cc9f0"/><path d="M150 -316 L210 -246 L150 -246 Z M150 -246 L150 -140 L90 -246 Z" fill="#ffd60a"/><path d="M150 -316 V-140 M90 -246 H210" stroke="#1d3557" stroke-width="4"/>` +
+      `<path d="M150 -140 Q130 -100 160 -70 Q190 -40 170 -4" stroke="#e63946" stroke-width="4" fill="none"/>` + [[-130, 136], [-90, 152], [-50, 176], [-16, 170]].map(([y, x]) => `<path d="M${x - 12} ${y - 8} L${x + 12} ${y + 8} M${x - 12} ${y + 8} L${x + 12} ${y - 8}" stroke="#ff5d8f" stroke-width="6" stroke-linecap="round"/>`).join("") + `</g>`, 1, 50),
+    /* a stork minding its nest on a pole */
+    pc(200, 300, R(92, -200, 16, 200, "#8d5a2f") + `<path d="M40 -200 Q100 -250 160 -200 Q100 -180 40 -200 Z" fill="#b08968"/><path d="M50 -206 Q100 -230 150 -206" stroke="#e9c46a" stroke-width="6" fill="none"/>` +
+      `<ellipse cx="110" cy="-246" rx="36" ry="22" fill="#fff"/><path d="M76 -240 Q50 -220 44 -226 Q70 -254 90 -250 Z" fill="#212529"/>` + `<path d="M138 -258 Q160 -300 150 -310" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round"/>` +
+      C(152, -312, 12, "#fff") + `<path d="M160 -314 L196 -306 L160 -300 Z" fill="#f77f00"/>` + C(156, -316, 3, "#212529") + `<path d="M100 -224 V-206 M118 -224 V-206" stroke="#f77f00" stroke-width="4"/>` + [[66, -196], [92, -192], [120, -192]].map(([x, y]) => C(x, y, 7, "#f8edeb")).join(""), 1.1, 40),
+    /* a rainbow fountain */
+    pc(300, 220, `<ellipse cx="150" cy="-14" rx="140" ry="22" fill="#90e0ef"/><ellipse cx="150" cy="-18" rx="120" ry="14" fill="#caf0f8"/>` + R(110, -80, 80, 64, "#adb5bd", 8) + R(96, -86, 108, 14, "#ced4da", 6) +
+      ["#e63946", "#fb8c00", "#ffd60a", "#43a047", "#1e88e5", "#8e44ad"].map((c, i) => `<path d="M${40 + i * 7} -40 Q150 ${-220 + i * 14} ${260 - i * 7} -40" stroke="${c}" stroke-width="7" fill="none"/>`).join("") +
+      `<path d="M150 -86 Q140 -150 110 -170 M150 -86 Q150 -160 150 -180 M150 -86 Q160 -150 190 -170" stroke="#caf0f8" stroke-width="6" fill="none" stroke-linecap="round"/>`, 1, 20)
+  ];
+
+  /* ---- overheads ---- */
+  /* deep sea: a whale-bone arch with coral at its feet */
+  WORLD_ARCH.w11 = arch(440, `<path d="M70 0 Q30 -300 440 -410 Q850 -300 810 0" stroke="#f1faee" stroke-width="42" fill="none" stroke-linecap="round"/>` +
+    `<path d="M170 0 Q150 -230 440 -330 Q730 -230 710 0" stroke="#f1faee" stroke-width="30" fill="none" stroke-linecap="round"/>` +
+    `<path d="M440 -410 V-330 M300 -382 L330 -300 M580 -382 L550 -300" stroke="#f1faee" stroke-width="18" stroke-linecap="round"/>` + C(440, -418, 34, "#f1faee") +
+    `<path d="M20 0 Q40 -80 70 -60 Q90 -120 110 -40 Q140 -90 150 0 Z" fill="#ff7096"/><path d="M730 0 Q750 -90 780 -50 Q800 -120 820 -40 Q850 -80 860 0 Z" fill="#f4a261"/>`);
+  /* sky kingdom: a floating castle gate under a rainbow */
+  WORLD_ARCH.w12 = arch(460, ["#e63946", "#fb8c00", "#ffd60a", "#43a047", "#1e88e5", "#8e44ad"].map((c, i) => `<path d="M${110 + i * 12} -300 Q440 ${-520 + i * 24} ${770 - i * 12} -300" stroke="${c}" stroke-width="12" fill="none"/>`).join("") +
+    postsG("#f8edeb", 100, 320, 20, 760) + R(20, -330, 100, 24, "#fcd5ce") + R(760, -330, 100, 24, "#fcd5ce") +
+    `<path d="M10 -330 L70 -420 L130 -330 Z M750 -330 L810 -420 L870 -330 Z" fill="#ff5d8f"/>` + `<path d="M70 -420 V-450 L100 -440 L70 -430 M810 -420 V-450 L840 -440 L810 -430" fill="#ffd60a"/>` +
+    [[40, -260], [40, -180], [820, -260], [820, -180]].map(([x, y]) => R(x, y, 18, 30, "#4cc9f0", 4) + `<path d="M${x} ${y} Q${x + 9} ${y - 12} ${x + 18} ${y}" fill="#4cc9f0"/>`).join("") +
+    `<path d="M20 0 Q70 -40 120 0 Z M760 0 Q810 -40 860 0 Z" fill="#fff"/>` + [0, 1, 2].map(i => `<ellipse cx="${440 + (i - 1) * 60}" cy="-24" rx="40" ry="14" fill="#fff" opacity=".8"/>`).join(""));
+
+  /* ---- hazards ---- */
+  EXTRA_PROPS.jellyfish = {
+    xOff: -35, yOff: -98, hard: false, mv: { laneHop: 2.4 },   /* drifts a lane every 2.4s, bobbing (CSS) */
+    svg: `<svg width="70" height="100" viewBox="0 0 70 100">${C(35, 34, 36, "#ffc2d1", 0.28)}<path d="M4 46 Q35 -6 66 46 Q50 54 35 50 Q20 54 4 46 Z" fill="#ff8fab"/><path d="M14 40 Q35 10 56 40" stroke="#ffc2d1" stroke-width="5" fill="none" stroke-linecap="round"/>` +
+      `<path d="M14 50 Q6 70 14 94 M26 52 Q20 76 28 98 M44 52 Q50 76 42 98 M56 50 Q64 70 56 94" stroke="#ff8fab" stroke-width="4" fill="none" stroke-linecap="round"/>` +
+      C(27, 36, 4, "#5a189a") + C(43, 36, 4, "#5a189a") + `<path d="M29 43 Q35 48 41 43" stroke="#5a189a" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`
+  };
+  EXTRA_PROPS.crabKing = {
+    xOff: -55, yOff: -84, hard: false, mv: { laneHop: 1.0 },   /* a big crab hopping lanes faster than his beach cousins */
+    svg: `<svg width="110" height="86" viewBox="0 0 110 86"><path d="M42 44 V26 M68 44 V26" stroke="#e63946" stroke-width="6" stroke-linecap="round"/>${C(42, 22, 8, "#fff")}${C(42, 22, 4, "#023047")}${C(68, 22, 8, "#fff")}${C(68, 22, 4, "#023047")}` +
+      `<path d="M40 8 L48 18 H62 L70 8 L66 2 L58 10 L52 10 L44 2 Z" fill="#ffd60a"/>${C(55, 4, 4, "#4cc9f0")}` +
+      `<path d="M12 48 Q0 36 10 24 Q20 36 12 48 Z M98 48 Q110 36 100 24 Q90 36 98 48 Z" fill="#d1495b"/>` + C(12, 44, 11, "#d1495b") + C(98, 44, 11, "#d1495b") +
+      `<path d="M26 72 L12 84 M38 76 L30 86 M72 76 L80 86 M84 72 L98 84 M22 62 L6 66 M88 62 L104 66" stroke="#d1495b" stroke-width="6" stroke-linecap="round"/>` +
+      `<ellipse cx="55" cy="58" rx="36" ry="22" fill="#e63946"/><path d="M42 60 Q55 72 68 60" stroke="#8d0801" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`
+  };
+  EXTRA_PROPS.thundercloud = {
+    xOff: -60, yOff: -96, hard: true,   /* a grumpy cloud squatting on the road: stop + damage, jumpable */
+    svg: `<svg width="120" height="98" viewBox="0 0 120 98"><ellipse cx="60" cy="40" rx="54" ry="22" fill="#495057"/><circle cx="34" cy="30" r="22" fill="#495057"/><circle cx="66" cy="22" r="26" fill="#5c677d"/><circle cx="94" cy="34" r="18" fill="#495057"/>` +
+      `<ellipse cx="60" cy="48" rx="50" ry="14" fill="#343a40"/>${C(48, 30, 4, "#fff")}${C(74, 30, 4, "#fff")}<path d="M50 42 Q61 36 72 42" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>` +
+      `<path class="bolt" d="M58 58 L44 80 H58 L50 98 L76 70 H62 L70 58 Z" fill="#ffd60a"/></svg>`
+  };
+  EXTRA_PROPS.kite = {
+    xOff: -42, yOff: -124, hard: false, mv: { laneHop: 0.8 },   /* swoops a lane every 0.8s */
+    svg: `<svg width="84" height="126" viewBox="0 0 84 126"><path d="M42 2 L80 44 L42 96 L4 44 Z" fill="#ff595e"/><path d="M42 2 L80 44 L42 44 Z M42 44 L42 96 L4 44 Z" fill="#ffca3a"/><path d="M42 2 V96 M4 44 H80" stroke="#6a4c93" stroke-width="3"/>` +
+      `<path d="M42 96 Q30 108 44 116 Q58 124 46 126" stroke="#1982c4" stroke-width="3" fill="none"/>` + [[36, 104], [46, 112], [40, 122]].map(([x, y]) => `<path d="M${x - 7} ${y - 5} L${x + 7} ${y + 5} M${x - 7} ${y + 5} L${x + 7} ${y - 5}" stroke="#8ac926" stroke-width="4" stroke-linecap="round"/>`).join("") + `</svg>`
+  };
+  WORLD_ITEMS[11] = ["jellyfish", "crabKing"];
+  WORLD_ITEMS[12] = ["thundercloud", "kite"];
+  PROP_HIT.jellyfish = (p, d) => {   /* a soft squishy bonk with a wobbly glow note */
+    const was = p.done; softBonk(p, d);
+    if (!was && p.done) { tone("sine", 700, 420, 0.3, 0.16); tone("sine", 1050, 1400, 0.2, 0.1, 0.08); }
+  };
+  PROP_HIT.crabKing = (p, d) => {   /* soft, but his claws clack and he blocks like a cone */
+    const was = p.done; softBonk(p, d);
+    if (!was && p.done) { v *= 0.85; noiseBurst(0.05, 3000, 0.2); tone("square", 520, 260, 0.12, 0.12, 0.05); tone("sine", 1100, 1500, 0.12, 0.14, 0.12); }
+  };
+  PROP_HIT.thundercloud = (p, d) => {   /* a hard stop with a crackle of lightning */
+    const was = p.done; hardHit(p, d, 1);
+    if (!was && p.done) { noiseBurst(0.1, 5000, 0.22); tone("sawtooth", 180, 60, 0.35, 0.1, 0.05); }
+  };
+  PROP_HIT.kite = (p, d) => {   /* paper flutter, no slow-down worth mentioning */
+    const was = p.done; softBonk(p, d);
+    if (!was && p.done) { noiseBurst(0.12, 2200, 0.14); tone("triangle", 900, 1400, 0.16, 0.12); }
+  };
+
+  /* ---- courses ---- */
+  WORLD_ROAD[11] = { k: CURVE.gentle * 1.5, hp: 0.6, len: 1.5, gap: 1.1, order: ["esses", "sweeper", "twin", "esses", "spiral", "wiggle", "esses", "bookends", "hairpins", "tour"] };   /* deep sea: long lazy esses through the tunnel */
+  WORLD_ROAD[12] = { k: CURVE.medium * 1.1, hp: 1.1, len: 0.9, gap: 0.8, order: ["chicanes", "spiral", "hairpins", "wiggle", "chicanes", "esses", "spiral", "hairpins", "chicanes", "tour"] };   /* sky kingdom: everything, tight */
+
+  /* ---- world beats ---- */
+  defBeat("jellyBloom", "world11", 101, (b, x) => {   /* jellies drift between lanes, stars on the clear sides */
+    const k = 3 + Math.floor(b.rng() * 2), start = Math.floor(b.rng() * 3);
+    for (let i = 0; i < k; i++) {
+      const l = (start + i) % 3;
+      b.put("jellyfish", x + i * 230, l);
+      b.star(x + i * 230, (l + 1) % 3); b.star(x + i * 230 + 115, (l + 2) % 3);
+    }
+    return x + k * 230;
+  });
+  defBeat("crabCourt", "world11", 101, (b, x) => {   /* the crab king holds court between two rock gates */
+    let open = b.nearLane(Math.floor(b.rng() * 3));
+    b.put("crabKing", x, (open + 1 + Math.floor(b.rng() * 2)) % 3);
+    b.star(x, open); b.star(x + 130, open);
+    for (let g = 0; g < 2; g++) {
+      const gx = x + 480 + g * 560, want = Math.floor(b.rng() * 3);
+      open = Math.abs(want - open) > 1 ? open + Math.sign(want - open) : want;   /* never two lanes over at once */
+      for (let l = 0; l < 3; l++) if (l !== open) b.put(g === 0 || b.rng() < 0.6 ? b.hard() : "crabKing", gx, l);
+      b.star(gx - 200, open); b.star(gx, open); b.star(gx + 120, open);
+    }
+    return x + 480 + 2 * 560;
+  });
+  defBeat("stormFront", "world12", 111, (b, x) => {   /* thunderclouds roll in as a walking wall; the sunny lane steps across */
+    let open = b.nearLane(Math.floor(b.rng() * 3)), dir = open === 0 ? 1 : open === 2 ? -1 : (b.rng() < 0.5 ? 1 : -1);
+    const k = 3 + Math.floor(b.rng() * 2);
+    for (let g = 0; g < k; g++) {
+      const gx = x + g * 480;
+      for (let l = 0; l < 3; l++) if (l !== open) b.put(l === (open + dir + 3) % 3 || b.rng() < 0.3 ? "thundercloud" : b.soft(), gx, l);   /* the lane that opens next is always stormy: no cutting early */
+      b.star(gx - 190, open); b.star(gx, open);
+      open += dir;
+      if (open === 0 || open === 2) dir = -dir;
+    }
+    return x + k * 480;
+  });
+  defBeat("kiteFestival", "world12", 111, (b, x) => {   /* kites swoop across the lanes, a star trail threads them */
+    const k = 3 + Math.floor(b.rng() * 2), lane = b.pickLane(x);
+    for (let i = 0; i < k; i++) {
+      b.put("kite", x + 160 + i * 260, (lane + 1 + (i % 2)) % 3);
+      b.star(x + i * 260, lane); b.star(x + 130 + i * 260, lane);
+    }
+    return x + 160 + k * 260;
+  });
+
+  /* ---- audio ---- */
+  JINGLES[11] = () => { /* deep sea: bubbly marimba, dorian */
+    [587, 698, 880, 1047, 880, 1175].forEach((f, i) => { tone("sine", f, f, 0.22, 0.2, i * 0.16); tone("triangle", f * 2, f * 2, 0.08, 0.1, i * 0.16); });
+    [0.1, 0.5, 0.9].forEach(d => tone("sine", 900, 1800, 0.08, 0.08, d));
+    tone("sine", 1397, 1397, 0.6, 0.14, 1.0);
+  };
+  JINGLES[12] = () => { /* sky kingdom: triumphant brass + harp gliss */
+    [523, 659, 784].forEach((f, i) => { tone("sawtooth", f, f, 0.18, 0.12, i * 0.14); tone("triangle", f, f, 0.18, 0.14, i * 0.14); });
+    tone("sawtooth", 1047, 1047, 0.7, 0.14, 0.42); tone("triangle", 1047, 1047, 0.7, 0.16, 0.42);
+    [1047, 1175, 1319, 1480, 1568, 1760, 1976, 2093].forEach((f, i) => tone("sine", f, f, 0.35, 0.09, 0.55 + i * 0.05));
+  };
+  AMBIENCE[11] = () => { /* deep sea: a muffled hum, bubbles, and a whale singing far away */
+    const h = ambNoise("lowpass", 220, 0.5, 0.8); ambLFO(h.g.gain, 0.07, 0.3);
+    const o = ambOsc("sine", 62, 0.3); ambLFO(o.o.frequency, 0.05, 2);
+    ambEvery(500, 1600, () => { for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i++) ambPing("sine", 700 + Math.random() * 500, 1500 + Math.random() * 800, 0.06, 0.3, i * 0.09); });
+    ambEvery(9000, 16000, () => { ambPing("sine", 210, 330, 1.4, 0.5); ambPing("sine", 330, 250, 1.6, 0.4, 1.5); });
+  };
+  AMBIENCE[12] = () => { /* sky kingdom: high thin wind and far-off chimes */
+    const w = ambNoise("bandpass", 1100, 3, 0.8); ambLFO(w.f.frequency, 0.06, 400); ambLFO(w.g.gain, 0.1, 0.4);
+    ambNoise("lowpass", 400, 0.5, 0.25);
+    ambEvery(1800, 4500, () => { const base = [1760, 1976, 2217, 2637, 2960][Math.floor(Math.random() * 5)]; ambPing("sine", base, base, 0.9, 0.3); ambPing("sine", base * 1.5, base * 1.5, 0.7, 0.18, 0.12); });
+  };
+  STAR_SCALES[11] = [1, 9/8, 6/5, 4/3, 3/2, 5/3, 9/5, 2, 9/4];        /* dorian: watery */
+  STAR_SCALES[12] = [1, 9/8, 5/4, 45/32, 3/2, 27/16, 15/8, 2, 9/4];   /* lydian: bright */
+  STAR_BASE[11] = 784; STAR_BASE[12] = 1047;
+
+  /* ---- live events ---- */
+  WORLD_EVENTS[11] = ["whaleShadow", "dolphins", "bubbleBurst"];
+  WORLD_EVENTS[12] = ["storks", "airship", "rainbowArc", "sunburst"];
+  LIVE_EVENTS.whaleShadow = () => {   /* a whale glides over the tunnel, its shadow sweeping the road */
+    evEl("evWhaleShadow", `<svg class="evWhaleBody" viewBox="0 0 520 180" width="520" height="180"><path d="M20 100 Q120 20 300 50 Q420 70 500 40 Q470 100 500 150 Q420 120 300 130 Q120 150 20 100 Z" fill="#03045e"/><path d="M60 120 Q140 150 260 132 Q150 160 60 120 Z" fill="#023e8a"/><circle cx="100" cy="88" r="7" fill="#90e0ef"/><path d="M230 60 Q250 10 270 60 Z" fill="#03045e"/></svg><div class="evShade"></div>`, 0, 30, 4200);
+    tone("sine", 140, 105, 1.3, 0.12, 0.3); tone("sine", 95, 120, 1.1, 0.1, 1.5); noiseBurst(0.8, 300, 0.06, 0.4);
+  };
+  LIVE_EVENTS.dolphins = () => {   /* two dolphins leap through the water above the tunnel */
+    const dolphin = cls => `<svg class="evLeap ${cls}" viewBox="0 0 120 60" width="120" height="60"><path d="M6 36 Q40 4 90 18 Q112 24 118 16 Q114 36 96 38 Q60 56 20 46 Q10 42 6 36 Z" fill="#48cae4"/><path d="M58 18 Q66 2 78 10 Q66 14 60 22 Z" fill="#48cae4"/><path d="M28 44 Q56 50 84 38 Q60 56 28 44 Z" fill="#caf0f8"/><circle cx="94" cy="24" r="3.5" fill="#023047"/><path d="M8 36 L0 26 L4 40 Z" fill="#48cae4"/></svg>`;
+    evEl("evDolphins", dolphin("") + dolphin("two"), 150 + Math.random() * 500, 150, 3300);
+    [0.2, 0.5, 1.9, 2.2].forEach(d => { tone("sine", 2000, 3200, 0.1, 0.08, d); tone("sine", 3000, 2200, 0.08, 0.06, d + 0.1); });
+  };
+  LIVE_EVENTS.bubbleBurst = () => {   /* a burst of bubbles boils up from the seabed and pops */
+    const bubs = [...Array(10)].map((_, i) => { const s = 14 + Math.floor(Math.random() * 30); return `<div class="evBub" style="left:${40 + Math.random() * 220}px; top:${220 - s}px; width:${s}px; height:${s}px; animation-delay:${(i * 0.12).toFixed(2)}s"></div>`; }).join("");
+    evEl("evBubbles", bubs, 300 + Math.random() * 450, 400, 3600);
+    [0.1, 0.3, 0.5, 0.8, 1.1, 1.5, 1.9, 2.3].forEach(d => { noiseBurst(0.04, 2500, 0.08, d); tone("sine", 900 + Math.random() * 600, 1800, 0.07, 0.09, d + 0.02); });
+  };
+  LIVE_EVENTS.storks = () => {   /* a V of storks flaps across the sunrise, bills clattering */
+    const top = 50 + Math.random() * 120;
+    const stork = (x, y, d) => `<svg class="evStork" style="left:${x}px;top:${y}px;animation-delay:${d}s" viewBox="0 0 84 40"><path d="M4 20 Q22 4 42 20 Q62 4 80 20" stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M4 20 Q12 12 20 14 M80 20 Q72 12 64 14" stroke="#212529" stroke-width="6" stroke-linecap="round"/><ellipse cx="42" cy="22" rx="12" ry="6" fill="#fff"/><path d="M54 20 L70 16" stroke="#f77f00" stroke-width="4" stroke-linecap="round"/><path d="M34 26 L22 36" stroke="#f77f00" stroke-width="3" stroke-linecap="round"/></svg>`;
+    evEl("evFlock", stork(0, 40, 0) + stork(60, 20, 0.1) + stork(120, 0, 0.2) + stork(60, 62, 0.15) + stork(120, 84, 0.25), -220, top, 3300);
+    [0, 0.6, 1.3, 2.0].forEach(d => { for (let i = 0; i < 4; i++) noiseBurst(0.02, 3200, 0.1, d + i * 0.06); });
+  };
+  LIVE_EVENTS.airship = () => {   /* a stately airship hums across the sky */
+    evEl("evAirship", `<svg viewBox="0 0 420 160" width="420" height="160"><ellipse cx="200" cy="60" rx="180" ry="52" fill="#dee2e6"/><ellipse cx="200" cy="46" rx="150" ry="26" fill="#f8f9fa"/><path d="M20 60 L0 20 L50 46 Z M20 60 L0 100 L50 74 Z" fill="#e63946"/><path d="M150 100 L170 112 H240 L260 100 Z" stroke="#adb5bd" stroke-width="4" fill="none"/><rect x="160" y="110" width="90" height="30" rx="8" fill="#8d6e63"/><rect x="172" y="116" width="14" height="12" fill="#4cc9f0"/><rect x="198" y="116" width="14" height="12" fill="#4cc9f0"/><rect x="224" y="116" width="14" height="12" fill="#4cc9f0"/><g class="evProp"><path d="M258 118 L278 112 M258 118 L278 124 M258 118 L238 112 M258 118 L238 124" stroke="#495057" stroke-width="4"/></g><ellipse cx="200" cy="60" rx="54" ry="32" fill="#ff8fab" opacity=".55"/></svg>`, -440, 40 + Math.random() * 70, 6500);
+    tone("sawtooth", 70, 66, 5.5, 0.03); tone("triangle", 140, 132, 5.5, 0.02); tone("square", 880, 880, 0.14, 0.06, 1.2); tone("square", 880, 880, 0.14, 0.06, 1.5);
+  };
+  LIVE_EVENTS.rainbowArc = () => {   /* a rainbow blooms across the whole sky with a harp glissando */
+    const cols = ["#e63946", "#fb8c00", "#ffd60a", "#43a047", "#1e88e5", "#8e44ad"];
+    evEl("evBigBow", `<svg viewBox="0 0 900 450" width="900" height="450">${cols.map((c, i) => `<path d="M${30 + i * 16} 450 A${420 - i * 16} ${420 - i * 16} 0 0 1 ${870 - i * 16} 450" stroke="${c}" stroke-width="16" fill="none"/>`).join("")}</svg>`, 150, -60, 5000);
+    [1047, 1175, 1319, 1480, 1568, 1760, 1976, 2093, 2349].forEach((f, i) => tone("sine", f, f, 0.5, 0.07, 0.4 + i * 0.07));
+  };
+  LIVE_EVENTS.sunburst = () => {   /* the sun throws a wheel of rays across the sky */
+    const sun = document.getElementById("sun"), r = sun.getBoundingClientRect(), s = roadScene.getBoundingClientRect();
+    const cx = s.width ? (r.left - s.left + r.width / 2) * 1200 / s.width : 955, cy = s.height ? (r.top - s.top + r.height / 2) * 700 / s.height : 217;
+    evEl("evSunburst", `<svg viewBox="0 0 520 520" width="520" height="520">${[...Array(12)].map((_, i) => `<path d="M260 260 L${260 + 250 * Math.cos(i * Math.PI / 6 - 0.09)} ${260 + 250 * Math.sin(i * Math.PI / 6 - 0.09)} L${260 + 250 * Math.cos(i * Math.PI / 6 + 0.09)} ${260 + 250 * Math.sin(i * Math.PI / 6 + 0.09)} Z" fill="#fff3b0" opacity=".55"/>`).join("")}</svg>`, cx - 260, cy - 260, 3200);
+    tone("sine", 1568, 2093, 0.6, 0.08); tone("sine", 2093, 2637, 0.5, 0.06, 0.3); noiseBurst(0.3, 6000, 0.04, 0.2);
+  };
+})();
 
 /* ============ NEW VERSION GATE ============ */
 /* No service worker here: a stale game is Safari's cache or a home-screen app left running.

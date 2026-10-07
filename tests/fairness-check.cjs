@@ -28,7 +28,7 @@ function check(name, ok, detail) {
   await page.waitForTimeout(300);
 
   const runs = await page.evaluate(() => {
-    const HARD = t => ['barrel', 'rock', 'tnt', 'cactus', 'crater'].includes(t);
+    const HARD = t => HARD_T(t);                    /* the game's own hard-type test: world packs' hazards count too */
     finishLevel = () => {};                         /* the bot only needs the flag */
     progress.upgrades = { engine: 0, armor: 0, magnet: 0 };
     const sim = (n, smart) => {

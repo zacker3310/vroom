@@ -26,11 +26,11 @@ function check(name, ok, detail) {
   /* ---- 80-level generator invariants ---- */
   const gen = await page.evaluate(() => {
     const rep = { finishBad: 0, wall: 0, out: 0, minStars: 99, worldProps: {}, maxLen: 0 };
-    for (let n = 1; n <= 80; n++) {
+    for (let n = 1; n <= MAX_LEVEL; n++) {
       buildLevel(n);
       rep.maxLen = Math.max(rep.maxLen, LEVEL_LEN);
       if (props.filter(p => p.type === 'finish').length !== 1) rep.finishBad++;
-      const hard = props.filter(p => ['barrel','rock','tnt','cactus','crater'].includes(p.type));
+      const hard = props.filter(p => HARD_T(p.type));
       for (const a of hard) for (const b of hard) for (const c of hard) {
         if (a === b || b === c || a === c) continue;
         const xs = [a.x, b.x, c.x];
@@ -43,14 +43,15 @@ function check(name, ok, detail) {
     }
     return rep;
   });
-  check('gen: 80 levels — 1 finish each, no 3-lane walls, in bounds', gen.finishBad === 0 && gen.wall === 0 && gen.out === 0, JSON.stringify(gen).slice(0, 200));
+  check('gen: all levels — 1 finish each, no 3-lane walls, in bounds', gen.finishBad === 0 && gen.wall === 0 && gen.out === 0, JSON.stringify(gen).slice(0, 200));
   check('gen: stars never starve, length capped', gen.minStars >= 5 && gen.maxLen === 3500 + 20 * 250 + 60 * 100, JSON.stringify({ minStars: gen.minStars, maxLen: gen.maxLen }));
   check('gen: world hazards appear in worlds 5-8', [5,6,7,8].every(w => gen.worldProps[w] > 0), JSON.stringify(gen.worldProps));
+  check('gen: world hazards appear in worlds 11-12 (deep sea, sky kingdom)', [11,12].every(w => gen.worldProps[w] > 0), JSON.stringify(gen.worldProps));
 
   /* ---- themes + scenery + weather per world ---- */
   const themes = await page.evaluate(() => {
     const out = {};
-    for (const [n, want] of [[35,'w4'],[45,'w5'],[55,'w6'],[65,'w7'],[75,'w8']]) {
+    for (const [n, want] of [[35,'w4'],[45,'w5'],[55,'w6'],[65,'w7'],[75,'w8'],[105,'w11'],[115,'w12']]) {
       buildLevel(n);
       out[want] = {
         cls: roadScene.classList.contains(want),
@@ -61,6 +62,7 @@ function check(name, ok, detail) {
   });
   check('worlds: theme classes at L35/45/55/65/75', ['w4','w5','w6','w7','w8'].every(w => themes[w].cls), JSON.stringify(Object.keys(themes).filter(w => !themes[w].cls)));
   check('worlds: rain + snow weather particles, none in desert', themes.w4.weather > 10 && themes.w5.weather > 10 && themes.w6.weather === 0, JSON.stringify({ w4: themes.w4.weather, w5: themes.w5.weather, w6: themes.w6.weather }));
+  check('worlds: deep sea + sky kingdom theme classes and weather', themes.w11.cls && themes.w12.cls && themes.w11.weather > 0 && themes.w12.weather > 0, JSON.stringify({ w11: themes.w11, w12: themes.w12 }));
 
   /* ---- movers ---- */
   const movers = await page.evaluate(async () => {
