@@ -1420,7 +1420,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 
    TABLE OF CONTENTS — each section opens with a banner "===== N. NAME =====".
      1. STAGE                     fit the fixed 1200x700 stage to any screen
-     2. DOM HELPERS               injectCSS, restartAnim, setLockDot
+     2. DOM HELPERS               injectCSS, restartAnim
      3. CATALOG + ECONOMY         part ids and prices, upgrades, world table, medals, badges, icons
      4. STATE + SAVE              build + progress, kid profiles, loadState / save
      5. AUDIO                     synthesized sfx, per-body honks, engine
@@ -1485,12 +1485,6 @@ function injectCSS(text) {
 /* restart a one-shot CSS animation: drop the class (and any rival classes), force a reflow, add it back */
 function restartAnim(el, cls, ...also) {
   el.classList.remove(cls, ...also); void el.offsetWidth; el.classList.add(cls);
-}
-/* a padlock dot on a locked shop button, removed once the part is owned */
-function setLockDot(el, locked) {
-  let dot = el.querySelector(".lockDot");
-  if (locked && !dot) { dot = document.createElement("span"); dot.className = "lockDot"; dot.innerHTML = lockIcon; el.appendChild(dot); }
-  if (!locked && dot) dot.remove();
 }
 
 /* ============ 3. CATALOG + ECONOMY ============ */
@@ -2769,17 +2763,15 @@ Object.assign(PRICES.body, { limo: 250, dragon: 300, train: 350, royal: 400 });
 Object.assign(PRICES.wheels, { glow: 90, star: 120 });
 WHEEL_ORDER.push("glow", "star");
 PRICES.extras = NEW_EXTRAS_PRICES;
-/* a paid extra: a build flag (off until the kid taps it) plus a garage tray button */
-function registerExtra(name, iconSvg) {
-  state.extras[name] = false;
-  const b = document.createElement("button");
-  b.className = "bigBtn extraBtn";
-  b.dataset.extra = name;
-  b.setAttribute("aria-label", name);
-  b.innerHTML = iconSvg;
-  document.getElementById("extras").appendChild(b);
+for (const exName in NEW_EXTRAS_SVG) {
+  state.extras[exName] = false;
+  const exBtn = document.createElement("button");
+  exBtn.className = "bigBtn extraBtn";
+  exBtn.dataset.extra = exName;
+  exBtn.setAttribute("aria-label", exName);
+  exBtn.innerHTML = NEW_EXTRAS_BTN[exName];
+  document.getElementById("extras").appendChild(exBtn);
 }
-for (const exName in NEW_EXTRAS_SVG) registerExtra(exName, NEW_EXTRAS_BTN[exName]);
 
 /* ============ 10. PACK: SHOP — 8 bodies, 5 wheels, 4 extras, 4 buddies, 3 decals ============ */
 /* Registers into BODY_ORDER / WHEEL_ORDER / BUDDY_ORDER / DECAL_ORDER / PRICES and adds garage
@@ -3272,7 +3264,7 @@ const SHOP_CSS = `
 `;
 
 /* ---- registration (runs before loadState) ---- */
-injectCSS(SHOP_CSS);
+document.head.insertAdjacentHTML("beforeend", `<style>${SHOP_CSS}</style>`);
 Object.assign(BODIES, SHOP_BODIES);
 const SHOP_BODY_IDS = ["bulldozer", "schoolbus", "ambulance", "submarine", "pirate", "dino", "unicorn", "hover"];   /* cheap -> dear; CODE_BODIES appends these */
 BODY_ORDER.push(...SHOP_BODY_IDS);
@@ -3295,7 +3287,15 @@ Object.assign(PRICES.decal, { rainbow: 35, dinofoot: 40, flower: 45 });
 /* extras tray: page every button (first 8 on page 1), add the 4 new buttons + the flip chip */
 {
   const tray = document.getElementById("extras");
-  for (const exName of SHOP_EXTRA_IDS) registerExtra(exName, SHOP_EXTRAS_BTN[exName]);
+  for (const exName of SHOP_EXTRA_IDS) {
+    state.extras[exName] = false;
+    const exBtn = document.createElement("button");
+    exBtn.className = "bigBtn extraBtn";
+    exBtn.dataset.extra = exName;
+    exBtn.setAttribute("aria-label", exName);
+    exBtn.innerHTML = SHOP_EXTRAS_BTN[exName];
+    tray.appendChild(exBtn);
+  }
   tray.querySelectorAll(".extraBtn").forEach((b, i) => { b.dataset.pg = i < 8 ? 1 : 2; });
   const flip = document.createElement("button");
   flip.id = "extrasFlip"; flip.className = "pressable";
@@ -3304,7 +3304,7 @@ Object.assign(PRICES.decal, { rainbow: 35, dinofoot: 40, flower: 45 });
   flip.addEventListener("pointerdown", () => {
     const pg2 = !tray.classList.contains("pg2");
     tray.classList.toggle("pg2", pg2); flip.classList.toggle("pg2", pg2);
-    tray.querySelectorAll(`.extraBtn[data-pg="${pg2 ? 2 : 1}"]`).forEach(b => { restartAnim(b, "enter"); });
+    tray.querySelectorAll(`.extraBtn[data-pg="${pg2 ? 2 : 1}"]`).forEach(b => { b.classList.remove("enter"); void b.offsetWidth; b.classList.add("enter"); });
     sfx.pop();
   });
   tray.appendChild(flip);
@@ -3446,7 +3446,9 @@ function renderShop() {
 }
 function renderPreview() {
   preview.innerHTML = vehicleSVG(state);
-  restartAnim(preview, "bounce");
+  preview.classList.remove("bounce");
+  void preview.offsetWidth;
+  preview.classList.add("bounce");
   renderShop();
 }
 priceTag.addEventListener("pointerdown", e => {
@@ -3462,7 +3464,7 @@ priceTag.addEventListener("pointerdown", e => {
     award("buy");
   } else {
     walletDeny();
-    restartAnim(priceTag, "deny");
+    priceTag.classList.remove("deny"); void priceTag.offsetWidth; priceTag.classList.add("deny");
   }
 });
 
@@ -3524,13 +3526,16 @@ function showPaintPage(pg, animate) {
   swatchesEl.classList.toggle("pg2", pg === 2);
   paintFlip.classList.toggle("pg2", pg === 2);
   if (!animate) return;
-  swatchesEl.querySelectorAll(`.swatch[data-pg="${pg}"]`).forEach(s => { restartAnim(s, "enter"); });
+  swatchesEl.querySelectorAll(`.swatch[data-pg="${pg}"]`).forEach(s => { s.classList.remove("enter"); void s.offsetWidth; s.classList.add("enter"); });
 }
 showPaintPage(PATTERNS[state.color] ? 2 : 1, false);
 paintFlip.addEventListener("pointerdown", () => { showPaintPage(swatchesEl.classList.contains("pg2") ? 1 : 2, true); sfx.pop(); });
 function renderSwatchLocks() {
   swatchesEl.querySelectorAll(".swatch").forEach(s => {
-    setLockDot(s, !owns("color", s.dataset.color));
+    const locked = !owns("color", s.dataset.color);
+    let dot = s.querySelector(".lockDot");
+    if (locked && !dot) { dot = document.createElement("span"); dot.className = "lockDot"; dot.innerHTML = lockIcon; s.appendChild(dot); }
+    if (!locked && dot) dot.remove();
   });
 }
 document.querySelectorAll(".extraBtn").forEach(btn => {
@@ -3547,7 +3552,10 @@ document.querySelectorAll(".extraBtn").forEach(btn => {
 });
 function renderExtrasLocks() {
   document.querySelectorAll(".extraBtn").forEach(b => {
-    setLockDot(b, !owns("extras", b.dataset.extra));
+    const locked = !owns("extras", b.dataset.extra);
+    let dot = b.querySelector(".lockDot");
+    if (locked && !dot) { dot = document.createElement("span"); dot.className = "lockDot"; dot.innerHTML = lockIcon; b.appendChild(dot); }
+    if (!locked && dot) dot.remove();
   });
 }
 preview.addEventListener("pointerdown", () => { sfx.honk(state.body); renderPreview(); });
@@ -3574,7 +3582,7 @@ document.querySelectorAll(".upgBtn").forEach(b => b.addEventListener("pointerdow
     sfx.buy(); confettiBurst(garageScene, 24);
   } else {
     walletDeny();
-    restartAnim(b, "deny");
+    b.classList.remove("deny"); void b.offsetWidth; b.classList.add("deny");
   }
 }));
 const repairBtn = document.getElementById("repairBtn");
@@ -3625,14 +3633,13 @@ diceBtn.addEventListener("pointerdown", () => {
 /* ---- car wash: mud stays until the kid scrubs it off ---- */
 const washBtn = document.getElementById("washBtn");
 const washOverlay = document.getElementById("washOverlay");
-const washCar = document.getElementById("washCar");
 let washProgress = 0;
 function renderWash() { washBtn.classList.toggle("show", !!progress.muddy); }
 washBtn.addEventListener("pointerdown", () => {
   sfx.pop();
   washProgress = 0;
   document.getElementById("washFill").style.width = "0%";
-  washCar.innerHTML = vehicleSVG(state);
+  document.getElementById("washCar").innerHTML = vehicleSVG(state);
   document.getElementById("washCard").classList.remove("rinsing");
   washOverlay.classList.add("show");
 });
@@ -3640,9 +3647,9 @@ washOverlay.addEventListener("pointerdown", e => {
   if (e.target === washOverlay) { washOverlay.classList.remove("show"); sfx.pop(); }
 });
 let lastScrub = 0;
-washCar.addEventListener("pointermove", e => {
+document.getElementById("washCar").addEventListener("pointermove", e => {
   if (!washOverlay.classList.contains("show") || washProgress >= 100 || e.buttons === 0 && e.pointerType !== "touch") return;
-  const rect = washCar.getBoundingClientRect();
+  const rect = document.getElementById("washCar").getBoundingClientRect();
   /* soap bubbles trail the finger */
   const b = document.createElement("div");
   b.className = "bubble";
@@ -3650,7 +3657,7 @@ washCar.addEventListener("pointermove", e => {
   b.style.width = b.style.height = size + "px";
   b.style.left = (e.clientX - rect.left - size / 2) + "px";
   b.style.top = (e.clientY - rect.top - size / 2) + "px";
-  washCar.appendChild(b);
+  document.getElementById("washCar").appendChild(b);
   setTimeout(() => b.remove(), 900);
   washProgress = Math.min(100, washProgress + 1.6);
   document.getElementById("washFill").style.width = washProgress + "%";
@@ -3663,7 +3670,7 @@ washCar.addEventListener("pointermove", e => {
     document.getElementById("washCard").classList.add("rinsing");
     sfx.splash(); setTimeout(() => sfx.fixed(), 350);
     setTimeout(() => {
-      washCar.innerHTML = vehicleSVG(state);
+      document.getElementById("washCar").innerHTML = vehicleSVG(state);
       confettiBurst(garageScene, 24);
     }, 400);
     setTimeout(() => {
@@ -3691,7 +3698,7 @@ renderQuiet();
 document.getElementById("sun").addEventListener("pointerdown", () => {
   const sun = document.getElementById("sun");
   const night = worldMeta(curWorld()).dark;
-  restartAnim(sun, "cool");
+  sun.classList.remove("cool"); void sun.offsetWidth; sun.classList.add("cool");
   const old = sun.querySelector(".shades"); if (old) old.remove();
   if (!night) {
     sun.insertAdjacentHTML("beforeend",
@@ -3703,18 +3710,18 @@ document.getElementById("sun").addEventListener("pointerdown", () => {
   }
 });
 document.querySelectorAll(".cloud").forEach(c => c.addEventListener("pointerdown", () => {
-  restartAnim(c, "puffed");
+  c.classList.remove("puffed"); void c.offsetWidth; c.classList.add("puffed");
   sfx.pop(); setTimeout(() => sfx.whoosh(), 500);
 }));
 const signEl = document.getElementById("garageSign");
 signEl.innerHTML = "VROOM".split("").map((ch, i) => `<span style="animation-delay:${i * 80}ms">${ch}</span>`).join("");
 signEl.addEventListener("pointerdown", () => {
-  restartAnim(signEl, "bouncy");
+  signEl.classList.remove("bouncy"); void signEl.offsetWidth; signEl.classList.add("bouncy");
   sfx.whee();
 });
 /* the preview's eye blinks when honked; a riding buddy squeaks along */
 preview.addEventListener("pointerdown", () => {
-  restartAnim(preview, "blink");
+  preview.classList.remove("blink"); void preview.offsetWidth; preview.classList.add("blink");
   if (state.buddy) setTimeout(() => sfx.squeak(), 160);
 });
 
