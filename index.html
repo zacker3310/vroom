@@ -1414,7 +1414,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "12.2.1";
+const APP_VERSION = "12.2.2";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -1470,10 +1470,11 @@ const UPG = {
   magnet: { prices: [15, 30, 60] }    /* wider star pull per level */
 };
 const MAX_DAMAGE = 9, REPAIR_RATE = 2;
-/* upkeep: one tank and one set of tires, 8 units each. A level burns about 1 fuel and 1/2 tread; a hard hit
-   scuffs another 1/2 tread. Running dry never strands the kid: the car sputters to a crawl and still finishes.
-   Bald tires steer slower. Fill-ups and tires cost 1 star a unit at the workbench. */
-const FUEL_MAX = 8, TREAD_MAX = 8, FUEL_PER_UNIT = 5200, TREAD_PER_UNIT = 10400, FUEL_RATE = 1, TIRE_RATE = 1;
+/* upkeep: one tank and one set of tires, 8 units each. A tank lasts about 24 levels (a unit per 3 levels of
+   road), tires about 48 levels, and a hard hit scuffs 1/6 of a unit of tread. Running dry never strands the kid:
+   the car sputters to a crawl and still finishes. Bald tires steer slower. Fill-ups and tires cost 1 star a unit. */
+const FUEL_MAX = 8, TREAD_MAX = 8, FUEL_PER_UNIT = 15600, TREAD_PER_UNIT = 31200, FUEL_RATE = 1, TIRE_RATE = 1;
+const HIT_TREAD = 1 / 6;                /* tread lost per soaked hard hit */
 const FUEL_LOW = 2, TREAD_LOW = 2;      /* gauges turn red and the wrench tab pulses from here down */
 const SHINE_MULT = 0.5;                 /* shine bonus: a spotless, ding-free truck earns +50% on the stars it collected */
 
@@ -6698,7 +6699,7 @@ function applyDamage(n) {
   const soaked = Math.max(0, n - progress.upgrades.armor);
   if (!soaked) { sfx.clank(); return; }   /* the shield takes it — ping, no harm */
   progress.damage = Math.min(MAX_DAMAGE, progress.damage + soaked);
-  progress.tread = Math.max(0, progress.tread - 0.5 * soaked);   /* a hard hit scuffs the tires too */
+  progress.tread = Math.max(0, progress.tread - HIT_TREAD * soaked);   /* a hard hit scuffs the tires too */
   runDamage += soaked;
   save();
   sfx.crunch();

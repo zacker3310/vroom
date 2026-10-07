@@ -91,10 +91,10 @@ stripe) is painted on a canvas each frame; roadside set pieces rush past on both
   cracked glass at 3+, smoke + 15% slower at 5+. Jumping clears hazards. Shield upgrade soaks
   damage. Finish a run with no new dings -> +2 star clean bonus. Never blocks play.
 - **Garage repair**: a wrench tile on the workbench tab when dinged, 2 stars per damage point.
-- **Fuel** (v12.2): an 8-unit tank, one unit per level of road (fuel gauge in the HUD).
+- **Fuel** (v12.2): an 8-unit tank, one unit per three levels of road, about 24 levels a tank (fuel gauge in the HUD).
   Low (2) = 20% slower + engine coughs; dry = a 55% crawl that still finishes. Never strands.
   Fill-up tile on the workbench: 1 star a unit; a short wallet buys what it can.
-- **Tires** (v12.2): 8 units of tread, half a unit per level plus half per hard hit (tire
+- **Tires** (v12.2): 8 units of tread, a unit per six levels plus a sixth per hard hit, about 48 levels a set (tire
   gauge in the HUD). Bald (2) = lane changes at 60% speed, 10% off the top, a scrub on every
   turn. New set on the workbench: 1 star a unit.
 - **Shine bonus** (v12.2): cross the line with no mud and zero damage and the collected

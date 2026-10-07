@@ -56,7 +56,7 @@ function check(name, ok, detail) {
     return { pos: Math.round(pos), df: +df.toFixed(3), dtr: +dtr.toFixed(3), ratio: +(df / dtr).toFixed(2), expectF: +(pos / FUEL_PER_UNIT).toFixed(3),
       hud: hudFuel.textContent.trim() };
   });
-  check('burn: fuel drops with distance (pos/5200), tread at half that rate', burn.df > 0.05 && Math.abs(burn.df - burn.expectF) < 0.01 && Math.abs(burn.ratio - 2) < 0.05, JSON.stringify(burn));
+  check('burn: fuel drops with distance (pos/15600), tread at half that rate', burn.df > 0.015 && Math.abs(burn.df - burn.expectF) < 0.01 && Math.abs(burn.ratio - 2) < 0.05, JSON.stringify(burn));
   check('burn: HUD rounds up (7 after the first sip)', burn.hud === '8' || burn.hud === String(Math.ceil(8 - burn.df)), burn.hud);
 
   /* ---- 4. free drive and the parade do not burn ---- */
@@ -100,12 +100,12 @@ function check(name, ok, detail) {
   /* ---- 7. a hard hit scuffs half a unit of tread (armor soaks it) ---- */
   const scuff = await page.evaluate(() => {
     progress.tread = 8; progress.damage = 0; progress.upgrades.armor = 0; runDamage = 0;
-    applyDamage(1); const a = progress.tread;
-    progress.upgrades.armor = 1; applyDamage(1); const b = progress.tread;
+    applyDamage(1); const a = +progress.tread.toFixed(4);
+    progress.upgrades.armor = 1; applyDamage(1); const b = +progress.tread.toFixed(4);
     progress.upgrades.armor = 0; progress.damage = 0; runDamage = 0; updateDamageVisuals(); renderHudDamage(false);
     return { a, b };
   });
-  check('hit: -0.5 tread per soaked ding, armor keeps the rubber', scuff.a === 7.5 && scuff.b === 7.5, JSON.stringify(scuff));
+  check('hit: -1/6 tread per soaked ding, armor keeps the rubber', scuff.a === 7.8333 && scuff.b === 7.8333, JSON.stringify(scuff));
 
   /* ---- 8. shine bonus: spotless + ding-free finish earns +50% of collected stars ---- */
   const shineRun = await page.evaluate(async () => {

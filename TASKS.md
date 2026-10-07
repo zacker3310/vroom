@@ -82,6 +82,8 @@
 
 - [x] T14.6: Steering slider. The rotating wheel (hard for small hands) is replaced by a three-stop slider bottom-left: the finger's x on the track is the lane, a tap picks it, a drag keeps picking with the knob riding under the finger, release settles the knob on the car's lane; swipes and keys move the knob too; lit stop = current lane. verify.cjs covers tap + drag (36). 17 suites, 277/277.
 
+- [x] T14.7: Upkeep lasts 3x: fuel 15600 units of road per unit (about 24 levels a tank), tread 31200 (about 48 levels a set), 1/6 unit of tread per hard hit.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

@@ -143,8 +143,9 @@ upgrade adds 80 top speed per level (`vmaxEff()`), damage at 5+ takes 15% off, a
 (`fuel <= 2`) 20% and a dry one 45% (the car crawls, it never stops), bald tires (`tread <= 2`)
 10%. Lane changes ease `laneVis` toward `targetLane`, at 60% rate on bald tires (`gripK()`).
 `burnUpkeep(d)` runs from `tick()` in levels only (not free drive or the parade): a unit of
-fuel per 5200 units of road (`FUEL_PER_UNIT`), a unit of tread per 10400, plus half a unit of
-tread per soaked hard hit in `applyDamage`. Both gauges are 0-8 floats shown rounded up on
+fuel per 15600 units of road (`FUEL_PER_UNIT`, about three levels), a unit of tread per
+31200, plus a sixth of a unit of tread per soaked hard hit (`HIT_TREAD`) in `applyDamage`.
+A tank lasts about 24 levels, a set of tires about 48. Both gauges are 0-8 floats shown rounded up on
 the HUD; the wrench tab in the garage wears a pulsing dot while anything is low, dinged or
 muddy, and the workbench tab grows a fill-up tile (1 star a unit, partial fills allowed) and
 a tire tile (1 star a unit, the whole set). `finishLevel` adds the shine bonus, +50% of the
