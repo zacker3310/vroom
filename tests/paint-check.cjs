@@ -133,15 +133,15 @@ function check(name, ok, detail) {
   const legacy = await page.evaluate(() => {
     const bits = []; const push = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >> i) & 1); };
     push(2, 8); push(77, 16); push(3, 8); push(0, 4); push(0, 1); push(0, 3); push(0, 6); push(0, 2);
-    for (let i = 0; i < CODE_BODIES.length; i++) push(i === 0 ? 1 : 0, 1);
-    for (let i = 0; i < CODE_WHEELS.length; i++) push(0, 1);
+    for (let i = 0; i < CODE_V2.body; i++) push(i === 0 ? 1 : 0, 1);
+    for (let i = 0; i < CODE_V2.wheels; i++) push(0, 1);
     push(0, 1); push(0, 1); push(0, 1); push(0, 1); push(0, 1); push(1, 1);   /* 6 color flags: rainbow owned */
-    for (let i = 0; i < CODE_EXTRAS.length; i++) push(0, 1);
-    for (let i = 0; i < BUDDY_ORDER.length; i++) push(0, 1);
+    for (let i = 0; i < CODE_V2.extras; i++) push(0, 1);
+    for (let i = 0; i < CODE_V2.buddy; i++) push(0, 1);
     for (let i = 0; i < CODE_BADGES.length; i++) push(0, 1);
     while (bits.length % 8) push(0, 1);
     for (let n = 1; n <= 80; n++) { push(0, 2); push(0, 2); }   /* v1/v2 codes always carried 80 levels */
-    for (let i = 0; i < CODE_DECALS.length; i++) push(0, 1);
+    for (let i = 0; i < CODE_V2.decals; i++) push(0, 1);
     push(0, 3); push(1, 1);
     const bytes = new Uint8Array(Math.ceil(bits.length / 8));
     bits.forEach((b, i) => { if (b) bytes[i >> 3] |= 128 >> (i & 7); });

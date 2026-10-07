@@ -35,8 +35,8 @@ function check(name, ok, detail) {
     wheelKeys: WHEEL_ORDER.every(w => !!WHEELS[w]),
   }));
   check('garage: 23 swatches (12 colors + 11 patterns)', inv.swatches === 23, 'got ' + inv.swatches);
-  check('garage: 15 bodies all defined', inv.bodies === 15 && inv.bodyKeys);
-  check('garage: 8 wheels all defined', inv.wheels === 8 && inv.wheelKeys);
+  check('garage: 23 bodies all defined', inv.bodies === 23 && inv.bodyKeys);
+  check('garage: 13 wheels all defined', inv.wheels === 13 && inv.wheelKeys);
 
   /* ---- 3. touch targets >= 64px rendered at 1024x768 (after entrance staggers settle) ---- */
   await page.waitForTimeout(1100);
@@ -104,8 +104,8 @@ function check(name, ok, detail) {
     tag: priceTag.classList.contains('show')
   }));
   check('shop: broke wallet denies gold wheels', deny.wheels === 'gold' && !deny.owned && deny.wallet === 0 && deny.tag, JSON.stringify(deny));
-  /* back to owned wheels so GO unlocks (8-wheel cycle now) */
-  for (let i = 0; i < 5; i++) await page.click('#wheelBtn');
+  /* back to owned wheels so GO unlocks (13-wheel cycle now: gold is idx 3) */
+  for (let i = 0; i < 10; i++) await page.click('#wheelBtn');
 
   /* ---- 6. level generator invariants, all 30 levels ---- */
   const gen = await page.evaluate(() => {
