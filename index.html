@@ -1326,7 +1326,51 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 <script>
 "use strict";
 
-/* ============ STAGE SCALING ============ */
+/* ==========================================================================================
+   VROOM — a build-a-car game for 3-5 year olds. One file, no build step, no dependencies;
+   runs from file:// and GitHub Pages. No words on screen: everything is pictures and sound.
+
+   TABLE OF CONTENTS — each section opens with a banner "===== N. NAME =====".
+     1. STAGE                     fit the fixed 1200x700 stage to any screen
+     2. DOM HELPERS               injectCSS, restartAnim, setLockDot
+     3. CATALOG + ECONOMY         part ids and prices, upgrades, world table, medals, badges, icons
+     4. STATE + SAVE              build + progress, kid profiles, loadState / save
+     5. AUDIO                     synthesized sfx, per-body honks, engine
+     6. ART: VEHICLES, SIDE VIEW  wheels, bodies + the accessory anchor contract, side-view extras
+     7. ART: BUDDIES              the critters, vehicleSVG (garage / album / wash view)
+     8. ART: WORLDS 1-8           sky CSS, roadside vignettes, far hills, weather, hazards, icons, tints
+     9. PACK: PREMIUM + EXTRAS    limo / dragon / train / royal, glow + star wheels, wings / booster / hat
+    10. PACK: SHOP                8 bodies (side + rear art), 5 wheels, 4 extras, 4 buddies, 3 decals
+    11. PACK: PATTERN PAINTS      "p:*" paints as SVG pattern / gradient defs, paintDefs
+    12. LOAD SAVE                 loadState(): after every pack, before any scene renders
+    13. SCENE: WALLET CHIPS
+    14. SCENE: GARAGE             preview + shop gate, tap-cycle parts, paints, extras, upgrades,
+                                  repair, magic dice, car wash, quiet mode, tap-anything gags
+    15. SCENE SWITCHING           showScene / showGarage / showMap / showAlbum
+    16. SCENE: STICKER ALBUM      buddies, badges, finish-line photos
+    17. PROFILES + SAVE CODES     3 kids, compact + full save codes, QR encoder, import flow
+    18. SCENE: LEVEL MAP          world tabs, the winding road of 10 level nodes
+    19. ROAD: CAMERA + COURSE     chase-cam constants, curvature, hills, per-world road shapes
+    20. ROAD: CHASE-CAM VEHICLE   CAR3D block models + rear anchor contract, tires, vehicleRearSVG
+    21. ROAD: PROPS + LEVELS      prop art, sprites, the beat sequencer, buildLevel, palettes, movers
+    22. ROAD: SCENERY             roadside piece pools, overheads, horizon landmarks, buildScenery
+    23. ROAD: RENDER              placeSprite, drawRoad (canvas ground plane), renderWorld
+    24. ROAD: DRIVE LOOP          physics state, road entries, start/stop, parade, free drive,
+                                  capsules + gags, collisions, damage, tick
+    25. ROAD: INPUT               pedals, swipe lanes, steering wheel, keyboard
+    26. WORLD AUDIO + SKY EVENTS  jingles, ambience beds, star-chime scales, bend scrub, live events
+    27. FINISH + CELEBRATION      confetti, flyStar, finishLevel + the tally card
+    28. WORLD PACK: 9 + 10        volcano and candy land, registered into the tables above
+    29. WORLD PACK: 11 + 12       deep sea and sky kingdom
+    30. BOOT: NEW VERSION GATE    code fingerprint, hold-to-update button
+
+   Order matters in three places: the content packs (9-11) register parts before LOAD SAVE (12)
+   validates the saved build against the full catalog; the garage (14) renders at load, so it
+   follows LOAD SAVE; the world packs (28-29) assign into every table above them, so they sit
+   last, just before boot. Element ids are used as globals (window[id]) throughout.
+   ========================================================================================== */
+
+/* ============ 1. STAGE ============ */
 const stage = document.getElementById("stage");
 function fit() {
   const s = Math.min(innerWidth / 1200, innerHeight / 700);
@@ -1337,7 +1381,7 @@ addEventListener("orientationchange", () => { fit(); setTimeout(fit, 350); });
 if (window.visualViewport) visualViewport.addEventListener("resize", fit);
 fit();
 
-/* ============ DOM HELPERS ============ */
+/* ============ 2. DOM HELPERS ============ */
 /* append a stylesheet at runtime (content packs, gag + sky-event keyframes) */
 function injectCSS(text) {
   const st = document.createElement("style");
@@ -1355,7 +1399,7 @@ function setLockDot(el, locked) {
   if (!locked && dot) dot.remove();
 }
 
-/* ============ CATALOG + ECONOMY ============ */
+/* ============ 3. CATALOG + ECONOMY ============ */
 const COLORS = ["#e53935", "#1e88e5", "#fdd835", "#43a047", "#fb8c00", "#ec407a",
                 "#8e24aa", "#00acc1", "#9ccc65", "#f5f5f5", "#37474f", "rainbow"];
 let BODY_ORDER = ["dump", "digger", "mixer", "fire", "monster", "police", "race", "tractor", "icecream", "rocket", "ufo"];
@@ -1402,8 +1446,8 @@ function worldMeta(w) { return WORLD_META[w] || { dark: false, gravity: 1500, hi
 const WORLD_ITEMS = { 5: ["ice", "snowman"], 6: ["cactus", "tumbleweed"], 7: ["sandcastle", "crab"], 8: ["crater", "alien"] };
 const EXTRA_PROPS = {};   /* type -> { svg, xOff, yOff, hard, mv } */
 function worldOf(n) { return Math.min(WORLD_COUNT, Math.ceil(n / WORLD_SIZE)); }
-/* level length climbs steeply through world 2, then gently — runs stay under ~25s */
-/* ...and caps at level 80 so the deep worlds stay under ~25s and get harder, not longer */
+/* level length climbs steeply through world 2, then gently, and caps at level 80: the deep
+   worlds get harder, not longer, so every run stays under ~25s */
 function levelLen(n) { n = Math.min(n, 80); return 3500 + Math.min(n, 20) * 250 + Math.max(0, n - 20) * 100; }
 
 /* time-trial medals: S needs a near-clean full-throttle run (upgrades help late game) */
@@ -1441,7 +1485,12 @@ function medalSVG(tier) {
   return `<svg viewBox="0 0 64 64">${burst}<circle cx="32" cy="32" r="${tier === "S" ? 24 : 28}" fill="${TIER_COLOR[tier]}" stroke="#023047" stroke-width="4"/><text x="32" y="${tier === "S" ? 42 : 44}" text-anchor="middle" font-family="-apple-system,'Arial Rounded MT Bold',sans-serif" font-size="${tier === "S" ? 30 : 34}" font-weight="900" fill="#023047">${tier}</text></svg>`;
 }
 
-/* ============ STATE (vroom.v2, migrates v1 build) ============ */
+/* ---- shared icons ---- */
+const starIcon = `<svg viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/></svg>`;
+const lockIcon = `<svg viewBox="0 0 64 64"><rect x="12" y="28" width="40" height="30" rx="7" fill="#fff"/><path d="M20 28 V20 a12 12 0 0 1 24 0 V28" stroke="#fff" stroke-width="8" fill="none"/></svg>`;
+const wrenchIcon = `<svg viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#6c757d"/></svg>`;
+
+/* ============ 4. STATE + SAVE (localStorage vroom.v2.p<n>; migrates vroom.v1 and single-profile vroom.v2) ============ */
 let state = { body: "dump", wheels: "normal", color: "#fdd835", buddy: null, decal: "none", extras: { horn: false, beacon: false, flag: false } };
 let progress = { wallet: 0, owned: { body: [], wheels: [], color: [], extras: [], buddy: [], decal: [] }, levels: {}, current: 1,
                  muddy: false,
@@ -1450,7 +1499,7 @@ let progress = { wallet: 0, owned: { body: [], wheels: [], color: [], extras: []
 
 /* ---- profiles: up to 3 kids, identified by a buddy-face avatar, no reading ---- */
 const MAX_PROFILES = 3;
-const AVATAR_IDS = ["pup", "kitty", "ducky", "dino", "penguin", "monkey"];   /* = BUDDY_ORDER, defined later */
+const AVATAR_IDS = ["pup", "kitty", "ducky", "dino", "penguin", "monkey"];   /* the six original buddies */
 let meta = { active: 0, avatars: ["pup", null, null] };
 (function loadMeta() {
   try {
@@ -1527,7 +1576,7 @@ function save() {
   try { localStorage.setItem(saveKey(), JSON.stringify({ build: state, ...progress })); } catch (e) {}
 }
 
-/* ============ AUDIO (all synthesized) ============ */
+/* ============ 5. AUDIO (all synthesized) ============ */
 let actx = null, masterBus = null;
 function unlockAudio() {
   try {
@@ -1691,7 +1740,7 @@ function engineStop() {
   engine = null;
 }
 
-/* ============ VEHICLE SVG ============ */
+/* ============ 6. ART: VEHICLES, SIDE VIEW ============ */
 /* viewBox 0 0 320 230 — ground line y=200, axles x=85/235 */
 const WHEELS = {
   normal:  { r: 26, hub: "#adb5bd" },
@@ -1735,7 +1784,7 @@ function wheelSVG(type, cx) {
 function eye(cx, cy, r) {
   return `<g class="vEye"><circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff"/><circle cx="${cx + r * 0.25}" cy="${cy}" r="${r * 0.45}" fill="#1d3557"/></g>`;
 }
-/* ============ BODIES — garage side view (viewBox 0 0 320 230, ground y=200, car faces RIGHT) ============
+/* ---- BODIES — garage side view (viewBox 0 0 320 230, ground y=200, car faces RIGHT) ----
    Every body carries an `anchors` block; it is the ONLY thing that positions accessories. All
    points are [x, y] in viewBox px, measured on the body art as drawn (big wheels lift the whole
    group, anchors move with it). Fill in every field; the garage, wash bay and album all read them.
@@ -1961,7 +2010,7 @@ function extrasSVG(body, extras, hasBuddy) {
   }
   return out;
 }
-/* ============ BUDDIES — capsule-prize critters that ride along ============ */
+/* ============ 7. ART: BUDDIES — capsule-prize critters that ride along ============ */
 /* each is a head-and-paws peeking over the roofline; ~64 wide, drawn upward from y=6 */
 const BUDDY_ORDER = ["pup", "kitty", "ducky", "dino", "penguin", "monkey"];
 const BUDDY_SVG = {
@@ -2054,24 +2103,12 @@ function vehicleSVG(st) {
   </svg>`;
 }
 
-/* ============ SHARED ICONS ============ */
-const starIcon = `<svg viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/></svg>`;
-const lockIcon = `<svg viewBox="0 0 64 64"><rect x="12" y="28" width="40" height="30" rx="7" fill="#fff"/><path d="M20 28 V20 a12 12 0 0 1 24 0 V28" stroke="#fff" stroke-width="8" fill="none"/></svg>`;
-const wrenchIcon = `<svg viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#6c757d"/></svg>`;
+/* ============ 8. ART: WORLDS 1-8 — sky CSS, roadside vignettes, far hills, weather, hazards, icons, tints ============ */
+/* Conventions: flat chunky SVG, no gradients / ids / filters. Roadside vignettes are <g> groups at
+   translate(x,462); far hills are two-hump quads tiling every 520px down to y=465; hazards are
+   { type, svg, w, h, xOff, yOff } with xOff ~ -w/2 and yOff ~ -(h-2) so the art sits on the lane. */
 
-
-/* ============ T5 CONTENT PACKS (agent-generated: worlds, premium vehicles, extras) ============ */
-/* ============================================================
-   VROOM — world themes 4-8 (rain, snow, desert, beach, space)
-   Drop-in design assets. Conventions match index.html:
-   - mid scenery tiles every 900px, groups at translate(x,462)
-   - far hills tile every 520px, two-hump quad paths to y=465
-   - props: { type, svg, w, h, xOff, yOff } with xOff ~ -w/2 and
-     yOff ~ -(h-2) so the art's bottom sits on the lane ground y
-   - flat chunky SVG, no gradients/ids/filters
-   ============================================================ */
-
-/* ---------- 1. WORLD_CSS — #road.w4 .. #road.w8 ---------- */
+/* ---- WORLD_CSS — #road.w4 .. #road.w8 (worlds 1-3 use the base #road / .sunset / .night rules) ---- */
 /* worlds 1-3 keep the existing #road / .sunset / .night rules untouched */
 const WORLD_CSS = `
   /* ----- world 4: RAIN — gray wet city, sun hiding behind the clouds ----- */
@@ -2101,9 +2138,8 @@ const WORLD_CSS = `
   #road.w8 #skyStars { display: block; }
 `;
 
-/* ---------- 2a. WORLD_SCENERY — one mid group per 900px tile ----------
-   Each returns ONE <g> at translate(x,462) replacing the crane+building pair; the chase cam
-   renders each as a roadside sprite (addScenery), alternating shoulders every 450. */
+/* ---- WORLD_SCENERY — the original roadside vignettes for worlds 4-8 ----
+   One <g> at translate(x,462) per world; legacyPiece() wraps each into its WORLD_SET pool (section 22). */
 const WORLD_SCENERY = {
   /* rain: two gray city blocks with lit windows + two sidewalk umbrellas */
   w4: x => `
@@ -2195,7 +2231,7 @@ const WORLD_SCENERY = {
     </g>`
 };
 
-/* ---------- 2b. WORLD_FAR — one far hill variant per 520px tile ----------
+/* ---- WORLD_FAR — one far hill variant per 520px tile ----
    Same two-hump quad structure as the existing #74c69d hills. */
 const WORLD_FAR = {
   /* sunset: golden hills */
@@ -2224,7 +2260,7 @@ const WORLD_FAR = {
            `<ellipse cx="${x + 390}" cy="438" rx="24" ry="7" fill="#343a40"/>`
 };
 
-/* ---------- 3. WORLD_WEATHER — particle div specs ----------
+/* ---- WORLD_WEATHER — particle div specs ----
    Spawn `count` divs into #road (behind HUD, z 15), each with the returned
    className + cssText. rng is a seeded mulberry32 so runs are reproducible. */
 const WORLD_WEATHER = {
@@ -2287,7 +2323,7 @@ const WORLD_WEATHER_CSS = {
   w8: null
 };
 
-/* ---------- 4. WORLD_PROPS — two new prop types per world 5-8 ----------
+/* ---- WORLD_PROPS — two hazards per world 5-8 (copied into EXTRA_PROPS at registration) ----
    kinds: soft = fun knock (cone-style), hard = stop + damage (hardHit),
    slick = oil physics (v *= 0.45 + spin), mover-soft = soft but the prop
    moves each tick per moveSpec. xOff/yOff follow addProp() conventions. */
@@ -2344,7 +2380,7 @@ const WORLD_PROPS = {
   ]
 };
 
-/* ---------- 5. WORLD_ICONS — 100x100 map/button icons, white-on-color ---------- */
+/* ---- WORLD_ICONS — 100x100 map/button icons, white-on-color ---- */
 const WORLD_ICONS = {
   /* construction crane */
   w1: `<svg viewBox="0 0 100 100"><rect x="20" y="14" width="10" height="72" fill="#fff"/><rect x="12" y="10" width="76" height="9" fill="#fff"/><path d="M74 19 V44" stroke="#fff" stroke-width="5"/><rect x="64" y="44" width="20" height="16" rx="3" fill="#ffd60a"/><rect x="8" y="84" width="36" height="8" rx="4" fill="#fff"/></svg>`,
@@ -2364,7 +2400,7 @@ const WORLD_ICONS = {
   w8: `<svg viewBox="0 0 100 100"><path d="M50 6 Q68 26 68 52 L68 70 H32 L32 52 Q32 26 50 6 Z" fill="#fff"/><circle cx="50" cy="42" r="9" fill="#4cc9f0"/><path d="M32 56 L16 78 L32 74 Z" fill="#fff"/><path d="M68 56 L84 78 L68 74 Z" fill="#fff"/><path d="M42 74 Q50 92 58 74 Z" fill="#ff9f1c"/></svg>`
 };
 
-/* ---------- 6. WORLD_TINT — accent per world for map tabs / buttons ---------- */
+/* ---- WORLD_TINT — accent per world for map tabs / buttons ---- */
 const WORLD_TINT = {
   w1: "#f77f00",   /* construction orange */
   w2: "#e76f51",   /* sunset coral */
@@ -2376,11 +2412,11 @@ const WORLD_TINT = {
   w8: "#7b2cbf"    /* space purple */
 };
 
-/* ============ PREMIUM VEHICLES ============ */
-/* Endgame unlocks (250-400 stars). Same conventions as BODIES / WHEELS /
-   WHEEL_DECOR / HONKS in index.html: viewBox 0 0 320 230, ground y=200,
-   axles x=85/235, var(--paint) main color, #bde0fe glass, eye(cx,cy,r),
-   #495057 chassis bar, brightness() filters only. */
+/* ============ 9. PACK: PREMIUM VEHICLES + EXTRAS ============ */
+/* ---- premium bodies: endgame unlocks (250-400 stars) ----
+   Same conventions as BODIES / WHEELS / WHEEL_DECOR / HONKS: viewBox 0 0 320 230, ground y=200,
+   axles x=85/235, var(--paint) main color, #bde0fe glass, eye(cx,cy,r), #495057 chassis bar,
+   brightness() filters only. */
 
 const PREMIUM_BODIES = {
   /* limo: super-stretched low sedan spanning nearly the full frame — long
@@ -2541,14 +2577,14 @@ const PREMIUM_HONKS = {
   }
 };
 
-// Vroom extras pack: wings, booster, partyhat.
-// Each takes the (x, y) it is drawn at; extrasSVG() / vehicleRearSVG() pass the body's
-// `anchors.wings` (root), `anchors.booster` (nozzle attach) and `anchors.hat` (hat base) — see
-// the anchor contract above BODIES. The art stays within ~40px of its anchor.
+/* ---- extras pack: wings, booster, partyhat ----
+   Each takes the (x, y) it is drawn at; extrasSVG() / vehicleRearSVG() pass the body's
+   `anchors.wings` (root), `anchors.booster` (nozzle attach) and `anchors.hat` (hat base) — see
+   the anchor contract above BODIES. The art stays within ~40px of its anchor. */
 
 const NEW_EXTRAS_SVG = {
-  // Feathered white wings at the rear mount. Two wings (big + small), each a
-  // .flapWing group rotating -8/8deg around its base (right edge = mount side).
+  /* feathered white wings at the mount: two (big + small), each a .flapWing group
+     rotating -8/8deg around its base (right edge = mount side) */
   wings: (fx, fy) => `
     <g transform="translate(${fx},${fy})">
       <g class="flapWing">
@@ -2562,8 +2598,8 @@ const NEW_EXTRAS_SVG = {
       </g>
     </g>`,
 
-  // Little rocket booster at the rear mount: silver cone + rim, always-on
-  // .boosterFlame (orange + yellow) pulsing from the nozzle exit.
+  /* little rocket booster at the rear mount: silver cone + rim, always-on
+     .boosterFlame (orange + yellow) pulsing from the nozzle exit */
   booster: (fx, fy) => `
     <g transform="translate(${fx},${fy})">
       <g class="boosterFlame">
@@ -2574,7 +2610,7 @@ const NEW_EXTRAS_SVG = {
       <rect x="-19" y="-10" width="7" height="20" rx="3" fill="#868e96" stroke="#023047" stroke-width="3"/>
     </g>`,
 
-  // Striped cone party hat with a pom-pom, jaunty tilt, base sitting on the roof point.
+  /* striped cone party hat with a pom-pom, jaunty tilt, base sitting on the roof point */
   partyhat: (rx, ry) => `
     <g transform="translate(${rx},${ry}) rotate(-12)">
       <path d="M-15 2 L0 -34 L15 2 Z" fill="#e63946" stroke="#023047" stroke-width="3" stroke-linejoin="round"/>
@@ -2584,7 +2620,7 @@ const NEW_EXTRAS_SVG = {
     </g>`
 };
 
-// Companion keyframes/classes (add next to .spinner in the <style> block).
+/* keyframes for the animated extras, injected with the pack */
 const NEW_EXTRAS_CSS = `
   .flapWing { animation: flapWing .9s ease-in-out infinite; transform-box: fill-box; transform-origin: 100% 40%; }
   @keyframes flapWing { 0%,100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
@@ -2592,7 +2628,7 @@ const NEW_EXTRAS_CSS = `
   @keyframes boosterFlame { 0%,100% { transform: scale(1); } 50% { transform: scale(1.35,.8); } }
 `;
 
-// 100x100 garage button icons, same flat white-stroke style as the horn/beacon/flag buttons.
+/* 100x100 garage button icons, same flat white-stroke style as the horn/beacon/flag buttons */
 const NEW_EXTRAS_BTN = {
   wings: `<svg viewBox="0 0 100 100">
     <path d="M50 62 Q46 28 20 22 Q6 20 5 31 L18 35 Q9 41 7 50 L20 53 Q13 59 11 68 Q36 73 50 62 Z" fill="#fff"/>
@@ -2615,17 +2651,17 @@ const NEW_EXTRAS_BTN = {
 
 const NEW_EXTRAS_PRICES = { wings: 40, booster: 60, partyhat: 25 };
 
-// Fired when the booster toggles on (uses the existing tone() helper).
+/* fired when the booster toggles on */
 const NEW_EXTRAS_SFX = {
   boosterWhoosh() {
-    tone("sawtooth", 110, 55, 0.4, 0.24);          // low rumble
-    tone("sine", 220, 980, 0.32, 0.18, 0.04);      // rising whoosh
-    tone("triangle", 660, 1320, 0.18, 0.14, 0.24); // sparkly tail
+    tone("sawtooth", 110, 55, 0.4, 0.24);          /* low rumble */
+    tone("sine", 220, 980, 0.32, 0.18, 0.04);      /* rising whoosh */
+    tone("triangle", 660, 1320, 0.18, 0.14, 0.24); /* sparkly tail */
   }
 };
 
 
-/* ---- wire the packs into the live registries (must run before loadState) ---- */
+/* ---- registration into the live catalog tables (must run before loadState) ---- */
 injectCSS(`${WORLD_CSS}\n${Object.values(WORLD_WEATHER_CSS).filter(Boolean).join("\n")}\n${NEW_EXTRAS_CSS}`);
 for (const wk in WORLD_PROPS) for (const wp of WORLD_PROPS[wk]) {
   EXTRA_PROPS[wp.type] = { svg: wp.svg, xOff: wp.xOff, yOff: wp.yOff, hard: wp.kind === "hard", mv: wp.moveSpec || null };
@@ -2651,12 +2687,11 @@ function registerExtra(name, iconSvg) {
 }
 for (const exName in NEW_EXTRAS_SVG) registerExtra(exName, NEW_EXTRAS_BTN[exName]);
 
-/* ======== SHOP PACK anchor: new bodies / wheels / extras / buddies / decals register here
-   (append to BODY_ORDER, WHEEL_ORDER, CODE_* lists, PRICES; add garage buttons) — must run
-   before loadState() so saved builds validate against the full catalog ======== */
-
-/* ---- SHOP PACK begin (agent-generated: 8 bodies, 5 wheels, 4 extras, 4 buddies, 3 decals) ---- */
-/* Bodies follow the anchor contract above BODIES / CAR3D. Two per-body flags are new:
+/* ============ 10. PACK: SHOP — 8 bodies, 5 wheels, 4 extras, 4 buddies, 3 decals ============ */
+/* Registers into BODY_ORDER / WHEEL_ORDER / BUDDY_ORDER / DECAL_ORDER / PRICES and adds garage
+   buttons; the CODE_* lists (section 17) append its ids. Must run before loadState() so saved
+   builds validate against the full catalog.
+   Bodies follow the anchor contract above BODIES / CAR3D. Two per-body flags are new:
      noWheels: true   the body owns its own ground contact (tracks, hover ring): vehicleSVG /
                       vehicleRearSVG draw no tires and the wheel choice does not lift the body.
      hover: h         the body floats h px (side) / h car units (rear) above the ground and gets the
@@ -3180,9 +3215,7 @@ Object.assign(PRICES.decal, { rainbow: 35, dinofoot: 40, flower: 45 });
   });
   tray.appendChild(flip);
 }
-/* ---- SHOP PACK end ---- */
-
-/* ======== PAINT PACK anchor: pattern paints ("p:*" ids keep COLORS a flat string list) ========
+/* ============ 11. PACK: PATTERN PAINTS ("p:*" ids keep COLORS a flat string list) ============
    Each pattern emits an SVG def sized for a view band: v = { x0, y0, w, h, k } where (x0,y0,w,h) is the
    paint area in that view's user space and k scales the tile so patterns read at the road car's size.
    Views: side (vehicleSVG 320x230), rear (vehicleRearSVG, car-space), swatch (64x64 mini circle). */
@@ -3271,9 +3304,11 @@ function paintSwatchSVG(color) {
   return `<svg viewBox="0 0 64 64">${defs}<circle cx="32" cy="32" r="32" fill="${paint}"/></svg>`;
 }
 
+/* ============ 12. LOAD SAVE ============ */
+/* every pack has registered its parts; nothing below renders before this */
 loadState();
 
-/* ============ WALLET UI ============ */
+/* ============ 13. SCENE: WALLET CHIPS ============ */
 const garageWallet = document.getElementById("garageWallet");
 const mapWallet = document.getElementById("mapWallet");
 function renderWallets(pop) {
@@ -3289,7 +3324,7 @@ function walletDeny() {
   sfx.deny();
 }
 
-/* ============ GARAGE UI + SHOP ============ */
+/* ============ 14. SCENE: GARAGE ============ */
 const preview = document.getElementById("preview");
 const priceTag = document.getElementById("priceTag");
 const goBtn = document.getElementById("goBtn");
@@ -3611,7 +3646,7 @@ setInterval(() => {
   }
 }, 1000);
 
-/* ============ SCENE SWITCHING ============ */
+/* ============ 15. SCENE SWITCHING ============ */
 const garageScene = document.getElementById("garage");
 const mapScene = document.getElementById("map");
 const roadScene = document.getElementById("road");
@@ -3636,7 +3671,7 @@ function showMap() { selectedWorld = worldOf(progress.current); showScene(mapSce
 const albumScene = document.getElementById("album");
 function showAlbum() { showScene(albumScene); renderAlbum(); renderWallets(false); }
 
-/* ============ STICKER ALBUM ============ */
+/* ============ 16. SCENE: STICKER ALBUM ============ */
 function wiggleSlot(el) {
   restartAnim(el, "wiggle");
 }
@@ -3690,7 +3725,7 @@ function renderAlbum() {
 }
 document.getElementById("albumBtn").addEventListener("pointerdown", () => { sfx.pop(); showAlbum(); });
 
-/* ============ PROFILES + SAVE CODES ============ */
+/* ============ 17. PROFILES + SAVE CODES ============ */
 const b64url = {
   enc(bytes) {
     let s = "";
@@ -4082,7 +4117,7 @@ document.getElementById("celebrateHomeBtn").addEventListener("pointerdown", e =>
 document.getElementById("replayBtn").addEventListener("pointerdown", e => { e.stopPropagation(); sfx.pop(); drive(lastPlayed); });
 document.getElementById("nextBtn").addEventListener("pointerdown", e => { e.stopPropagation(); sfx.pop(); drive(Math.min(MAX_LEVEL, lastPlayed + 1)); });
 
-/* ============ LEVEL MAP ============ */
+/* ============ 18. SCENE: LEVEL MAP ============ */
 const mapGrid = document.getElementById("mapGrid");
 function levelUnlocked(n) { return n === 1 || !!progress.levels[n - 1]; }
 function worldUnlocked(w) { return w === 1 || !!progress.levels[(w - 1) * WORLD_SIZE]; }
@@ -4169,7 +4204,7 @@ function renderMap() {
   }
 }
 
-/* ============ ROAD SCENE ============ */
+/* ============ 19. ROAD: CAMERA + COURSE ============ */
 /* chase cam: the road runs straight out into the screen, three lanes left/center/right.
    World coords: x = distance along the road (unchanged from the side-scroller, so all the
    level/physics/collision logic still speaks x), lx = lateral offset, h = height. */
@@ -4347,7 +4382,7 @@ function mulberry32(a) {
   };
 }
 
-/* ============ CHASE-CAM VEHICLE: the build as chunky 3D toy blocks, seen from behind ============ */
+/* ============ 20. ROAD: CHASE-CAM VEHICLE — the build as chunky 3D toy blocks, seen from behind ============ */
 /* Each body is boxes / cylinders / hulls in car space (x lateral, y up, z forward from the rear
    bumper), projected through the same camera as the road, so you see the roof, the cab past
    the bed, the hood running off toward the horizon and the front wheels poking out ahead.
@@ -4746,7 +4781,8 @@ function vehicleRearSVG(st) {
   </svg>`;
 }
 
-/* prop art */
+/* ============ 21. ROAD: PROPS + LEVELS ============ */
+/* ---- prop art ---- */
 const coneSVG = `<svg width="64" height="80" viewBox="0 0 64 80"><path d="M32 4 L50 66 H14 Z" fill="#f77f00"/><path d="M24 34 H40 M20 50 H45" stroke="#fff" stroke-width="8"/><rect x="4" y="66" width="56" height="12" rx="5" fill="#e76f51"/></svg>`;
 const oilSVG = `<svg width="150" height="46" viewBox="0 0 150 46"><ellipse cx="75" cy="30" rx="70" ry="14" fill="#212529"/><ellipse cx="75" cy="26" rx="55" ry="10" fill="#343a40"/><path d="M40 26 Q60 18 80 26 Q100 32 112 24" stroke="#7b68ee" stroke-width="3" fill="none" opacity=".7"/></svg>`;
 const tntSVG = `<svg width="70" height="72" viewBox="0 0 70 72"><path d="M35 12 Q44 2 50 6" stroke="#6c757d" stroke-width="4" fill="none"/><path d="M50 6 l4 -4 M50 6 l6 1 M50 6 l0 -6" stroke="#ffd60a" stroke-width="3" stroke-linecap="round"/><rect x="4" y="12" width="62" height="56" rx="8" fill="#d1495b"/><rect x="4" y="32" width="62" height="16" fill="#e9c46a"/><circle cx="35" cy="40" r="10" fill="#212529"/></svg>`;
@@ -4780,7 +4816,7 @@ const finishSVG = `<svg width="800" height="380" viewBox="0 0 800 380"><rect x="
   (() => { let s = ""; for (let r = 0; r < 3; r++) for (let c = 0; c < 37; c++) s += `<rect x="${30 + c * 20}" y="${8 + r * 20}" width="20" height="20" fill="${(r + c) % 2 ? "#fff" : "#212529"}"/>`; return s; })()
 }</g><rect x="30" y="4" width="740" height="68" fill="none" stroke="#023047" stroke-width="6"/></svg>`;
 
-/* level runtime */
+/* ---- level runtime ---- */
 let level = 1, lastPlayed = 1, freeMode = false, paradeMode = false;
 const PARADE_LEVEL = MAX_LEVEL + 1;
 function paradeUnlocked() {
@@ -4814,7 +4850,7 @@ function makeSprite(type, x, lx, h, svg, xOff, yOff, k) {
 function addProp(type, x, lane, h, svg, xOff, yOff) {
   const p = makeSprite(type, x, laneX(lane), h, svg, xOff, yOff);
   p.lane = lane;
-  p.y = 585 - h;   /* legacy screen-ish height (low stars > 400) for older tooling */
+  p.y = 585 - h;   /* screen-ish height kept for the test suites (a low star reads as y > 400) */
   props.push(p);
   return p;
 }
@@ -4824,7 +4860,7 @@ function clearWorld() {
   props = []; scenery = []; RAMPS = []; totalStars = 0;
 }
 
-/* ============ BEAT SEQUENCER: a level is a seeded sequence of formations ============
+/* ---- BEAT SEQUENCER: a level is a seeded sequence of formations ----
    Every level has a signature beat (repeated with variations) plus 1-2 contrasting
    beats and breathers, so level 7 feels like "the snake-trail level" and level 8 like
    "the barrel-bowling level". Beats read curvAt(x) so star trails hug the inside of a
@@ -5318,7 +5354,7 @@ function addItem(t, x, lane) {
   if (EXTRA_PROPS[t]) addWorldProp(t, x, lane);
 }
 
-/* world plumbing: themes, movers */
+/* ---- world plumbing: themes, weather, movers ---- */
 function addWorldProp(t, x, lane) {
   const ep = EXTRA_PROPS[t];
   const p = addProp(t, x, lane, 0, ep.svg, ep.xOff, ep.yOff);
@@ -5384,7 +5420,8 @@ function tickMovers(dt) {
   }
 }
 
-/* scenery: the far skyline is a static backdrop on the horizon with a landmark or two per
+/* ============ 22. ROAD: SCENERY ============ */
+/* the far skyline is a static backdrop on the horizon with a landmark or two per
    world; the roadsides are lined with set dressing drawn from a per-world pool (seeded per
    level, so no two levels line up the same) and, every so often, a structure spanning the
    whole road that the car drives under */
@@ -5777,6 +5814,7 @@ function buildScenery(len, world = 1, seed = 0) {
   }
 }
 
+/* ============ 23. ROAD: RENDER ============ */
 /* ---- projection: one sprite onto the stage ---- */
 const FLAT_PROPS = new Set(["puddle", "oil", "ice", "finish", "fan", "trophy", "scenery"]);
 function placeSprite(p, carX) {
@@ -5880,7 +5918,8 @@ function renderWorld() {
   farLayer.style.transform = `translateX(${(camSkyX - 1200).toFixed(1)}px)`;
 }
 
-/* drive physics */
+/* ============ 24. ROAD: DRIVE LOOP ============ */
+/* ---- physics state ---- */
 const VMAX = 700, ACCEL = 900, COAST = 350, BRAKE = 1600;
 let pos = 0, v = 0, jumpY = 0, vy = 0, airborne = false, finished = false;
 let rafId = null, lastT = 0, wheelAngle = 0;
@@ -6127,7 +6166,7 @@ function tickFree() {
     if (scenery[i].x < pos - 700) { scenery[i].wrap.remove(); scenery.splice(i, 1); }
   }
   RAMPS = RAMPS.filter(rp => rp.x > pos - 900);
-  const themeIdx = Math.floor(pos / 7000) % WORLD_COUNT;   /* tour all 8 worlds, forever */
+  const themeIdx = Math.floor(pos / 7000) % WORLD_COUNT;   /* tour every world, forever */
   if (themeIdx !== freeThemeIdx) {
     freeThemeIdx = themeIdx;
     applyTheme(themeIdx + 1);
@@ -6155,7 +6194,7 @@ const PRIZE_TABLE = [
   { kind: "bigstars", weight: 2, amount: 8 },
   { kind: "bigstars", weight: 1, amount: 20 },   /* the rare golden jackpot */
   { kind: "gag",      weight: 3 },
-  { kind: "buddy",    weight: 2 }                /* a new friend! (stars if all six found) */
+  { kind: "buddy",    weight: 2 }                /* a new friend! (stars once every buddy is found) */
 ];
 const GAGS = [
   {
@@ -6258,7 +6297,7 @@ function openCapsule(p) {
       if (muddy) mudEl.style.opacity = 1;
       return;
     }
-    /* all six found: consolation stars */
+    /* every buddy found: consolation stars */
   }
   const amount = prize.kind === "buddy" ? 5 : prize.amount;
   runStars += amount;
@@ -6565,7 +6604,7 @@ function sfxSquealThrottle() {
   if (t - lastSqueal > 320) { lastSqueal = t; sfx.squeal(); }
 }
 
-/* ============ DRIVE INPUT ============ */
+/* ============ 25. ROAD: INPUT ============ */
 const gasPedal = document.getElementById("gasPedal");
 const brakePedal = document.getElementById("brakePedal");
 function bindPedal(el, set) {
@@ -6660,7 +6699,7 @@ carWrap.addEventListener("pointerdown", () => {
   if (state.buddy) setTimeout(() => sfx.squeak(), 160);
 });
 
-/* ============ WORLD AUDIO + LIVE EVENTS ============ */
+/* ============ 26. WORLD AUDIO + SKY EVENTS ============ */
 /* Everything here is additive: a per-world start jingle, a whisper-quiet looping ambience bed,
    per-world star-chime scales, a tire-scrub layer through bends, and small sky "events" that
    play out mid-level (birds, owls, lightning, UFOs...). All audio is synthesized and every
@@ -7088,7 +7127,7 @@ function injectEventCSS() {
   `);
 }
 
-/* ---- the three hook-ins ---- */
+/* ---- hook-ins called from startDrive / stopDrive / tick ---- */
 function worldAudioStart() {
   if (paradeMode) scheduleEvents(PARADE_LEVEL, 1);   /* the parade has its own fixed sky schedule */
   if (!actx) return;
@@ -7103,7 +7142,7 @@ function worldTick(dt) {
   eventsTick();
 }
 
-/* ============ FINISH + CELEBRATION ============ */
+/* ============ 27. FINISH + CELEBRATION ============ */
 function confettiBurst(sceneEl, count) {
   const cols = ["#e63946", "#ffd60a", "#43a047", "#1e88e5", "#ec407a", "#fb8c00"];
   for (let i = 0; i < count; i++) {
@@ -7229,12 +7268,12 @@ function finishLevel() {
   }, 700);
 }
 
-/* ======== WORLD PACK anchor A: worlds 9-10 register here (WORLD_META, ROAD_PAL, WORLD_CSS via a
-   <style> injection, WORLD_SET/WORLD_ARCH/WORLD_LANDMARK/WORLD_FAR/WORLD_WEATHER, WORLD_ITEMS +
-   EXTRA_PROPS + PROP_HIT, WORLD_ROAD, defBeat(...), JINGLES/AMBIENCE/STAR_SCALES/WORLD_EVENTS,
-   WORLD_ICONS/WORLD_TINT). Everything above is defined by now. ======== */
-/* ---------------- WORLD 9 VOLCANO + WORLD 10 CANDY LAND ----------------
-   Registered by assignment into the live tables; helpers stay inside this closure. */
+/* ============ 28. WORLD PACK: 9 VOLCANO (81-90) + 10 CANDY LAND (91-100) ============ */
+/* How a world pack registers: by assignment into the tables above, inside its own closure.
+   WORLD_META / WORLD_TINT / WORLD_ICONS, ROAD_PAL, sky + prop CSS via injectCSS, WORLD_WEATHER,
+   WORLD_SET / WORLD_ARCH / WORLD_LANDMARK / WORLD_FAR, WORLD_ITEMS + EXTRA_PROPS + PROP_HIT,
+   WORLD_ROAD, defBeat(...), JINGLES / AMBIENCE / STAR_SCALES / STAR_BASE, WORLD_EVENTS + LIVE_EVENTS.
+   Everything a pack touches is defined by now. */
 (() => {
   const CANDY = ["#f06292", "#ffd60a", "#4cc9f0", "#8338ec", "#43aa8b", "#ff9f1c"];
   const ash = "#6c6362", rock = "#2a2628", rock2 = "#3a3538", lava = "#ff6d00", lava2 = "#ffb703", bone = "#f1faee";
@@ -7556,8 +7595,7 @@ function finishLevel() {
   };
 })();
 
-/* ======== WORLD PACK anchor B: worlds 11-12 register here (same contract) ======== */
-/* ============ WORLD PACK B: 11 DEEP SEA (101-110) + 12 SKY KINGDOM (111-120) ============ */
+/* ============ 29. WORLD PACK: 11 DEEP SEA (101-110) + 12 SKY KINGDOM (111-120) ============ */
 /* Everything registers by assignment into the tables above; the art follows the pc()/arch()
    conventions (flat SVG, ground at y=0, no gradients/filters/ids in scenery). */
 (() => {
@@ -7899,7 +7937,7 @@ function finishLevel() {
   };
 })();
 
-/* ============ NEW VERSION GATE ============ */
+/* ============ 30. BOOT: NEW VERSION GATE ============ */
 /* No service worker here: a stale game is Safari's cache or a home-screen app left running.
    Fingerprint the code this page booted with, and quietly compare it against a fresh copy
    from the server on boot, whenever the app comes back to the foreground, and every 10 min. */
