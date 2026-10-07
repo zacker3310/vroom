@@ -140,7 +140,7 @@ function check(name, ok, detail) {
     for (let i = 0; i < BUDDY_ORDER.length; i++) push(0, 1);
     for (let i = 0; i < CODE_BADGES.length; i++) push(0, 1);
     while (bits.length % 8) push(0, 1);
-    for (let n = 1; n <= MAX_LEVEL; n++) { push(0, 2); push(0, 2); }
+    for (let n = 1; n <= 80; n++) { push(0, 2); push(0, 2); }   /* v1/v2 codes always carried 80 levels */
     for (let i = 0; i < CODE_DECALS.length; i++) push(0, 1);
     push(0, 3); push(1, 1);
     const bytes = new Uint8Array(Math.ceil(bits.length / 8));
