@@ -1,0 +1,20 @@
+{
+  "name": "Vroom",
+  "short_name": "Vroom",
+  "description": "A build-a-car driving game for a 3 to 5 year old. One file, no reading, nothing to lose.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#fdf6ea",
+  "theme_color": "#2f241a",
+  "lang": "en",
+  "categories": ["games", "kids"],
+  "icons": [
+    { "src": "docs/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "docs/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "docs/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "docs/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
