@@ -180,14 +180,14 @@ function check(name, ok, detail) {
   const upg = await page.evaluate(() => {
     progress.wallet = 200; renderWallets(false); renderUpgrades();
     const before = vmaxEff();
-    document.querySelector('.upgBtn[data-upg="engine"]').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    (k => { openTab('work', false); const t = document.querySelector(`.tile[data-upg="${k}"]`); t.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 300, clientY: 600 })); t.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: 300, clientY: 600 })); })('engine');   /* tap the engine tile on the workbench tab */
     const after = vmaxEff();
     return { before, after, lvl: progress.upgrades.engine, wallet: progress.wallet };
   });
   check('upgrade: engine L1 costs 20, vmax 700->780', upg.before === 700 && upg.after === 780 && upg.lvl === 1 && upg.wallet === 180, JSON.stringify(upg));
 
   const armor = await page.evaluate(async () => {
-    document.querySelector('.upgBtn[data-upg="armor"]').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    (k => { openTab('work', false); const t = document.querySelector(`.tile[data-upg="${k}"]`); t.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 300, clientY: 600 })); t.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: 300, clientY: 600 })); })('armor');   /* tap the armor tile on the workbench tab */
     drive(5);
     await new Promise(r => setTimeout(r, 200));
     const b = props.find(p => p.type === 'barrel' || p.type === 'rock');
@@ -211,7 +211,7 @@ function check(name, ok, detail) {
   const upgDeny = await page.evaluate(() => {
     progress.wallet = 1; renderWallets(false); renderUpgrades();
     const lvl0 = progress.upgrades.magnet;
-    document.querySelector('.upgBtn[data-upg="magnet"]').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    (k => { openTab('work', false); const t = document.querySelector(`.tile[data-upg="${k}"]`); t.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 300, clientY: 600 })); t.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: 300, clientY: 600 })); })('magnet');   /* tap the magnet tile on the workbench tab */
     return { unchanged: progress.upgrades.magnet === lvl0, wallet: progress.wallet };
   });
   check('upgrade: broke wallet denied', upgDeny.unchanged && upgDeny.wallet === 1, JSON.stringify(upgDeny));

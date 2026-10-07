@@ -17,6 +17,12 @@ function check(name, ok, detail) {
   const browser = await pw.chromium.launch({ executablePath: EXE });
   const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
   const tap = sel => page.evaluate(s => document.querySelector(s).dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 99 })), sel);
+  /* tiles act on release (a swipe through the strip must scroll, not equip): down + up on the tile */
+  const tapTile = sel => page.evaluate(s => {
+    const t = document.querySelector(s);
+    t.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 99, clientX: 300, clientY: 600 }));
+    t.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 99, clientX: 300, clientY: 600 }));
+  }, sel);
   const errors = [];
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', e => errors.push(String(e)));
@@ -27,39 +33,44 @@ function check(name, ok, detail) {
   /* ---- 1. catalog ---- */
   const cat = await page.evaluate(() => {
     const pats = Object.keys(PATTERNS);
+    openTab('color', false);
+    const patTiles = [...document.querySelectorAll('#strip .tile[data-color]')].filter(t => PATTERNS[t.dataset.color]);
     return {
       n: pats.length, colors: COLORS.length, inColors: pats.every(p => COLORS.includes(p)),
       inCode: pats.every(p => CODE_COLORS.includes(p)),
       prices: pats.map(p => PRICES.color[p]), priciest: ['p:galaxy', 'p:gold'].every(p => PRICES.color[p] >= 100),
-      swatches: document.querySelectorAll('.swatch').length,
-      pg1: document.querySelectorAll('.swatch[data-pg="1"]').length, pg2: document.querySelectorAll('.swatch[data-pg="2"]').length,
-      pics: [...document.querySelectorAll('.swatch[data-pg="2"]')].every(s => s.querySelector('svg pattern, svg linearGradient')),
-      locks: [...document.querySelectorAll('.swatch[data-pg="2"]')].every(s => s.querySelector('.lockDot'))
+      swatches: document.querySelectorAll('#strip .tile[data-color]').length,
+      pg1: document.querySelectorAll('#strip .tile[data-color]').length - patTiles.length, pg2: patTiles.length,
+      flips: document.querySelectorAll('#paintFlip, #strip .pg2').length,
+      pics: patTiles.every(s => s.querySelector('svg pattern, svg linearGradient')),
+      locks: patTiles.every(s => s.querySelector('.lockDot'))
     };
   });
   check('catalog: 11 patterns registered in COLORS + CODE_COLORS', cat.n === 11 && cat.inColors && cat.inCode && cat.colors === 23, JSON.stringify([cat.n, cat.colors]));
   check('catalog: prices 40-120, galaxy + gold priciest', cat.prices.every(p => p >= 40 && p <= 120) && cat.priciest, cat.prices.join(','));
-  check('tray: 23 swatches over two pages (12 + 11)', cat.swatches === 23 && cat.pg1 === 12 && cat.pg2 === 11, JSON.stringify([cat.swatches, cat.pg1, cat.pg2]));
-  check('tray: pattern swatches show a picture of the pattern', cat.pics);
-  check('tray: unowned patterns carry a padlock', cat.locks);
+  check('strip: 23 paint tiles in one strip, no page flip (12 colors + 11 patterns)', cat.swatches === 23 && cat.pg1 === 12 && cat.pg2 === 11 && cat.flips === 0, JSON.stringify([cat.swatches, cat.pg1, cat.pg2]));
+  check('strip: pattern tiles show a picture of the pattern', cat.pics);
+  check('strip: unowned patterns carry a padlock', cat.locks);
 
-  /* ---- 2. page flip ---- */
-  const vis = () => page.evaluate(() => ({
-    pg2: document.getElementById('swatches').classList.contains('pg2'),
-    shown1: [...document.querySelectorAll('.swatch[data-pg="1"]')].filter(s => s.getBoundingClientRect().width > 0).length,
-    shown2: [...document.querySelectorAll('.swatch[data-pg="2"]')].filter(s => s.getBoundingClientRect().width > 0).length,
-    chip: (r => [r.width, r.height])(document.getElementById('paintFlip').getBoundingClientRect())
-  }));
+  /* ---- 2. one strip: arrows page from the colors to the patterns and back ---- */
+  const vis = () => page.evaluate(() => {
+    const sr = strip.getBoundingClientRect();
+    const shown = [...document.querySelectorAll('#strip .tile[data-color]')].filter(t => { const r = t.getBoundingClientRect(); return r.left >= sr.left - 1 && r.right <= sr.right + 1; });
+    return {
+      shown1: shown.filter(t => !PATTERNS[t.dataset.color]).length, shown2: shown.filter(t => PATTERNS[t.dataset.color]).length,
+      scroll: Math.round(strip.scrollLeft), chip: (r => [r.width, r.height])(document.getElementById('stripNext').getBoundingClientRect())
+    };
+  });
   const v0 = await vis();
-  check('flip: colors page first (12 shown, 0 patterns)', !v0.pg2 && v0.shown1 === 12 && v0.shown2 === 0, JSON.stringify(v0));
-  check('flip: chip is a >=64px touch target', v0.chip[0] >= 63.5 && v0.chip[1] >= 63.5, v0.chip.map(n => n.toFixed(1)).join('x'));
-  await tap('#paintFlip'); await page.waitForTimeout(450);
+  check('arrows: strip opens on the colors (7 shown, 0 patterns)', v0.scroll === 0 && v0.shown1 === 7 && v0.shown2 === 0, JSON.stringify(v0));
+  check('arrows: page arrow is a >=64px touch target', v0.chip[0] >= 63.5 && v0.chip[1] >= 63.5, v0.chip.map(n => n.toFixed(1)).join('x'));
+  await tap('#stripNext'); await page.waitForTimeout(700); await tap('#stripNext'); await page.waitForTimeout(700);
   const v1 = await vis();
-  check('flip: tap shows the pattern page (11 shown, 0 colors)', v1.pg2 && v1.shown2 === 11 && v1.shown1 === 0, JSON.stringify(v1));
+  check('arrows: two pages on shows the patterns (7 shown, 0 colors)', v1.shown2 === 7 && v1.shown1 === 0, JSON.stringify(v1));
   await page.screenshot({ path: SHOT + 'paint-patterns-page.png' });
-  await tap('#paintFlip'); await page.waitForTimeout(450);
+  await tap('#stripPrev'); await tap('#stripPrev'); await page.waitForTimeout(900);
   const v2 = await vis();
-  check('flip: tap again returns to colors', !v2.pg2 && v2.shown1 === 12, JSON.stringify(v2));
+  check('arrows: back twice returns to the colors', v2.scroll === 0 && v2.shown1 === 7, JSON.stringify(v2));
 
   /* ---- 3. defs in both views ---- */
   const defs = await page.evaluate(() => {
@@ -97,21 +108,20 @@ function check(name, ok, detail) {
 
   /* ---- 4. buying a pattern ---- */
   await page.evaluate(() => { progress.owned.color = []; progress.wallet = 100; state.color = '#fdd835'; save(); renderPreview(); renderSwatchLocks(); renderWallets(false); });
-  await tap('#paintFlip'); await page.waitForTimeout(300);
-  await tap('.swatch[data-color="p:flames"]'); await page.waitForTimeout(300);
+  await tapTile('.tile[data-color="p:flames"]'); await page.waitForTimeout(300);
   const tag = await page.evaluate(() => ({
     color: state.color, tag: priceTag.classList.contains('show'), afford: priceTag.classList.contains('afford'),
-    text: priceTag.textContent.trim(), goLocked: goBtn.classList.contains('locked'), sel: document.querySelector('.swatch.selected').dataset.color
+    text: priceTag.textContent.trim(), goLocked: goBtn.classList.contains('locked'), sel: document.querySelector('#strip .tile.sel').dataset.color
   }));
   check('shop: tapping a locked pattern equips it + shows an affordable 70-star tag', tag.color === 'p:flames' && tag.tag && tag.afford && tag.text === '70' && tag.goLocked && tag.sel === 'p:flames', JSON.stringify(tag));
   await tap('#priceTag'); await page.waitForTimeout(400);
   const bought = await page.evaluate(() => ({
     wallet: progress.wallet, owned: progress.owned.color.includes('p:flames'), tag: priceTag.classList.contains('show'),
-    lock: !!document.querySelector('.swatch[data-color="p:flames"] .lockDot'), goLocked: goBtn.classList.contains('locked')
+    lock: !!document.querySelector('.tile[data-color="p:flames"] .lockDot'), goLocked: goBtn.classList.contains('locked')
   }));
   check('shop: buying spends 70, unlocks, drops the padlock + tag', bought.wallet === 30 && bought.owned && !bought.tag && !bought.lock && !bought.goLocked, JSON.stringify(bought));
   /* not enough stars: tag goes gray, nothing bought */
-  await tap('.swatch[data-color="p:gold"]'); await page.waitForTimeout(200);
+  await tapTile('.tile[data-color="p:gold"]'); await page.waitForTimeout(200);
   await tap('#priceTag'); await page.waitForTimeout(300);
   const deny = await page.evaluate(() => ({ wallet: progress.wallet, owned: progress.owned.color.includes('p:gold'), afford: priceTag.classList.contains('afford') }));
   check('shop: 30 stars cannot buy gold chrome (120)', deny.wallet === 30 && !deny.owned && !deny.afford, JSON.stringify(deny));
@@ -152,12 +162,15 @@ function check(name, ok, detail) {
 
   /* persistence: reload keeps the equipped pattern and opens the tray on the pattern page */
   await page.reload(); await page.waitForTimeout(600);
-  const persisted = await page.evaluate(() => ({
-    color: state.color, pg2: document.getElementById('swatches').classList.contains('pg2'),
-    sel: document.querySelector('.swatch.selected') && document.querySelector('.swatch.selected').dataset.color,
-    pattern: !!document.querySelector('#preview svg pattern')
-  }));
-  check('persist: reload keeps galaxy equipped, tray opens on patterns page', persisted.color === 'p:galaxy' && persisted.pg2 && persisted.sel === 'p:galaxy' && persisted.pattern, JSON.stringify(persisted));
+  const persisted = await page.evaluate(() => {
+    openTab('color', false);
+    const sel = document.querySelector('#strip .tile.sel'), sr = strip.getBoundingClientRect(), r = sel && sel.getBoundingClientRect();
+    return {
+      color: state.color, pg2: !!sel && r.left >= sr.left - 1 && r.right <= sr.right + 1,
+      sel: sel && sel.dataset.color, pattern: !!document.querySelector('#preview svg pattern')
+    };
+  });
+  check('persist: reload keeps galaxy equipped, paint strip opens scrolled to it', persisted.color === 'p:galaxy' && persisted.pg2 && persisted.sel === 'p:galaxy' && persisted.pattern, JSON.stringify(persisted));
 
   /* ---- 7. road car + album photo ---- */
   await page.evaluate(() => { progress.owned.body.push('race'); state.body = 'race'; save(); drive(1); });

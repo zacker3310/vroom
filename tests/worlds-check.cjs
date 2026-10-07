@@ -172,17 +172,19 @@ function check(name, ok, detail) {
     wheels: !!WHEELS.glow && !!WHEELS.star && PRICES.wheels.glow === 90,
     honks: ['limo','dragon','train','royal'].every(b => typeof HONKS[b] === 'function'),
     extras: ['wings','booster','partyhat'].every(x => PRICES.extras[x] > 0 && state.extras[x] === false),
-    extraBtns: document.querySelectorAll('.extraBtn').length
+    extraBtns: (openTab('extras', false), document.querySelectorAll('#strip .tile[data-extra]').length)
   }));
   check('premium: 4 bodies + 2 wheels + honks registered with prices', premium.bodies && premium.wheels && premium.honks, JSON.stringify(premium));
-  check('extras: 3 purchasable extras with buttons (10 total incl. shop pack)', premium.extras && premium.extraBtns === 10, JSON.stringify({ btns: premium.extraBtns }));
+  check('extras: 3 purchasable extras with tiles (10 total incl. shop pack)', premium.extras && premium.extraBtns === 10, JSON.stringify({ btns: premium.extraBtns }));
 
   /* locked extra gates GO, buying unlocks */
   const extraShop = await page.evaluate(() => {
     showGarage();
     progress.wallet = 100; renderWallets(false);
-    const wingsBtn = document.querySelector('.extraBtn[data-extra="wings"]');
-    wingsBtn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    openTab('extras', false);
+    const wingsBtn = document.querySelector('.tile[data-extra="wings"]');
+    wingsBtn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 300, clientY: 600 }));
+    wingsBtn.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: 300, clientY: 600 }));
     const gated = goBtn.classList.contains('locked') && priceTag.classList.contains('show');
     priceTag.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
     return { gated, owned: progress.owned.extras.includes('wings'), wallet: progress.wallet, ungated: !goBtn.classList.contains('locked'), rendered: preview.innerHTML.includes('flapWing') };
