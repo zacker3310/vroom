@@ -1458,7 +1458,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "12.3.0";
+const APP_VERSION = "12.3.1";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -1591,6 +1591,9 @@ let state = { body: "dump", wheels: "normal", color: "#fdd835", buddy: null, dec
 /* race number: up to two digits on a white roundel at the body's decal anchor (both views); a sticker on the same
    panel slides aside to share it. Typing a new number costs NUMBER_PRICE each time; taking it off is free. */
 const NUMBER_PRICE = 400, NUMBER_RE = /^\d{1,2}$/;
+/* roundel scale from the panel's sticker scale: 1.3x, clamped so small doors still get a legible number (>= 42 px)
+   and wide panels do not drown in it (<= 65 px) */
+const numK = dk => Math.max(0.62, Math.min(0.95, dk * 1.3));
 const NUMBER_FONT = `-apple-system,'Arial Rounded MT Bold',sans-serif`;
 function numberSVG(n, cls = "") {
   /* 72 px roundel centred on 0,0: white face, ink ring, bold numerals (two digits set a little smaller) */
@@ -2174,11 +2177,13 @@ function vehicleSVG(st) {
   /* buddy peeks from behind the body unless its anchor says it rides in front (glass cockpits) */
   const buddy = hasBuddy ? `<g transform="${buddyXform(A.buddy)}"><g class="buddyBob">${BUDDY_SVG[st.buddy]}</g></g>` : "";
   const buddyInFront = !!A.buddy[3];
+  /* the race number owns the panel centre at NUM_K x the sticker scale; a sticker then shrinks and perches
+     on the roundel's upper-front shoulder instead of sharing the middle */
   const hasDecal = !!(st.decal && st.decal !== "none" && DECAL_SVG[st.decal]), hasNum = !!st.number;
-  const dk = A.decal[2] ?? 1, both = hasDecal && hasNum, pk = both ? dk * 0.8 : dk, shift = both ? 40 * dk : 0;
-  const decal = (hasDecal
-    ? `<g data-decal="${st.decal}" transform="translate(${A.decal[0] + shift},${A.decal[1]}) scale(${pk})">${DECAL_SVG[st.decal]}</g>` : "")
-    + (hasNum ? `<g data-number="${st.number}" transform="translate(${A.decal[0] - shift},${A.decal[1]}) scale(${pk})">${numberSVG(st.number)}</g>` : "");
+  const dk = A.decal[2] ?? 1, nk = numK(dk), r = 34 * nk;
+  const [sx, sy, sk] = hasNum ? [A.decal[0] + r * 0.9, A.decal[1] - r * 0.6, dk * 0.55] : [A.decal[0], A.decal[1], dk];
+  const decal = (hasDecal ? `<g data-decal="${st.decal}" transform="translate(${sx},${sy}) scale(${sk})">${DECAL_SVG[st.decal]}</g>` : "")
+    + (hasNum ? `<g data-number="${st.number}" transform="translate(${A.decal[0]},${A.decal[1]}) scale(${nk})">${numberSVG(st.number)}</g>` : "");
   return `<svg viewBox="0 0 320 230" style="--paint:${paint}">
     ${defs}
     <g transform="translate(0,${-lift})"><g class="${B.hover ? "hoverBob" : ""}">
@@ -5073,9 +5078,9 @@ function vehicleRearSVG(st) {
   const dq = N.decal;
   {
     const hasDecal = !!(st.decal && st.decal !== "none" && DECAL_SVG[st.decal]), hasNum = !!st.number;
-    const rk = dq[3] ?? .6, both = hasDecal && hasNum, pk = both ? rk * 0.8 : rk, shift = both ? 30 : 0;
-    if (hasDecal) over += at([dq[0] + shift, dq[1], dq[2]], `<g data-decal="${st.decal}">${DECAL_SVG[st.decal]}</g>`, pk);
-    if (hasNum) over += at([dq[0] - shift, dq[1], dq[2]], `<g data-number="${st.number}">${numberSVG(st.number)}</g>`, pk * 1.4);   /* a compact roundel reads bigger than sticker art */
+    const rk = dq[3] ?? .6;
+    if (hasDecal) over += at(hasNum ? [dq[0] + 34, dq[1] - 24, dq[2]] : dq, `<g data-decal="${st.decal}">${DECAL_SVG[st.decal]}</g>`, hasNum ? rk * 0.55 : rk);
+    if (hasNum) over += at(dq, `<g data-number="${st.number}">${numberSVG(st.number)}</g>`, Math.max(1.4, rk * 2.4));   /* the chase cam shrinks everything; the roundel stays legible */
   }
   const rz = N.decal[2];
   over += `<g class="mudSpots" style="opacity:${progress.muddy ? 1 : 0}">${

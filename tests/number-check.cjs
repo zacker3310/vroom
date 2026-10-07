@@ -69,9 +69,10 @@ function check(name, ok, detail) {
     const d = preview.querySelector('[data-decal]'), n = preview.querySelector('[data-number]');
     const x = g => parseFloat(tf(g).match(/translate\(([-\d.]+)/)[1]), k = g => parseFloat(tf(g).match(/scale\(([-\d.]+)/)[1]);
     const anchor = BODIES[state.body].anchors.decal;
-    return { dx: x(d) - x(n), kd: k(d), kn: k(n), base: anchor[2] ?? 1 };
+    const y = g => parseFloat(tf(g).match(/translate\([-\d.]+,([-\d.]+)/)[1]);
+    return { dx: x(d) - x(n), dy: y(d) - y(n), kd: k(d), kn: k(n), base: anchor[2] ?? 1, numAtAnchor: x(n) === anchor[0] };
   });
-  check('layout: sticker + number sit side by side on the panel at 80% scale', share.dx > 0 && Math.abs(share.kd - share.base * 0.8) < 1e-6 && share.kn === share.kd, JSON.stringify(share));
+  check('layout: number owns the panel centre at numK; the sticker shrinks to 55% and perches on its upper-front shoulder', share.numAtAnchor && Math.abs(share.kn - Math.max(0.62, Math.min(0.95, share.base * 1.3))) < 1e-6 && share.dx > 0 && share.dy < 0 && Math.abs(share.kd - share.base * 0.55) < 1e-6, JSON.stringify(share));
 
   /* ---- 5. rear view carries the number too ---- */
   const rear = await page.evaluate(() => {
