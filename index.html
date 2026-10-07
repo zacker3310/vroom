@@ -1701,6 +1701,10 @@ const WHEEL_DECOR = {
     `<rect x="-7" y="${-r - 2}" width="14" height="8" rx="2" fill="#111" transform="rotate(${a * 36})"/>`
   ).join("")
 };
+/* legacy per-body points other code reads (damage decals, smoke): derived from the anchors */
+function deriveBodyPoints(tbl) {
+  for (const b of Object.values(tbl)) { b.roof = b.anchors.beacon.slice(0, 2); b.rear = b.anchors.flag.slice(0, 2); }
+}
 function wheelSVG(type, cx) {
   const w = WHEELS[type];
   const cy = 200 - w.r;
@@ -1716,9 +1720,36 @@ function wheelSVG(type, cx) {
 function eye(cx, cy, r) {
   return `<g class="vEye"><circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff"/><circle cx="${cx + r * 0.25}" cy="${cy}" r="${r * 0.45}" fill="#1d3557"/></g>`;
 }
+/* ============ BODIES — garage side view (viewBox 0 0 320 230, ground y=200, car faces RIGHT) ============
+   Every body carries an `anchors` block; it is the ONLY thing that positions accessories. All
+   points are [x, y] in viewBox px, measured on the body art as drawn (big wheels lift the whole
+   group, anchors move with it). Fill in every field; the garage, wash bay and album all read them.
+
+     hat:     [x, y]       base-centre of the party hat when NO buddy rides: the highest flat roof
+                           point (cab roof). With a buddy the hat moves to the buddy's head
+                           automatically (HAT_ON_BUDDY), so `hat` may equal `buddy`.
+     horn:    [x, y]       the cab roof's FRONT top corner. The horn's tube sits on the roof just
+                           behind x; its bell overhangs the cab face (art spans x-12..x+14, y-20..y+8).
+     beacon:  [x, y]       base-plate centre on the cab roof (plate 28 wide, dome 26 tall above y).
+     flag:    [x, y, h?]   pole foot on the body's top edge at a REAR corner; h = pole height
+                           (default 52). The pennant flies forward (x+2..x+38, top 20 px of the pole).
+     wings:   [x, y]       wing root on the flank at the body's vertical midline, usually just behind
+                           the cab; the wing sweeps back to x-38 and spans y-22..y+19.
+     booster: [x, y]       nozzle attach point on the rear bumper / exhaust (cone x-19..x+3,
+                           y-13..y+13, flame to x-37). Keep x >= 38 so the flame stays in frame.
+     decal:   [x, y, k]    sticker centre + scale on the largest flat flank panel. Decal art is
+                           ~72x72 at k=1; k 0.3-0.5 for doors, 0.7-0.8 for van/bed panels.
+     buddy:   [x, y, k?, f?] the edge the critter peeks over: its paws land on (x, y), head r=22k
+                           above (art 64 wide, y-46k..y). k = scale (default 1). f = 1 draws the
+                           buddy IN FRONT of the body (glass cockpits: ufo dome, rocket porthole);
+                           otherwise it hides behind the body and peeks over the edge.
+
+   Rules: no accessory may overlap another or cover a window; roof slots from the front: horn ->
+   beacon -> buddy/hat (a 44 px head needs ~44 px of roof). BODIES[*].roof / .rear are derived
+   (deriveBodyPoints) as beacon / flag for the damage + smoke code — do not hand-write them. */
 const BODIES = {
   dump: {
-    roof: [245, 100], rear: [45, 105],
+    anchors: { hat: [207, 100], horn: [275, 100], beacon: [243, 100], flag: [42, 100], wings: [194, 136], booster: [49, 150], decal: [108, 138, .8], buddy: [150, 100] },
     svg: () => `
       <path d="M40 108 L185 108 L178 165 L52 165 Z" fill="var(--paint)" stroke="#00000033" stroke-width="4"/>
       <rect x="36" y="100" width="155" height="14" rx="6" fill="var(--paint)" filter="brightness(.8)"/>
@@ -1729,7 +1760,7 @@ const BODIES = {
       <rect x="30" y="160" width="260" height="14" rx="6" fill="#495057"/>`
   },
   digger: {
-    roof: [225, 78], rear: [55, 128],
+    anchors: { hat: [194, 78], horn: [258, 78], beacon: [230, 78], flag: [64, 128, 30], wings: [178, 150], booster: [47, 150], decal: [112, 150, .55], buddy: [194, 78] },
     svg: () => `
       <rect x="45" y="128" width="215" height="44" rx="10" fill="var(--paint)"/>
       <rect x="180" y="78" width="78" height="58" rx="10" fill="var(--paint)"/>
@@ -1742,7 +1773,7 @@ const BODIES = {
       <rect x="40" y="160" width="240" height="14" rx="6" fill="#495057"/>`
   },
   mixer: {
-    roof: [245, 100], rear: [50, 90],
+    anchors: { hat: [211, 100], horn: [275, 100], beacon: [247, 100], flag: [68, 150], wings: [192, 120], booster: [60, 164], decal: [72, 118, .5], buddy: [211, 100] },
     svg: () => `
       <ellipse cx="115" cy="118" rx="78" ry="50" fill="var(--paint)" stroke="#00000033" stroke-width="4"/>
       <path d="M50 100 Q115 78 180 100 M45 122 Q115 145 183 122" stroke="#ffffffaa" stroke-width="7" fill="none"/>
@@ -1756,7 +1787,7 @@ const BODIES = {
       <rect x="60" y="150" width="230" height="20" rx="8" fill="#495057"/>`
   },
   fire: {
-    roof: [250, 92], rear: [42, 100],
+    anchors: { hat: [226, 92], horn: [288, 92], beacon: [262, 92], flag: [40, 108], wings: [52, 134], booster: [38, 168], decal: [175, 139, .7], buddy: [226, 92] },
     svg: () => `
       <rect x="35" y="108" width="250" height="62" rx="12" fill="var(--paint)"/>
       <rect x="215" y="92" width="70" height="40" rx="8" fill="var(--paint)"/>
@@ -1769,7 +1800,7 @@ const BODIES = {
       <rect x="30" y="162" width="264" height="12" rx="6" fill="#495057"/>`
   },
   monster: {
-    roof: [212, 78], rear: [55, 120],
+    anchors: { hat: [184, 78], horn: [246, 78], beacon: [218, 78], flag: [58, 120], wings: [52, 136], booster: [40, 168], decal: [146, 143, .5], buddy: [184, 78] },
     svg: () => `
       <rect x="45" y="120" width="230" height="46" rx="12" fill="var(--paint)"/>
       <path d="M165 122 L172 78 L245 78 L262 122 Z" fill="var(--paint)" filter="brightness(1.1)"/>
@@ -1781,7 +1812,7 @@ const BODIES = {
   /* police: low sedan silhouette — long trunk-hood line with a rounded cabin hump,
      white side stripe with a navy star badge, red+blue lightbar on the roof */
   police: {
-    roof: [140, 84], rear: [52, 116],
+    anchors: { hat: [80, 116], horn: [230, 85], beacon: [150, 84], flag: [50, 118], wings: [118, 136], booster: [44, 150], decal: [208, 142, .45], buddy: [80, 116] },
     svg: () => `
       <path d="M42 128 Q42 116 56 116 L104 116 L120 90 Q124 84 132 84 L228 84 Q236 84 240 90 L256 116 L266 116 Q280 116 280 128 L280 158 L42 158 Z" fill="var(--paint)"/>
       <rect x="50" y="134" width="222" height="16" rx="7" fill="#f8f9fa"/>
@@ -1797,7 +1828,7 @@ const BODIES = {
   /* race: low sleek wedge rising from the pointed nose (right) to the tail (left),
      bubble cockpit canopy, tall rear spoiler, white "1" roundel on the flank */
   race: {
-    roof: [142, 86], rear: [50, 78],
+    anchors: { hat: [142, 86], horn: [190, 112], beacon: [86, 116], flag: [30, 76], wings: [98, 140], booster: [42, 150], decal: [256, 140, .35], buddy: [142, 88] },
     svg: () => `
       <rect x="46" y="86" width="10" height="36" rx="3" fill="#343a40"/>
       <rect x="26" y="76" width="56" height="12" rx="5" fill="var(--paint)" filter="brightness(.75)"/>
@@ -1812,7 +1843,7 @@ const BODIES = {
   /* tractor: tall boxy cab at the rear with a big fender arch over the back wheel,
      low flat hood out front with grille, headlight and an exhaust stack on top */
   tractor: {
-    roof: [142, 56], rear: [46, 108],
+    anchors: { hat: [126, 56], horn: [188, 56], beacon: [160, 56], flag: [56, 110], wings: [97, 126], booster: [42, 156], decal: [142, 138, .55], buddy: [126, 56] },
     svg: () => `
       <rect x="96" y="56" width="92" height="102" rx="12" fill="var(--paint)"/>
       <rect x="108" y="68" width="68" height="48" rx="8" fill="#bde0fe"/>
@@ -1828,7 +1859,7 @@ const BODIES = {
   /* icecream: tall boxy van with striped awning over a white serving window,
      giant waffle cone + pink scoop + cherry towering off the roof */
   icecream: {
-    roof: [104, 76], rear: [46, 88],
+    anchors: { hat: [100, 76], horn: [286, 106], beacon: [142, 76], flag: [44, 76], wings: [44, 122], booster: [44, 158], decal: [185, 134, .8], buddy: [100, 76] },
     svg: () => `
       <rect x="40" y="76" width="196" height="92" rx="12" fill="var(--paint)"/>
       <rect x="222" y="106" width="64" height="62" rx="10" fill="var(--paint)" filter="brightness(.92)"/>
@@ -1849,7 +1880,7 @@ const BODIES = {
   /* rocket: horizontal capsule fuselage with a pointed nose cone (right), swept
      tail fin (left), silver thruster spitting flames, porthole eye, flame decal */
   rocket: {
-    roof: [150, 96], rear: [80, 100],
+    anchors: { hat: [150, 96], horn: [236, 100], beacon: [120, 96], flag: [58, 66], wings: [94, 127], booster: [56, 157], decal: [250, 127, .42], buddy: [192, 142, .65, 1] },
     svg: () => `
       <path d="M92 100 L56 64 L56 100 Z" fill="var(--paint)" filter="brightness(.8)"/>
       <rect x="58" y="96" width="180" height="62" rx="26" fill="var(--paint)"/>
@@ -1866,7 +1897,7 @@ const BODIES = {
   /* ufo: wide saucer ellipse with a darker under-hull, glass dome canopy with a
      big alien-cute eye, antenna ball on the dome, ring of yellow rim lights */
   ufo: {
-    roof: [150, 62], rear: [52, 122],
+    anchors: { hat: [160, 60], horn: [218, 105], beacon: [100, 106], flag: [60, 116, 60], wings: [52, 122], booster: [58, 152], decal: [90, 124, .4], buddy: [160, 104, .9, 1] },
     svg: () => `
       <path d="M112 120 Q112 60 160 60 Q208 60 208 120 Z" fill="#bde0fe"/>
       ${eye(164, 94, 11)}
@@ -1882,29 +1913,37 @@ const BODIES = {
       <rect x="70" y="156" width="180" height="14" rx="7" fill="#495057"/>`
   }
 };
-function extrasSVG(body, extras) {
-  const [rx, ry] = BODIES[body].roof;
-  const [fx, fy] = BODIES[body].rear;
-  let out = "";
-  if (extras.horn) out += `
-    <g transform="translate(${rx - 28},${ry - 20})">
-      <path d="M4 14 Q4 4 16 4 L30 -4 L30 24 L16 16 Q4 16 4 14Z" fill="#ffd60a" stroke="#023047" stroke-width="3"/>
-    </g>`;
-  if (extras.beacon) out += `
-    <g transform="translate(${rx + 14},${ry - 26})">
+deriveBodyPoints(BODIES);
+/* side-view accessory art, each drawn relative to its anchor point (see the anchor
+   contract above BODIES). Pole heights / scales come from the anchor's optional extras. */
+const SIDE_EXTRA_SVG = {
+  /* horn: tube sits on the roof just behind the anchor, bell overhangs the cab's front edge */
+  horn: ([x, y]) => `<g transform="translate(${x - 16},${y - 16})">
+      <path d="M4 14 Q4 4 16 4 L30 -4 L30 24 L16 16 Q4 16 4 14Z" fill="#ffd60a" stroke="#023047" stroke-width="3"/></g>`,
+  /* beacon: base plate centred on the anchor, dome above */
+  beacon: ([x, y]) => `<g transform="translate(${x},${y - 26})">
       <rect x="-14" y="18" width="28" height="8" rx="4" fill="#adb5bd"/>
       <path d="M-10 18 Q-10 -2 0 -2 Q10 -2 10 18Z" fill="#ff9f1c" stroke="#e76f51" stroke-width="2"/>
-      <g class="spinner"><path d="M0 8 L0 -14" stroke="#ffd60a" stroke-width="5" stroke-linecap="round"/></g>
-    </g>`;
-  if (extras.flag) out += `
-    <g transform="translate(${fx},${fy})">
-      <path d="M0 0 V-52" stroke="#6c757d" stroke-width="5" stroke-linecap="round"/>
-      <path d="M2 -50 L38 -42 L2 -30 Z" fill="#e63946"/>
-    </g>`;
-  if (typeof NEW_EXTRAS_SVG !== "undefined") {
-    if (extras.wings) out += NEW_EXTRAS_SVG.wings(fx, fy);
-    if (extras.booster) out += NEW_EXTRAS_SVG.booster(fx, fy);
-    if (extras.partyhat) out += NEW_EXTRAS_SVG.partyhat(rx, ry);
+      <g class="spinner"><path d="M0 8 L0 -14" stroke="#ffd60a" stroke-width="5" stroke-linecap="round"/></g></g>`,
+  /* flag: pole foot on the anchor, h px tall (default 52), pennant flies forward */
+  flag: ([x, y, h = 52]) => `<g transform="translate(${x},${y})">
+      <path d="M0 0 V${-h}" stroke="#6c757d" stroke-width="5" stroke-linecap="round"/>
+      <path d="M2 ${-h + 2} L38 ${-h + 10} L2 ${-h + 22} Z" fill="#e63946"/></g>`,
+  wings: ([x, y]) => NEW_EXTRAS_SVG.wings(x, y),
+  booster: ([x, y]) => NEW_EXTRAS_SVG.booster(x, y),
+  partyhat: ([x, y]) => NEW_EXTRAS_SVG.partyhat(x, y)
+};
+/* party hat perched on a buddy's head: buddy-local offset (buddy art is 64 wide, head top y=-40) */
+const HAT_ON_BUDDY = [2, -48];
+function buddyXform([x, y, s = 1]) { return `translate(${x},${y}) scale(${s}) translate(-32,-6)`; }
+function extrasSVG(body, extras, hasBuddy) {
+  const A = BODIES[body].anchors;
+  let out = "";
+  for (const k of ["horn", "beacon", "flag", "wings", "booster"]) if (extras[k] && A[k]) out += SIDE_EXTRA_SVG[k](A[k]);
+  if (extras.partyhat) {
+    out += hasBuddy
+      ? `<g transform="${buddyXform(A.buddy)} translate(32,6)">${NEW_EXTRAS_SVG.partyhat(...HAT_ON_BUDDY)}</g>`
+      : SIDE_EXTRA_SVG.partyhat(A.hat);
   }
   return out;
 }
@@ -1957,16 +1996,21 @@ let svgUid = 0;
 function vehicleSVG(st) {
   const lift = Math.max(0, WHEELS[st.wheels].r - 26);
   const { paint, defs } = paintDefs(st.color, ++svgUid, "side");   /* flat / rainbow / pattern paint */
-  const buddy = st.buddy && progress.owned.buddy.includes(st.buddy)
-    ? `<g transform="translate(${BODIES[st.body].roof[0] - 55},${BODIES[st.body].roof[1] + 4})"><g class="buddyBob">${BUDDY_SVG[st.buddy]}</g></g>`
-    : "";
+  const A = BODIES[st.body].anchors;
+  const hasBuddy = !!(st.buddy && progress.owned.buddy.includes(st.buddy));
+  /* buddy peeks from behind the body unless its anchor says it rides in front (glass cockpits) */
+  const buddy = hasBuddy ? `<g transform="${buddyXform(A.buddy)}"><g class="buddyBob">${BUDDY_SVG[st.buddy]}</g></g>` : "";
+  const buddyInFront = !!A.buddy[3];
+  const decal = st.decal && st.decal !== "none" && DECAL_SVG[st.decal]
+    ? `<g data-decal="${st.decal}" transform="translate(${A.decal[0]},${A.decal[1]}) scale(${A.decal[2] ?? 1})">${DECAL_SVG[st.decal]}</g>` : "";
   return `<svg viewBox="0 0 320 230" style="--paint:${paint}">
     ${defs}
     <g transform="translate(0,${-lift})">
-      ${buddy}
+      ${buddyInFront ? "" : buddy}
       ${BODIES[st.body].svg()}
-      ${extrasSVG(st.body, st.extras)}
-      ${st.decal && st.decal !== "none" && DECAL_SVG[st.decal] ? `<g transform="translate(150,136)">${DECAL_SVG[st.decal]}</g>` : ""}
+      ${buddyInFront ? buddy : ""}
+      ${decal}
+      ${extrasSVG(st.body, st.extras, hasBuddy)}
       <g class="mudSpots" style="opacity:${progress.muddy ? 1 : 0}">
         <circle cx="70" cy="160" r="9" fill="#6b4423"/><circle cx="120" cy="170" r="7" fill="#6b4423"/>
         <circle cx="180" cy="165" r="8" fill="#6b4423"/><circle cx="240" cy="158" r="6" fill="#6b4423"/>
@@ -2332,7 +2376,7 @@ const PREMIUM_BODIES = {
      hood + trunk, extra-long cabin with a row of 4 windows (eye up front),
      gold trim line down the flank, tiny black chauffeur cap on the roof */
   limo: {
-    roof: [150, 90], rear: [26, 118],
+    anchors: { hat: [112, 90], horn: [258, 102], beacon: [160, 90], flag: [24, 118], wings: [76, 140], booster: [26, 150], decal: [185, 142, .45], buddy: [112, 90] },
     svg: () => `
       <path d="M14 130 Q14 118 28 118 L64 118 L78 96 Q82 90 90 90 L242 90 Q250 90 254 96 L268 118 L292 118 Q306 118 306 130 L306 158 L14 158 Z" fill="var(--paint)"/>
       <rect x="92" y="98" width="31" height="26" rx="5" fill="#bde0fe"/>
@@ -2353,7 +2397,7 @@ const PREMIUM_BODIES = {
      round head up front with yellow horns, huge friendly eye, snout and a
      tiny orange flame-breath puff */
   dragon: {
-    roof: [148, 84], rear: [64, 110],
+    anchors: { hat: [251, 76], horn: [300, 104], beacon: [287, 79], flag: [66, 116, 58], wings: [220, 136], booster: [62, 161], decal: [166, 128, .42], buddy: [251, 78] },
     svg: () => `
       <path d="M70 138 Q34 142 28 118 Q24 100 40 98 Q52 96 50 108" stroke="var(--paint)" stroke-width="13" fill="none" stroke-linecap="round"/>
       <path d="M50 116 L40 94 L62 102 Z" fill="var(--paint)" filter="brightness(.8)"/>
@@ -2380,7 +2424,7 @@ const PREMIUM_BODIES = {
      chimney puffing a white steam cloud, red cow-catcher at the front,
      silver side-rod hint running between the wheels */
   train: {
-    roof: [78, 66], rear: [40, 80],
+    anchors: { hat: [96, 66], horn: [262, 99], beacon: [54, 66], flag: [32, 66], wings: [42, 124], booster: [40, 158], decal: [78, 146, .5], buddy: [96, 66] },
     svg: () => `
       <circle cx="237" cy="36" r="11" fill="#fff" opacity=".95"/>
       <circle cx="252" cy="28" r="8" fill="#fff" opacity=".9"/>
@@ -2410,7 +2454,7 @@ const PREMIUM_BODIES = {
      flank, gold scalloped bead skirt along the bottom, waving red pennant
      at the front corner */
   royal: {
-    roof: [226, 90], rear: [72, 96],
+    anchors: { hat: [204, 92], horn: [240, 93], beacon: [90, 92], flag: [64, 104, 62], wings: [180, 128], booster: [66, 154], decal: [129, 124, .38], buddy: [204, 92] },
     svg: () => `
       <path d="M258 96 L258 54" stroke="#6c757d" stroke-width="4" stroke-linecap="round"/>
       <path d="M260 56 L296 62 L284 68 L296 74 L260 78 Z" fill="#e63946"/>
@@ -2486,11 +2530,10 @@ const PREMIUM_HONKS = {
   }
 };
 
-// Vroom extras pack: wings, booster, partyhat
-// Anchors match extrasSVG() in index.html:
-//   roof [rx,ry] = roof surface point (horn/beacon style), rear [fx,fy] = rear mount (flag style).
-// Anchor ranges across all bodies: rear x 42..80 y 78..128, roof x 104..250 y 56..100 —
-// every group stays within ~40px of its anchor so nothing clips the 320x230 viewBox.
+// Vroom extras pack: wings, booster, partyhat.
+// Each takes the (x, y) it is drawn at; extrasSVG() / vehicleRearSVG() pass the body's
+// `anchors.wings` (root), `anchors.booster` (nozzle attach) and `anchors.hat` (hat base) — see
+// the anchor contract above BODIES. The art stays within ~40px of its anchor.
 
 const NEW_EXTRAS_SVG = {
   // Feathered white wings at the rear mount. Two wings (big + small), each a
@@ -2578,6 +2621,7 @@ for (const wk in WORLD_PROPS) for (const wp of WORLD_PROPS[wk]) {
   EXTRA_PROPS[wp.type] = { svg: wp.svg, xOff: wp.xOff, yOff: wp.yOff, hard: wp.kind === "hard", mv: wp.moveSpec || null };
 }
 Object.assign(BODIES, PREMIUM_BODIES);
+deriveBodyPoints(PREMIUM_BODIES);
 BODY_ORDER.push("limo", "dragon", "train", "royal");
 Object.assign(WHEELS, PREMIUM_WHEELS);
 Object.assign(WHEEL_DECOR, PREMIUM_WHEEL_DECOR);
@@ -3802,9 +3846,34 @@ function dragonWing(side) {
 /* helpers for paint on a box's back face (y measured before lift; the face knows its lift) */
 const tail = (x, y, w = 22, h = 14) => F => F(x, y, x + w, y + h, VR, 'class="tailLight"');
 
+/* Accessory anchor contract (rear view). Every CAR3D entry carries `anchors`, points in CAR SPACE
+   [x, y, z] (x lateral, + = right as seen from behind; y up from the ground, before ride-height
+   lift; z forward from the rear bumper). Overlay art is drawn at the projected point, scaled by
+   depth, so a sprite px ~ 1 car unit at z=0. Fill in every field:
+
+     hat:     [x, y, z]       party-hat base when no buddy rides: highest roof point with free space.
+     horn:    [x, y, z]       a roof top corner (x<0 = left, x>0 = right): tube sits inboard on the
+                              roof, bell overhangs that edge (31 units wide).
+     beacon:  [x, y, z]       base-plate centre on the cab roof (34 wide, 31 tall).
+     flag:    [x, y, z]       pole foot at a rear top corner, pole 66 tall, pennant flies to -x.
+     wings:   [x, y, z, k?]   RIGHT-flank root at the body's vertical midline (x = +half); the left
+                              wing is mirrored automatically. k = sprite scale (default 1.6: spans
+                              y-35..y+30; use 1.3 for low bodies).
+     booster: [x, y, z]       nozzle centre on the rear face (r 20); keep clear of the decal.
+     decal:   [x, y, z, k]    sticker centre on the rear face's largest flat panel; k 0.3-0.5
+                              (+-36k units). Also drives mud spots / scuffs (legacy `deco`).
+     buddy:   [x, y, z, k?]   edge the critter peeks over (paws on it, head above); k = sprite scale
+                              (default 1.2: head r 26, ~77 wide). Hat moves onto its head automatically.
+     win:     [x, y, z]       rear-window centre (damage crack).   smoke: [x, y, z] damage-smoke origin.
+
+   Keep z small (0-60) for things on the rear face so they draw over it, and near the cab's rear edge
+   for roof items; overlays always draw on top, so an anchor deep inside the body (large z, centred)
+   would float over parts that should hide it. `roof` / `mount` / `deco` are derived from hat / flag /
+   decal for the legacy damage code — do not hand-write them. */
 const CAR3D = {
   dump: { len: 450, half: 104, axles: [80, 370],
-    roof: [0, 196, 350], mount: [-104, 126, 8], deco: [0, 88, 0], win: [0, 160, 300], smoke: [73, 240, 296],
+    win: [0, 160, 300], smoke: [73, 240, 296],
+    anchors: { hat: [56, 196, 320], horn: [-88, 196, 310], beacon: [-20, 196, 330], flag: [-100, 126, 6], wings: [108, 83, 40], booster: [0, 52, 0], decal: [0, 92, 0, .5], buddy: [0, 126, 20] },
     parts: () => [
       cbox(108, 40, 126, 0, 250, VP, { topDark: true, deco: (F) =>
         F(-92, 104, 92, 110, "#00000022") + F(-92, 66, 92, 72, "#00000022") + tail(-100, 50)(F) + tail(78, 50)(F) + F(-108, 34, 108, 48, VD) }),
@@ -3815,7 +3884,8 @@ const CAR3D = {
       box(66, 80, 196, 240, 292, 300, VM, { late: true })
     ] },
   digger: { len: 340, half: 104, axles: [70, 270],
-    roof: [-43, 206, 105], mount: [-100, 110, 4], deco: [0, 75, 0], win: [-43, 172, 40], smoke: [78, 150, 34],
+    win: [-43, 172, 40], smoke: [78, 150, 34],
+    anchors: { hat: [-50, 206, 42], horn: [10, 206, 150], beacon: [-8, 206, 100], flag: [-100, 110, 4], wings: [104, 75, 30], booster: [-36, 56, 0], decal: [36, 72, 0, .42], buddy: [-50, 206, 42] },
     parts: () => [
       cbox(104, 40, 110, 0, 40, VP, { deco: F => F(-104, 92, 104, 98, "#00000026") + tail(-96, 58)(F) + tail(74, 58)(F) }),
       cbox(104, 40, 96, 40, 340, VP),
@@ -3825,7 +3895,8 @@ const CAR3D = {
       box(72, 84, 110, 150, 28, 40, VM, { late: true })
     ] },
   mixer: { len: 470, half: 98, axles: [80, 380],
-    roof: [0, 160, 380], mount: [-98, 64, 10], deco: [62, 44, 0], win: [0, 130, 330], smoke: [80, 175, 330],
+    win: [0, 130, 330], smoke: [80, 175, 330],
+    anchors: { hat: [0, 160, 332], horn: [-94, 160, 340], beacon: [-56, 160, 370], flag: [-86, 64, 22], wings: [80, 140, 40], booster: [0, 72, 0], decal: [44, 100, 20, .4], buddy: [0, 160, 332] },
     parts: () => [
       cbox(98, 34, 54, 0, 20, VD, { deco: F => tail(-94, 38)(F) + tail(72, 38)(F) }),
       box(-16, 16, 54, 92, 0, 20, VM),
@@ -3837,7 +3908,8 @@ const CAR3D = {
       box(74, 86, 160, 200, 322, 330, VM, { late: true })
     ] },
   fire: { len: 450, half: 104, axles: [80, 370],
-    roof: [64, 172, 392], mount: [-104, 152, 6], deco: [0, 100, 0], win: [52, 124, 0], smoke: [90, 178, 360],
+    win: [52, 124, 0], smoke: [90, 178, 360],
+    anchors: { hat: [0, 172, 332], horn: [-100, 172, 340], beacon: [-60, 172, 370], flag: [-100, 152, 6], wings: [104, 96, 30], booster: [0, 70, 0], decal: [52, 86, 0, .4], buddy: [0, 172, 332] },
     parts: () => [
       cbox(104, 40, 152, 0, 330, VP, { deco: (F, C) => F(-92, 66, -8, 140, "#e9ecef") + F(8, 66, 92, 140, "#e9ecef") +
         F(22, 112, 82, 134, VG) + C(-50, 104, 16, "#ffd60a", 'stroke="#adb5bd" stroke-width="4"') + F(-104, 50, 104, 58, "#fff") +
@@ -3849,7 +3921,8 @@ const CAR3D = {
       ...[30, 80, 130, 180, 230, 280, 330, 380].map(z => box(-44, 44, 154, 161, z, z + 9, "#ced4da", { late: true }))
     ] },
   monster: { len: 400, half: 100, axles: [80, 320],
-    roof: [0, 198, 215], mount: [-100, 118, 6], deco: [0, 90, 0], win: [0, 165, 130], smoke: [86, 206, 256],
+    win: [0, 165, 130], smoke: [86, 206, 256],
+    anchors: { hat: [18, 198, 132], horn: [-82, 198, 140], beacon: [-36, 198, 200], flag: [-96, 118, 6], wings: [100, 90, 30], booster: [0, 70, 0], decal: [56, 106, 0, .3], buddy: [18, 198, 132] },
     parts: () => [
       cbox(100, 62, 118, 0, 130, VP, { topDark: true, deco: (F, C, G) => tail(-96, 98)(F) + tail(74, 98)(F) + F(-104, 62, 104, 76, VD) +
         G(`<path d="M-90 -86 Q-70 -98 -54 -86 Q-38 -74 -22 -86 Q-6 -98 10 -86 Q26 -74 42 -86 Q58 -98 74 -86 Q84 -80 90 -86" stroke="#ffd60a" stroke-width="7" fill="none" stroke-linecap="round"/>`) }),
@@ -3858,7 +3931,8 @@ const CAR3D = {
       box(80, 92, 118, 206, 250, 262, VM, { late: true })
     ] },
   police: { len: 440, half: 100, axles: [80, 360],
-    roof: [-52, 152, 175], mount: [-100, 92, 6], deco: [0, 58, 0], win: [0, 125, 140], smoke: [-60, 42, 0],
+    win: [0, 125, 140], smoke: [-60, 42, 0],
+    anchors: { hat: [0, 92, 6], horn: [86, 152, 160], beacon: [-68, 152, 160], flag: [-96, 92, 6], wings: [100, 66, 30], booster: [0, 55, 0], decal: [-58, 58, 0, .32], buddy: [0, 92, 6] },
     parts: () => [
       cbox(100, 36, 92, 0, 140, VP, { deco: (F, C, G) => F(-100, 70, 100, 82, "#f8f9fa") + tail(-94, 84, 34, 8)(F) + tail(60, 84, 34, 8)(F) +
         F(-104, 30, 104, 44, VD) + F(-22, 48, 22, 62, "#fff") +
@@ -3871,7 +3945,8 @@ const CAR3D = {
       box(4, 52, 162, 178, 210, 240, "#1e88e5", { late: true })
     ] },
   race: { len: 470, half: 112, axles: [90, 380],
-    roof: [0, 144, 24], mount: [-112, 78, 6], deco: [-62, 52, 0], win: [0, 100, 200], smoke: [-30, 42, 0],
+    win: [0, 100, 200], smoke: [-30, 42, 0],
+    anchors: { hat: [0, 120, 202], horn: [100, 74, 210], beacon: [-78, 74, 210], flag: [-110, 144, 10], wings: [112, 58, 30, 1.3], booster: [0, 52, 0], decal: [-60, 48, 0, .3], buddy: [0, 120, 202] },
     parts: () => [
       cbox(112, 30, 78, 0, 200, VP, { deco: (F, C) => tail(-104, 60, 50, 9)(F) + tail(54, 60, 50, 9)(F) + F(-10, 30, 10, 78, "#ffffffaa") +
         C(-30, 42, 8, VK) + C(30, 42, 8, VK) }),
@@ -3882,7 +3957,8 @@ const CAR3D = {
       cbox(118, 130, 144, 0, 50, VP, { late: true, shade: .25 })
     ] },
   tractor: { len: 400, half: 92, axles: [70, 330], wheelScale: [1.45, 0.8],
-    roof: [0, 214, 75], mount: [-78, 214, 4], deco: [0, 100, 0], win: [0, 160, 0], smoke: [35, 225, 327],
+    win: [0, 160, 0], smoke: [35, 225, 327],
+    anchors: { hat: [26, 214, 2], horn: [-78, 214, 20], beacon: [-30, 214, 80], flag: [-110, 128, 4], wings: [78, 172, 40], booster: [0, 66, 0], decal: [0, 104, 0, .4], buddy: [26, 214, 2] },
     parts: () => [
       cbox(78, 60, 214, 0, 150, VP, { deco: F => F(-62, 124, 62, 198, VG) + tail(-70, 76, 16, 14)(F) + tail(54, 76, 16, 14)(F) + F(-16, 60, 16, 72, VK) }),
       box(80, 142, 70, 128, 0, 150, VP, { shade: .2 }), box(-142, -80, 70, 128, 0, 150, VP, { shade: .2 }),
@@ -3890,7 +3966,8 @@ const CAR3D = {
       box(28, 42, 132, 216, 320, 334, VK, { late: true })
     ] },
   icecream: { len: 440, half: 104, axles: [80, 360],
-    roof: [-58, 196, 90], mount: [-104, 196, 6], deco: [52, 76, 0], win: [-48, 150, 0], smoke: [-60, 42, 0],
+    win: [-48, 150, 0], smoke: [-60, 42, 0],
+    anchors: { hat: [-56, 196, 2], horn: [104, 196, 40], beacon: [60, 196, 60], flag: [-100, 196, 6], wings: [104, 118, 30], booster: [0, 66, 0], decal: [-50, 96, 0, .45], buddy: [-56, 196, 2] },
     parts: () => [
       cbox(104, 40, 196, 0, 330, VP, { deco: F => {
         let s = F(-104, 178, 104, 196, VR);
@@ -3902,7 +3979,8 @@ const CAR3D = {
       spr(0, 196, 170, `<path d="M-17 -2 L17 -2 L0 40 Z" fill="#e6a23c" transform="translate(0,-40)"/><circle cx="0" cy="-50" r="19" fill="#ff70a6"/><circle cx="0" cy="-70" r="11" fill="#fff"/><circle cx="0" cy="-83" r="6" fill="#e63946"/>`, 1.4, { late: true })
     ] },
   rocket: { len: 480, half: 80, axles: [90, 380],
-    roof: [0, 184, 200], mount: [-58, 160, 30], deco: [44, 150, 0], win: [0, 150, 0], smoke: [0, 112, 0],
+    win: [0, 150, 0], smoke: [0, 112, 0],
+    anchors: { hat: [34, 172, 30], horn: [-68, 129, 20], beacon: [66, 135, 100], flag: [-6, 262, 18], wings: [70, 112, 40], booster: [0, 112, 0], decal: [-40, 72, 0, .3], buddy: [-46, 165, 30] },
     parts: () => [
       cyl(112, 10, 470, 112, 10, 471, VP),
       cyl(112, 70, 360, 112, 10, 470, VP),
@@ -3912,7 +3990,8 @@ const CAR3D = {
       { ...rocketFin(90), late: true }
     ] },
   ufo: { len: 300, half: 110, axles: [70, 230],
-    roof: [0, 146, 150], mount: [-140, 76, 150], deco: [0, 58, 2], win: [0, 112, 108], smoke: [0, 44, 30],
+    win: [0, 112, 108], smoke: [0, 44, 30],
+    anchors: { hat: [0, 138, 150], horn: [84, 76, 29], beacon: [-70, 76, 29], flag: [-100, 76, 52], wings: [150, 60, 150, 1.3], booster: [0, 58, 2], decal: [-60, 60, 13, .3], buddy: [0, 78, 100, 1] },
     parts: () => [
       hullP([ringY(40, 112, 150), ringY(58, 150, 150)], VP, { shade: .22 }),
       hullP([ringY(58, 150, 150), ringY(76, 140, 150)], VP, { lite: .12, z0: -1 }),
@@ -3923,7 +4002,8 @@ const CAR3D = {
       }).join("") })
     ] },
   limo: { len: 600, half: 104, axles: [90, 510],
-    roof: [0, 148, 250], mount: [-104, 90, 6], deco: [0, 60, 0], win: [0, 122, 150], smoke: [-60, 42, 0],
+    win: [0, 122, 150], smoke: [-60, 42, 0],
+    anchors: { hat: [0, 148, 152], horn: [90, 148, 170], beacon: [-54, 148, 260], flag: [-100, 90, 6], wings: [104, 64, 30, 1.3], booster: [0, 56, 0], decal: [-56, 56, 0, .3], buddy: [0, 148, 152] },
     parts: () => [
       cbox(104, 36, 90, 0, 150, VP, { deco: F => F(-104, 66, 104, 72, "#ffd700") + tail(-98, 76, 40, 9)(F) + tail(58, 76, 40, 9)(F) + F(-108, 30, 108, 44, "#adb5bd") }),
       cbox(104, 36, 90, 150, 470, VP),
@@ -3931,7 +4011,8 @@ const CAR3D = {
       cbox(104, 36, 86, 470, 600, VP)
     ] },
   dragon: { len: 400, half: 96, axles: [80, 320],
-    roof: [0, 232, 345], mount: [-90, 150, 6], deco: [-44, 100, 0], win: [0, 100, 0], smoke: [0, 242, 388],
+    win: [0, 100, 0], smoke: [0, 242, 388],
+    anchors: { hat: [0, 232, 312], horn: [50, 150, 40], beacon: [-50, 150, 40], flag: [-90, 150, 6], wings: [96, 96, 30, 1.3], booster: [0, 100, 0], decal: [60, 84, 0, .35], buddy: [0, 232, 312, 1] },
     parts: () => [
       box(-28, 28, 36, 74, -116, -90, VP, { shade: .2 }),
       box(-12, 12, 46, 70, -90, 0, VP, { y1f: 74 }),
@@ -3942,7 +4023,8 @@ const CAR3D = {
       box(-50, -34, 232, 272, 310, 330, "#ffd60a", { late: true }), box(34, 50, 232, 272, 310, 330, "#ffd60a", { late: true })
     ] },
   train: { len: 480, half: 100, axles: [80, 400],
-    roof: [-52, 220, 70], mount: [-100, 206, 4], deco: [-50, 92, 0], win: [52, 150, 0], smoke: [0, 262, 415],
+    win: [52, 150, 0], smoke: [0, 262, 415],
+    anchors: { hat: [16, 220, -6], horn: [104, 220, 100], beacon: [-50, 220, 40], flag: [-104, 220, -6], wings: [100, 124, 30], booster: [0, 64, 0], decal: [-54, 96, 0, .4], buddy: [16, 220, -6] },
     parts: () => [
       cbox(92, 40, 60, 150, 480, VD),
       cyl(118, 74, 150, 118, 74, 460, VP, { deco: (F, C) => C(0, 118, 74, "#00000022") }),
@@ -3953,7 +4035,8 @@ const CAR3D = {
       spr(0, 262, 415, `<circle cx="0" cy="-14" r="18" fill="#fff" opacity=".95"/><circle cx="20" cy="-30" r="13" fill="#fff" opacity=".9"/><circle cx="-16" cy="-34" r="11" fill="#fff" opacity=".9"/>`, 1.2, { late: true })
     ] },
   royal: { len: 380, half: 96, axles: [70, 300],
-    roof: [62, 200, 120], mount: [-96, 200, 44], deco: [-52, 140, 40], win: [0, 150, 40], smoke: [0, 50, 0],
+    win: [0, 150, 40], smoke: [0, 50, 0],
+    anchors: { hat: [-44, 200, 42], horn: [96, 200, 50], beacon: [56, 200, 60], flag: [-94, 200, 42], wings: [96, 130, 60], booster: [0, 80, 40], decal: [-62, 100, 40, .3], buddy: [-44, 200, 42] },
     parts: () => [
       box(-70, 70, 50, 62, 0, 40, "#8a5a2b"),
       cbox(96, 60, 200, 40, 300, VP, { deco: (F, C) => F(-36, 120, 36, 172, VG) + F(-36, 120, -24, 172, VR) + F(24, 120, 36, 172, VR) +
@@ -3963,6 +4046,9 @@ const CAR3D = {
       spr(0, 200, 170, `<ellipse cx="0" cy="-2" rx="40" ry="11" fill="#e63946"/><path d="M-28 -10 L-28 -40 L-14 -24 L0 -48 L14 -24 L28 -40 L28 -10 Z" fill="#ffd700"/><circle cx="-14" cy="-18" r="4" fill="#e63946"/><circle cx="0" cy="-18" r="4" fill="#1e88e5"/><circle cx="14" cy="-18" r="4" fill="#43a047"/>`, 1.3, { late: true })
     ] }
 };
+
+/* legacy per-body points other code reads (mud, damage bandage, scuff): derived from the anchors */
+for (const R of Object.values(CAR3D)) { R.roof = R.anchors.hat.slice(0, 3); R.mount = R.anchors.flag.slice(0, 3); R.deco = R.anchors.decal.slice(0, 3); }
 
 function partSVG(p, L) {
   /* paint-on-face helpers bound to this part's back plane */
@@ -4062,24 +4148,29 @@ function vehicleRearSVG(st) {
   /* overlay anchors: project a car-space point, return [x, y, scale] */
   const A = (q, dx = 0, dy = 0) => { const [x, y] = vp(q[0] + dx, q[1] + L + dy, q[2]); return [x, y, VS(q[2])]; };
   const at = (q, inner, k = 1, mirror = false) => { const [x, y, s] = A(q); return `<g transform="translate(${fx(x)},${fx(y)}) scale(${mirror ? "-" : ""}${(s * k).toFixed(3)},${(s * k).toFixed(3)})">${inner}</g>`; };
+  const N = R.anchors;
   const hasBuddy = !!(st.buddy && progress.owned.buddy.includes(st.buddy));
+  const bk = N.buddy[3] ?? 1.2;   /* buddy sprite scale (4th anchor slot) */
   let over = "";
-  if (hasBuddy) over += at(R.roof, `<g transform="translate(-32,4)"><g class="buddyBob">${BUDDY_SVG[st.buddy]}</g></g>`, 1.2);
+  if (hasBuddy) over += at(N.buddy, `<g transform="translate(-32,-6)"><g class="buddyBob">${BUDDY_SVG[st.buddy]}</g></g>`, bk);
   const ex = st.extras;
-  if (ex.horn) over += at(R.roof, `<g transform="translate(-58,-14) scale(-1,1)"><path d="M4 14 Q4 4 16 4 L30 -4 L30 24 L16 16 Q4 16 4 14Z" fill="#ffd60a" stroke="#023047" stroke-width="3"/></g>`, 1.2);
-  if (ex.beacon) over += at(R.roof, `<g transform="translate(52,-26)"><rect x="-14" y="18" width="28" height="8" rx="4" fill="#adb5bd"/>
+  /* horn: tube on the roof inboard of the anchor, bell overhanging the roof edge on that side */
+  if (ex.horn) over += at(N.horn, `<g transform="translate(${N.horn[0] < 0 ? 16 : -16},-16) scale(${N.horn[0] < 0 ? -1 : 1},1)"><path d="M4 14 Q4 4 16 4 L30 -4 L30 24 L16 16 Q4 16 4 14Z" fill="#ffd60a" stroke="#023047" stroke-width="3"/></g>`, 1.2);
+  if (ex.beacon) over += at(N.beacon, `<g transform="translate(0,-26)"><rect x="-14" y="18" width="28" height="8" rx="4" fill="#adb5bd"/>
       <path d="M-10 18 Q-10 -2 0 -2 Q10 -2 10 18Z" fill="#ff9f1c" stroke="#e76f51" stroke-width="2"/>
       <g class="spinner"><path d="M0 8 L0 -14" stroke="#ffd60a" stroke-width="5" stroke-linecap="round"/></g></g>`, 1.2);
-  if (ex.flag) over += at(R.mount, `<path d="M0 0 V-60" stroke="#6c757d" stroke-width="5" stroke-linecap="round"/><path d="M-2 -58 L-40 -49 L-2 -36 Z" fill="#e63946"/>`, 1.1);
+  if (ex.flag) over += at(N.flag, `<path d="M0 0 V-60" stroke="#6c757d" stroke-width="5" stroke-linecap="round"/><path d="M-2 -58 L-40 -49 L-2 -36 Z" fill="#e63946"/>`, 1.1);
   if (typeof NEW_EXTRAS_SVG !== "undefined") {
-    const wq = [-R.half, 110, 60], wq2 = [R.half, 110, 60];
-    if (ex.wings) over += at(wq, NEW_EXTRAS_SVG.wings(0, 0), 1.6) + at(wq2, NEW_EXTRAS_SVG.wings(0, 0), 1.6, true);
-    if (ex.booster) over += at([0, R.deco[1], R.deco[2]], `<circle r="17" fill="#ced4da" stroke="#023047" stroke-width="3"/><circle r="11" fill="#495057"/>
+    const wk = N.wings[3] ?? 1.6, wq = [-N.wings[0], N.wings[1], N.wings[2]];
+    if (ex.wings) over += at(wq, NEW_EXTRAS_SVG.wings(0, 0), wk) + at(N.wings, NEW_EXTRAS_SVG.wings(0, 0), wk, true);
+    if (ex.booster) over += at(N.booster, `<circle r="17" fill="#ced4da" stroke="#023047" stroke-width="3"/><circle r="11" fill="#495057"/>
         <g class="rearFlame"><circle r="9" fill="#ff9f1c"/><circle r="4.5" fill="#ffd60a"/></g>`, 1.2);
-    if (ex.partyhat) over += at(hasBuddy ? R.roof : [R.roof[0] + 34, R.roof[1], R.roof[2]], NEW_EXTRAS_SVG.partyhat(0, hasBuddy ? -40 : 0), 1.2);
+    if (ex.partyhat) over += hasBuddy
+      ? at(N.buddy, `<g transform="translate(${HAT_ON_BUDDY[0]},${HAT_ON_BUDDY[1]})">${NEW_EXTRAS_SVG.partyhat(0, 0)}</g>`, bk)
+      : at(N.hat, NEW_EXTRAS_SVG.partyhat(0, 0), 1.2);
   }
-  const dq = [R.deco[0] - (ex.booster && Math.abs(R.deco[0]) < 40 ? 62 : 0), R.deco[1], R.deco[2]];
-  if (st.decal && st.decal !== "none" && DECAL_SVG[st.decal]) over += at(dq, DECAL_SVG[st.decal], 0.6);
+  const dq = N.decal;
+  if (st.decal && st.decal !== "none" && DECAL_SVG[st.decal]) over += at(dq, `<g data-decal="${st.decal}">${DECAL_SVG[st.decal]}</g>`, dq[3] ?? .6);
   const rz = R.deco[2];
   over += `<g class="mudSpots" style="opacity:${progress.muddy ? 1 : 0}">${
     [[-R.half + 22, 52, 9], [-30, 44, 7], [34, 48, 8], [R.half - 20, 56, 6]].map(([x, y, rr]) => { const [px, py, s] = A([x, y, rz]); return `<circle cx="${fx(px)}" cy="${fx(py)}" r="${fx(rr * s)}" fill="#6b4423"/>`; }).join("")}</g>`;
