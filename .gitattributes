@@ -14,6 +14,3 @@
 *.png binary
 *.jpg binary
 *.ico binary
-
-# Keep the big single-file game out of GitHub's language stats noise; it is the project.
-index.html linguist-detectable=true
