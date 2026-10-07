@@ -38,7 +38,7 @@ function check(name, ok, detail) {
     return {
       owned: progress.owned.decal.includes('flame'), wallet: progress.wallet,
       ungated: !goBtn.classList.contains('locked'),
-      rendered: preview.innerHTML.includes('translate(150,136)')
+      rendered: preview.innerHTML.includes('data-decal="flame"')
     };
   });
   check('decals: buying flame (30) unlocks + stamps the flank', dec2.owned && dec2.wallet === 70 && dec2.ungated && dec2.rendered, JSON.stringify(dec2));
