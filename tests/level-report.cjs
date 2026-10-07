@@ -20,7 +20,7 @@ require('fs').mkdirSync(SHOT, { recursive: true });
 
   const rep = await page.evaluate(() => {
     const out = [];
-    for (let n = 1; n <= 80; n++) {
+    for (let n = 1; n <= MAX_LEVEL; n++) {
       buildLevel(n);
       const counts = {};
       for (const p of props) if (p.type !== 'finish') counts[p.type] = (counts[p.type] || 0) + 1;

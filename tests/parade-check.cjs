@@ -41,8 +41,8 @@ function check(name, ok, detail) {
   /* ---- parade stays hidden at 79/80 ---- */
   await page.evaluate(() => {
     progress.levels = {};
-    for (let n = 1; n <= 79; n++) progress.levels[n] = { best: 3, rating: 2, tier: 'B', bestTime: 9 };
-    progress.current = 80; save(); showMap();
+    for (let n = 1; n < MAX_LEVEL; n++) progress.levels[n] = { best: 3, rating: 2, tier: 'B', bestTime: 9 };
+    progress.current = MAX_LEVEL; save(); showMap();
   });
   await page.waitForTimeout(400);
   const hidden = await page.evaluate(() => ({
@@ -53,7 +53,7 @@ function check(name, ok, detail) {
 
   /* ---- 80/80: the trophy appears ---- */
   await page.evaluate(() => {
-    progress.levels[80] = { best: 3, rating: 2, tier: 'B', bestTime: 9 };
+    progress.levels[MAX_LEVEL] = { best: 3, rating: 2, tier: 'B', bestTime: 9 };
     save(); renderMap();
   });
   await page.waitForTimeout(300);
@@ -92,13 +92,13 @@ function check(name, ok, detail) {
     return {
       banked: progress.wallet - w0,
       champ: progress.badges.includes('champ'),
-      levels81: !!progress.levels[81],
+      levels81: !!progress.levels[MAX_LEVEL + 1],
       current: progress.current
     };
   });
   /* 12 stars + 3 + 2 clean + 100 champion = 117; no level-81 record, current untouched */
   check('parade: first finish banks the +100 jackpot (117 total)', finale.banked === 117, JSON.stringify(finale));
-  check('parade: champion sticker earned, no phantom level-81 record', finale.champ && !finale.levels81 && finale.current === 80, JSON.stringify(finale));
+  check('parade: champion sticker earned, no phantom level-81 record', finale.champ && !finale.levels81 && finale.current === MAX_LEVEL, JSON.stringify(finale));
   await page.waitForTimeout(4200);
   const card = await page.evaluate(() => ({
     trophyOnCard: document.getElementById('celebrateTime').innerHTML.includes('M22 4'),

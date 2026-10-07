@@ -321,9 +321,9 @@
   #freeBtn svg { width: 84px; height: 84px; }
   #worldTabs {
     position: absolute; left: 50%; top: 118px; transform: translateX(-50%);
-    display: flex; gap: 10px; z-index: 5;
+    display: flex; gap: 8px; z-index: 5;
   }
-  .worldTab { width: 88px; height: 88px; border-radius: 24px; background: #219ebc; position: relative; }
+  .worldTab { width: 80px; height: 80px; border-radius: 22px; background: #219ebc; position: relative; }
   .worldTab.sel { outline: 6px solid #ffb703; }
   .worldTab.locked { background: #6c757d; opacity: .75; }
   .worldTab.deny { animation: denyShake .4s ease; }
@@ -1345,14 +1345,25 @@ const UPG = {
 };
 const MAX_DAMAGE = 9, REPAIR_RATE = 2;
 
-const MAX_LEVEL = 80;
-const WORLD_COUNT = 8, WORLD_SIZE = 10;
+const WORLD_COUNT = 12, WORLD_SIZE = 10;
+const MAX_LEVEL = WORLD_COUNT * WORLD_SIZE;
+/* per-world physics/feel knobs. A world pack registers its row here (WORLD_META[w] = {...});
+   a world without a row gets the defaults. dark: headlights + pale sky ink; gravity: jump
+   gravity (640 = floaty); hill: hill amplitude (0 = flat); tour: free-drive theme order. */
+const WORLD_META = {
+  1: { dark: false, gravity: 1500, hill: 0 },   2: { dark: false, gravity: 1500, hill: 70 },
+  3: { dark: true,  gravity: 1500, hill: 40 },  4: { dark: false, gravity: 1500, hill: 0 },
+  5: { dark: false, gravity: 1500, hill: 110 }, 6: { dark: false, gravity: 1500, hill: 80 },
+  7: { dark: false, gravity: 1500, hill: 0 },   8: { dark: true,  gravity: 640,  hill: 130 }
+};
+function worldMeta(w) { return WORLD_META[w] || { dark: false, gravity: 1500, hill: 60 }; }
 /* world-specific hazards; the art + specs are filled in by the worlds pack below */
 const WORLD_ITEMS = { 5: ["ice", "snowman"], 6: ["cactus", "tumbleweed"], 7: ["sandcastle", "crab"], 8: ["crater", "alien"] };
 const EXTRA_PROPS = {};   /* type -> { svg, xOff, yOff, hard, mv } */
 function worldOf(n) { return Math.min(WORLD_COUNT, Math.ceil(n / WORLD_SIZE)); }
 /* level length climbs steeply through world 2, then gently — runs stay under ~25s */
-function levelLen(n) { return 3500 + Math.min(n, 20) * 250 + Math.max(0, n - 20) * 100; }
+/* ...and caps at level 80 so the deep worlds stay under ~25s and get harder, not longer */
+function levelLen(n) { n = Math.min(n, 80); return 3500 + Math.min(n, 20) * 250 + Math.max(0, n - 20) * 100; }
 
 /* time-trial medals: S needs a near-clean full-throttle run (upgrades help late game) */
 const TIER_RANK = { S: 3, A: 2, B: 1, C: 0 };
@@ -2572,6 +2583,12 @@ for (const exName in NEW_EXTRAS_SVG) {
   document.getElementById("extras").appendChild(exBtn);
 }
 
+/* ======== SHOP PACK anchor: new bodies / wheels / extras / buddies / decals register here
+   (append to BODY_ORDER, WHEEL_ORDER, CODE_* lists, PRICES; add garage buttons) — must run
+   before loadState() so saved builds validate against the full catalog ======== */
+
+/* ======== PAINT PACK anchor: pattern paints register here (append to COLORS, CODE_COLORS,
+   PRICES.color; pattern defs are emitted by vehicleSVG/vehicleRearSVG) ======== */
 
 loadState();
 
@@ -2836,7 +2853,7 @@ renderQuiet();
 /* ---- tap-anything easter eggs ---- */
 document.getElementById("sun").addEventListener("pointerdown", () => {
   const sun = document.getElementById("sun");
-  const night = roadScene.classList.contains("night") || roadScene.classList.contains("w8");
+  const night = worldMeta(curWorld()).dark;
   sun.classList.remove("cool"); void sun.offsetWidth; sun.classList.add("cool");
   const old = sun.querySelector(".shades"); if (old) old.remove();
   if (!night) {
@@ -2981,32 +2998,43 @@ const CODE_EXTRAS = ["wings", "booster", "partyhat"];
 const CODE_BADGES = ["jump", "clean", "s", "world", "buy", "gag"];   /* FROZEN for save-code layout; champ travels in full codes only */
 const CODE_DECALS = ["flame", "star", "heart", "bolt", "eyes"];
 
-/* compact binary save: everything except photos + best times — small enough for a QR */
+/* compact binary save: everything except photos + best times — small enough for a QR.
+   Format 3: every list is count-prefixed and the build rides along, so content packs can
+   append to CODE_* lists / BODY_ORDER / WHEEL_ORDER / COLORS / BUDDY_ORDER and old codes
+   still decode (shorter lists read fewer bits). Append only, never reorder. */
+const CODE_EXTRA_ALL = () => Object.keys(state.extras);   /* horn, beacon, flag, + paid ones in pack order */
 function packCompact() {
   const bits = [];
   const pushBits = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >> i) & 1); };
-  pushBits(2, 8);                                     /* format version (2 adds decals + mud) */
+  const pushList = (list, has) => { pushBits(list.length, 8); for (const id of list) pushBits(has(id) ? 1 : 0, 1); };
+  pushBits(3, 8);                                     /* format version */
   pushBits(Math.min(65535, progress.wallet), 16);
   pushBits(progress.current, 8);
   pushBits(progress.damage, 4);
   pushBits(progress.quiet ? 1 : 0, 1);
-  pushBits(state.buddy ? BUDDY_ORDER.indexOf(state.buddy) + 1 : 0, 3);
+  pushBits(progress.muddy ? 1 : 0, 1);
   pushBits(progress.upgrades.engine, 2); pushBits(progress.upgrades.armor, 2); pushBits(progress.upgrades.magnet, 2);
-  pushBits(0, 2);                                     /* pad to byte */
-  for (const [list, kind] of [[CODE_BODIES, "body"], [CODE_WHEELS, "wheels"], [CODE_COLORS, "color"], [CODE_EXTRAS, "extras"]]) {
-    for (const id of list) pushBits(progress.owned[kind].includes(id) ? 1 : 0, 1);
-  }
-  for (const id of BUDDY_ORDER) pushBits(progress.owned.buddy.includes(id) ? 1 : 0, 1);
-  for (const id of CODE_BADGES) pushBits(progress.badges.includes(id) ? 1 : 0, 1);
+  pushList(CODE_BODIES, id => progress.owned.body.includes(id));
+  pushList(CODE_WHEELS, id => progress.owned.wheels.includes(id));
+  pushList(CODE_COLORS, id => progress.owned.color.includes(id));
+  pushList(CODE_EXTRAS, id => progress.owned.extras.includes(id));
+  pushList(CODE_DECALS, id => progress.owned.decal.includes(id));
+  pushList(BUDDY_ORDER, id => progress.owned.buddy.includes(id));
+  pushList(BADGES.map(b => b.id), id => progress.badges.includes(id));
+  /* the build: indices into the (append-only) catalog orders, 8 bits each */
+  pushBits(Math.max(0, BODY_ORDER.indexOf(state.body)), 8);
+  pushBits(Math.max(0, WHEEL_ORDER.indexOf(state.wheels)), 8);
+  pushBits(Math.max(0, COLORS.indexOf(state.color)), 8);
+  pushBits(Math.max(0, DECAL_ORDER.indexOf(state.decal)), 8);
+  pushBits(state.buddy ? BUDDY_ORDER.indexOf(state.buddy) + 1 : 0, 8);
+  pushList(CODE_EXTRA_ALL(), id => !!state.extras[id]);
   while (bits.length % 8) pushBits(0, 1);
+  pushBits(MAX_LEVEL, 8);
   for (let n = 1; n <= MAX_LEVEL; n++) {
     const lv = progress.levels[n];
     pushBits(lv ? lv.rating : 0, 2);
     pushBits(lv && lv.tier ? TIER_RANK[lv.tier] : 0, 2);
   }
-  for (const id of CODE_DECALS) pushBits(progress.owned.decal.includes(id) ? 1 : 0, 1);
-  pushBits(state.decal !== "none" ? DECAL_ORDER.indexOf(state.decal) : 0, 3);
-  pushBits(progress.muddy ? 1 : 0, 1);
   const bytes = new Uint8Array(Math.ceil(bits.length / 8));
   bits.forEach((b, i) => { if (b) bytes[i >> 3] |= 128 >> (i & 7); });
   return "VROOM1." + b64url.enc(bytes);
@@ -3016,7 +3044,7 @@ function unpackCompact(code) {
   let pos = 0;
   const read = n => { let v = 0; for (let i = 0; i < n; i++) { v = (v << 1) | ((bytes[pos >> 3] >> (7 - (pos & 7))) & 1); pos++; } return v; };
   const ver = read(8);
-  if (ver !== 1 && ver !== 2) return null;
+  if (ver !== 1 && ver !== 2 && ver !== 3) return null;
   const out = {
     build: { body: "dump", wheels: "normal", color: "#fdd835", buddy: null, decal: "none", extras: { horn: false, beacon: false, flag: false } },
     wallet: read(16), current: read(8),
@@ -3025,6 +3053,34 @@ function unpackCompact(code) {
     levels: {}, badges: [], photos: [],
     upgrades: null
   };
+  const TIER_OF = ["C", "B", "A", "S"];
+  if (ver === 3) {
+    out.muddy = !!read(1);
+    out.upgrades = { engine: read(2), armor: read(2), magnet: read(2) };
+    const readList = (list, onHit) => { const n = read(8); for (let i = 0; i < n; i++) if (read(1) && list[i] !== undefined) onHit(list[i]); };
+    readList(CODE_BODIES, id => out.owned.body.push(id));
+    readList(CODE_WHEELS, id => out.owned.wheels.push(id));
+    readList(CODE_COLORS, id => out.owned.color.push(id));
+    readList(CODE_EXTRAS, id => out.owned.extras.push(id));
+    readList(CODE_DECALS, id => out.owned.decal.push(id));
+    readList(BUDDY_ORDER, id => out.owned.buddy.push(id));
+    readList(BADGES.map(b => b.id), id => out.badges.push(id));
+    out.build.body = BODY_ORDER[read(8)] || "dump";
+    out.build.wheels = WHEEL_ORDER[read(8)] || "normal";
+    out.build.color = COLORS[read(8)] || "#fdd835";
+    out.build.decal = DECAL_ORDER[read(8)] || "none";
+    const bi = read(8);
+    if (bi) out.build.buddy = BUDDY_ORDER[bi - 1] || null;
+    readList(CODE_EXTRA_ALL(), id => { out.build.extras[id] = true; });
+    while (pos % 8) read(1);
+    const nLevels = read(8);
+    for (let n = 1; n <= nLevels; n++) {
+      const rating = read(2), tr = read(2);
+      if (rating && n <= MAX_LEVEL) out.levels[n] = { best: 0, rating, tier: TIER_OF[tr] };
+    }
+    if (pos > bytes.length * 8) return null;
+    return out;
+  }
   const buddyIdx = read(3);
   out.upgrades = { engine: read(2), armor: read(2), magnet: read(2) };
   read(2);
@@ -3034,8 +3090,7 @@ function unpackCompact(code) {
   for (const id of BUDDY_ORDER) if (read(1)) out.owned.buddy.push(id);
   for (const id of CODE_BADGES) if (read(1)) out.badges.push(id);
   while (pos % 8) read(1);
-  const TIER_OF = ["C", "B", "A", "S"];
-  for (let n = 1; n <= MAX_LEVEL; n++) {
+  for (let n = 1; n <= 80; n++) {   /* formats 1-2 always carried exactly 80 levels */
     const rating = read(2), tr = read(2);
     if (rating) out.levels[n] = { best: 0, rating, tier: TIER_OF[tr] };
   }
@@ -3520,7 +3575,7 @@ const WORLD_ROAD = {
 };
 function buildCourse(n, rng, len) {
   COURSE = [];
-  const w = worldOf(n), i = (n - 1) % WORLD_SIZE, P = WORLD_ROAD[w];
+  const w = worldOf(n), i = (n - 1) % WORLD_SIZE, P = WORLD_ROAD[w] || WORLD_ROAD[8];
   const k = P.k * (0.85 + 0.3 * i / 9);                      /* later levels in a world bend a little harder */
   const hk = P.hp ? CURVE.tight * 1.15 * P.hp : k * 1.7;     /* no hairpins in this world: a firm sweep instead */
   const x0 = 950, x1 = len - 1020;
@@ -3554,7 +3609,7 @@ function buildCourse(n, rng, len) {
   /* hills by world: flat construction/rain/beach, rolling farmland and dunes, big snowy
      rises, lumpy moon; later levels in a world roll harder */
   HILLS = [];
-  const hillAmp = [0, 0, 70, 40, 0, 110, 80, 0, 130][w] * (0.7 + 0.3 * ((n - 1) % 10) / 9);
+  const hillAmp = worldMeta(w).hill * (0.7 + 0.3 * ((n - 1) % 10) / 9);
   if (hillAmp) {
     let hx = 600 + rng() * 600;
     while (hx < len - 1400) {
@@ -3971,7 +4026,7 @@ const finishSVG = `<svg width="800" height="380" viewBox="0 0 800 380"><rect x="
 
 /* level runtime */
 let level = 1, lastPlayed = 1, freeMode = false, paradeMode = false;
-const PARADE_LEVEL = 81;
+const PARADE_LEVEL = MAX_LEVEL + 1;
 function paradeUnlocked() {
   for (let n = 1; n <= MAX_LEVEL; n++) if (!progress.levels[n]) return false;
   return true;
@@ -4191,7 +4246,7 @@ const flightLen = w => w === 8 ? FLIGHT_MOON : FLIGHT_EARTH;
 const rampTail = w => flightLen(w) - 250;   /* beyond rp.x + rp.w: nothing on the ground where the car lands */
 /* star height that sits on the full-throttle flight path dx past the ramp start */
 function flightH(w, dx) {
-  const t = Math.max(0, dx - 250) / 650, g = w === 8 ? 640 : 1500;
+  const t = Math.max(0, dx - 250) / 650, g = worldMeta(w).gravity;
   return Math.max(LOW_STAR_H, Math.round(95 + 0.9 * 650 * t - 0.5 * g * t * t + LOW_STAR_H));
 }
 function rampAt(b, x, lane) {
@@ -4527,7 +4582,7 @@ const ROAD_PAL = {
 let roadPal = ROAD_PAL[1];
 function applyTheme(w) {
   const cl = roadScene.classList;
-  cl.remove("sunset", "night", "w4", "w5", "w6", "w7", "w8", "parade");
+  [...cl].filter(c => c === "sunset" || c === "night" || c === "parade" || /^w\d+$/.test(c)).forEach(c => cl.remove(c));
   if (w === 2) cl.add("sunset");
   else if (w === 3) cl.add("night");
   else if (w >= 4) cl.add("w" + w);
@@ -5140,7 +5195,7 @@ function startDrive() {
   if (paradeMode) buildParade(); else if (freeMode) buildFree(); else buildLevel(level);
   carWrap.classList.remove("wobble", "spin");   /* a leftover class would replay on the fresh svg */
   carWrap.innerHTML = vehicleRearSVG(state);
-  setHeadlights(roadScene.classList.contains("night") || roadScene.classList.contains("w8"));
+  setHeadlights(worldMeta(curWorld()).dark);
   wheelEls = carWrap.querySelectorAll(".treadRoll");
   mudEl = carWrap.querySelector(".mudSpots");
   document.querySelectorAll(".pedal").forEach(p => p.classList.remove("held", "nudge"));
@@ -5319,7 +5374,7 @@ function tickFree() {
     scenery = keep;
     freeSceneryX = Math.ceil(cut / SCENERY_STEP) * SCENERY_STEP;
     freeArchX = pos;
-    setHeadlights(themeIdx === 2 || themeIdx === 7);
+    setHeadlights(worldMeta(themeIdx + 1).dark);
     ambSwitch(themeIdx + 1);   /* the ambience bed follows the new world */
   }
 }
@@ -5442,7 +5497,7 @@ function openCapsule(p) {
       wheelEls = carWrap.querySelectorAll(".treadRoll");
       mudEl = carWrap.querySelector(".mudSpots");
       if (muddy) mudEl.style.opacity = 1;
-      setHeadlights(roadScene.classList.contains("night") || roadScene.classList.contains("w8"));
+      setHeadlights(worldMeta(curWorld()).dark);
       return;
     }
     /* all six found: consolation stars */
@@ -5560,8 +5615,7 @@ function hardHit(p, d, dmg) {
 }
 function gravityNow() {
   if (paradeMode) return 640;   /* floaty party jumps */
-  const w = freeMode ? freeThemeIdx + 1 : worldOf(level);
-  return w === 8 ? 640 : 1500;
+  return worldMeta(freeMode ? freeThemeIdx + 1 : worldOf(level)).gravity;
 }
 /* world-prop collisions: same personalities, new costumes */
 function softBonk(p, d) {
@@ -6133,7 +6187,7 @@ function evEl(cls, html, left, top, ms) {
   return el;
 }
 /* the birds' colour follows the sky: dark silhouettes by day, pale at night */
-function skyInk() { return roadScene.classList.contains("night") || roadScene.classList.contains("w8") ? "#dfe7f5" : "#2b2d42"; }
+function skyInk() { return worldMeta(curWorld()).dark ? "#dfe7f5" : "#2b2d42"; }
 const LIVE_EVENTS = {
   birds() {   /* a V of five birds flaps across the sky */
     const ink = skyInk(), top = 60 + Math.random() * 110;
@@ -6420,6 +6474,13 @@ function finishLevel() {
     }, banked > 15 ? 60 : 120);   /* long tallies (world bonus) tick twice as fast */
   }, 700);
 }
+
+/* ======== WORLD PACK anchor A: worlds 9-10 register here (WORLD_META, ROAD_PAL, WORLD_CSS via a
+   <style> injection, WORLD_SET/WORLD_ARCH/WORLD_LANDMARK/WORLD_FAR/WORLD_WEATHER, WORLD_ITEMS +
+   EXTRA_PROPS + PROP_HIT, WORLD_ROAD, defBeat(...), JINGLES/AMBIENCE/STAR_SCALES/WORLD_EVENTS,
+   WORLD_ICONS/WORLD_TINT). Everything above is defined by now. ======== */
+
+/* ======== WORLD PACK anchor B: worlds 11-12 register here (same contract) ======== */
 
 /* ============ NEW VERSION GATE ============ */
 /* No service worker here: a stale game is Safari's cache or a home-screen app left running.

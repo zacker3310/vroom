@@ -83,13 +83,13 @@ function check(name, ok, detail) {
       return { n, finished, t: Math.round(t * 10) / 10, stars: got, total: totalStars, pct: Math.round(100 * got / totalStars), hits, changes, hitLog };
     };
     const out = { smart: [], lazy: [] };
-    for (let n = 1; n <= 80; n++) { out.smart.push(sim(n, true)); out.lazy.push(sim(n, false)); }
+    for (let n = 1; n <= MAX_LEVEL; n++) { out.smart.push(sim(n, true)); out.lazy.push(sim(n, false)); }
     return out;
   });
 
   if (table) {
     console.log(' L   smart: fin   t  stars  pct hits chg | lazy: fin   t  stars  pct hits');
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < runs.smart.length; i++) {
       const s = runs.smart[i], l = runs.lazy[i];
       console.log(`L${String(s.n).padStart(2)}        ${s.finished ? ' ok' : 'NO '} ${String(s.t).padStart(5)} ${String(s.stars).padStart(3)}/${String(s.total).padEnd(3)} ${String(s.pct).padStart(3)}% ${String(s.hits).padStart(3)} ${String(s.changes).padStart(3)} |      ${l.finished ? ' ok' : 'NO '} ${String(l.t).padStart(5)} ${String(l.stars).padStart(3)}/${String(l.total).padEnd(3)} ${String(l.pct).padStart(3)}% ${String(l.hits).padStart(3)}`);
     }
