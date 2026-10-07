@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Vroom app icon: a chunky toy dump truck with a star badge on a warm cream rounded square.
+       Toybox palette: cream #fdf6ea, line #e6d2ab, ink #4a3826, red #ef7d6d, glass #bde0fe, star #ffd60a.
+       Everything sits inside the 80% maskable safe zone (51..461). -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="#fdf6ea"/>
+  <rect x="22" y="22" width="468" height="468" rx="96" fill="none" stroke="#e6d2ab" stroke-width="14"/>
+
+  <!-- ground shadow -->
+  <ellipse cx="270" cy="394" rx="210" ry="14" fill="#4a3826" opacity=".14"/>
+
+  <!-- body: low bed at the back, tall cab in front (the truck faces right) -->
+  <path d="M96 328 L96 250 Q96 228 118 228 L282 228 L282 190 Q282 168 304 168 L388 168 Q410 168 422 190 L446 240 Q452 252 452 268 L452 306 Q452 328 430 328 Z"
+        fill="#ef7d6d" stroke="#4a3826" stroke-width="12" stroke-linejoin="round"/>
+  <!-- bed rail -->
+  <rect x="96" y="228" width="186" height="22" rx="8" fill="#c95a4c"/>
+  <!-- window + the game's eye -->
+  <path d="M302 188 L380 188 Q394 188 402 202 L422 240 L302 240 Z" fill="#bde0fe" stroke="#4a3826" stroke-width="10" stroke-linejoin="round"/>
+  <circle cx="384" cy="216" r="12" fill="#fff"/>
+  <circle cx="387" cy="216" r="5.5" fill="#1d3557"/>
+  <!-- bumper + headlight -->
+  <rect x="440" y="284" width="24" height="28" rx="7" fill="#cfc0a6" stroke="#4a3826" stroke-width="8"/>
+  <circle cx="448" cy="262" r="12" fill="#ffd60a" stroke="#4a3826" stroke-width="7"/>
+
+  <!-- star badge on the flank -->
+  <path d="M238.0,246.0 L247.4,271.1 L274.1,272.3 L253.2,288.9 L260.3,314.7 L238.0,300.0 L215.7,314.7 L222.8,288.9 L201.9,272.3 L228.6,271.1 Z"
+        fill="#ffd60a" stroke="#dca63f" stroke-width="9" stroke-linejoin="round"/>
+
+  <!-- wheels: big dark tyres, cream hubs -->
+  <g>
+    <circle cx="150" cy="336" r="50" fill="#2b2d31" stroke="#4a3826" stroke-width="10"/>
+    <circle cx="150" cy="336" r="24" fill="#fdf6ea"/>
+    <circle cx="150" cy="336" r="8" fill="#2b2d31"/>
+  </g>
+  <g>
+    <circle cx="400" cy="336" r="50" fill="#2b2d31" stroke="#4a3826" stroke-width="10"/>
+    <circle cx="400" cy="336" r="24" fill="#fdf6ea"/>
+    <circle cx="400" cy="336" r="8" fill="#2b2d31"/>
+  </g>
+</svg>

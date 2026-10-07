@@ -3,10 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="A build-a-car driving game for a 3 to 5 year old. One file, no reading, nothing to lose.">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Vroom">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#2f241a">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z' fill='%23ffd60a'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" sizes="192x192" href="docs/icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="docs/icons/apple-touch-icon.png">
 <title>Vroom</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
@@ -1386,6 +1392,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
           <svg viewBox="0 0 100 100"><rect x="22" y="16" width="56" height="72" rx="8" fill="#fff"/><rect x="38" y="8" width="24" height="16" rx="5" fill="#adb5bd"/><path d="M50 38 V66 M38 54 L50 66 L62 54" stroke="#219ebc" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
+      <div id="appVersion" aria-label="game version" style="margin-top:-16px; align-self:flex-end; font: 700 15px/1 var(--v-font, -apple-system, sans-serif); font-variant-numeric: tabular-nums; letter-spacing: .08em; color: var(--v-ink-soft, #8a7360); opacity: .8; pointer-events: none;"></div>
     </div>
   </div>
   <div id="importConfirm">
@@ -1406,6 +1413,12 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 
 <script>
 "use strict";
+
+/* ============ VERSION ============ */
+/* Bumped with each release alongside package.json; shown as a tiny numeral row in the
+   grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
+const APP_VERSION = "12.0.0";
+document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ STAGE SCALING ============ */
 const stage = document.getElementById("stage");
