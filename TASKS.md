@@ -84,6 +84,10 @@
 
 - [x] T14.7: Upkeep lasts 3x: fuel 15600 units of road per unit (about 24 levels a tank), tread 31200 (about 48 levels a set), 1/6 unit of tread per hard hit.
 
+## v12.3 (2026-10-07, user-directed: "race car number, numpad entry, 400 stars to change")
+
+- [x] T15.1: Race number. `state.number` (up to two digits) draws a white roundel at the body's decal anchor in both views; a sticker on the same panel slides aside and both scale to 80% (rear roundel drawn 1.4x so it reads at chase-cam scale). The sticker tab leads with the number tile (shows the current number + 400). Keypad overlay: 3x4 pad (0-9, erase, clear), live roundel preview, OK pays 400 each change, free to remove, deny shake when poor. Travels in the build, photos and a 7-bit v3 save-code tail. Suite number-check (12). 18 suites, 289/289.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

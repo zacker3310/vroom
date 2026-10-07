@@ -77,6 +77,11 @@ stripe) is painted on a canvas each frame; roadside set pieces rush past on both
   flank decal — a flickering layered flame, a shooting star with sparkle trail, a glossy
   heart with a heartbeat, a crackling electric bolt, wobbling googly eyes — each a priced
   unlock through the same tag flow. Decals ride into photos and save codes (format v2).
+- **Race number** (v12.3): the sticker tab leads with a roundel tile. A keypad overlay (0-9,
+  erase, clear; two digits max) previews the number live on a white roundel; OK costs 400
+  stars every time a new number goes on, taking it off is free. The roundel sits at the
+  body's decal anchor on both views; a sticker on the same panel slides aside and both scale
+  to 80%. Travels in the build, photos and the v3 save-code tail.
 - **Victory Parade** (v9): beat all 80 levels and a golden trophy button appears on the
   map, forever. It opens the finale: rainbow road, golden sky, no hazards, floaty
   low-gravity jumps, waves of stars, capsules, every found buddy cheering roadside,

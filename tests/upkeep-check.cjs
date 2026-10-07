@@ -179,9 +179,9 @@ function check(name, ok, detail) {
     progress.fuel = 3.4; progress.tread = 6; save();
     const code = packCompact();
     const out = unpackCompact(code.slice('VROOM1.'.length));
-    /* an older v3 code ends at the level run: drop our one-byte tail */
+    /* a pre-12.2 v3 code ends at the level run: drop the two-byte tail (fuel/tread + race number) */
     const bytes = b64url.dec(code.slice('VROOM1.'.length));
-    const old = unpackCompact(b64url.enc(bytes.slice(0, bytes.length - 1)));
+    const old = unpackCompact(b64url.enc(bytes.slice(0, bytes.length - 2)));
     return { fuel: out && out.fuel, tread: out && out.tread, oldFuel: old && old.fuel, oldOk: !!old && old.wallet === progress.wallet };
   });
   check('save code: v3 tail carries fuel 4 (ceil 3.4) + tread 6; a tail-less older code still decodes with no gauges', persist.fuel === 4 && persist.tread === 6 && persist.oldFuel === undefined && persist.oldOk, JSON.stringify(persist));

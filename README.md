@@ -49,7 +49,7 @@
 ## How to play
 
 **The garage.** Six category tabs (body, wheels, paint, stickers, extras, workbench) open one
-scrollable strip of big picture tiles; tap a tile to equip it, swipe or use the arrows to see more. Locked parts show in full colour with a star price tag: collect stars, tap, own it. The workbench tab holds the engine, shield and star magnet upgrades and the upkeep: fix crash damage with the wrench, wash off real mud with your finger, fill the tank, fit new tires. Fuel burns and tires wear as you drive; a dry tank crawls and bald tires slide, but nothing ever stops you. Cross the line spotless and ding-free and your stars pay a shine bonus. The dice builds you a surprise. Tap the car to honk.
+scrollable strip of big picture tiles; tap a tile to equip it, swipe or use the arrows to see more. Locked parts show in full colour with a star price tag: collect stars, tap, own it. The sticker tab also holds a race number: tap the roundel tile, type up to two digits on a big keypad, and 400 stars paints it on both sides of the car (taking it off is free). The workbench tab holds the engine, shield and star magnet upgrades and the upkeep: fix crash damage with the wrench, wash off real mud with your finger, fill the tank, fit new tires. Fuel burns and tires wear as you drive; a dry tank crawls and bald tires slide, but nothing ever stops you. Cross the line spotless and ding-free and your stars pay a shine bonus. The dice builds you a surprise. Tap the car to honk.
 
 **The road.** Hold the gas, steer into stars and away from barrels, rocks, TNT, tumbleweeds and crabs. Ramps jump, puddles splash, capsules pop open with prizes (and sometimes a buddy). The finish gantry brings confetti, a star tally, a 1 to 3 star rating and an S/A/B/C time medal.
 
@@ -106,7 +106,7 @@ python3 -m http.server 4173     # then open http://localhost:4173/
 
 There is no build. Edit `index.html`, reload.
 
-The test suite is 17 Playwright suites (277 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the update gate, and the fairness bots that drive all 120 levels.
+The test suite is 18 Playwright suites (289 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the race number, the update gate, and the fairness bots that drive all 120 levels.
 
 ```bash
 npm ci                                   # playwright-core + jsqr, test-only

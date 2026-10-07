@@ -77,9 +77,10 @@ function check(name, ok, detail) {
     }), attr);
     await page.screenshot({ path: SHOT + 'garage-tab-' + cat + '.png' });
   }
-  const want = { body: 23, wheels: 13, color: 23, decal: 9, extras: 10, work: 3 };
-  const badCounts = Object.keys(want).filter(c => counts[c].n !== want[c] || counts[c].typed !== want[c] || counts[c].sel !== c);
-  check('tabs: body 23 / wheels 13 / paint 23 / sticker 9 / extras 10 / workbench 3', badCounts.length === 0, JSON.stringify(counts));
+  const want = { body: 23, wheels: 13, color: 23, decal: 10, extras: 10, work: 3 };
+  const typedWant = { ...want, decal: 9 };   /* the sticker tab leads with the race-number tile (data-act) */
+  const badCounts = Object.keys(want).filter(c => counts[c].n !== want[c] || counts[c].typed !== typedWant[c] || counts[c].sel !== c);
+  check('tabs: body 23 / wheels 13 / paint 23 / number + 9 stickers / extras 10 / workbench 3', badCounts.length === 0, JSON.stringify(counts));
   check('tabs: a tab switch pops its tiles in (popIn .enter stagger)', Object.values(counts).every(c => c.entered === c.n));
 
   /* workbench grows repair + wash tiles when the truck needs them */

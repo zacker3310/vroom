@@ -992,7 +992,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #celebrateHomeBtn [fill="#219ebc"] { fill: var(--v-blue-down); }
 
 /* ---- one panel style: profile, wash bay, results card, import dialog ---- */
-#profilePanel, #washCard, #resultsCard, #importCard {
+#profilePanel, #washCard, #resultsCard, #importCard, #numCard {
   background-color: var(--v-surface);
   background-image: var(--v-dots);
   background-size: var(--v-dots-size);
@@ -1003,7 +1003,32 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #importCard { display: flex; align-items: center; justify-content: center; gap: 40px; padding: 40px 56px; }
 #importConfirm.show #importCard { animation: popIn .35s cubic-bezier(.2, 1.4, .4, 1) both; }
 #importConfirm.show #importYes, #importConfirm.show #importNo { animation: none; }
-#profileOverlay, #celebrate, #washOverlay, #importConfirm { background: var(--v-scrim); }
+#profileOverlay, #celebrate, #washOverlay, #importConfirm, #numOverlay { background: var(--v-scrim); }
+/* --- race number keypad: roundel preview + OK on the left, a 3x4 pad on the right --- */
+#numOverlay { position: absolute; inset: 0; z-index: 80; display: none; align-items: center; justify-content: center; }
+#numOverlay.show { display: flex; }
+#numCard { display: flex; align-items: center; gap: 40px; padding: 32px 44px; animation: popIn .35s cubic-bezier(.2, 1.6, .4, 1) backwards; }
+#numSide { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+#numPreview { width: 200px; height: 200px; }
+#numPreview svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 6px 0 rgba(74, 53, 35, .2)); }
+#numOk {
+  width: 200px; height: 96px; border-radius: var(--v-r-lg); display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: var(--v-mute); border: 6px solid var(--v-mute-line); box-shadow: 0 6px 0 var(--v-mute-down);
+}
+#numOk.afford { background: var(--v-accent-green); border-color: var(--v-green-line); box-shadow: 0 6px 0 var(--v-green-down); }
+#numOk svg { width: 52px; height: 52px; }
+#numOk .upgPrice { font-size: 30px; }
+#numOk .upgPrice svg { width: 30px; height: 30px; }
+#numOk.deny { animation: denyShake .4s ease; }
+#numKeys { display: grid; grid-template-columns: repeat(3, 96px); grid-auto-rows: 96px; gap: 14px; }
+#numKeys button {
+  font: 900 52px/1 var(--v-font); color: var(--v-ink-strong); cursor: pointer; touch-action: none; padding: 0;
+  background: var(--v-surface); border: 6px solid var(--v-surface-line); border-radius: var(--v-r-md); box-shadow: 0 6px 0 var(--v-surface-down);
+  display: flex; align-items: center; justify-content: center;
+}
+#numKeys button:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--v-surface-down); }
+#numKeys button.fn { background: var(--v-mute); border-color: var(--v-mute-line); box-shadow: 0 6px 0 var(--v-mute-down); }
+#numKeys button svg { width: 48px; height: 48px; }
 /* chips inside the results card share the standard 6px chip edge */
 #tallyChip { border-width: 6px; }
 
@@ -1331,6 +1356,25 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
       <div id="washMeter"><div id="washFill"></div></div>
     </div>
   </div>
+  <div id="numOverlay">
+    <div id="numCard">
+      <div id="numSide">
+        <div id="numPreview"></div>
+        <button class="bigBtn" id="numOk" aria-label="put this number on the truck">
+          <svg viewBox="0 0 100 100"><path d="M20 52 L42 74 L82 28" stroke="#fff" stroke-width="14" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="upgPrice"></span>
+        </button>
+      </div>
+      <div id="numKeys" aria-label="number keys">
+        <button data-key="1" aria-label="1">1</button><button data-key="2" aria-label="2">2</button><button data-key="3" aria-label="3">3</button>
+        <button data-key="4" aria-label="4">4</button><button data-key="5" aria-label="5">5</button><button data-key="6" aria-label="6">6</button>
+        <button data-key="7" aria-label="7">7</button><button data-key="8" aria-label="8">8</button><button data-key="9" aria-label="9">9</button>
+        <button data-key="clear" class="fn" aria-label="no number"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="none" stroke="#5a4634" stroke-width="6" stroke-dasharray="6 8"/></svg></button>
+        <button data-key="0" aria-label="0">0</button>
+        <button data-key="back" class="fn" aria-label="erase one digit"><svg viewBox="0 0 64 64"><path d="M22 14 H56 V50 H22 L6 32 Z" fill="none" stroke="#5a4634" stroke-width="6" stroke-linejoin="round"/><path d="M30 24 L46 40 M46 24 L30 40" stroke="#5a4634" stroke-width="6" stroke-linecap="round"/></svg></button>
+      </div>
+    </div>
+  </div>
   <div id="stickerToast"></div>
   <div id="profileOverlay">
     <div id="profilePanel">
@@ -1414,7 +1458,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "12.2.2";
+const APP_VERSION = "12.3.0";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -1543,7 +1587,16 @@ const sparkIcon = `<svg viewBox="0 0 64 64"><path d="M32 4 Q35 28 60 32 Q35 36 3
 const wrenchIcon = `<svg viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#6c757d"/></svg>`;
 
 /* ============ 4. STATE + SAVE (localStorage vroom.v2.p<n>; migrates vroom.v1 and single-profile vroom.v2) ============ */
-let state = { body: "dump", wheels: "normal", color: "#fdd835", buddy: null, decal: "none", extras: { horn: false, beacon: false, flag: false } };
+let state = { body: "dump", wheels: "normal", color: "#fdd835", buddy: null, decal: "none", number: "", extras: { horn: false, beacon: false, flag: false } };
+/* race number: up to two digits on a white roundel at the body's decal anchor (both views); a sticker on the same
+   panel slides aside to share it. Typing a new number costs NUMBER_PRICE each time; taking it off is free. */
+const NUMBER_PRICE = 400, NUMBER_RE = /^\d{1,2}$/;
+const NUMBER_FONT = `-apple-system,'Arial Rounded MT Bold',sans-serif`;
+function numberSVG(n, cls = "") {
+  /* 72 px roundel centred on 0,0: white face, ink ring, bold numerals (two digits set a little smaller) */
+  const txt = n ? `<text y="15" text-anchor="middle" font-family="${NUMBER_FONT}" font-weight="900" font-size="${n.length > 1 ? 40 : 46}" fill="#023047">${n}</text>` : "";
+  return `<g class="raceNumber ${cls}"><circle r="34" fill="#fff" stroke="#023047" stroke-width="5"/>${txt}</g>`;
+}
 let progress = { wallet: 0, owned: { body: [], wheels: [], color: [], extras: [], buddy: [], decal: [] }, levels: {}, current: 1,
                  muddy: false, fuel: FUEL_MAX, tread: TREAD_MAX,
                  damage: 0, upgrades: { engine: 0, armor: 0, magnet: 0 }, quiet: false,
@@ -1608,6 +1661,7 @@ function loadState() {
   progress.quiet = !!saved.quiet;
   progress.muddy = !!saved.muddy;
   if (b.decal && DECAL_ORDER.includes(b.decal) && owns("decal", b.decal)) state.decal = b.decal;
+  state.number = typeof b.number === "string" && NUMBER_RE.test(b.number) ? b.number : "";
   if (saved.owned && Array.isArray(saved.owned.buddy)) progress.owned.buddy = saved.owned.buddy.filter(id => BUDDY_ORDER.includes(id));
   if (b.buddy && BUDDY_ORDER.includes(b.buddy) && progress.owned.buddy.includes(b.buddy)) state.buddy = b.buddy;
   if (Array.isArray(saved.badges)) progress.badges = saved.badges.filter(id => BADGES.some(x => x.id === id));
@@ -2120,8 +2174,11 @@ function vehicleSVG(st) {
   /* buddy peeks from behind the body unless its anchor says it rides in front (glass cockpits) */
   const buddy = hasBuddy ? `<g transform="${buddyXform(A.buddy)}"><g class="buddyBob">${BUDDY_SVG[st.buddy]}</g></g>` : "";
   const buddyInFront = !!A.buddy[3];
-  const decal = st.decal && st.decal !== "none" && DECAL_SVG[st.decal]
-    ? `<g data-decal="${st.decal}" transform="translate(${A.decal[0]},${A.decal[1]}) scale(${A.decal[2] ?? 1})">${DECAL_SVG[st.decal]}</g>` : "";
+  const hasDecal = !!(st.decal && st.decal !== "none" && DECAL_SVG[st.decal]), hasNum = !!st.number;
+  const dk = A.decal[2] ?? 1, both = hasDecal && hasNum, pk = both ? dk * 0.8 : dk, shift = both ? 40 * dk : 0;
+  const decal = (hasDecal
+    ? `<g data-decal="${st.decal}" transform="translate(${A.decal[0] + shift},${A.decal[1]}) scale(${pk})">${DECAL_SVG[st.decal]}</g>` : "")
+    + (hasNum ? `<g data-number="${st.number}" transform="translate(${A.decal[0] - shift},${A.decal[1]}) scale(${pk})">${numberSVG(st.number)}</g>` : "");
   return `<svg viewBox="0 0 320 230" style="--paint:${paint}">
     ${defs}
     <g transform="translate(0,${-lift})"><g class="${B.hover ? "hoverBob" : ""}">
@@ -3496,8 +3553,10 @@ function stripItems(cat) {
     case "body":   return BODY_ORDER.map(id => ({ id, kind: "body", pic: miniCarSVG(id), label: id + " body" }));
     case "wheels": return WHEEL_ORDER.map(id => ({ id, kind: "wheels", pic: wheelPicSVG(id), label: id + " wheels" }));
     case "color":  return COLORS.map(id => ({ id, kind: "color", pic: swatchPic(id), label: PATTERNS[id] ? PATTERNS[id].name + " paint" : "paint color" }));
-    case "decal":  return DECAL_ORDER.map(id => ({ id, kind: "decal", label: id === "none" ? "no sticker" : id + " sticker",
-                     pic: id === "none" ? `<span class="nonePic"></span>` : `<svg class="decalPic" viewBox="-48 -48 96 96">${DECAL_SVG[id]}</svg>` }));
+    case "decal":  return [{ id: "number", kind: "act", label: "race number: type one on the keypad", cls: "ink",
+                     pic: `<svg class="decalPic" viewBox="-48 -48 96 96">${state.number ? numberSVG(state.number) : numberSVG("") + `<path d="M-14 0 H14 M0 -14 V14" stroke="#adb5bd" stroke-width="7" stroke-linecap="round"/>`}</svg>` },
+                     ...DECAL_ORDER.map(id => ({ id, kind: "decal", label: id === "none" ? "no sticker" : id + " sticker",
+                     pic: id === "none" ? `<span class="nonePic"></span>` : `<svg class="decalPic" viewBox="-48 -48 96 96">${DECAL_SVG[id]}</svg>` }))];
     case "extras": return Object.keys(state.extras).map(id => ({ id, kind: "extras", pic: extraGlyph(id), label: id, cls: "wood" }));
     case "work": {
       const items = [];
@@ -3549,6 +3608,7 @@ function syncStrip() {
       const cost = ACT_COST[id] ? ACT_COST[id]() : 0;
       t.querySelector(".upgPrice").innerHTML = cost ? starIcon + `<span>${cost}</span>` : "";
       t.classList.toggle("urgent", id === "fuel" ? progress.fuel <= FUEL_LOW : id === "tires" ? progress.tread <= TREAD_LOW : id === "repair" || id === "wash");
+      if (id === "number") t.classList.toggle("cant", progress.wallet < NUMBER_PRICE);
     }
   });
   updateArrows();
@@ -3649,7 +3709,49 @@ function tapTile(t) {
   else if (id === "wash") openWash();
   else if (id === "fuel") doRefuel(t);
   else if (id === "tires") doTires(t);
+  else if (id === "number") openNumpad();
 }
+
+/* ---- race number keypad: type up to two digits, the roundel previews live, OK pays 400 (free to take it off) ---- */
+const numOverlay = document.getElementById("numOverlay"), numPreview = document.getElementById("numPreview"), numOk = document.getElementById("numOk");
+let numTyped = "";
+function renderNumpad() {
+  numPreview.innerHTML = `<svg viewBox="-40 -40 80 80">${numberSVG(numTyped)}</svg>`;
+  const change = numTyped !== state.number, paid = change && numTyped !== "";
+  numOk.classList.toggle("afford", !paid || progress.wallet >= NUMBER_PRICE);
+  numOk.classList.toggle("free", !paid);
+  numOk.querySelector(".upgPrice").innerHTML = paid ? starIcon + `<span>${NUMBER_PRICE}</span>` : "";
+}
+function openNumpad() {
+  sfx.pop();
+  numTyped = state.number;
+  renderNumpad();
+  numOverlay.classList.add("show");
+}
+function closeNumpad() { numOverlay.classList.remove("show"); }
+numOverlay.addEventListener("pointerdown", e => { if (e.target === numOverlay) { closeNumpad(); sfx.pop(); } });
+document.getElementById("numKeys").addEventListener("pointerdown", e => {
+  const k = e.target.closest("button"); if (!k) return;
+  const d = k.dataset.key;
+  if (d === "back") numTyped = numTyped.slice(0, -1);
+  else if (d === "clear") numTyped = "";
+  else if (numTyped.length < 2) numTyped = (numTyped + d).replace(/^0+(?=\d)/, "");
+  sfx.tick(numTyped.length + 1);
+  renderNumpad();
+});
+function setRaceNumber(n) {
+  state.number = n; save(); renderPreview();
+  if (curCat === "decal") renderStrip(false);
+}
+numOk.addEventListener("pointerdown", () => {
+  if (numTyped === state.number) { closeNumpad(); sfx.pop(); return; }
+  if (numTyped === "") { setRaceNumber(""); closeNumpad(); sfx.splat(); return; }   /* taking the number off is free */
+  if (progress.wallet < NUMBER_PRICE) { walletDeny(); numOk.classList.remove("deny"); void numOk.offsetWidth; numOk.classList.add("deny"); return; }
+  progress.wallet -= NUMBER_PRICE;
+  setRaceNumber(numTyped);
+  renderWallets(true); closeNumpad();
+  sfx.buy(); confettiBurst(garageScene, 40);
+});
 preview.addEventListener("pointerdown", () => { sfx.honk(state.body); renderPreview(); });
 
 /* ---- workbench: upgrades + upkeep (repair, wash, fuel, tires), all tiles on the workbench tab ---- */
@@ -3672,7 +3774,7 @@ function buyUpgrade(k, tile) {
 const workTab = document.querySelector('.catTab[data-cat="work"]');
 const fuelMissing = () => Math.ceil(FUEL_MAX - progress.fuel - 1e-9);
 const treadMissing = () => Math.ceil(TREAD_MAX - progress.tread - 1e-9);
-const ACT_COST = { repair: () => progress.damage * REPAIR_RATE, fuel: () => fuelMissing() * FUEL_RATE, tires: () => treadMissing() * TIRE_RATE };
+const ACT_COST = { repair: () => progress.damage * REPAIR_RATE, fuel: () => fuelMissing() * FUEL_RATE, tires: () => treadMissing() * TIRE_RATE, number: () => NUMBER_PRICE };
 function needsWork() { return progress.damage > 0 || progress.muddy || progress.fuel <= FUEL_LOW || progress.tread <= TREAD_LOW; }
 function renderUpkeep() {
   workTab.classList.toggle("needs", needsWork());
@@ -3988,6 +4090,7 @@ function packCompact() {
   }
   /* v3 tail (appended 12.2): whole units of fuel + tread; a code without the tail reads as full */
   pushBits(Math.ceil(progress.fuel), 4); pushBits(Math.ceil(progress.tread), 4);
+  pushBits(state.number ? parseInt(state.number, 10) + 1 : 0, 7);   /* 12.3: race number, 0 = none */
   const bytes = new Uint8Array(Math.ceil(bits.length / 8));
   bits.forEach((b, i) => { if (b) bytes[i >> 3] |= 128 >> (i & 7); });
   return "VROOM1." + b64url.enc(bytes);
@@ -3999,7 +4102,7 @@ function unpackCompact(code) {
   const ver = read(8);
   if (ver !== 1 && ver !== 2 && ver !== 3) return null;
   const out = {
-    build: { body: "dump", wheels: "normal", color: "#fdd835", buddy: null, decal: "none", extras: { horn: false, beacon: false, flag: false } },
+    build: { body: "dump", wheels: "normal", color: "#fdd835", buddy: null, decal: "none", number: "", extras: { horn: false, beacon: false, flag: false } },
     wallet: read(16), current: read(8),
     damage: read(4), quiet: !!read(1),
     owned: { body: [], wheels: [], color: [], extras: [], buddy: [], decal: [] },
@@ -4033,6 +4136,7 @@ function unpackCompact(code) {
     }
     if (pos > bytes.length * 8) return null;
     if (pos + 8 <= bytes.length * 8) { out.fuel = Math.min(FUEL_MAX, read(4)); out.tread = Math.min(TREAD_MAX, read(4)); }
+    if (pos + 7 <= bytes.length * 8) { const n = read(7); if (n) out.build.number = String(Math.min(99, n - 1)); }
     return out;
   }
   const buddyIdx = read(3);
@@ -4967,7 +5071,12 @@ function vehicleRearSVG(st) {
     : at(N.hat, NEW_EXTRAS_SVG.partyhat(0, 0), 1.2);
   over += shopExtrasRear(N, ex, at, R.half);   /* shop pack extras */
   const dq = N.decal;
-  if (st.decal && st.decal !== "none" && DECAL_SVG[st.decal]) over += at(dq, `<g data-decal="${st.decal}">${DECAL_SVG[st.decal]}</g>`, dq[3] ?? .6);
+  {
+    const hasDecal = !!(st.decal && st.decal !== "none" && DECAL_SVG[st.decal]), hasNum = !!st.number;
+    const rk = dq[3] ?? .6, both = hasDecal && hasNum, pk = both ? rk * 0.8 : rk, shift = both ? 30 : 0;
+    if (hasDecal) over += at([dq[0] + shift, dq[1], dq[2]], `<g data-decal="${st.decal}">${DECAL_SVG[st.decal]}</g>`, pk);
+    if (hasNum) over += at([dq[0] - shift, dq[1], dq[2]], `<g data-number="${st.number}">${numberSVG(st.number)}</g>`, pk * 1.4);   /* a compact roundel reads bigger than sticker art */
+  }
   const rz = N.decal[2];
   over += `<g class="mudSpots" style="opacity:${progress.muddy ? 1 : 0}">${
     [[-R.half + 22, 52, 9], [-30, 44, 7], [34, 48, 8], [R.half - 20, 56, 6]].map(([x, y, rr]) => { const [px, py, s] = A([x, y, rz]); return `<circle cx="${fx(px)}" cy="${fx(py)}" r="${fx(rr * s)}" fill="#6b4423"/>`; }).join("")}</g>`;

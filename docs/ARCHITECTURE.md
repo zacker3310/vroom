@@ -38,7 +38,7 @@ click (animated elements fail its stability check).
 
 ## State and persistence
 
-`state` is the build (`body`, `wheels`, `color`, `decal`, `buddy`, `extras{}`); `progress` is
+`state` is the build (`body`, `wheels`, `color`, `decal`, `number`, `buddy`, `extras{}`); `progress` is
 everything earned (`wallet`, `current`, `levels{n: {best, rating, tier}}`, `owned{}`,
 `upgrades`, `damage`, `muddy`, `fuel`, `tread`, `quiet`, `badges`, `photos` (last 6), `buddy`...). `save()`
 writes `{ build: state, ...progress }` to `localStorage["vroom.v2.p<n>"]` where `n` is the
@@ -274,11 +274,12 @@ MSB-first bit fields, in order:
 | 8 | level count (`MAX_LEVEL` = 120) |
 | 4 × levels | per level: rating (2 bits, 0 = unplayed) and medal rank (2 bits: C B A S) |
 | 4, 4 | tail (12.2): fuel and tread, whole units rounded up; a code that ends before it reads as full |
+| 7 | tail (12.3): race number + 1, 0 = none; absent on older codes |
 
 Because every list is count-prefixed, a pack may **append** to any catalog list and older
 codes still decode (shorter lists read fewer bits); reordering would silently swap parts.
-With today's catalog a code is exactly 92 bytes (the layout is fixed-size once the catalog
-is), 123 base64url characters after the prefix; the hosted URL plus the code is 163 bytes
+With today's catalog a code is exactly 93 bytes (the layout is fixed-size once the catalog
+is), 124 base64url characters after the prefix; the hosted URL plus the code is 164 bytes
 and lands in QR version 8 (49x49 modules).
 
 ### Versions 1 and 2 (read-only)
