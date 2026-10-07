@@ -21,6 +21,12 @@ function check(name, ok, detail) {
   page.on('pageerror', e => errors.push(String(e)));
   const tap = sel => page.evaluate(s => document.querySelector(s).dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 99 })), sel);
   const release = sel => page.evaluate(s => document.querySelector(s).dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 99 })), sel);
+  /* tiles act on release (a swipe through the strip must scroll, not equip): down + up on the tile */
+  const tapTile = sel => page.evaluate(s => {
+    const t = document.querySelector(s);
+    t.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 99, clientX: 300, clientY: 600 }));
+    t.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 99, clientX: 300, clientY: 600 }));
+  }, sel);
 
   await page.goto(URL);
   await page.evaluate(() => localStorage.clear());
@@ -30,37 +36,43 @@ function check(name, ok, detail) {
   /* ---- 1. catalog ---- */
   const cat = await page.evaluate(() => ({
     bodies: BODY_ORDER.length, wheels: WHEEL_ORDER.length, decals: DECAL_ORDER.length, buddies: BUDDY_ORDER.length,
-    extras: Object.keys(state.extras).length, extraBtns: document.querySelectorAll('.extraBtn').length,
+    extras: Object.keys(state.extras).length, extraBtns: (openTab('extras', false), document.querySelectorAll('#strip .tile[data-extra]').length),
     newBodies: SHOP_BODY_IDS.every(b => BODIES[b] && BODIES[b].anchors && CAR3D[b] && CAR3D[b].anchors && CAR3D[b].win && CAR3D[b].smoke && typeof HONKS[b] === 'function' && PRICES.body[b] > 0),
     hoverPrice: PRICES.body.hover, codeBodies: CODE_BODIES.length, codeWheels: CODE_WHEELS.length, codeExtras: CODE_EXTRAS.length, codeDecals: CODE_DECALS.length,
     codeTail: CODE_BODIES.slice(-8).join(','), wheelKeys: SHOP_WHEEL_IDS.every(w => WHEELS[w] && WHEEL_DECOR[w] && PRICES.wheels[w] > 0),
     decalKeys: SHOP_DECAL_IDS.every(d => DECAL_SVG[d] && PRICES.decal[d] > 0), buddyKeys: ['fox', 'bunny', 'frog', 'robot'].every(b => BUDDY_SVG[b])
   }));
-  check('catalog: 23 bodies / 13 wheels / 9 decals / 10 buddies / 10 extras + buttons', cat.bodies === 23 && cat.wheels === 13 && cat.decals === 9 && cat.buddies === 10 && cat.extras === 10 && cat.extraBtns === 10, JSON.stringify(cat));
+  check('catalog: 23 bodies / 13 wheels / 9 decals / 10 buddies / 10 extras + tiles', cat.bodies === 23 && cat.wheels === 13 && cat.decals === 9 && cat.buddies === 10 && cat.extras === 10 && cat.extraBtns === 10, JSON.stringify(cat));
   check('catalog: every new body has side + rear entries, anchors, win/smoke, honk, price', cat.newBodies && cat.wheelKeys && cat.decalKeys && cat.buddyKeys);
   check('catalog: hover costs 1000; CODE_* lists appended (18/10/7/8), shop bodies last', cat.hoverPrice === 1000 && cat.codeBodies === 18 && cat.codeWheels === 10 && cat.codeExtras === 7 && cat.codeDecals === 8 && cat.codeTail.endsWith('unicorn,hover'), JSON.stringify([cat.codeBodies, cat.codeWheels, cat.codeExtras, cat.codeDecals, cat.codeTail]));
 
-  /* ---- 2. forward cycling walks all 23 and wraps; dots follow ---- */
+  /* ---- 2. body strip: 23 tiles, tapping each equips it, exactly one ring on the current body ---- */
+  await page.evaluate(() => openTab('body', false));
   const seen = [];
-  for (let i = 0; i < 23; i++) { await tap('#bodyBtn'); await release('#bodyBtn'); seen.push(await page.evaluate(() => state.body)); }
-  const dots = await page.evaluate(() => ({ n: document.querySelectorAll('#cycleDots i').length, on: document.querySelectorAll('#cycleDots i.on').length, shown: cycleDots.classList.contains('show'), onIdx: [...document.querySelectorAll('#cycleDots i')].findIndex(d => d.classList.contains('on')) }));
-  check('cycle: 23 taps visit every body once and return to dump', new Set(seen).size === 23 && seen[22] === 'dump', seen.join(','));
-  check('dots: 23 dots, exactly one lit, matching the current body', dots.n === 23 && dots.on === 1 && dots.shown && dots.onIdx === 0, JSON.stringify(dots));
+  for (const id of ['digger', 'mixer', 'fire', 'monster', 'police', 'race', 'tractor', 'icecream', 'rocket', 'ufo', 'limo', 'dragon', 'train', 'royal', 'bulldozer', 'schoolbus', 'ambulance', 'submarine', 'pirate', 'dino', 'unicorn', 'hover', 'dump']) {
+    await tapTile(`.tile[data-body="${id}"]`); seen.push(await page.evaluate(() => state.body));
+  }
+  const ring = await page.evaluate(() => ({ n: document.querySelectorAll('#strip .tile[data-body]').length, on: document.querySelectorAll('#strip .tile.sel').length, onId: document.querySelector('#strip .tile.sel').dataset.body }));
+  check('strip: 23 body taps visit every body once and return to dump', new Set(seen).size === 23 && seen[22] === 'dump', seen.join(','));
+  check('strip: 23 body tiles, exactly one ring, on the current body', ring.n === 23 && ring.on === 1 && ring.onId === 'dump', JSON.stringify(ring));
 
-  /* ---- 3. long press steps backward (tap's forward step undone), repeats while held ---- */
-  await tap('#bodyBtn');                      /* -> digger immediately */
-  const mid = await page.evaluate(() => state.body);
-  await page.waitForTimeout(750);             /* 600 ms hold: back 2 -> hover (wraps) */
-  const held = await page.evaluate(() => state.body);
-  await page.waitForTimeout(500);             /* one repeat tick -> unicorn */
-  const held2 = await page.evaluate(() => state.body);
-  await release('#bodyBtn');
-  await page.waitForTimeout(600);
-  const after = await page.evaluate(() => state.body);
-  check('long-press: tap goes forward, hold 600ms lands one back (wraps to hover), repeats, stops on release', mid === 'digger' && held === 'hover' && held2 === 'unicorn' && after === 'unicorn', [mid, held, held2, after].join(' > '));
-  await tap('#wheelBtn'); await page.waitForTimeout(750); await release('#wheelBtn');
-  const wheelBack = await page.evaluate(() => ({ w: state.wheels, dots: document.querySelectorAll('#cycleDots i').length }));
-  check('long-press: wheel button steps back to the last wheel (crystal), 13 dots', wheelBack.w === 'crystal' && wheelBack.dots === 13, JSON.stringify(wheelBack));
+  /* ---- 3. arrows page the strip 7 tiles at a time; the wheel strip lists all 13 ---- */
+  const visIdx = () => page.evaluate(() => {
+    const sr = strip.getBoundingClientRect();
+    return [...document.querySelectorAll('#strip .tile')].map((t, i) => [t, i]).filter(([t]) => { const r = t.getBoundingClientRect(); return r.left >= sr.left - 1 && r.right <= sr.right + 1; }).map(([, i]) => i).join(',');
+  });
+  const pg0 = await visIdx();
+  await tap('#stripNext'); await page.waitForTimeout(700);
+  const pg1 = await visIdx();
+  await tap('#stripNext'); await tap('#stripNext'); await page.waitForTimeout(900);   /* third page clamps to the end (16-22) */
+  const pg2 = await visIdx();
+  await tap('#stripPrev'); await page.waitForTimeout(700);
+  const pg3 = await visIdx();
+  check('arrows: next pages 0-6 -> 7-13, twice more clamps at 16-22 (hover last), prev steps back a page', pg0 === '0,1,2,3,4,5,6' && pg1 === '7,8,9,10,11,12,13' && pg2 === '16,17,18,19,20,21,22' && pg3 === '9,10,11,12,13,14,15', [pg0, pg1, pg2, pg3].join(' > '));
+  await tap('.catTab[data-cat="wheels"]'); await page.waitForTimeout(500);
+  await tapTile('.tile[data-wheels="crystal"]');
+  const wheelBack = await page.evaluate(() => ({ w: state.wheels, tiles: document.querySelectorAll('#strip .tile[data-wheels]').length, sel: document.querySelector('#strip .tile.sel').dataset.wheels }));
+  check('wheels: tapping the last wheel tile (crystal) equips it, 13 tiles', wheelBack.w === 'crystal' && wheelBack.tiles === 13 && wheelBack.sel === 'crystal', JSON.stringify(wheelBack));
 
   /* ---- 4. hover: no wheels in either view, floats, bobs ---- */
   await page.evaluate(() => { state.body = 'hover'; state.wheels = 'normal'; renderPreview(); });
@@ -125,17 +137,22 @@ function check(name, ok, detail) {
   await page.screenshot({ path: SHOT + 'shop-album.png' });
   await tap('#albumHomeBtn'); await page.waitForTimeout(400);
 
-  /* ---- 7. extras tray: 3x3 grid, two pages, flip chip, every target >= 64px ---- */
-  await page.waitForTimeout(1100);   /* let the entrance pop-ins settle before measuring */
+  /* ---- 7. extras strip: 10 tiles, 7 per page, the arrow shows the rest, every target >= 64px ---- */
+  await tap('.catTab[data-cat="extras"]'); await page.waitForTimeout(1100);   /* let the entrance pop-ins settle before measuring */
   const tray = await page.evaluate(() => {
-    const vis = sel => [...document.querySelectorAll(sel)].filter(b => b.getBoundingClientRect().width > 0).length;
-    const r = document.getElementById('extras').getBoundingClientRect();
-    return { pg1: vis('.extraBtn[data-pg="1"]'), pg2: vis('.extraBtn[data-pg="2"]'), flip: vis('#extrasFlip'), rows: Math.round(r.height / (r.width / 3)), tiny: [...document.querySelectorAll('#controls button')].filter(b => { const q = b.getBoundingClientRect(); return q.width > 0 && (q.width < 63.5 || q.height < 63.5); }).map(b => (b.id || b.className) + ' ' + b.getBoundingClientRect().width.toFixed(0) + 'x' + b.getBoundingClientRect().height.toFixed(0)) };
+    const sr = strip.getBoundingClientRect();
+    const shown = () => [...document.querySelectorAll('#strip .tile[data-extra]')].filter(t => { const r = t.getBoundingClientRect(); return r.left >= sr.left - 1 && r.right <= sr.right + 1; }).map(t => t.dataset.extra);
+    return { n: document.querySelectorAll('#strip .tile[data-extra]').length, shown: shown(), arrow: stripNext.getBoundingClientRect().width > 0 && !stripNext.classList.contains('off'),
+      tiny: [...document.querySelectorAll('#controls button')].filter(b => { const q = b.getBoundingClientRect(); return q.width > 0 && (q.width < 63.5 || q.height < 63.5); }).map(b => b.id || b.className) };
   });
-  await tap('#extrasFlip'); await page.waitForTimeout(300);
-  const tray2 = await page.evaluate(() => { const vis = sel => [...document.querySelectorAll(sel)].filter(b => b.getBoundingClientRect().width > 0).length; return { pg1: vis('.extraBtn[data-pg="1"]'), pg2: vis('.extraBtn[data-pg="2"]'), pg2on: document.getElementById('extras').classList.contains('pg2') }; });
-  check('extras tray: page 1 shows 8 + flip (3 rows), flip shows the other 2, no tiny targets', tray.pg1 === 8 && tray.pg2 === 0 && tray.flip === 1 && tray.rows === 3 && tray.tiny.length === 0 && tray2.pg1 === 0 && tray2.pg2 === 2 && tray2.pg2on, JSON.stringify([tray, tray2]));
-  await tap('#extrasFlip'); await page.waitForTimeout(200);
+  await tap('#stripNext'); await page.waitForTimeout(700);
+  const tray2 = await page.evaluate(() => {
+    const sr = strip.getBoundingClientRect();
+    return { shown: [...document.querySelectorAll('#strip .tile[data-extra]')].filter(t => { const r = t.getBoundingClientRect(); return r.left >= sr.left - 1 && r.right <= sr.right + 1; }).map(t => t.dataset.extra) };
+  });
+  const last3 = Object.keys(await page.evaluate(() => state.extras)).slice(-3);
+  check('extras strip: 10 tiles, first 7 shown + arrow, the arrow shows the last 3, no tiny targets', tray.n === 10 && tray.shown.length === 7 && tray.arrow && tray.tiny.length === 0 && tray2.shown.length === 7 && last3.every(k => tray2.shown.includes(k)), JSON.stringify([tray, tray2]));
+  await tap('#stripPrev'); await page.waitForTimeout(300);
 
   /* ---- 8. shop: hover at 999 denies, 1000 buys + equips; new extra toggles and prices ---- */
   await page.evaluate(() => { progress.wallet = 999; state.body = 'hover'; state.wheels = 'normal'; state.extras = Object.fromEntries(Object.keys(state.extras).map(k => [k, false])); save(); renderPreview(); renderWallets(false); });
@@ -147,8 +164,8 @@ function check(name, ok, detail) {
   await tap('#priceTag'); await page.waitForTimeout(400);
   const buy = await page.evaluate(() => ({ wallet: progress.wallet, owned: progress.owned.body.includes('hover'), body: state.body, go: goBtn.classList.contains('locked'), tag: priceTag.classList.contains('show') }));
   check('shop: 1000 stars buys hover (wallet 0), stays equipped, GO unlocks', buy.wallet === 0 && buy.owned && buy.body === 'hover' && !buy.go && !buy.tag, JSON.stringify(buy));
-  await tap('.extraBtn[data-extra="spoiler"]'); await page.waitForTimeout(200);
-  const ex = await page.evaluate(() => ({ on: state.extras.spoiler, btn: document.querySelector('.extraBtn[data-extra="spoiler"]').classList.contains('on'), tag: priceTag.textContent.trim(), locked: lockedParts().map(p => p[1]).join(',') }));
+  await tapTile('.tile[data-extra="spoiler"]'); await page.waitForTimeout(200);
+  const ex = await page.evaluate(() => ({ on: state.extras.spoiler, btn: document.querySelector('.tile[data-extra="spoiler"]').classList.contains('on'), tag: priceTag.textContent.trim(), locked: lockedParts().map(p => p[1]).join(',') }));
   check('shop: spoiler toggles on, prices as a locked 30-star extra', ex.on && ex.btn && ex.tag === '30' && ex.locked === 'spoiler', JSON.stringify(ex));
   await page.evaluate(() => { progress.wallet = 500; renderWallets(false); renderShop(); });
   await tap('#priceTag'); await page.waitForTimeout(300);

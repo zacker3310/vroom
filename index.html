@@ -1027,7 +1027,8 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ============ GARAGE REDESIGN: one hierarchy — the car is the hero, GO is the one primary action ============
    stage coordinates: top bar 24-120 (profile 24 | album right 240 | wallet right 24)
    hero: preview 506 wide, floor line y≈436; right column x-centre 1086: repair 128-224, wash 230-326 (contextual),
-   dice 332-420, map 426-502, GO 508-688. bench rim 432-440; tabs y 452-528 at x 108; strip row y 548-664 at x 24-936 */
+   dice 332-420, map 426-502, GO 508-688. bench rim 432-440; tabs y 452-528 from x 120 (over the first tile);
+   strip row y 548-664: prev arrow 24-100 | strip 112-872 (7 tiles of 96 + 12 gaps, 8px side padding) | next 884-960 */
 #garageWall { background-image: radial-gradient(rgba(90, 70, 52, .032) 2.4px, transparent 2.6px); }
 #albumBtn { position: absolute; right: 240px; top: 24px; width: 96px; height: 96px; z-index: 20; }
 #diceBtn { position: absolute; right: 68px; top: 332px; width: 88px; height: 88px; z-index: 5; }
@@ -1041,7 +1042,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #repairBtn.show { display: flex; }
 
 /* --- category tabs: putty at rest, the chosen one lifts in blue with the map's yellow outline --- */
-#catTabs { position: absolute; left: 108px; top: 12px; display: flex; gap: 12px; }
+#catTabs { position: absolute; left: 120px; top: 12px; display: flex; gap: 12px; }
 .catTab {
   width: 76px; height: 76px; padding: 0; cursor: pointer; touch-action: none;
   display: flex; align-items: center; justify-content: center;
@@ -1072,11 +1073,11 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #strip::-webkit-scrollbar { display: none; }
 #strip.fade { opacity: 0; }
 .stripArrow {
-  width: 64px; height: 64px; padding: 0; flex: none; cursor: pointer; touch-action: none;
+  width: 76px; height: 76px; padding: 0; flex: none; cursor: pointer; touch-action: none;
   display: flex; align-items: center; justify-content: center; border-radius: 50%;
   transition: transform .1s cubic-bezier(.34, 1.56, .64, 1), box-shadow .1s, opacity .2s;
 }
-.stripArrow svg { width: 36px; height: 36px; }
+.stripArrow svg { width: 40px; height: 40px; }
 .stripArrow:active { transform: translateY(5px) scale(.96); box-shadow: 0 1px 0 var(--v-surface-down); }
 .stripArrow.off { visibility: hidden; }
 .stripArrow.end { opacity: .35; }
@@ -3497,7 +3498,7 @@ function renderStrip(animate) {
   const items = stripItems(curCat);
   stripColor = state.color;
   const first = Math.floor(stripCurrentIndex(items) / STRIP_COLS) * STRIP_COLS;
-  stripEl.innerHTML = "";
+  stripEl.innerHTML = ""; stripTarget = null;
   items.forEach((it, i) => {
     const t = buildTile(it);
     if (animate) { t.classList.add("enter"); t.style.setProperty("--i", Math.min(8, Math.max(0, i - first))); }
@@ -3513,9 +3514,21 @@ function updateArrows() {
   stripPrev.classList.toggle("end", stripEl.scrollLeft < 4);
   stripNext.classList.toggle("end", stripEl.scrollLeft > stripEl.scrollWidth - stripEl.clientWidth - 4);
 }
-stripEl.addEventListener("scroll", updateArrows, { passive: true });
-stripPrev.addEventListener("pointerdown", () => { stripEl.scrollBy({ left: -TILE_STEP * STRIP_COLS, behavior: "smooth" }); sfx.pop(); });
-stripNext.addEventListener("pointerdown", () => { stripEl.scrollBy({ left: TILE_STEP * STRIP_COLS, behavior: "smooth" }); sfx.pop(); });
+let stripTarget = null;   /* destination of an in-flight arrow scroll, so a quick second tap pages on from there */
+stripEl.addEventListener("scroll", () => {
+  if (stripTarget !== null && Math.abs(stripEl.scrollLeft - stripTarget) < 2) stripTarget = null;
+  updateArrows();
+}, { passive: true });
+stripEl.addEventListener("scrollend", () => { stripTarget = null; });
+function stripPage(dir) {
+  const max = stripEl.scrollWidth - stripEl.clientWidth;
+  const base = stripTarget !== null ? stripTarget : stripEl.scrollLeft;
+  stripTarget = Math.max(0, Math.min(max, Math.round(base / TILE_STEP) * TILE_STEP + dir * TILE_STEP * STRIP_COLS));
+  stripEl.scrollTo({ left: stripTarget, behavior: "smooth" });
+  sfx.pop();
+}
+stripPrev.addEventListener("pointerdown", () => stripPage(-1));
+stripNext.addEventListener("pointerdown", () => stripPage(1));
 
 /* tabs: 120ms cross-fade, then the new tiles pop in staggered from the first visible one */
 function openTab(cat, animate = true) {
@@ -3539,7 +3552,7 @@ let tilePress = null;
 function cancelPress() { if (tilePress) tilePress.t.classList.remove("pressed"); tilePress = null; }
 stripEl.addEventListener("pointerdown", e => {
   const t = e.target.closest(".tile"); if (!t) return;
-  cancelPress();
+  cancelPress(); stripTarget = null;
   tilePress = { t, x: e.clientX, y: e.clientY };
   t.classList.add("pressed");
 });

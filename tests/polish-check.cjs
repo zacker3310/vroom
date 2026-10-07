@@ -31,8 +31,11 @@ function check(name, ok, detail) {
   await page.waitForTimeout(300);
 
   /* locked preview: full color + padlock badge + gray tag (12 < 25) */
-  for (let i = 0; i < 5; i++) await page.click('#bodyBtn'); /* rocket -> ... -> police? rocket idx 9; +5 -> ... compute in page */
-  await page.evaluate(() => { state.body = 'police'; save(); renderPreview(); });
+  await page.evaluate(() => {
+    const t = document.querySelector('.tile[data-body="police"]');   /* tap the locked police tile in the body strip */
+    t.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 99, clientX: 300, clientY: 600 }));
+    t.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 99, clientX: 300, clientY: 600 }));
+  });
   const lockUi = await page.evaluate(() => ({
     lockShown: document.getElementById('previewLock').classList.contains('show'),
     grayFilter: getComputedStyle(preview.querySelector('svg')).filter,

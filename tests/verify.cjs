@@ -17,6 +17,12 @@ function check(name, ok, detail) {
   /* the game acts on pointerdown; animated elements (wiggling price tag) fail
      Playwright's stability check, so tap() dispatches the event directly */
   const tap = sel => page.evaluate(s => document.querySelector(s).dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 99 })), sel);
+  /* tiles act on release (a swipe through the strip must scroll, not equip): down + up on the tile */
+  const tapTile = sel => page.evaluate(s => {
+    const t = document.querySelector(s);
+    t.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 99, clientX: 300, clientY: 600 }));
+    t.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 99, clientX: 300, clientY: 600 }));
+  }, sel);
   const errors = [];
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', e => errors.push(String(e)));
@@ -29,12 +35,12 @@ function check(name, ok, detail) {
 
   /* ---- 2. garage inventory ---- */
   const inv = await page.evaluate(() => ({
-    swatches: document.querySelectorAll('.swatch').length,
-    bodies: BODY_ORDER.length, wheels: WHEEL_ORDER.length,
+    swatches: (openTab('color', false), document.querySelectorAll('#strip .tile[data-color]').length),
+    bodies: (openTab('body', false), BODY_ORDER.length), wheels: WHEEL_ORDER.length,
     bodyKeys: BODY_ORDER.every(b => !!BODIES[b]),
     wheelKeys: WHEEL_ORDER.every(w => !!WHEELS[w]),
   }));
-  check('garage: 23 swatches (12 colors + 11 patterns)', inv.swatches === 23, 'got ' + inv.swatches);
+  check('garage: 23 paint tiles in the strip (12 colors + 11 patterns)', inv.swatches === 23, 'got ' + inv.swatches);
   check('garage: 23 bodies all defined', inv.bodies === 23 && inv.bodyKeys);
   check('garage: 13 wheels all defined', inv.wheels === 13 && inv.wheelKeys);
 
@@ -42,7 +48,7 @@ function check(name, ok, detail) {
   await page.waitForTimeout(1100);
   const tiny = await page.evaluate(() => {
     const bad = [];
-    document.querySelectorAll('#garage button, #garage .swatch').forEach(b => {
+    document.querySelectorAll('#garage button').forEach(b => {
       const r = b.getBoundingClientRect();
       if (r.width > 0 && (r.width < 63.5 || r.height < 63.5)) bad.push(`${b.id || b.className} ${r.width.toFixed(1)}x${r.height.toFixed(1)}`);
     });
@@ -70,8 +76,8 @@ function check(name, ok, detail) {
   });
   await page.reload();
   await page.waitForTimeout(300);
-  /* cycle to police (5 taps from dump) */
-  for (let i = 0; i < 5; i++) await page.click('#bodyBtn');
+  /* pick police in the body strip */
+  await tapTile('.tile[data-body="police"]');
   let shop = await page.evaluate(() => ({
     body: state.body, tag: priceTag.classList.contains('show'), tagText: priceTag.textContent.trim(),
     goLocked: document.getElementById('goBtn').classList.contains('locked')
@@ -86,7 +92,8 @@ function check(name, ok, detail) {
   check('shop: buying police deducts 25 and unlocks', shop.wallet === 475 && shop.owned && !shop.tag && !shop.goLocked, JSON.stringify(shop));
 
   /* rainbow paint */
-  await page.click('.swatch[data-color="rainbow"]');
+  await tap('.catTab[data-cat="color"]'); await page.waitForTimeout(400);
+  await tapTile('.tile[data-color="rainbow"]');
   await tap('#priceTag');
   const rb = await page.evaluate(() => ({
     wallet: progress.wallet, owned: progress.owned.color.includes('rainbow'),
@@ -97,15 +104,16 @@ function check(name, ok, detail) {
 
   /* deny path: wallet 0 */
   await page.evaluate(() => { progress.wallet = 0; save(); renderWallets(false); });
-  await page.click('#wheelBtn'); await page.click('#wheelBtn'); await page.click('#wheelBtn'); /* -> gold (locked) */
+  await tap('.catTab[data-cat="wheels"]'); await page.waitForTimeout(400);
+  await tapTile('.tile[data-wheels="gold"]'); /* gold (locked) */
   await tap('#priceTag');
   const deny = await page.evaluate(() => ({
     wheels: state.wheels, owned: progress.owned.wheels.includes('gold'), wallet: progress.wallet,
     tag: priceTag.classList.contains('show')
   }));
   check('shop: broke wallet denies gold wheels', deny.wheels === 'gold' && !deny.owned && deny.wallet === 0 && deny.tag, JSON.stringify(deny));
-  /* back to owned wheels so GO unlocks (13-wheel cycle now: gold is idx 3) */
-  for (let i = 0; i < 10; i++) await page.click('#wheelBtn');
+  /* back to owned wheels so GO unlocks */
+  await tapTile('.tile[data-wheels="normal"]');
 
   /* ---- 6. level generator invariants, all 30 levels ---- */
   const gen = await page.evaluate(() => {

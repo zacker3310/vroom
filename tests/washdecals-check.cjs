@@ -25,12 +25,17 @@ function check(name, ok, detail) {
   await page.waitForTimeout(500);
 
   /* ---- decals: cycle, gate, buy, render ---- */
-  await tap('#decalBtn');   /* none -> flame (locked, 30) */
+  await tap('.catTab[data-cat="decal"]'); await page.waitForTimeout(400);
+  await page.evaluate(() => {   /* tap the flame tile (locked, 30) */
+    const t = document.querySelector('.tile[data-decal="flame"]');
+    t.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 99, clientX: 300, clientY: 600 }));
+    t.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 99, clientX: 300, clientY: 600 }));
+  });
   const dec1 = await page.evaluate(() => ({
     decal: state.decal, gated: goBtn.classList.contains('locked'),
     tag: priceTag.classList.contains('show') && priceTag.textContent.trim() === '30'
   }));
-  check('decals: cycling to locked flame gates GO with a 30 tag', dec1.decal === 'flame' && dec1.gated && dec1.tag, JSON.stringify(dec1));
+  check('decals: picking locked flame gates GO with a 30 tag', dec1.decal === 'flame' && dec1.gated && dec1.tag, JSON.stringify(dec1));
 
   const dec2 = await page.evaluate(() => {
     progress.wallet = 100; renderWallets(false); renderShop();
