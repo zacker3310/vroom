@@ -19,7 +19,7 @@
   <img src="https://img.shields.io/badge/version-12.0.0-6fc0df" alt="version 12.0.0">
 </p>
 
-![The garage: the 1000-star hover ship in galaxy paint with a robot buddy in a party hat](docs/garage.png)
+![The garage: a pirate-ship car with a fox buddy, the body strip open below](docs/garage.png)
 
 ## Highlights
 
@@ -48,7 +48,8 @@
 
 ## How to play
 
-**The garage.** Tap a part button to cycle forward, hold it to cycle back; a dot row shows where you are. Locked parts show in full colour with a star price tag: collect stars, tap, own it. Upgrade the engine, shield and star magnet at the workbench. Fix crash damage with the wrench. Wash off real mud with your finger in the wash bay. The dice builds you a surprise. Tap the car to honk.
+**The garage.** Six category tabs (body, wheels, paint, stickers, extras, workbench) open one
+scrollable strip of big picture tiles; tap a tile to equip it, swipe or use the arrows to see more. Locked parts show in full colour with a star price tag: collect stars, tap, own it. Upgrade the engine, shield and star magnet at the workbench. Fix crash damage with the wrench. Wash off real mud with your finger in the wash bay. The dice builds you a surprise. Tap the car to honk.
 
 **The road.** Hold the gas, steer into stars and away from barrels, rocks, TNT, tumbleweeds and crabs. Ramps jump, puddles splash, capsules pop open with prizes (and sometimes a buddy). The finish gantry brings confetti, a star tally, a 1 to 3 star rating and an S/A/B/C time medal.
 

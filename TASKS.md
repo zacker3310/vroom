@@ -65,6 +65,13 @@
 - [x] T12.3 (agent): 11 pattern paints as SVG defs in both views, two-page swatch flipper; suite paint-check (22).
 - [x] T12.4 (agent): shop pack — 8 bodies (hover 1000 with no wheels + glow + trail, bulldozer, school bus, ambulance, submarine, pirate, dino, unicorn), 5 wheels, 4 extras, 4 buddies, 3 decals; hold-to-cycle-back + dot indicator; legacy decoder sliced to v2 catalog sizes; suite shop-check (21). 15 suites, 237/237.
 
+## v12.1 (2026-10-07, user-directed: "super clean and professional", "Nintendo-grade menu")
+
+- [x] T13.1 (agent): visual polish across every screen — one panel recipe, aligned columns, consistent radii/borders/shadows, 12 tabs clear the top row, 76px hit zones on small nodes, parade/free-drive buttons mirror.
+- [x] T13.2 (agent): code quality — 30-section TOC, dead code and always-true guards removed, shared helpers (injectCSS, restartAnim, mountCar, shopGateOpen...), ESLint harness at zero findings; byte-identical level report.
+- [x] T13.3 (agent): repo hygiene — GitHub Actions CI, `npm test` runner, manifest + app icons, APP_VERSION in the grown-ups panel, README/CONTRIBUTING/ARCHITECTURE.
+- [x] T13.4 (agent): garage redesign — car as hero, six category tabs + one scroll-snap tile strip (23/13/23/9/10 + workbench), GO dominant, repair/wash contextual, speaker moved to the grown-ups panel, title plate and side racks removed; suite garage-check (19). 16 suites, 256/256.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
