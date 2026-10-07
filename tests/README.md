@@ -10,7 +10,7 @@ Chromium. They are the gate for every change: CI runs them on each push and pull
 # profile-check also wants jsqr (in tests/ or the repo root)
 python3 -m http.server 4173 &          # from the repo root
 cd tests
-for f in verify polish-check damage-check free-check feel-check worlds-check album-check profile-check washdecals-check parade-check update-check world-check-audio-events fairness-check paint-check shop-check garage-check; do node $f.cjs; done
+for f in verify polish-check damage-check free-check feel-check worlds-check album-check profile-check washdecals-check parade-check update-check world-check-audio-events fairness-check paint-check shop-check garage-check upkeep-check; do node $f.cjs; done
 ```
 
 `run-all.cjs` serves the repo root on a free port, runs every suite below in turn, prints a
@@ -25,7 +25,7 @@ built-in one, e.g. `python3 -m http.server 4173` then
 - `damage-check.cjs` — damage/repair/upgrades/keyboard (20)
 - `free-check.cjs` — capsules, free drive, time tiers (14)
 - `feel-check.cjs` — game feel: dynamics, hit-stop, choreography, iPad shell (12)
-- `worlds-check.cjs` — 8 worlds, movers, gravity, world map, premium content (18)
+- `worlds-check.cjs` — 12 worlds, movers, gravity, world map, premium content (21)
 - `album-check.cjs` — sticker album: buddies, badges, photos, muddy flag (11)
 - `profile-check.cjs` — 3 kid profiles, save codes, QR round-trip via jsQR (14)
 - `washdecals-check.cjs` — wash mini-game and decal shop/persistence (11)
@@ -34,8 +34,9 @@ built-in one, e.g. `python3 -m http.server 4173` then
 - `world-check-audio-events.cjs` — per-world jingles/ambience beds, star scales, live sky events, quiet mode, level-80 frame time (16; honours `VROOM_URL`)
 - `paint-check.cjs` — pattern paint pack: 11 pattern tiles after the 12 colors in the one paint strip, arrows page to them, `<pattern>`/gradient defs in side + rear views, buying a pattern, v3 compact save code (count-prefixed colors + equipped paint) and legacy v2 decode, album photo re-render (22; honours `VROOM_URL`)
 - `shop-check.cjs` — shop pack: 23-body / 13-wheel / 9-decal catalog, 23-tile body strip (every tile equips), arrow paging by 7, hover (no wheels in either view, floats + bobs, glow + trail), every new body x extras x buddy x decal in both views, new wheels / decals / buddies, 10-tile extras strip, hover at 999 denied / 1000 bought, v3 code round trip with new parts, frozen-width v2 legacy decode (21; honours `VROOM_URL`)
-- `garage-check.cjs` — redesigned garage: <=16 controls at rest, six category tabs with 23/13/23/9/10/3(+repair/wash) tiles, selection ring follows state, locked tile -> tag -> buy -> equipped, arrows page the strip, a swipe scrolls instead of equipping, speaker toggle in the grown-ups overlay persists, >=64px targets, zero text (19; honours `VROOM_URL`)
+- `garage-check.cjs` — redesigned garage: <=16 controls at rest, six category tabs with 23/13/23/9/10/3(+repair/wash/fuel/tires) tiles, selection ring follows state, locked tile -> tag -> buy -> equipped, arrows page the strip, a swipe scrolls instead of equipping, speaker toggle in the grown-ups overlay persists, >=64px targets, zero text (19; honours `VROOM_URL`)
 - `fairness-check.cjs` — two headless bots drive all 80 levels through the real collision code: a "smart" bot (one lane change per 350 units, toward stars, away from hard obstacles) must finish every level with ≥45% of the stars and ≤4 hard hits; a "lazy toddler" (middle lane, gas only) must finish every level and still find ≥15% of the stars on levels 1-20; world 1 stays gentle (9; `--table` prints the per-level table, `--hits` lists each hard hit; honours `VROOM_URL`)
+- `upkeep-check.cjs` — fuel + tires + shine: full gauges on a fresh save, HUD gauge column, burn per unit of road (tread at half rate), no burn in free drive or the parade, dry-tank crawl speeds, bald-tire lane lag, hit scuffs tread, shine bonus (+50%) and its sticker, muddy = no shine, workbench fill-up / tire tiles with per-unit prices, partial fills, deny shakes, v3 save-code tail + tail-less decode, reload + pre-12.2 save defaults, the dice/map/GO column geometry (20; honours `VROOM_URL`)
 
 ```bash
 cd tests && CHROMIUM=... VROOM_URL=http://localhost:4173/index.html node shop-check.cjs
@@ -63,6 +64,7 @@ click stability check.
 | `world-check-audio-events.cjs` | 16 | per-world jingles, ambience beds, star scales, live sky events, quiet mode, deep-level frame time |
 | `paint-check.cjs` | 22 | pattern paints: 11 swatches on the second tray page, defs in both views, buying, v3 save code round trip, v2 legacy decode, album re-render |
 | `shop-check.cjs` | 21 | shop pack: 23-body / 13-wheel / 9-entry decal catalog, tap-forward + hold-back cycling, hover body, every body x extras x buddy x decal in both views, two-page extras tray, v3 round trip, frozen-width v2 decode |
+| `upkeep-check.cjs` | 20 | fuel and tire wear, dry-tank crawl, bald-tire grip, shine bonus, workbench fill-up and tire tiles, save-code tail, legacy defaults, garage column geometry |
 | `fairness-check.cjs` | 9 | two headless bots drive all 120 levels through the real collision code: "smart" must finish every level with ≥45% of the stars and ≤4 hard hits; "lazy toddler" (centre lane, gas only) must finish every level and find ≥15% of the stars on levels 1-20; world 1 stays gentle. `--table` prints per-level results, `--hits` each hard hit |
 
 Not a suite: `level-report.cjs` builds every level and prints its beat sequence and prop

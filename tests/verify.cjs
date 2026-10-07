@@ -237,7 +237,7 @@ function check(name, ok, detail) {
     wallet: progress.wallet, lvl1: progress.levels[1], current: progress.current
   }));
   check('finish: celebrate overlay shows', fin.finished && fin.celebrate, JSON.stringify({ f: fin.finished, c: fin.celebrate }));
-  check('finish: stars banked (4+3+2 clean bonus=9) and level 2 current', fin.wallet === 9 && fin.current === 2, JSON.stringify({ wallet: fin.wallet, current: fin.current }));
+  check('finish: stars banked (4+3+2 clean+2 shine=11) and level 2 current', fin.wallet === 11 && fin.current === 2, JSON.stringify({ wallet: fin.wallet, current: fin.current }));
   check('finish: level 1 progress recorded', fin.lvl1 && fin.lvl1.best >= 4 && fin.lvl1.rating >= 1, JSON.stringify(fin.lvl1));
   await page.waitForTimeout(1400);
   await page.screenshot({ path: SHOT + 'celebrate.png' });

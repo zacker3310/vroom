@@ -81,19 +81,20 @@ function check(name, ok, detail) {
   await page.evaluate(() => showGarage());
   await page.waitForTimeout(600);
   const garage = await page.evaluate(() => ({
-    washShown: washBtn.classList.contains('show'),
+    washShown: (openTab('work', false), !!document.querySelector('#strip .tile[data-act="wash"]')),
+    dot: document.querySelector('.catTab[data-cat="work"]').classList.contains('needs'),
     previewMuddy: preview.innerHTML.includes('opacity:1') && preview.querySelector('.mudSpots') !== null
   }));
-  check('wash: garage shows sponge button + muddy preview', garage.washShown && garage.previewMuddy, JSON.stringify(garage));
+  check('wash: workbench shows the sponge tile + wrench dot + muddy preview', garage.washShown && garage.dot && garage.previewMuddy, JSON.stringify(garage));
 
   /* mud survives reload */
   await page.reload();
   await page.waitForTimeout(500);
-  const mudPersist = await page.evaluate(() => progress.muddy === true && washBtn.classList.contains('show'));
+  const mudPersist = await page.evaluate(() => progress.muddy === true && document.querySelector('.catTab[data-cat="work"]').classList.contains('needs'));
   check('wash: mud persists across reload', mudPersist);
 
   /* ---- the scrub mini-game ---- */
-  await tap('#washBtn');
+  await page.evaluate(() => openWash());
   await page.waitForTimeout(400);
   const openState = await page.evaluate(() => washOverlay.classList.contains('show'));
   check('wash: overlay opens with the muddy car', openState);
@@ -118,7 +119,7 @@ function check(name, ok, detail) {
   await page.waitForTimeout(1400);
   const after = await page.evaluate(() => ({
     closed: !washOverlay.classList.contains('show'),
-    btnHidden: !washBtn.classList.contains('show'),
+    btnHidden: (openTab('work', false), !document.querySelector('#strip .tile[data-act="wash"]')),
     previewClean: preview.innerHTML.includes('opacity:0')
   }));
   check('wash: overlay closes, button hides, truck gleams', after.closed && after.btnHidden && after.previewClean, JSON.stringify(after));

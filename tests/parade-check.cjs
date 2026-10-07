@@ -130,7 +130,7 @@ function check(name, ok, detail) {
     badgeSlots: document.querySelectorAll('.badgeSlot').length,
     champFilled: [...document.querySelectorAll('.badgeSlot')].filter(b => b.classList.contains('filled')).length >= 1
   }));
-  check('album: seven badge slots incl. the champion sticker', album.badgeSlots === 7 && album.champFilled, JSON.stringify(album));
+  check('album: eight badge slots incl. the champion sticker', album.badgeSlots === 8 && album.champFilled, JSON.stringify(album));
 
   const normal = await page.evaluate(async () => {
     drive(3);

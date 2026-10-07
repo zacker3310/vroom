@@ -70,8 +70,8 @@ stripe) is painted on a canvas each frame; roadside set pieces rush past on both
   Steer INTO stars, AWAY from obstacles.
 - Tap vehicle = honk
 - Mud puddle -> splash, muddy wheels (lane-specific). The mud STAYS (v4.4b): the truck
-  comes home dirty, a pulsing sponge button appears in the garage, and washing is a
-  mini-game — rub the truck with a finger, soap bubbles trail the touch, fill the
+  comes home dirty, a sponge tile appears on the workbench tab (the wrench tab pulses a
+  dot), and washing is a mini-game — rub the truck with a finger, soap bubbles trail the touch, fill the
   meter, rinse, sparkle. Pure care-play, no stars needed.
 - **Decals** (v4.4b, alive since v9): a sticker button beside body/wheels tap-cycles a
   flank decal — a flickering layered flame, a shooting star with sparkle trail, a glossy
@@ -90,7 +90,17 @@ stripe) is painted on a canvas each frame; roadside set pieces rush past on both
 - **Damage** (v4): persists 0-9 (wrench chip in HUD + celebrate). Truck shows scuffs at 1+,
   cracked glass at 3+, smoke + 15% slower at 5+. Jumping clears hazards. Shield upgrade soaks
   damage. Finish a run with no new dings -> +2 star clean bonus. Never blocks play.
-- **Garage repair**: pulsing wrench button when dinged, costs 2 stars per damage point.
+- **Garage repair**: a wrench tile on the workbench tab when dinged, 2 stars per damage point.
+- **Fuel** (v12.2): an 8-unit tank, one unit per level of road (fuel gauge in the HUD).
+  Low (2) = 20% slower + engine coughs; dry = a 55% crawl that still finishes. Never strands.
+  Fill-up tile on the workbench: 1 star a unit; a short wallet buys what it can.
+- **Tires** (v12.2): 8 units of tread, half a unit per level plus half per hard hit (tire
+  gauge in the HUD). Bald (2) = lane changes at 60% speed, 10% off the top, a scrub on every
+  turn. New set on the workbench: 1 star a unit.
+- **Shine bonus** (v12.2): cross the line with no mud and zero damage and the collected
+  stars pay +50% (rounded up), shown as a sparkle chip on the results card; first time earns
+  the eighth album sticker. Puddles and bonks during the run cost it, so garage care pays
+  out on the road.
 - **Garage upgrades** (star-paid, 3 pips each): engine (+80 top speed/level),
   shield (soaks 1 damage per hit/level), star magnet (wider pull/level).
 - **Keyboard**: WASD or arrows steer (W/S = lanes), D/->/space = gas, A/<- = brake.

@@ -131,7 +131,7 @@ function check(name, ok, detail) {
     gasKey = false;
     return { banked: progress.wallet - w0, chip: document.getElementById('celebrateDamage').querySelector('span').textContent.trim() };
   });
-  check('economy: clean run banks 4+3+2', clean.banked === 9, JSON.stringify(clean));
+  check('economy: clean run banks 4+3+2 clean+2 shine', clean.banked === 11, JSON.stringify(clean));
   await page.waitForTimeout(1500);
   await page.screenshot({ path: SHOT + 'd-celebrate.png' });
 
@@ -157,24 +157,28 @@ function check(name, ok, detail) {
   const persist2 = await page.evaluate(() => progress.damage);
   check('damage: persists across reload', persist2 === 2, 'damage=' + persist2);
 
-  /* ---- repair: wrench button in garage, costs 2x damage ---- */
+  /* ---- repair: wrench tile on the workbench tab, costs 2x damage; the wrench tab wears a dot ---- */
   const repairUi = await page.evaluate(() => {
-    showGarage(); progress.wallet = 100; renderWallets(false); renderRepair();
+    showGarage(); progress.wallet = 100; renderWallets(false); renderUpkeep(); openTab('work', false);
+    const tile = document.querySelector('#strip .tile[data-act="repair"]');
     return {
-      visible: getComputedStyle(document.getElementById('repairBtn')).display !== 'none',
-      price: document.getElementById('repairBtn').textContent.trim(),
+      visible: !!tile && tile.getBoundingClientRect().width > 0,
+      price: tile ? tile.textContent.trim() : '',
+      dot: document.querySelector('.catTab[data-cat="work"]').classList.contains('needs'),
+      noWall: !document.getElementById('repairBtn') && !document.getElementById('washBtn'),
       previewDinged: preview.querySelector('.dmgScuff').style.display !== 'none'
     };
   });
-  check('repair: wrench shows in garage with price 4, preview dinged', repairUi.visible && repairUi.price === '4' && repairUi.previewDinged, JSON.stringify(repairUi));
+  check('repair: wrench tile on the workbench with price 4, tab dot on, no wall buttons, preview dinged', repairUi.visible && repairUi.price === '4' && repairUi.dot && repairUi.noWall && repairUi.previewDinged, JSON.stringify(repairUi));
   await page.screenshot({ path: SHOT + 'd-garage-repair.png' });
-  await tap('#repairBtn');
+  await page.evaluate(() => doRepair());
   const repaired = await page.evaluate(() => ({
     damage: progress.damage, wallet: progress.wallet,
-    hidden: getComputedStyle(document.getElementById('repairBtn')).display === 'none',
+    hidden: !document.querySelector('#strip .tile[data-act="repair"]'),
+    dot: document.querySelector('.catTab[data-cat="work"]').classList.contains('needs'),
     clean: preview.querySelector('.dmgScuff').style.display === 'none'
   }));
-  check('repair: pays 4, damage 0, truck clean', repaired.damage === 0 && repaired.wallet === 96 && repaired.hidden && repaired.clean, JSON.stringify(repaired));
+  check('repair: pays 4, damage 0, tile gone, tab dot off, truck clean', repaired.damage === 0 && repaired.wallet === 96 && repaired.hidden && !repaired.dot && repaired.clean, JSON.stringify(repaired));
 
   /* ---- upgrades: engine buy raises vmax; armor soaks damage; prices deduct ---- */
   const upg = await page.evaluate(() => {

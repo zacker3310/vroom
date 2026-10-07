@@ -40,7 +40,7 @@ click (animated elements fail its stability check).
 
 `state` is the build (`body`, `wheels`, `color`, `decal`, `buddy`, `extras{}`); `progress` is
 everything earned (`wallet`, `current`, `levels{n: {best, rating, tier}}`, `owned{}`,
-`upgrades`, `damage`, `muddy`, `quiet`, `badges`, `photos` (last 6), `buddy`...). `save()`
+`upgrades`, `damage`, `muddy`, `fuel`, `tread`, `quiet`, `badges`, `photos` (last 6), `buddy`...). `save()`
 writes `{ build: state, ...progress }` to `localStorage["vroom.v2.p<n>"]` where `n` is the
 active profile from `vroom.meta` (up to 3). `loadState()` migrates the single-profile
 `vroom.v2` key into profile 0 and the v1 build before that, and validates every saved id
@@ -139,8 +139,16 @@ all as `quad()`s of four `proj()`ed corners with the world's `ROAD_PAL[w]` palet
 ## Physics
 
 `VMAX = 700`, `ACCEL = 900`, `COAST = 350`, `BRAKE = 1600` (units/s and units/s²); the engine
-upgrade adds 80 top speed per level (`vmaxEff()`), damage at 5+ takes 15% off. Lane changes
-ease `laneVis` toward `targetLane`. Jumps use the world's gravity: 1500 on earth, 640 on the
+upgrade adds 80 top speed per level (`vmaxEff()`), damage at 5+ takes 15% off, a low tank
+(`fuel <= 2`) 20% and a dry one 45% (the car crawls, it never stops), bald tires (`tread <= 2`)
+10%. Lane changes ease `laneVis` toward `targetLane`, at 60% rate on bald tires (`gripK()`).
+`burnUpkeep(d)` runs from `tick()` in levels only (not free drive or the parade): a unit of
+fuel per 5200 units of road (`FUEL_PER_UNIT`), a unit of tread per 10400, plus half a unit of
+tread per soaked hard hit in `applyDamage`. Both gauges are 0-8 floats shown rounded up on
+the HUD; the wrench tab in the garage wears a pulsing dot while anything is low, dinged or
+muddy, and the workbench tab grows a fill-up tile (1 star a unit, partial fills allowed) and
+a tire tile (1 star a unit, the whole set). `finishLevel` adds the shine bonus, +50% of the
+collected stars rounded up, when the truck crosses the line with no mud and zero damage. Jumps use the world's gravity: 1500 on earth, 640 on the
 moon, 1100 in the deep sea, 900 in the sky kingdom; `flightLen(w)` interpolates ramp
 flight distance from gravity (950 units on earth, 1850 on the moon) so the level generator
 can keep landings clean. Collisions run in `tick()`: every live prop's `PROP_HIT[type](p, d)`
@@ -258,17 +266,18 @@ MSB-first bit fields, in order:
 | 8 + n | owned paid extras over `CODE_EXTRAS` (7) |
 | 8 + n | owned decals over `CODE_DECALS` (8) |
 | 8 + n | found buddies over `BUDDY_ORDER` (10) |
-| 8 + n | badges over `BADGES` (7) |
+| 8 + n | badges over `BADGES` (8) |
 | 8, 8, 8, 8, 8 | the build: indices into `BODY_ORDER`, `WHEEL_ORDER`, `COLORS`, `DECAL_ORDER`, buddy index + 1 (0 = none) |
 | 8 + n | equipped extras over all extras incl. horn/beacon/flag (10) |
 | pad | to a byte boundary |
 | 8 | level count (`MAX_LEVEL` = 120) |
 | 4 × levels | per level: rating (2 bits, 0 = unplayed) and medal rank (2 bits: C B A S) |
+| 4, 4 | tail (12.2): fuel and tread, whole units rounded up; a code that ends before it reads as full |
 
 Because every list is count-prefixed, a pack may **append** to any catalog list and older
 codes still decode (shorter lists read fewer bits); reordering would silently swap parts.
-With today's catalog a code is exactly 91 bytes (the layout is fixed-size once the catalog
-is), 129 base64url characters after the prefix; the hosted URL plus the code is 170 bytes
+With today's catalog a code is exactly 92 bytes (the layout is fixed-size once the catalog
+is), 123 base64url characters after the prefix; the hosted URL plus the code is 163 bytes
 and lands in QR version 8 (49x49 modules).
 
 ### Versions 1 and 2 (read-only)

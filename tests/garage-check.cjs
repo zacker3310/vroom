@@ -46,12 +46,13 @@ function check(name, ok, detail) {
       gone: ['bodyBtn', 'wheelBtn', 'decalBtn', 'cycleDots', 'swatches', 'paintFlip', 'upgrades', 'garageSign', 'quietBtn'].filter(id => document.querySelector('#garage #' + id)),
       extrasHidden: document.getElementById('extras').getBoundingClientRect().width === 0,
       flipHidden: !document.getElementById('extrasFlip') || document.getElementById('extrasFlip').getBoundingClientRect().width === 0,
-      wallHidden: ['repairBtn', 'washBtn'].every(id => !vis(document.getElementById(id)))
+      wallGone: !document.getElementById('repairBtn') && !document.getElementById('washBtn'),
+      dotOff: !document.querySelector('.catTab[data-cat="work"]').classList.contains('needs')
     };
   });
   check('rest: <= 16 interactive elements on the garage (strip = 1)', rest.n <= 16, rest.n + ': ' + rest.ids);
   check('rest: old controls gone (cycle buttons, dots, swatch grid, flips, rack, title, speaker)', rest.gone.length === 0 && rest.extrasHidden && rest.flipHidden, rest.gone.join(','));
-  check('rest: repair + wash absent when nothing needs them', rest.wallHidden);
+  check('rest: no wall repair/wash buttons; wrench tab dot off when nothing needs doing', rest.wallGone && rest.dotOff);
   await page.screenshot({ path: SHOT + 'garage-rest.png' });
 
   /* ---- 2. GO is the biggest control; everything >= 64px rendered ---- */
@@ -83,17 +84,16 @@ function check(name, ok, detail) {
 
   /* workbench grows repair + wash tiles when the truck needs them */
   const work = await page.evaluate(() => {
-    progress.damage = 3; progress.muddy = true; save(); renderPreview(); renderRepair(); renderWash();
-    const vis = el => el.getBoundingClientRect().width > 0;
+    progress.damage = 3; progress.muddy = true; save(); renderPreview(); renderUpkeep();
     return {
       tiles: document.querySelectorAll('#strip .tile').length, repair: !!document.querySelector('#strip .tile[data-act="repair"]'),
       wash: !!document.querySelector('#strip .tile[data-act="wash"]'), price: document.querySelector('#strip .tile[data-act="repair"] .upgPrice').textContent.trim(),
-      wall: vis(repairBtn) && vis(washBtn), arrowsOff: document.getElementById('stripNext').classList.contains('off')
+      dot: document.querySelector('.catTab[data-cat="work"]').classList.contains('needs'), arrowsOff: document.getElementById('stripNext').classList.contains('off')
     };
   });
-  check('workbench: repair (6) + wash tiles appear with damage + mud, wall buttons too, arrows hidden (all fits)', work.tiles === 5 && work.repair && work.wash && work.price === '6' && work.wall && work.arrowsOff, JSON.stringify(work));
+  check('workbench: repair (6) + wash tiles appear with damage + mud, wrench tab dot on, arrows hidden (all fits)', work.tiles === 5 && work.repair && work.wash && work.price === '6' && work.dot && work.arrowsOff, JSON.stringify(work));
   await page.screenshot({ path: SHOT + 'garage-workbench-repair-wash.png' });
-  await page.evaluate(() => { progress.damage = 0; progress.muddy = false; save(); renderPreview(); renderRepair(); renderWash(); });
+  await page.evaluate(() => { progress.damage = 0; progress.muddy = false; save(); renderPreview(); renderUpkeep(); });
 
   /* ---- 4. selection ring follows state ---- */
   await openTab('body');

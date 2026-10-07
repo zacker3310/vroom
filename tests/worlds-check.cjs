@@ -142,8 +142,8 @@ function check(name, ok, detail) {
     gasKey = false;
     return { banked: progress.wallet - w0, worldOpen: !!progress.levels[10] };
   });
-  /* 2 stars + 3 finish + 2 clean + 25 world = 32 */
-  check('rewards: world-clear banks +25 trophy bonus (2+3+2+25=32)', unlock.banked === 32 && unlock.worldOpen, JSON.stringify(unlock));
+  /* 2 stars + 3 finish + 2 clean + 1 shine + 25 world = 33 */
+  check('rewards: world-clear banks +25 trophy bonus (2+3+2+1+25=33)', unlock.banked === 33 && unlock.worldOpen, JSON.stringify(unlock));
   await page.evaluate(() => showMap());
   await page.waitForTimeout(150);
   const w2 = await page.evaluate(() => !document.querySelectorAll('.worldTab')[1].classList.contains('locked'));

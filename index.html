@@ -371,6 +371,10 @@
   #hudStars { right: 24px; top: 24px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; }
   #hudDamage { right: 24px; top: 132px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; }
   #hudDamage.hurt { border-color: #e63946; color: #e63946; }
+  /* upkeep gauges stack under the wrench in the same 108px rhythm; red when low */
+  #hudFuel { right: 24px; top: 240px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; }
+  #hudTires { right: 24px; top: 348px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; }
+  #hudFuel.low, #hudTires.low { border-color: #e63946; color: #e63946; }
   #hudProgress { left: 316px; right: 216px; top: 24px; padding: 0 24px; gap: 16px; box-sizing: border-box; }
   #progTrack { position: relative; flex: 1; height: 12px; background: #e9ecef; border-radius: 6px; }
   #hudProgress #hudTime { min-width: 2ch; text-align: right; }
@@ -381,7 +385,7 @@
   #hudProgress svg { width: 40px; height: 40px; }
   /* during the celebration the run HUD and controls step aside */
   #road.celebrating #hudStars, #road.celebrating #hudLevel, #road.celebrating #hudProgress,
-  #road.celebrating #hudDamage, #road.celebrating .pedal, #road.celebrating #steerWheel,
+  #road.celebrating #hudDamage, #road.celebrating #hudFuel, #road.celebrating #hudTires, #road.celebrating .pedal, #road.celebrating #steerWheel,
   #road.celebrating #homeBtn { display: none; }
   /* wallets are fixed width (fits 3 digits) so the row never shifts as stars pile up */
   #garageWallet, #albumWallet, #mapWallet, #celebrateWallet { width: 200px; justify-content: center; padding: 0; box-sizing: border-box; }
@@ -440,7 +444,8 @@
   #resultsMeta .chip { height: 80px; font-size: 40px; padding: 0 20px; }
   #resultsMeta .chip svg { width: 46px; height: 46px; }
   #resultsCard .chip { position: static; box-shadow: none; }
-  #celebrateDamage { position: static; }
+  #celebrateDamage, #celebrateShine { position: static; }
+  #celebrateShine { border-color: #fb8500; color: #fb8500; }
   #celebrateDamage.clean { border-color: #38b000; color: #38b000; }
   #celebrateDamage .medal { display: flex; }
   #celebrateDamage .medal svg { width: 56px; height: 56px; animation: medalPop .5s cubic-bezier(.2,2,.4,1) .4s backwards; }
@@ -678,11 +683,6 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
   border: 8px solid var(--v-red-line);
   box-shadow: 0 7px 0 var(--v-red-down);
 }
-#repairBtn {
-  background: var(--v-accent-red);
-  border: 7px solid var(--v-red-line);
-  box-shadow: 0 6px 0 var(--v-red-down);
-}
 
 /* --- pedals: drawn in the toybox green/red (see the pedal svgs) --- */
 
@@ -716,7 +716,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
   color: var(--v-ink);
   box-shadow: 0 5px 0 var(--v-surface-down);
 }
-#hudDamage.hurt { border-color: var(--v-red-line); color: #c9584a; }
+#hudDamage.hurt, #hudFuel.low, #hudTires.low { border-color: var(--v-red-line); color: #c9584a; }
 #celebrateDamage.clean { border-color: var(--v-green-line); color: #3f8a38; }
 #progTrack { background: var(--v-surface-2); }
 #progDot { background: var(--v-accent-red); border: 5px solid var(--v-surface); }
@@ -966,18 +966,8 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ============ T8 POLISH PASS: one radius per size, one shadow, one panel, no leftover navy/white chrome ============ */
 /* radius rule: 96-104px square buttons wear --v-r-lg (like the cream chrome), 76-80px cells wear --v-r-md,
    trays wrap their 30px buttons with 8px padding so they sit at --v-r-xl; panels are --v-r-xl */
-#repairBtn, #washBtn { border-radius: var(--v-r-lg); }
 #qrBox { border-radius: var(--v-r-md); }
 
-/* wash bay button: blue chrome */
-#washBtn {
-  background: var(--v-accent-blue);
-  border: 6px solid var(--v-blue-line);
-  box-shadow: 0 6px 0 var(--v-blue-down);
-}
-#repairBtn { border-width: 6px; }
-#repairBtn > svg { width: 44px; height: 44px; }
-#washBtn svg { width: 64px; height: 64px; }
 /* update gate: green on green like the GO family, not a white ring */
 #updateBtn { border-color: var(--v-green-line); }
 
@@ -1032,20 +1022,14 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 .photoCar { border-radius: 10px; }
 /* ============ GARAGE REDESIGN: one hierarchy — the car is the hero, GO is the one primary action ============
    stage coordinates: top bar 24-120 (profile 24 | album right 240 | wallet right 24)
-   hero: preview 506 wide, floor line y≈436; right column x-centre 1086: repair 128-224, wash 230-326 (contextual),
-   dice 332-420, map 426-502, GO 508-688. bench rim 432-440; tabs y 452-528 from x 120 (over the first tile);
+   hero: preview 506 wide, floor line y≈436; right column x-centre 1086, 16px rhythm: dice 296-384 on the wall,
+   map 400-488 resting on the bench rim, GO 504-684. Upkeep (repair, wash, fuel, tires) lives on the workbench tab only;
+   the wrench tab wears a pulsing dot while the truck needs something. bench rim 432-440; tabs y 452-528 from x 120;
    strip row y 548-664: prev arrow 24-100 | strip 112-872 (7 tiles of 96 + 12 gaps, 8px side padding) | next 884-960 */
 #garageWall { background-image: radial-gradient(rgba(90, 70, 52, .032) 2.4px, transparent 2.6px); }
 #albumBtn { position: absolute; right: 240px; top: 24px; width: 96px; height: 96px; z-index: 20; }
-#diceBtn { position: absolute; right: 68px; top: 332px; width: 88px; height: 88px; z-index: 5; }
+#diceBtn { position: absolute; right: 70px; top: 296px; width: 88px; height: 88px; z-index: 5; }
 #diceBtn svg { width: 56px; height: 56px; }
-#washBtn { position: absolute; right: 62px; top: 230px; width: 96px; height: 96px; z-index: 5; display: none; animation: pulse 1.1s ease infinite; }
-#washBtn.show { display: flex; }
-#repairBtn {
-  position: absolute; right: 62px; top: 128px; width: 96px; height: 96px; z-index: 5;
-  display: none; flex-direction: column; gap: 2px; animation: pulse 1.1s ease infinite;
-}
-#repairBtn.show { display: flex; }
 
 /* --- category tabs: putty at rest, the chosen one lifts in blue with the map's yellow outline --- */
 #catTabs { position: absolute; left: 120px; top: 12px; display: flex; gap: 12px; }
@@ -1065,6 +1049,13 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
   outline: 6px solid var(--v-accent-yellow); transform: translateY(-4px);
 }
 .catTab.sel svg { opacity: 1; }
+/* the wrench tab wears a red dot while the truck needs upkeep (dings, mud, low fuel, bald tires) */
+.catTab .alert {
+  position: absolute; top: -10px; right: -10px; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--v-accent-red); border: 4px solid var(--v-surface); display: none;
+}
+.catTab { position: relative; }
+.catTab.needs .alert { display: block; animation: pulse 1.1s ease infinite; }
 .catTab.sel [fill="#023047"] { fill: var(--v-ink-strong); }
 .catTab.sel [stroke="#023047"] { stroke: var(--v-ink-strong); }
 
@@ -1124,14 +1115,18 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 .tile.on, .tile.maxed { background: var(--v-accent-green); border-color: var(--v-green-line); box-shadow: 0 6px 0 var(--v-green-down); opacity: 1; }
 .tile.red { background: var(--v-accent-red); border-color: var(--v-red-line); box-shadow: 0 6px 0 var(--v-red-down); }
 .tile.blue { background: var(--v-accent-blue); border-color: var(--v-blue-line); box-shadow: 0 6px 0 var(--v-blue-down); }
-.tile.red .upgPrice, .tile.blue .upgPrice { color: #fff; }
-.tile.red .glyph, .tile.blue .glyph { width: 44px; height: 44px; }
+.tile.yellow { background: var(--v-accent-yellow); border-color: var(--v-yellow-line); box-shadow: 0 6px 0 var(--v-yellow-down); }
+.tile.ink { background: var(--v-ink); border-color: var(--v-ink-strong); box-shadow: 0 6px 0 var(--v-ink-strong); }
+.tile.red .upgPrice, .tile.blue .upgPrice, .tile.ink .upgPrice { color: #fff; }
+.tile.yellow .upgPrice { color: var(--v-ink-strong); }
+.tile.red .glyph, .tile.blue .glyph, .tile.yellow .glyph, .tile.ink .glyph { width: 44px; height: 44px; }
+.tile.urgent { animation: pulse 1.1s ease infinite; }
 .tile.deny { animation: denyShake .4s ease; }
 
 /* --- map above GO, right column, GO the biggest thing on screen --- */
-#goCol { position: absolute; right: 24px; top: -14px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-#mapBtn { width: 76px; height: 76px; border-radius: 50%; }
-#mapBtn svg { width: 46px; height: 46px; }
+#goCol { position: absolute; right: 24px; top: -48px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+#mapBtn { width: 88px; height: 88px; border-radius: 50%; }
+#mapBtn svg { width: 52px; height: 52px; }
 #goBtn { width: 180px; height: 180px; border-radius: 50%; border: 8px solid var(--v-green-line); }
 #goBtn svg { width: 92px; height: 92px; }
 
@@ -1170,14 +1165,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     <div id="previewLock">
       <svg viewBox="0 0 64 64"><rect x="12" y="28" width="40" height="30" rx="7" fill="#ffb703"/><path d="M20 28 V20 a12 12 0 0 1 24 0 V28" stroke="#ffb703" stroke-width="8" fill="none"/></svg>
     </div>
-    <!-- right wall: repair + wash only when needed (damage / mud), the dice always, all one column with map + GO -->
-    <button class="bigBtn" id="repairBtn" aria-label="fix the truck with stars">
-      <svg viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#fff"/></svg>
-      <span class="upgPrice"></span>
-    </button>
-    <button class="bigBtn" id="washBtn" aria-label="wash the muddy truck">
-      <svg viewBox="0 0 100 100"><rect x="18" y="34" width="52" height="38" rx="14" fill="#ffd66e" stroke="#dca63f" stroke-width="4"/><circle cx="30" cy="30" r="9" fill="#fff" opacity=".9"/><circle cx="48" cy="22" r="12" fill="#fff" opacity=".9"/><circle cx="66" cy="30" r="8" fill="#fff" opacity=".9"/><circle cx="80" cy="44" r="6" fill="#fff" opacity=".8"/></svg>
-    </button>
+    <!-- right wall: the dice, in one 16px-rhythm column with map + GO; upkeep lives on the workbench tab -->
     <button class="bigBtn" id="diceBtn" aria-label="surprise me: random truck">
       <svg viewBox="0 0 100 100"><rect x="12" y="12" width="76" height="76" rx="18" fill="#fff" stroke="#023047" stroke-width="5"/><circle cx="32" cy="32" r="9" fill="#e63946"/><circle cx="68" cy="32" r="9" fill="#ff9f1c"/><circle cx="50" cy="50" r="9" fill="#ffd60a"/><circle cx="32" cy="68" r="9" fill="#74c69d"/><circle cx="68" cy="68" r="9" fill="#4cc9f0"/></svg>
     </button>
@@ -1210,8 +1198,9 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
         <button class="catTab" data-cat="extras" role="tab" aria-selected="false" aria-label="extras">
         <svg viewBox="0 0 100 100"><path d="M50 8 Q54 42 92 50 Q54 58 50 92 Q46 58 8 50 Q46 42 50 8 Z" fill="#fff"/><path d="M78 12 q2 10 12 12 q-10 2 -12 12 q-2 -10 -12 -12 q10 -2 12 -12Z" fill="#ffd60a"/><path d="M20 66 q1.5 8 9 9 q-7.5 1.5 -9 9 q-1.5 -7.5 -9 -9 q7.5 -1.5 9 -9Z" fill="#ffd60a"/></svg>
         </button>
-        <button class="catTab" data-cat="work" role="tab" aria-selected="false" aria-label="workbench: upgrades and repairs">
+        <button class="catTab" data-cat="work" role="tab" aria-selected="false" aria-label="workbench: upgrades, repairs, fuel and tires">
         <svg viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#fff"/></svg>
+        <span class="alert"></span>
         </button>
       </div>
       <div id="stripRow">
@@ -1282,6 +1271,8 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     </div>
     <div class="chip" id="hudStars" aria-label="stars collected"></div>
     <div class="chip" id="hudDamage" aria-label="damage"></div>
+    <div class="chip" id="hudFuel" aria-label="fuel left"></div>
+    <div class="chip" id="hudTires" aria-label="tire tread left"></div>
     <button id="steerWheel" aria-label="steering wheel: tap or turn left and right">
       <svg viewBox="0 0 220 220">
         <circle cx="110" cy="110" r="92" fill="none" stroke="var(--v-blue-down, #3f83a2)" stroke-width="30"/>
@@ -1310,6 +1301,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
       <div id="resultsMeta">
         <div class="chip" id="celebrateTime" aria-label="run time and medal"></div>
         <div class="chip" id="celebrateDamage" aria-label="damage taken"></div>
+        <div class="chip" id="celebrateShine" aria-label="shine bonus for a spotless truck"></div>
       </div>
       </div>
       <div id="celebrateRow">
@@ -1415,7 +1407,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "12.0.0";
+const APP_VERSION = "12.2.0";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -1471,6 +1463,12 @@ const UPG = {
   magnet: { prices: [15, 30, 60] }    /* wider star pull per level */
 };
 const MAX_DAMAGE = 9, REPAIR_RATE = 2;
+/* upkeep: one tank and one set of tires, 8 units each. A level burns about 1 fuel and 1/2 tread; a hard hit
+   scuffs another 1/2 tread. Running dry never strands the kid: the car sputters to a crawl and still finishes.
+   Bald tires steer slower. Fill-ups and tires cost 1 star a unit at the workbench. */
+const FUEL_MAX = 8, TREAD_MAX = 8, FUEL_PER_UNIT = 5200, TREAD_PER_UNIT = 10400, FUEL_RATE = 1, TIRE_RATE = 1;
+const FUEL_LOW = 2, TREAD_LOW = 2;      /* gauges turn red and the wrench tab pulses from here down */
+const SHINE_MULT = 0.5;                 /* shine bonus: a spotless, ding-free truck earns +50% on the stars it collected */
 
 const WORLD_COUNT = 12, WORLD_SIZE = 10;
 const MAX_LEVEL = WORLD_COUNT * WORLD_SIZE;
@@ -1514,7 +1512,8 @@ const BADGES = [
   { id: "world", icon: `<svg viewBox="0 0 64 64"><path d="M18 8 H46 V26 Q46 40 32 44 Q18 40 18 26 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/><path d="M18 12 Q6 14 12 26 Q15 32 20 32 M46 12 Q58 14 52 26 Q49 32 44 32" stroke="#fb8500" stroke-width="4" fill="none"/><rect x="26" y="44" width="12" height="8" fill="#b08968"/><rect x="20" y="52" width="24" height="6" rx="3" fill="#8a5a2b"/></svg>` },
   { id: "buy",   icon: `<svg viewBox="0 0 64 64"><path d="M8 24 L28 8 H52 V32 L32 52 Q28 56 24 52 L8 32 Q4 28 8 24 Z" fill="#ffb703" stroke="#023047" stroke-width="4"/><circle cx="42" cy="18" r="5" fill="#023047"/></svg>` },
   { id: "gag",   icon: `<svg viewBox="0 0 64 64"><ellipse cx="30" cy="44" rx="22" ry="13" fill="#ffd60a"/><circle cx="46" cy="26" r="12" fill="#ffd60a"/><path d="M56 24 L66 28 L56 32 Z" fill="#f77f00"/><circle cx="49" cy="23" r="2.5" fill="#023047"/></svg>` },
-  { id: "champ", icon: `<svg viewBox="0 0 64 64"><path d="M22 4 L26 10 L32 5 L38 10 L42 4 L44 14 H20 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="2"/><path d="M18 14 H46 V30 Q46 44 32 48 Q18 44 18 30 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/><path d="M18 18 Q6 20 12 32 Q15 38 20 38 M46 18 Q58 20 52 32 Q49 38 44 38" stroke="#fb8500" stroke-width="4" fill="none"/><rect x="26" y="48" width="12" height="7" fill="#b08968"/><rect x="20" y="55" width="24" height="6" rx="3" fill="#8a5a2b"/><circle cx="32" cy="30" r="7" fill="#fff8ec"/></svg>` }
+  { id: "champ", icon: `<svg viewBox="0 0 64 64"><path d="M22 4 L26 10 L32 5 L38 10 L42 4 L44 14 H20 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="2"/><path d="M18 14 H46 V30 Q46 44 32 48 Q18 44 18 30 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/><path d="M18 18 Q6 20 12 32 Q15 38 20 38 M46 18 Q58 20 52 32 Q49 38 44 38" stroke="#fb8500" stroke-width="4" fill="none"/><rect x="26" y="48" width="12" height="7" fill="#b08968"/><rect x="20" y="55" width="24" height="6" rx="3" fill="#8a5a2b"/><circle cx="32" cy="30" r="7" fill="#fff8ec"/></svg>` },
+  { id: "shine", icon: `<svg viewBox="0 0 64 64"><path d="M8 44 L14 30 H30 L38 20 H50 L56 30 Q60 32 60 38 V44 Z" fill="#4cc9f0" stroke="#1d3557" stroke-width="3"/><circle cx="20" cy="46" r="7" fill="#212529" stroke="#fff" stroke-width="3"/><circle cx="48" cy="46" r="7" fill="#212529" stroke="#fff" stroke-width="3"/><path d="M44 6 q1.5 7 8 8 q-6.5 1.5 -8 8 q-1.5 -6.5 -8 -8 q6.5 -1.5 8 -8Z M14 12 q1 5 6 6 q-5 1 -6 6 q-1 -5 -6 -6 q5 -1 6 -6Z" fill="#ffd60a"/></svg>` }
 ];
 function medalSVG(tier) {
   /* the S coin is star-scalloped so the top tier reads by shape as well as letter */
@@ -1530,12 +1529,15 @@ function medalSVG(tier) {
 /* ---- shared icons ---- */
 const starIcon = `<svg viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/></svg>`;
 const lockIcon = `<svg viewBox="0 0 64 64"><rect x="12" y="28" width="40" height="30" rx="7" fill="#fff"/><path d="M20 28 V20 a12 12 0 0 1 24 0 V28" stroke="#fff" stroke-width="8" fill="none"/></svg>`;
+const fuelIcon = `<svg viewBox="0 0 64 64"><rect x="10" y="14" width="30" height="44" rx="6" fill="#e63946" stroke="#9b2226" stroke-width="3"/><rect x="16" y="20" width="18" height="12" rx="3" fill="#fff"/><path d="M40 24 h6 a4 4 0 0 1 4 4 v18 a3 3 0 0 0 6 0 V30 l-4 -4" stroke="#6c757d" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="18" y="8" width="14" height="8" rx="3" fill="#9b2226"/></svg>`;
+const tireIcon = `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="#212529"/><circle cx="32" cy="32" r="12" fill="#adb5bd"/><g fill="#495057">${[0,45,90,135,180,225,270,315].map(a => `<rect x="29" y="4" width="6" height="9" rx="2" transform="rotate(${a} 32 32)"/>`).join("")}</g></svg>`;
+const sparkIcon = `<svg viewBox="0 0 64 64"><path d="M32 4 Q35 28 60 32 Q35 36 32 60 Q29 36 4 32 Q29 28 32 4 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/><path d="M50 8 q1.5 7 8 8 q-6.5 1.5 -8 8 q-1.5 -6.5 -8 -8 q6.5 -1.5 8 -8Z" fill="#fff"/></svg>`;
 const wrenchIcon = `<svg viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#6c757d"/></svg>`;
 
 /* ============ 4. STATE + SAVE (localStorage vroom.v2.p<n>; migrates vroom.v1 and single-profile vroom.v2) ============ */
 let state = { body: "dump", wheels: "normal", color: "#fdd835", buddy: null, decal: "none", extras: { horn: false, beacon: false, flag: false } };
 let progress = { wallet: 0, owned: { body: [], wheels: [], color: [], extras: [], buddy: [], decal: [] }, levels: {}, current: 1,
-                 muddy: false,
+                 muddy: false, fuel: FUEL_MAX, tread: TREAD_MAX,
                  damage: 0, upgrades: { engine: 0, armor: 0, magnet: 0 }, quiet: false,
                  badges: [], photos: [] };
 
@@ -1606,6 +1608,8 @@ function loadState() {
       p && p.b && p.b.extras && BODY_ORDER.includes(p.b.body) && WHEEL_ORDER.includes(p.b.wheels) && COLORS.includes(p.b.color));
   }
   if (Number.isFinite(saved.damage)) progress.damage = Math.min(MAX_DAMAGE, Math.max(0, Math.floor(saved.damage)));
+  progress.fuel = Number.isFinite(saved.fuel) ? Math.min(FUEL_MAX, Math.max(0, saved.fuel)) : FUEL_MAX;      /* older saves: full tank */
+  progress.tread = Number.isFinite(saved.tread) ? Math.min(TREAD_MAX, Math.max(0, saved.tread)) : TREAD_MAX;
   if (saved.upgrades) for (const k of ["engine", "armor", "magnet"]) {
     if (Number.isFinite(saved.upgrades[k])) progress.upgrades[k] = Math.min(3, Math.max(0, Math.floor(saved.upgrades[k])));
   }
@@ -3440,6 +3444,8 @@ const UPG_ICON = {
   magnet: `<svg class="glyph" viewBox="0 0 64 64"><path d="M14 8 H28 V30 Q28 38 32 38 Q36 38 36 30 V8 H50 V30 Q50 52 32 52 Q14 52 14 30 Z" fill="#e63946"/><rect x="14" y="8" width="14" height="10" fill="#f1faee"/><rect x="36" y="8" width="14" height="10" fill="#f1faee"/><path d="M50 56 L54 60 M32 56 V62 M14 56 L10 60" stroke="#ffd60a" stroke-width="4" stroke-linecap="round"/></svg>`
 };
 const WORK_ICON = {
+  fuel:   fuelIcon.replace('<svg ', '<svg class="glyph" '),
+  tires:  tireIcon.replace('<svg ', '<svg class="glyph" '),
   repair: `<svg class="glyph" viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#fff"/></svg>`,
   wash:   `<svg class="glyph" viewBox="0 0 100 100"><rect x="18" y="34" width="52" height="38" rx="14" fill="#ffd66e" stroke="#dca63f" stroke-width="4"/><circle cx="30" cy="30" r="9" fill="#fff" opacity=".9"/><circle cx="48" cy="22" r="12" fill="#fff" opacity=".9"/><circle cx="66" cy="30" r="8" fill="#fff" opacity=".9"/><circle cx="80" cy="44" r="6" fill="#fff" opacity=".8"/></svg>`
 };
@@ -3487,8 +3493,11 @@ function stripItems(cat) {
     case "extras": return Object.keys(state.extras).map(id => ({ id, kind: "extras", pic: extraGlyph(id), label: id, cls: "wood" }));
     case "work": {
       const items = [];
+      /* upkeep first, in urgency order; each tile only exists while the truck needs it */
       if (progress.damage > 0) items.push({ id: "repair", kind: "act", pic: WORK_ICON.repair, label: "fix the truck with stars", cls: "red" });
       if (progress.muddy) items.push({ id: "wash", kind: "act", pic: WORK_ICON.wash, label: "wash the muddy truck", cls: "blue" });
+      if (fuelMissing() > 0) items.push({ id: "fuel", kind: "act", pic: WORK_ICON.fuel, label: "fill the tank with stars", cls: "yellow" });
+      if (treadMissing() > 0) items.push({ id: "tires", kind: "act", pic: WORK_ICON.tires, label: "new tires with stars", cls: "ink" });
       for (const k of Object.keys(UPG)) items.push({ id: k, kind: "upg", pic: UPG_ICON[k], label: k + " upgrade", cls: "wood" });
       return items;
     }
@@ -3529,7 +3538,9 @@ function syncStrip() {
       t.classList.toggle("cant", !maxed && progress.wallet < UPG[id].prices[lvl]);
       t.querySelector(".upgPrice").innerHTML = maxed ? "" : starIcon + `<span>${UPG[id].prices[lvl]}</span>`;
     } else if (kind === "act") {
-      t.querySelector(".upgPrice").innerHTML = id === "repair" ? starIcon + `<span>${progress.damage * REPAIR_RATE}</span>` : "";
+      const cost = ACT_COST[id] ? ACT_COST[id]() : 0;
+      t.querySelector(".upgPrice").innerHTML = cost ? starIcon + `<span>${cost}</span>` : "";
+      t.classList.toggle("urgent", id === "fuel" ? progress.fuel <= FUEL_LOW : id === "tires" ? progress.tread <= TREAD_LOW : id === "repair" || id === "wash");
     }
   });
   updateArrows();
@@ -3628,10 +3639,12 @@ function tapTile(t) {
   } else if (kind === "upg") buyUpgrade(id, t);
   else if (id === "repair") doRepair();
   else if (id === "wash") openWash();
+  else if (id === "fuel") doRefuel(t);
+  else if (id === "tires") doTires(t);
 }
 preview.addEventListener("pointerdown", () => { sfx.honk(state.body); renderPreview(); });
 
-/* ---- workbench: upgrades + repair (tiles on the workbench tab; repair also pulses on the right wall) ---- */
+/* ---- workbench: upgrades + upkeep (repair, wash, fuel, tires), all tiles on the workbench tab ---- */
 function renderUpgrades() { if (curCat === "work") syncStrip(); }
 function buyUpgrade(k, tile) {
   const lvl = progress.upgrades[k];
@@ -3647,26 +3660,52 @@ function buyUpgrade(k, tile) {
     if (tile) { tile.classList.remove("deny"); void tile.offsetWidth; tile.classList.add("deny"); }
   }
 }
-const repairBtn = document.getElementById("repairBtn");
-function renderRepair() {
-  const cost = progress.damage * REPAIR_RATE;
-  repairBtn.classList.toggle("show", progress.damage > 0);
-  if (progress.damage > 0) repairBtn.querySelector(".upgPrice").innerHTML = starIcon + `<span>${cost}</span>`;
+/* the wrench tab wears a pulsing dot while anything on the bench needs doing */
+const workTab = document.querySelector('.catTab[data-cat="work"]');
+const fuelMissing = () => Math.ceil(FUEL_MAX - progress.fuel - 1e-9);
+const treadMissing = () => Math.ceil(TREAD_MAX - progress.tread - 1e-9);
+const ACT_COST = { repair: () => progress.damage * REPAIR_RATE, fuel: () => fuelMissing() * FUEL_RATE, tires: () => treadMissing() * TIRE_RATE };
+function needsWork() { return progress.damage > 0 || progress.muddy || progress.fuel <= FUEL_LOW || progress.tread <= TREAD_LOW; }
+function renderUpkeep() {
+  workTab.classList.toggle("needs", needsWork());
   if (curCat === "work") renderStrip(false);
 }
+const renderWash = renderUpkeep;   /* the wash overlay closes through this */
+function denyTile(tile) { walletDeny(); if (tile) { tile.classList.remove("deny"); void tile.offsetWidth; tile.classList.add("deny"); } }
 function doRepair() {
   const cost = progress.damage * REPAIR_RATE;
   if (!progress.damage) return;
   if (progress.wallet >= cost) {
     progress.wallet -= cost;
     progress.damage = 0;
-    save(); renderWallets(true); renderRepair(); renderPreview(); renderUpgrades();
+    save(); renderWallets(true); renderUpkeep(); renderPreview(); renderUpgrades();
     sfx.fixed(); confettiBurst(garageScene, 20);
   } else {
     walletDeny();
   }
 }
-repairBtn.addEventListener("pointerdown", doRepair);
+/* fill-up: 1 star a unit; a short wallet buys what it can (a few glugs beat nothing) */
+function doRefuel(tile) {
+  const units = Math.min(fuelMissing(), Math.floor(progress.wallet / FUEL_RATE));
+  if (units <= 0) { denyTile(tile); return; }
+  progress.wallet -= units * FUEL_RATE;
+  progress.fuel = Math.min(FUEL_MAX, progress.fuel + units);
+  if (fuelMissing() <= 0) progress.fuel = FUEL_MAX;
+  for (let i = 0; i < Math.min(units, 6); i++) tone("sine", 220 + i * 40, 320 + i * 40, 0.12, 0.16, i * 0.09);   /* glug glug */
+  save(); renderWallets(true); renderUpkeep();
+  if (fuelMissing() <= 0) { sfx.fixed(); confettiBurst(garageScene, 16); }
+}
+/* new tires: the whole set at once, 1 star a unit of tread */
+function doTires(tile) {
+  const cost = ACT_COST.tires();
+  if (cost <= 0) return;
+  if (progress.wallet < cost) { denyTile(tile); return; }
+  progress.wallet -= cost;
+  progress.tread = TREAD_MAX;
+  for (let i = 0; i < 4; i++) { tone("square", 160, 90, 0.08, 0.14, i * 0.12); noiseBurst(0.05, 2400, 0.1, i * 0.12); }   /* air wrench */
+  save(); renderWallets(true); renderUpkeep();
+  sfx.fixed(); confettiBurst(garageScene, 16);
+}
 
 /* ---- magic dice: drumroll shuffle through OWNED parts, land on a surprise ---- */
 const diceBtn = document.getElementById("diceBtn");
@@ -3693,13 +3732,8 @@ diceBtn.addEventListener("pointerdown", () => {
 });
 
 /* ---- car wash: mud stays until the kid scrubs it off ---- */
-const washBtn = document.getElementById("washBtn");
 const washOverlay = document.getElementById("washOverlay");
 let washProgress = 0;
-function renderWash() {
-  washBtn.classList.toggle("show", !!progress.muddy);
-  if (curCat === "work") renderStrip(false);
-}
 function openWash() {
   sfx.pop();
   washProgress = 0;
@@ -3708,7 +3742,6 @@ function openWash() {
   document.getElementById("washCard").classList.remove("rinsing");
   washOverlay.classList.add("show");
 }
-washBtn.addEventListener("pointerdown", openWash);
 washOverlay.addEventListener("pointerdown", e => {
   if (e.target === washOverlay) { washOverlay.classList.remove("show"); sfx.pop(); }
 });
@@ -3792,8 +3825,7 @@ renderPreview();
 preview.classList.remove("bounce");
 renderWallets(false);
 renderUpgrades();
-renderRepair();
-renderWash();
+renderUpkeep();
 
 /* first-timer attract: after 8 idle seconds in the garage, the big green GO breathes */
 const garageEl = document.getElementById("garage");
@@ -3828,7 +3860,7 @@ function resetRoadOverlays() {
   roadScene.classList.remove("celebrating");
   document.querySelectorAll(".confetti, .flyStar, .gagWrap, .dust, .firework").forEach(c => c.remove());
 }
-function showGarage() { bankFreeRun(); showScene(garageScene); renderPreview(); renderWallets(false); renderUpgrades(); renderRepair(); renderWash(); syncStrip(); }
+function showGarage() { bankFreeRun(); showScene(garageScene); renderPreview(); renderWallets(false); renderUpgrades(); renderUpkeep(); syncStrip(); }
 function showMap() { selectedWorld = worldOf(progress.current); showScene(mapScene); renderMap(); renderWallets(false); }
 const albumScene = document.getElementById("album");
 function showAlbum() { showScene(albumScene); renderAlbum(); renderWallets(false); }
@@ -3946,6 +3978,8 @@ function packCompact() {
     pushBits(lv ? lv.rating : 0, 2);
     pushBits(lv && lv.tier ? TIER_RANK[lv.tier] : 0, 2);
   }
+  /* v3 tail (appended 12.2): whole units of fuel + tread; a code without the tail reads as full */
+  pushBits(Math.ceil(progress.fuel), 4); pushBits(Math.ceil(progress.tread), 4);
   const bytes = new Uint8Array(Math.ceil(bits.length / 8));
   bits.forEach((b, i) => { if (b) bytes[i >> 3] |= 128 >> (i & 7); });
   return "VROOM1." + b64url.enc(bytes);
@@ -3990,6 +4024,7 @@ function unpackCompact(code) {
       if (rating && n <= MAX_LEVEL) out.levels[n] = { best: 0, rating, tier: TIER_OF[tr] };
     }
     if (pos > bytes.length * 8) return null;
+    if (pos + 8 <= bytes.length * 8) { out.fuel = Math.min(FUEL_MAX, read(4)); out.tread = Math.min(TREAD_MAX, read(4)); }
     return out;
   }
   const buddyIdx = read(3);
@@ -4379,6 +4414,7 @@ const carWrap = document.getElementById("carWrap");
 const hudStars = document.getElementById("hudStars");
 const hudLevel = document.getElementById("hudLevel");
 const hudDamage = document.getElementById("hudDamage");
+const hudFuel = document.getElementById("hudFuel"), hudTires = document.getElementById("hudTires");
 const progDot = document.getElementById("progDot");
 const hudTime = document.getElementById("hudTime");
 const speedLines = document.getElementById("speedLines");
@@ -6095,7 +6131,10 @@ let gasKey = false, brakeKey = false;
 
 function setLane(t) {
   const clamped = Math.max(0, Math.min(2, t));
-  if (clamped !== targetLane) { targetLane = clamped; sfx.whoosh(); }
+  if (clamped !== targetLane) {
+    targetLane = clamped; sfx.whoosh();
+    if (progress.tread <= TREAD_LOW && v > 120) noiseBurst(0.16, 2600, 0.12);   /* bald tires scrub on every lane change */
+  }
 }
 
 /* every road entry passes the shop gate: an unpaid part on the car blocks driving (map and replay too) */
@@ -6174,6 +6213,7 @@ function startDrive() {
   document.getElementById("hudProgress").style.display = freeMode ? "none" : "";
   renderHudStars(false);
   renderHudDamage(false);
+  renderHudUpkeep(false);
   engineStart();
   worldAudioStart();   /* per-world jingle + ambience bed + bend-scrub layer */
   lastT = performance.now();
@@ -6620,18 +6660,44 @@ function spawnDust() {
 }
 
 /* ---- damage: cosmetic tiers + mild speed cost, never a fail state ---- */
+function fuelK() { return progress.fuel <= 0 ? 0.55 : progress.fuel <= FUEL_LOW ? 0.8 : 1; }   /* dry = crawl, never stop */
+function gripK() { return progress.tread <= TREAD_LOW ? 0.6 : 1; }                                /* bald = slower lane changes */
 function vmaxEff() {
-  return Math.round((VMAX + progress.upgrades.engine * 80) * (progress.damage >= 5 ? 0.85 : 1));
+  return Math.round((VMAX + progress.upgrades.engine * 80) * (progress.damage >= 5 ? 0.85 : 1) * fuelK() * (progress.tread <= TREAD_LOW ? 0.9 : 1));
+}
+/* ---- upkeep burn: fuel and tread go with distance (levels only, not free drive or the parade) ---- */
+let sputterT = 0;
+function burnUpkeep(d, now) {
+  if (freeMode || paradeMode || d <= 0) return;
+  const f0 = Math.ceil(progress.fuel), t0 = Math.ceil(progress.tread);
+  progress.fuel = Math.max(0, progress.fuel - d / FUEL_PER_UNIT);
+  progress.tread = Math.max(0, progress.tread - d / TREAD_PER_UNIT);
+  if (Math.ceil(progress.fuel) !== f0 || Math.ceil(progress.tread) !== t0) renderHudUpkeep(true);
+  /* low tank: the engine coughs and the gauge jolts; dry: faster coughs */
+  if (progress.fuel <= FUEL_LOW && v > 40 && now - sputterT > (progress.fuel <= 0 ? 340 : 620)) {
+    sputterT = now;
+    tone("square", 120, 60, 0.09, 0.14); noiseBurst(0.05, 700, 0.12);
+    restartAnim(hudFuel, "pop");
+  }
+}
+function renderHudUpkeep(pop) {
+  hudFuel.innerHTML = fuelIcon + `<span>${Math.ceil(progress.fuel)}</span>`;
+  hudFuel.classList.toggle("low", progress.fuel <= FUEL_LOW);
+  hudTires.innerHTML = tireIcon + `<span>${Math.ceil(progress.tread)}</span>`;
+  hudTires.classList.toggle("low", progress.tread <= TREAD_LOW);
+  if (pop) { restartAnim(hudFuel, "pop"); restartAnim(hudTires, "pop"); }
 }
 function applyDamage(n) {
   const soaked = Math.max(0, n - progress.upgrades.armor);
   if (!soaked) { sfx.clank(); return; }   /* the shield takes it — ping, no harm */
   progress.damage = Math.min(MAX_DAMAGE, progress.damage + soaked);
+  progress.tread = Math.max(0, progress.tread - 0.5 * soaked);   /* a hard hit scuffs the tires too */
   runDamage += soaked;
   save();
   sfx.crunch();
   updateDamageVisuals();
   renderHudDamage(true);
+  renderHudUpkeep(true);
 }
 function updateDamageVisuals() {
   for (const [cls, min] of [["dmgScuff", 1], ["dmgCrack", 3], ["dmgSmoke", 5]]) {
@@ -6663,6 +6729,7 @@ function tick(now) {
     } else if (gas) v = Math.min(vmaxEff(), v + ACCEL * dt);
     else v = Math.max(0, v - COAST * dt);
     pos += v * dt;
+    burnUpkeep(v * dt, now);
   } else v = 0;
   engineSet(v);
   worldTick(dt);   /* ambience level, bend scrub, live sky events */
@@ -6700,7 +6767,7 @@ function tick(now) {
   const carX = pos + CAR_SCREEN_X;
 
   /* lane glide */
-  laneVis += (targetLane - laneVis) * Math.min(1, dt * 9);
+  laneVis += (targetLane - laneVis) * Math.min(1, dt * 9 * gripK());
   if (Math.abs(targetLane - laneVis) < 0.01) laneVis = targetLane;
   carWrap.style.zIndex = 19990;   /* depth 10: props a hair past the bumper draw behind it */
 
@@ -7351,7 +7418,11 @@ function finishLevel() {
   const worldBonus = isParade
     ? (progress.badges.includes("champ") ? 10 : 100)
     : (level % WORLD_SIZE === 0 && !prev) ? 25 : 0;
-  const bonus = 3 + (clean ? 2 : 0) + worldBonus;   /* clean-run bonus: no new dings this run */
+  /* shine bonus: a truck that crosses the line spotless and ding-free earns +50% on the stars it collected.
+     Puddles and hits during the run cost it, so upkeep in the garage pays out on the road. */
+  const shiny = !isParade && !progress.muddy && progress.damage === 0;
+  const shine = shiny ? Math.ceil(runStars * SHINE_MULT) : 0;
+  const bonus = 3 + (clean ? 2 : 0) + worldBonus + shine;   /* clean-run bonus: no new dings this run */
   const banked = runStars + bonus;
   const frac = totalStars ? runStars / totalStars : 1;
   const rating = isParade ? 3 : frac >= 0.65 ? 3 : frac >= 0.34 ? 2 : 1;
@@ -7368,6 +7439,7 @@ function finishLevel() {
   if (isParade) award("champ");
   else {
     if (clean) award("clean");
+    if (shine) award("shine");
     if (tier === "S") award("s");
     if (worldBonus) award("world");
   }
@@ -7396,6 +7468,9 @@ function finishLevel() {
   cDamage.classList.toggle("clean", clean);
   /* the wrench is garage business — only show it on the victory screen if this run got dinged */
   cDamage.style.display = runDamage > 0 ? "" : "none";
+  const cShine = document.getElementById("celebrateShine");
+  cShine.innerHTML = sparkIcon + `<span>+${shine}</span>`;
+  cShine.style.display = shine > 0 ? "" : "none";
   const ratingRow = document.getElementById("ratingRow");
   ratingRow.innerHTML = [1, 2, 3].map(() =>
     `<svg class="rateStar" viewBox="0 0 64 64"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/></svg>`).join("");

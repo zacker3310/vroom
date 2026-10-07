@@ -72,6 +72,14 @@
 - [x] T13.3 (agent): repo hygiene — GitHub Actions CI, `npm test` runner, manifest + app icons, APP_VERSION in the grown-ups panel, README/CONTRIBUTING/ARCHITECTURE.
 - [x] T13.4 (agent): garage redesign — car as hero, six category tabs + one scroll-snap tile strip (23/13/23/9/10 + workbench), GO dominant, repair/wash contextual, speaker moved to the grown-ups panel, title plate and side racks removed; suite garage-check (19). 16 suites, 256/256.
 
+## v12.2 (2026-10-07, user-directed: "duplicate buttons, more mechanical upkeep, clean car = bonus")
+
+- [x] T14.1: Garage dedupe + right column. The wall repair/wash buttons are gone; upkeep lives on the workbench tab only and the wrench tab wears a pulsing dot while anything needs doing. Dice (88), map (88) and GO (180) share one x-centre at 1086 with 16px gaps; the map rests on the bench rim.
+- [x] T14.2: Fuel. 8-unit tank, one unit per level of road, burned in `tick` (levels only). Low = 20% slower + engine coughs with a gauge jolt; dry = 55% crawl, never a stop. Fill-up tile (1 star a unit, partial fills) with a glug sound.
+- [x] T14.3: Tires. 8 units of tread, half a unit per level plus half per soaked hard hit. Bald = lane changes at 60%, 10% off the top, a scrub on every turn. New-set tile (1 star a unit, all or nothing) with an air-wrench sound.
+- [x] T14.4: Shine bonus. No mud + zero damage at the line = +50% of collected stars (rounded up), a sparkle chip on the results card, and the eighth album sticker. HUD grows fuel + tire gauges under the wrench in the same 108px rhythm (red when low, hidden during the celebration).
+- [x] T14.5: Persistence. `progress.fuel` / `progress.tread` in localStorage (older saves read full), v3 save-code tail (4 + 4 bits after the level run; tail-less codes decode as full). Fairness bots get a serviced car per level. Suite upkeep-check (20); jsQR lookup honours the module path. 17 suites, 276/276; lint 0.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

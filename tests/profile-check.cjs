@@ -7,11 +7,9 @@ const SHOT = __dirname + '/shots/';
 fs.mkdirSync(SHOT, { recursive: true });
 /* jsQR is a TEST-ONLY dependency used to prove the hand-rolled encoder emits real QRs */
 const JSQR_SRC = (() => {
-  for (const p of [__dirname + '/node_modules/jsqr/dist/jsQR.js',
-                   __dirname + '/../node_modules/jsqr/dist/jsQR.js',
-                   '/private/tmp/claude-501/-Users-zacker-Documents-dev-vroom/ece5a294-0b4b-45a6-aba6-879f1850b067/scratchpad/node_modules/jsqr/dist/jsQR.js']) {
-    if (fs.existsSync(p)) return fs.readFileSync(p, 'utf8');
-  }
+  const paths = [__dirname + '/node_modules/jsqr/dist/jsQR.js', __dirname + '/../node_modules/jsqr/dist/jsQR.js'];
+  try { paths.push(require.resolve('jsqr/dist/jsQR.js')); } catch (e) { /* not installed anywhere on the module path */ }
+  for (const p of paths) if (fs.existsSync(p)) return fs.readFileSync(p, 'utf8');
   return null;
 })();
 

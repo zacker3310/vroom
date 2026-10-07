@@ -34,7 +34,7 @@ function check(name, ok, detail) {
     const sim = (n, smart) => {
       stopDrive(); paradeMode = false; freeMode = false; level = n;
       buildLevel(n);
-      progress.damage = 0;
+      progress.damage = 0; progress.fuel = FUEL_MAX; progress.tread = TREAD_MAX;   /* a serviced car per level: the bots judge the road, not the upkeep */
       pos = 0; v = 0; jumpY = 0; vy = 0; airborne = false; finished = false;
       targetLane = 1; laneVis = 1; runStars = 0; runDamage = 0; runTime = 0;
       const dt = 1 / 60;
