@@ -1,0 +1,19 @@
+# Normalise line endings: everything text is LF in the repo and on checkout.
+* text=auto eol=lf
+
+*.html text eol=lf
+*.cjs  text eol=lf
+*.js   text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.yml  text eol=lf
+*.svg  text eol=lf
+*.webmanifest text eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.ico binary
+
+# Keep the big single-file game out of GitHub's language stats noise; it is the project.
+index.html linguist-detectable=true

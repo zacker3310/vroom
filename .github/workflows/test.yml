@@ -1,0 +1,57 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  playwright:
+    name: Playwright suites
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install test dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright-core install --with-deps --no-shell chromium
+
+      - name: Serve index.html
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 &
+          for i in $(seq 1 50); do
+            curl -sf http://127.0.0.1:4173/index.html > /dev/null && break
+            sleep 0.2
+          done
+          curl -sfI http://127.0.0.1:4173/index.html | head -1
+
+      - name: Run all suites
+        env:
+          VROOM_URL: http://127.0.0.1:4173/index.html
+        run: npm test
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shots
+          path: tests/shots/
+          if-no-files-found: ignore
+          retention-days: 7

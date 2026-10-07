@@ -1,0 +1,24 @@
+{
+  "name": "vroom",
+  "version": "12.0.0",
+  "private": true,
+  "description": "A build-a-car driving game for a 3 to 5 year old. One HTML file, zero dependencies, works offline.",
+  "homepage": "https://zacker3310.github.io/vroom/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zacker3310/vroom.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node tests/run-all.cjs",
+    "test:verbose": "node tests/run-all.cjs --verbose",
+    "serve": "python3 -m http.server 4173",
+    "icons": "node scripts/render-icons.cjs"
+  },
+  "devDependencies": {
+    "jsqr": "1.4.0",
+    "playwright-core": "1.63.0"
+  }
+}
