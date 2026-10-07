@@ -1458,7 +1458,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "12.3.1";
+const APP_VERSION = "12.3.2";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -1913,7 +1913,10 @@ function eye(cx, cy, r) {
      booster: [x, y]       nozzle attach point on the rear bumper / exhaust (cone x-19..x+3,
                            y-13..y+13, flame to x-37). Keep x >= 38 so the flame stays in frame.
      decal:   [x, y, k]    sticker centre + scale on the largest flat flank panel. Decal art is
-                           ~72x72 at k=1; k 0.3-0.5 for doors, 0.7-0.8 for van/bed panels.
+                           ~72x72 at k=1; k 0.3-0.5 for doors, 0.7-0.8 for van/bed panels. The race
+                           number roundel (72 wide at k=1) shares this panel unless the body has:
+     number:  [x, y, k]    optional: a painted number slot of its own (race car). The body's svg(st)
+                           then draws its stock numeral only while st.number is empty.
      buddy:   [x, y, k?, f?] the edge the critter peeks over: its paws land on (x, y), head r=22k
                            above (art 64 wide, y-46k..y). k = scale (default 1). f = 1 draws the
                            buddy IN FRONT of the body (glass cockpits: ufo dome, rocket porthole);
@@ -2003,16 +2006,16 @@ const BODIES = {
   /* race: low sleek wedge rising from the pointed nose (right) to the tail (left),
      bubble cockpit canopy, tall rear spoiler, white "1" roundel on the flank */
   race: {
-    anchors: { hat: [142, 86], horn: [190, 112], beacon: [86, 116], flag: [30, 76], wings: [98, 140], booster: [42, 150], decal: [256, 140, .35], buddy: [142, 88] },
-    svg: () => `
+    anchors: { hat: [142, 86], horn: [190, 112], beacon: [86, 116], flag: [30, 76], wings: [98, 140], booster: [42, 150], decal: [256, 140, .35], buddy: [142, 88], number: [222, 136, 15 / 34] },
+    svg: (st) => `
       <rect x="46" y="86" width="10" height="36" rx="3" fill="#343a40"/>
       <rect x="26" y="76" width="56" height="12" rx="5" fill="var(--paint)" filter="brightness(.75)"/>
       <path d="M40 158 L40 138 Q40 122 62 119 L150 110 Q195 106 235 120 L290 140 Q300 144 300 154 L300 158 Z" fill="var(--paint)"/>
       <path d="M100 116 Q114 86 142 86 Q168 86 178 112 Z" fill="#bde0fe"/>
       ${eye(142, 100, 9)}
       <path d="M64 136 L268 146" stroke="#ffffffaa" stroke-width="7" stroke-linecap="round"/>
-      <circle cx="222" cy="136" r="15" fill="#fff"/>
-      <path d="M217 130 L224 126 L224 146" stroke="#1d3557" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      ${st && st.number ? "" : `<circle cx="222" cy="136" r="15" fill="#fff"/>
+      <path d="M217 130 L224 126 L224 146" stroke="#1d3557" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`}
       <rect x="40" y="154" width="252" height="14" rx="6" fill="#495057"/>`
   },
   /* tractor: tall boxy cab at the rear with a big fender arch over the back wheel,
@@ -2180,15 +2183,17 @@ function vehicleSVG(st) {
   /* the race number owns the panel centre at NUM_K x the sticker scale; a sticker then shrinks and perches
      on the roundel's upper-front shoulder instead of sharing the middle */
   const hasDecal = !!(st.decal && st.decal !== "none" && DECAL_SVG[st.decal]), hasNum = !!st.number;
-  const dk = A.decal[2] ?? 1, nk = numK(dk), r = 34 * nk;
-  const [sx, sy, sk] = hasNum ? [A.decal[0] + r * 0.9, A.decal[1] - r * 0.6, dk * 0.55] : [A.decal[0], A.decal[1], dk];
+  const dk = A.decal[2] ?? 1, NA = A.number;   /* a body with a painted number slot (race) takes the number there instead */
+  const nk = NA ? NA[2] : numK(dk), r = 34 * nk;
+  const [sx, sy, sk] = hasNum && !NA ? [A.decal[0] + r * 0.9, A.decal[1] - r * 0.6, dk * 0.55] : [A.decal[0], A.decal[1], dk];
+  const [nx, ny] = NA || A.decal;
   const decal = (hasDecal ? `<g data-decal="${st.decal}" transform="translate(${sx},${sy}) scale(${sk})">${DECAL_SVG[st.decal]}</g>` : "")
-    + (hasNum ? `<g data-number="${st.number}" transform="translate(${A.decal[0]},${A.decal[1]}) scale(${nk})">${numberSVG(st.number)}</g>` : "");
+    + (hasNum ? `<g data-number="${st.number}" transform="translate(${nx},${ny}) scale(${nk})">${numberSVG(st.number)}</g>` : "");
   return `<svg viewBox="0 0 320 230" style="--paint:${paint}">
     ${defs}
     <g transform="translate(0,${-lift})"><g class="${B.hover ? "hoverBob" : ""}">
       ${buddyInFront ? "" : buddy}
-      ${B.svg()}
+      ${B.svg(st)}
       ${buddyInFront ? buddy : ""}
       ${decal}
       ${extrasSVG(st.body, st.extras, hasBuddy)}

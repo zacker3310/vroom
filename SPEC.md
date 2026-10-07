@@ -81,7 +81,8 @@ stripe) is painted on a canvas each frame; roadside set pieces rush past on both
   erase, clear; two digits max) previews the number live on a white roundel; OK costs 400
   stars every time a new number goes on, taking it off is free. The roundel owns the centre of
   the body's decal panel on both views (1.3x the sticker scale, clamped 42-65 px); a sticker
-  on the same panel shrinks to 55% and perches on the roundel's upper-front shoulder. Travels in the build, photos and the v3 save-code tail.
+  on the same panel shrinks to 55% and perches on the roundel's upper-front shoulder. A body
+  with a painted number of its own (the race car) takes the typed number in that slot instead. Travels in the build, photos and the v3 save-code tail.
 - **Victory Parade** (v9): beat all 80 levels and a golden trophy button appears on the
   map, forever. It opens the finale: rainbow road, golden sky, no hazards, floaty
   low-gravity jumps, waves of stars, capsules, every found buddy cheering roadside,

@@ -74,6 +74,19 @@ function check(name, ok, detail) {
   });
   check('layout: number owns the panel centre at numK; the sticker shrinks to 55% and perches on its upper-front shoulder', share.numAtAnchor && Math.abs(share.kn - Math.max(0.62, Math.min(0.95, share.base * 1.3))) < 1e-6 && share.dx > 0 && share.dy < 0 && Math.abs(share.kd - share.base * 0.55) < 1e-6, JSON.stringify(share));
 
+  /* ---- 4b. the race car has a painted number slot: the typed number replaces its stock 1 there, sticker stays put ---- */
+  const race = await page.evaluate(() => {
+    const stock = vehicleSVG({ body: 'race', wheels: 'normal', color: '#fdd835', extras: {}, decal: 'flame', number: '' });
+    const typed = vehicleSVG({ body: 'race', wheels: 'normal', color: '#fdd835', extras: {}, decal: 'flame', number: '27' });
+    const slot = BODIES.race.anchors.number, dec = BODIES.race.anchors.decal;
+    const m = typed.match(/data-number="27" transform="translate\(([-\d.]+),([-\d.]+)\) scale\(([-\d.]+)\)/);
+    const d = typed.match(/data-decal="flame" transform="translate\(([-\d.]+),([-\d.]+)\) scale\(([-\d.]+)\)/);
+    return { stockHasOne: stock.includes('M217 130 L224 126'), typedHasOne: typed.includes('M217 130 L224 126'),
+      atSlot: m && +m[1] === slot[0] && +m[2] === slot[1] && Math.abs(+m[3] - slot[2]) < 1e-9,
+      decalHome: d && +d[1] === dec[0] && +d[2] === dec[1] && +d[3] === dec[2] };
+  });
+  check('race car: stock 1 only while no number; typed number takes the painted slot; sticker stays home', race.stockHasOne && !race.typedHasOne && race.atSlot && race.decalHome, JSON.stringify(race));
+
   /* ---- 5. rear view carries the number too ---- */
   const rear = await page.evaluate(() => {
     const html = vehicleRearSVG(state);
