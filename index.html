@@ -215,8 +215,13 @@
     transform: rotate(var(--tilt, 0deg));
   }
   .photoSlot.empty { background: #00000010; border: 5px dashed #b0896899; box-shadow: none; }
-  .photoCar { width: 134px; height: 120px; background: #bde0fe; border-radius: 6px; overflow: hidden; display: flex; align-items: flex-end; }
-  .photoCar svg { width: 100%; height: auto; }
+  .photoCar { width: 134px; height: 120px; background: #bde0fe; border-radius: 6px; overflow: hidden; display: flex; align-items: flex-end; position: relative; }
+  .photoCar > svg { width: 100%; height: auto; position: relative; z-index: 1; }
+  /* world stamp in the photo corner: the map icon on the world's tint */
+  .photoStamp { position: absolute; top: 6px; right: 6px; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 2; box-shadow: 0 2px 0 rgba(0,0,0,.18); }
+  .photoStamp svg { width: 22px; height: 22px; }
+  .photoStamp.big { width: 72px; height: 72px; top: 16px; right: 16px; }
+  .photoStamp.big svg { width: 50px; height: 50px; }
   /* keepsake photos stay pristine — never show the car's current dings or mud */
   .photoCar .dmgScuff, .photoCar .dmgCrack, .photoCar .dmgSmoke, .photoCar .mudSpots { display: none !important; }
   .photoCap { display: flex; align-items: center; gap: 6px; font: 900 26px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #023047; }
@@ -1003,7 +1008,23 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #importCard { display: flex; align-items: center; justify-content: center; gap: 40px; padding: 40px 56px; }
 #importConfirm.show #importCard { animation: popIn .35s cubic-bezier(.2, 1.4, .4, 1) both; }
 #importConfirm.show #importYes, #importConfirm.show #importNo { animation: none; }
-#profileOverlay, #celebrate, #washOverlay, #importConfirm, #numOverlay { background: var(--v-scrim); }
+#profileOverlay, #celebrate, #washOverlay, #importConfirm, #numOverlay, #peekOverlay { background: var(--v-scrim); }
+/* --- peek card: a tapped photo or sticker, big, until the next tap --- */
+#peekOverlay { position: absolute; inset: 0; z-index: 80; display: none; align-items: center; justify-content: center; cursor: pointer; }
+#peekOverlay.show { display: flex; }
+#peekCard {
+  background-color: var(--v-surface); border: 8px solid var(--v-wood); border-radius: var(--v-r-xl);
+  box-shadow: 0 8px 0 rgba(74, 53, 35, .25); padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 18px;
+  animation: popIn .35s cubic-bezier(.2, 1.6, .4, 1) backwards;
+}
+#peekCard.photo { transform: rotate(-1.5deg); }
+.peekShot { width: 620px; height: 400px; border-radius: var(--v-r-md); overflow: hidden; position: relative; display: flex; align-items: flex-end; }
+.peekShot > svg { width: 100%; height: auto; position: relative; z-index: 1; }
+.peekCap { display: flex; gap: 16px; }
+.peekCap .chip { position: static; height: 84px; font-size: 42px; padding: 0 22px; }
+.peekCap .chip.medal svg { width: 60px; height: 60px; }
+.peekBadge { width: 300px; height: 300px; display: flex; align-items: center; justify-content: center; animation: stickerWiggle .6s ease .2s; }
+.peekBadge svg { width: 260px; height: 260px; filter: drop-shadow(0 8px 0 rgba(74, 53, 35, .2)); }
 /* --- race number keypad: roundel preview + OK on the left, a 3x4 pad on the right --- */
 #numOverlay { position: absolute; inset: 0; z-index: 80; display: none; align-items: center; justify-content: center; }
 #numOverlay.show { display: flex; }
@@ -1356,6 +1377,9 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
       <div id="washMeter"><div id="washFill"></div></div>
     </div>
   </div>
+  <div id="peekOverlay" aria-label="tap to close">
+    <div id="peekCard"></div>
+  </div>
   <div id="numOverlay">
     <div id="numCard">
       <div id="numSide">
@@ -1458,7 +1482,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "12.3.2";
+const APP_VERSION = "12.4.0";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -4017,7 +4041,7 @@ function renderAlbum() {
     slot.style.setProperty("--i", BADGES.indexOf(badge) + 6);
     slot.innerHTML = owned ? badge.icon : badge.icon.replace("<svg ", '<svg class="sil" ');
     slot.setAttribute("aria-label", "sticker " + badge.id + (owned ? "" : ", not earned yet"));
-    slot.addEventListener("pointerdown", () => { wiggleSlot(slot); owned ? sfx.chime() : sfx.deny(); });
+    slot.addEventListener("pointerdown", () => { wiggleSlot(slot); owned ? peekBadge(badge) : sfx.deny(); });
     gRow.appendChild(slot);
   }
   const pRow = document.getElementById("photoRow");
@@ -4029,14 +4053,48 @@ function renderAlbum() {
     slot.style.setProperty("--i", i + 12);
     slot.style.setProperty("--tilt", ((i % 3) - 1) * 2 + "deg");
     if (photo) {
-      slot.innerHTML = `<span class="photoCar">${vehicleSVG(photo.b)}</span>
-        <span class="photoCap"><svg viewBox="0 0 64 64"><path d="M14 58 V8" stroke="#023047" stroke-width="7" stroke-linecap="round"/><path d="M18 10 L54 16 L18 30 Z" fill="#e63946"/></svg>${photo.n}${medalSVG(photo.t)}</span>`;
-      slot.addEventListener("pointerdown", () => { wiggleSlot(slot); sfx.pop(); });
+      const sc = photoScene(photo.n);
+      slot.innerHTML = `<span class="photoCar" style="background:${sc.bg}">${vehicleSVG(photo.b)}<span class="photoStamp" style="background:${sc.tint}">${sc.icon}</span></span>
+        <span class="photoCap">${levelFlagIcon}${photo.n > MAX_LEVEL ? "" : photo.n}${medalSVG(photo.t)}</span>`;
+      slot.addEventListener("pointerdown", () => { wiggleSlot(slot); peekPhoto(photo); });
     }
-    slot.setAttribute("aria-label", photo ? "photo of level " + photo.n : "empty photo slot");
+    slot.setAttribute("aria-label", photo ? "photo of level " + photo.n + ", tap to see it big" : "empty photo slot");
     pRow.appendChild(slot);
   }
 }
+/* every photo is taken where it happened: the world's sky + ground from its road palette and its map icon as a stamp */
+const levelFlagIcon = `<svg viewBox="0 0 64 64"><path d="M14 58 V8" stroke="#023047" stroke-width="7" stroke-linecap="round"/><path d="M18 10 L54 16 L18 30 Z" fill="#e63946"/></svg>`;
+function photoScene(n) {
+  if (n > MAX_LEVEL) {   /* the parade: rainbow road under a golden sky */
+    return { bg: "linear-gradient(#ffe9a8 0 58%, #e63946 58% 66%, #ff9f1c 66% 74%, #ffd60a 74% 82%, #43aa8b 82% 90%, #4cc9f0 90%)",
+      icon: BADGES.find(b => b.id === "champ").icon, tint: "#ffb703" };
+  }
+  const w = worldOf(n), pal = ROAD_PAL[w] || ROAD_PAL[1];
+  const sky = pal.haze, ground = pal.ground, road = pal.road;
+  return { bg: `linear-gradient(${sky} 0 62%, ${ground} 62% 78%, ${road} 78% 86%, ${ground} 86%)`,
+    icon: WORLD_ICONS["w" + w] || `<span>${w}</span>`, tint: WORLD_TINT["w" + w] || "#8a7360" };
+}
+/* ---- peek: a tapped photo or sticker fills a big card; tap anywhere to put it back ---- */
+const peekOverlay = document.getElementById("peekOverlay"), peekCard = document.getElementById("peekCard");
+function peekPhoto(photo) {
+  const sc = photoScene(photo.n), parade = photo.n > MAX_LEVEL;
+  peekCard.className = "photo";
+  peekCard.innerHTML = `<div class="peekShot" style="background:${sc.bg}">${vehicleSVG(photo.b)}<span class="photoStamp big" style="background:${sc.tint}">${sc.icon}</span></div>
+    <div class="peekCap">
+      <span class="chip">${parade ? BADGES.find(b => b.id === "champ").icon : levelFlagIcon + `<span>${photo.n}</span>`}</span>
+      <span class="chip">${starIcon}<span>${photo.s}</span></span>
+      <span class="chip medal">${medalSVG(photo.t)}</span>
+    </div>`;
+  peekOverlay.classList.add("show");
+  sfx.pop();
+}
+function peekBadge(badge) {
+  peekCard.className = "badge";
+  peekCard.innerHTML = `<div class="peekBadge">${badge.icon}</div>`;
+  peekOverlay.classList.add("show");
+  sfx.tada(); confettiBurst(albumScene, 30);
+}
+peekOverlay.addEventListener("pointerdown", () => { peekOverlay.classList.remove("show"); sfx.pop(); });
 document.getElementById("albumBtn").addEventListener("pointerdown", () => { sfx.pop(); showAlbum(); });
 
 /* ============ 17. PROFILES + SAVE CODES ============ */

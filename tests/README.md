@@ -26,7 +26,7 @@ built-in one, e.g. `python3 -m http.server 4173` then
 - `free-check.cjs` — capsules, free drive, time tiers (14)
 - `feel-check.cjs` — game feel: dynamics, hit-stop, choreography, iPad shell (12)
 - `worlds-check.cjs` — 12 worlds, movers, gravity, world map, premium content (21)
-- `album-check.cjs` — sticker album: buddies, badges, photos, muddy flag (11)
+- `album-check.cjs` — sticker album: buddies, badges, photos with world backdrops + stamps, the peek card for photos and stickers, muddy flag (15)
 - `profile-check.cjs` — 3 kid profiles, save codes, QR round-trip via jsQR (14)
 - `washdecals-check.cjs` — wash mini-game and decal shop/persistence (11)
 - `parade-check.cjs` — victory parade: unlock, finale level, jackpot, champ badge (12)
@@ -57,7 +57,7 @@ click stability check.
 | `free-check.cjs` | 14 | capsules and prizes, free drive, time-medal tiers |
 | `feel-check.cjs` | 12 | game feel: body dynamics, hit-stop, celebrate pacing, iPad shell metas |
 | `worlds-check.cjs` | 21 | 12 worlds: level invariants, world hazards, movers, gravity, map, unlock chain, world bonus, golden capsule, premium shop, free-drive tour |
-| `album-check.cjs` | 11 | sticker album: buddies, badges, photos, muddy flag |
+| `album-check.cjs` | 15 | sticker album: buddies, badges, world-backdrop photos, peek card, muddy flag |
 | `profile-check.cjs` | 14 | 3 kid profiles, save codes, scan-to-open QR decoded byte-exact with jsQR across version boundaries |
 | `washdecals-check.cjs` | 11 | wash mini-game, decal shop and persistence |
 | `parade-check.cjs` | 12 | victory parade: unlock, finale level, jackpot, champion badge |

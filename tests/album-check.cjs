@@ -122,6 +122,53 @@ function check(name, ok, detail) {
   check('album: tap rider to hop out, tap again to ride', toggle.off && toggle.on, JSON.stringify(toggle));
   await page.screenshot({ path: SHOT + 'a-album-filled.png' });
 
+  /* ---- every memory is its own: world backdrops + stamps, and a tap opens the big card ---- */
+  const distinct = await page.evaluate(() => {
+    progress.photos = [];
+    [[3, 'S', 7], [14, 'A', 4], [27, 'B', 2], [41, 'S', 9], [95, 'C', 1], [MAX_LEVEL + 1, 'S', 12]].forEach(([n, t, s]) =>
+      progress.photos.push({ b: JSON.parse(JSON.stringify(state)), n, t, s }));
+    save(); renderAlbum();
+    const slots = [...document.querySelectorAll('.photoSlot:not(.empty)')];
+    const bgs = slots.map(sl => sl.querySelector('.photoCar').style.background);
+    const stamps = slots.map(sl => sl.querySelector('.photoStamp svg') !== null);
+    const parade = slots[5].querySelector('.photoCap').textContent.trim();
+    return { n: slots.length, distinctBgs: new Set(bgs).size, stamps: stamps.every(Boolean), paradeCapNoNumber: parade === '' };
+  });
+  check('photos: six memories from five worlds + the parade get six different backdrops and a world stamp each', distinct.n === 6 && distinct.distinctBgs === 6 && distinct.stamps && distinct.paradeCapNoNumber, JSON.stringify(distinct));
+  await page.screenshot({ path: SHOT + 'a-album-worlds.png' });
+  const peek1 = await page.evaluate(() => {
+    document.querySelectorAll('.photoSlot')[3].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    const chips = [...peekCard.querySelectorAll('.peekCap .chip')].map(c => c.textContent.trim());
+    return { open: peekOverlay.classList.contains('show'), cls: peekCard.className, chips, car: !!peekCard.querySelector('.peekShot svg'), bg: peekCard.querySelector('.peekShot').style.background };
+  });
+  check('peek: tapping the 4th photo opens its card: level 41, 9 stars, S medal, car + snow backdrop', peek1.open && peek1.cls === 'photo' && peek1.chips[0] === '41' && peek1.chips[1] === '9' && peek1.chips[2] === 'S' && peek1.car && peek1.bg.length > 0, JSON.stringify(peek1));
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: SHOT + 'a-peek-photo.png' });
+  const peek2 = await page.evaluate(() => {
+    peekOverlay.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    const closed = !peekOverlay.classList.contains('show');
+    const bg1 = (document.querySelectorAll('.photoSlot')[3].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })), peekCard.querySelector('.peekShot').style.background);
+    peekOverlay.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    document.querySelectorAll('.photoSlot')[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    const chips = [...peekCard.querySelectorAll('.peekCap .chip')].map(c => c.textContent.trim());
+    const bg2 = peekCard.querySelector('.peekShot').style.background;
+    peekOverlay.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    return { closed, differs: bg1 !== bg2, chips, closedAgain: !peekOverlay.classList.contains('show') };
+  });
+  check('peek: a tap closes it; a different photo shows different content (level 3, 7 stars, different backdrop)', peek2.closed && peek2.differs && peek2.chips[0] === '3' && peek2.chips[1] === '7' && peek2.closedAgain, JSON.stringify(peek2));
+  const peekBadgeRes = await page.evaluate(() => {
+    const owned = document.querySelector('.badgeSlot.filled'), locked = document.querySelector('.badgeSlot:not(.filled)');
+    owned.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    const r1 = { open: peekOverlay.classList.contains('show'), cls: peekCard.className, icon: !!peekCard.querySelector('.peekBadge svg') };
+    peekOverlay.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    locked.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    const r2 = { open: peekOverlay.classList.contains('show'), wiggle: locked.classList.contains('wiggle') };
+    return { r1, r2 };
+  });
+  check('peek: an earned sticker opens big with confetti; an unearned one only wiggles', peekBadgeRes.r1.open && peekBadgeRes.r1.cls === 'badge' && peekBadgeRes.r1.icon && !peekBadgeRes.r2.open && peekBadgeRes.r2.wiggle, JSON.stringify(peekBadgeRes));
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: SHOT + 'a-peek-badge.png' });
+
   /* ---- photo cap at 6 + full persistence across reload ---- */
   await page.evaluate(() => {
     for (let i = 0; i < 9; i++) {

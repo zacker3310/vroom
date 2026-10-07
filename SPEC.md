@@ -83,6 +83,11 @@ stripe) is painted on a canvas each frame; roadside set pieces rush past on both
   the body's decal panel on both views (1.3x the sticker scale, clamped 42-65 px); a sticker
   on the same panel shrinks to 55% and perches on the roundel's upper-front shoulder. A body
   with a painted number of its own (the race car) takes the typed number in that slot instead. Travels in the build, photos and the v3 save-code tail.
+- **Album photos** (v12.4): every finish-line photo is taken where it happened: the world's
+  sky, ground and road from its palette behind the car, its map icon stamped in the corner
+  (the parade gets a rainbow road and the champion cup). Tap a photo and it fills a big
+  polaroid with the level, the stars collected and the medal; tap an earned sticker and it
+  pops up big with confetti. Tap anywhere to put it back.
 - **Victory Parade** (v9): beat all 80 levels and a golden trophy button appears on the
   map, forever. It opens the finale: rainbow road, golden sky, no hazards, floaty
   low-gravity jumps, waves of stars, capsules, every found buddy cheering roadside,

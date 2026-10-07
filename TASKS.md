@@ -88,6 +88,10 @@
 
 - [x] T15.1: Race number. `state.number` (up to two digits) draws a white roundel at the body's decal anchor in both views; a sticker on the same panel slides aside and both scale to 80% (roundel 1.3x the sticker scale, clamped 42-65 px; the rear one at least 1.4x so it reads at chase-cam scale; a sticker shrinks to 55% and perches on the roundel's shoulder). The sticker tab leads with the number tile (shows the current number + 400). Keypad overlay: 3x4 pad (0-9, erase, clear), live roundel preview, OK pays 400 each change, free to remove, deny shake when poor. Travels in the build, photos and a 7-bit v3 save-code tail. Bodies may declare a `number` anchor: the race car's painted roundel is its slot, so the typed number replaces the stock 1 there and the sticker stays home. Suite number-check (13). 18 suites, 290/290.
 
+## v12.4 (2026-10-07, user-directed: "the album looks the same on every click")
+
+- [x] T16.1: Album memories. Photos carry their world: backdrop from `ROAD_PAL` (sky / ground / road bands) and the world's map icon as a stamp on its tint; the parade gets a rainbow road and the champion cup. Tapping a photo opens the peek card (big car on its backdrop, level, stars collected, medal); tapping an earned sticker opens it big with confetti; unearned stickers still only wiggle. album-check 15 (+4). 18 suites, 294/294.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
