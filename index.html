@@ -1702,10 +1702,6 @@ const WHEEL_DECOR = {
     `<rect x="-7" y="${-r - 2}" width="14" height="8" rx="2" fill="#111" transform="rotate(${a * 36})"/>`
   ).join("")
 };
-/* legacy per-body points other code reads (damage decals, smoke): derived from the anchors */
-function deriveBodyPoints(tbl) {
-  for (const b of Object.values(tbl)) { b.roof = b.anchors.beacon.slice(0, 2); b.rear = b.anchors.flag.slice(0, 2); }
-}
 function wheelSVG(type, cx) {
   const w = WHEELS[type];
   const cy = 200 - w.r;
@@ -1746,8 +1742,8 @@ function eye(cx, cy, r) {
                            otherwise it hides behind the body and peeks over the edge.
 
    Rules: no accessory may overlap another or cover a window; roof slots from the front: horn ->
-   beacon -> buddy/hat (a 44 px head needs ~44 px of roof). BODIES[*].roof / .rear are derived
-   (deriveBodyPoints) as beacon / flag for the damage + smoke code — do not hand-write them. */
+   beacon -> buddy/hat (a 44 px head needs ~44 px of roof). The damage bandage sits at `flag`
+   and the damage smoke rises from `beacon`. */
 const BODIES = {
   dump: {
     anchors: { hat: [207, 100], horn: [275, 100], beacon: [243, 100], flag: [42, 100], wings: [194, 136], booster: [49, 150], decal: [108, 138, .8], buddy: [150, 100] },
@@ -1914,7 +1910,6 @@ const BODIES = {
       <rect x="70" y="156" width="180" height="14" rx="7" fill="#495057"/>`
   }
 };
-deriveBodyPoints(BODIES);
 /* side-view accessory art, each drawn relative to its anchor point (see the anchor
    contract above BODIES). Pole heights / scales come from the anchor's optional extras. */
 const SIDE_EXTRA_SVG = {
@@ -2010,11 +2005,11 @@ function vehicleSVG(st) {
     ${defs}
     <g transform="translate(0,${-lift})"><g class="${B.hover ? "hoverBob" : ""}">
       ${buddyInFront ? "" : buddy}
-      ${BODIES[st.body].svg()}
+      ${B.svg()}
       ${buddyInFront ? buddy : ""}
       ${decal}
       ${extrasSVG(st.body, st.extras, hasBuddy)}
-      ${typeof shopExtrasSVG === "function" ? shopExtrasSVG(st.body, st.extras) : ""}
+      ${shopExtrasSVG(st.body, st.extras)}
       <g class="mudSpots" style="opacity:${progress.muddy ? 1 : 0}">
         <circle cx="70" cy="160" r="9" fill="#6b4423"/><circle cx="120" cy="170" r="7" fill="#6b4423"/>
         <circle cx="180" cy="165" r="8" fill="#6b4423"/><circle cx="240" cy="158" r="6" fill="#6b4423"/>
@@ -2022,7 +2017,7 @@ function vehicleSVG(st) {
       <g class="dmgScuff" style="display:${progress.damage >= 1 ? "" : "none"}" stroke="#37474f" stroke-width="3" stroke-linecap="round" opacity=".75">
         <path d="M98 142 l24 -7 M106 150 l18 -5 M188 136 l20 6 M194 145 l14 4" fill="none"/>
         <ellipse cx="150" cy="150" rx="13" ry="7" fill="#00000022" stroke="none"/>
-        <g stroke="none" transform="translate(${BODIES[st.body].rear[0] + 6},${BODIES[st.body].rear[1] - 6}) rotate(-18)">
+        <g stroke="none" transform="translate(${A.flag[0] + 6},${A.flag[1] - 6}) rotate(-18)">
           <rect x="-16" y="-6" width="32" height="12" rx="6" fill="#e9d8c3"/>
           <rect x="-6" y="-16" width="12" height="32" rx="6" fill="#e9d8c3"/>
           <circle r="3" fill="#c9b697"/>
@@ -2031,7 +2026,7 @@ function vehicleSVG(st) {
       <g class="dmgCrack" style="display:${progress.damage >= 3 ? "" : "none"}" stroke="#f8f9fa" stroke-width="3" fill="none" opacity=".9">
         <path d="M236 98 l-9 9 l11 7 l-7 9 M227 107 l-9 3 M238 114 l10 5"/>
       </g>
-      <g class="dmgSmoke" style="display:${progress.damage >= 5 ? "" : "none"}" fill="#90a4ae" transform="translate(${Math.min(288, BODIES[st.body].roof[0] + 60) - 288},0)">
+      <g class="dmgSmoke" style="display:${progress.damage >= 5 ? "" : "none"}" fill="#90a4ae" transform="translate(${Math.min(288, A.beacon[0] + 60) - 288},0)">
         <circle cx="288" cy="90" r="13" opacity=".85"/>
         <circle cx="296" cy="84" r="10" opacity=".7" style="animation-delay:.45s"/>
         <circle cx="281" cy="81" r="8" opacity=".6" style="animation-delay:.9s"/>
@@ -2363,11 +2358,6 @@ const WORLD_TINT = {
   w8: "#7b2cbf"    /* space purple */
 };
 
-/* keep node --check happy about unused consts if this file is ever imported */
-if (typeof module !== "undefined") {
-  module.exports = { WORLD_CSS, WORLD_SCENERY, WORLD_FAR, WORLD_WEATHER, WORLD_WEATHER_CSS, WORLD_PROPS, WORLD_ICONS, WORLD_TINT };
-}
-
 /* ============ PREMIUM VEHICLES ============ */
 /* Endgame unlocks (250-400 stars). Same conventions as BODIES / WHEELS /
    WHEEL_DECOR / HONKS in index.html: viewBox 0 0 320 230, ground y=200,
@@ -2624,7 +2614,6 @@ for (const wk in WORLD_PROPS) for (const wp of WORLD_PROPS[wk]) {
   EXTRA_PROPS[wp.type] = { svg: wp.svg, xOff: wp.xOff, yOff: wp.yOff, hard: wp.kind === "hard", mv: wp.moveSpec || null };
 }
 Object.assign(BODIES, PREMIUM_BODIES);
-deriveBodyPoints(PREMIUM_BODIES);
 BODY_ORDER.push("limo", "dragon", "train", "royal");
 Object.assign(WHEELS, PREMIUM_WHEELS);
 Object.assign(WHEEL_DECOR, PREMIUM_WHEEL_DECOR);
@@ -3137,10 +3126,9 @@ const SHOP_CSS = `
 /* ---- registration (runs before loadState) ---- */
 document.head.insertAdjacentHTML("beforeend", `<style>${SHOP_CSS}</style>`);
 Object.assign(BODIES, SHOP_BODIES);
-deriveBodyPoints(SHOP_BODIES);
 const SHOP_BODY_IDS = ["bulldozer", "schoolbus", "ambulance", "submarine", "pirate", "dino", "unicorn", "hover"];   /* cheap -> dear; CODE_BODIES appends these */
 BODY_ORDER.push(...SHOP_BODY_IDS);
-/* CAR3D is a const defined later: SHOP_CAR3D joins it right above the legacy roof/mount/deco derivation */
+/* CAR3D is a const defined later (ROAD ENGINE): SHOP_CAR3D is merged into it right after that table */
 Object.assign(HONKS, SHOP_HONKS);
 Object.assign(PRICES.body, { bulldozer: 75, schoolbus: 90, ambulance: 110, submarine: 150, pirate: 180, dino: 220, unicorn: 280, hover: 1000 });
 Object.assign(WHEELS, SHOP_WHEELS);
@@ -3418,7 +3406,7 @@ document.querySelectorAll(".extraBtn").forEach(btn => {
     btn.classList.toggle("on", state.extras[name]);
     save(); renderPreview();
     if (name === "horn" && state.extras.horn) sfx.honk(state.body);
-    else if (name === "booster" && state.extras.booster && typeof NEW_EXTRAS_SFX !== "undefined") NEW_EXTRAS_SFX.boosterWhoosh();
+    else if (name === "booster" && state.extras.booster) NEW_EXTRAS_SFX.boosterWhoosh();
     else sfx.clank();
   });
 });
@@ -4092,7 +4080,7 @@ function levelUnlocked(n) { return n === 1 || !!progress.levels[n - 1]; }
 function worldUnlocked(w) { return w === 1 || !!progress.levels[(w - 1) * WORLD_SIZE]; }
 let selectedWorld = 1;
 function worldTint(w) {
-  return (typeof WORLD_TINT !== "undefined" && (WORLD_TINT["w" + w] || WORLD_TINT[w])) || "#219ebc";
+  return WORLD_TINT["w" + w] || "#219ebc";
 }
 /* level nodes sit ON a winding road: alternating heights along the path */
 const MAP_NODE_Y = [0, -44, -70, -40, 8, 36, 4, -42, -66, -30];
@@ -4107,7 +4095,7 @@ function renderMap() {
     b.style.setProperty("--i", w - 1);
     if (open) b.style.background = worldTint(w);
     b.innerHTML = open
-      ? ((typeof WORLD_ICONS !== "undefined" && WORLD_ICONS["w" + w]) || `<span>${w}</span>`)
+      ? (WORLD_ICONS["w" + w] || `<span>${w}</span>`)
       : lockIcon;
     b.setAttribute("aria-label", "world " + w);
     b.addEventListener("pointerdown", () => {
@@ -4420,15 +4408,15 @@ const tail = (x, y, w = 22, h = 14) => F => F(x, y, x + w, y + h, VR, 'class="ta
                               y-35..y+30; use 1.3 for low bodies).
      booster: [x, y, z]       nozzle centre on the rear face (r 20); keep clear of the decal.
      decal:   [x, y, z, k]    sticker centre on the rear face's largest flat panel; k 0.3-0.5
-                              (+-36k units). Also drives mud spots / scuffs (legacy `deco`).
+                              (+-36k units). Also places the mud spots and scuffs.
      buddy:   [x, y, z, k?]   edge the critter peeks over (paws on it, head above); k = sprite scale
                               (default 1.2: head r 26, ~77 wide). Hat moves onto its head automatically.
      win:     [x, y, z]       rear-window centre (damage crack).   smoke: [x, y, z] damage-smoke origin.
 
    Keep z small (0-60) for things on the rear face so they draw over it, and near the cab's rear edge
    for roof items; overlays always draw on top, so an anchor deep inside the body (large z, centred)
-   would float over parts that should hide it. `roof` / `mount` / `deco` are derived from hat / flag /
-   decal for the legacy damage code — do not hand-write them. */
+   would float over parts that should hide it. The damage bandage sits at `flag`, scuffs and mud at
+   `decal`, the crack at `win` and the smoke at `smoke`. */
 const CAR3D = {
   dump: { len: 450, half: 104, axles: [80, 370],
     win: [0, 160, 300], smoke: [73, 240, 296],
@@ -4606,9 +4594,7 @@ const CAR3D = {
     ] }
 };
 
-Object.assign(CAR3D, SHOP_CAR3D);   /* shop pack bodies (registered at the SHOP PACK anchor, merged here past the TDZ) */
-/* legacy per-body points other code reads (mud, damage bandage, scuff): derived from the anchors */
-for (const R of Object.values(CAR3D)) { R.roof = R.anchors.hat.slice(0, 3); R.mount = R.anchors.flag.slice(0, 3); R.deco = R.anchors.decal.slice(0, 3); }
+Object.assign(CAR3D, SHOP_CAR3D);   /* shop pack bodies (declared in the SHOP PACK, merged here past the TDZ) */
 
 function partSVG(p, L) {
   /* paint-on-face helpers bound to this part's back plane */
@@ -4683,7 +4669,7 @@ function tire3D(t) {
   if (type === "flower") for (let k = 0; k < 3; k++) out += `<circle cx="${fx(outerX + 3)}" cy="${fx(y + th * (0.25 + k * 0.25))}" r="6" fill="#fff"/><circle cx="${fx(outerX + 3)}" cy="${fx(y + th * (0.25 + k * 0.25))}" r="2.5" fill="#ff70a6"/>`;
   if (type === "glow") out += `<rect x="${fx(x - 4)}" y="${fx(y - 4)}" width="${fx(tw + 8)}" height="${fx(th + 8)}" rx="${fx(rr + 4)}" fill="none" stroke="#b388ff" stroke-width="5" opacity=".55"/>`;
   if (type === "star") out += `<path d="M0 -5.5 L1.7 -1.9 L5.6 -1.6 L2.7 1 L3.5 5 L0 2.9 L-3.5 5 L-2.7 1 L-5.6 -1.6 L-1.7 -1.9 Z" fill="#fff" transform="translate(${fx(x + tw / 2)},${fx(y + th / 2)}) scale(.8)"/>`;
-  if (typeof shopTireAccent === "function") out += shopTireAccent(type, outerX, x, y, tw, th, rr);   /* shop pack wheels */
+  out += shopTireAccent(type, outerX, x, y, tw, th, rr);   /* shop pack wheels */
   return out;
 }
 let carLen = 450, carHalf = 104;
@@ -4723,23 +4709,21 @@ function vehicleRearSVG(st) {
       <path d="M-10 18 Q-10 -2 0 -2 Q10 -2 10 18Z" fill="#ff9f1c" stroke="#e76f51" stroke-width="2"/>
       <g class="spinner"><path d="M0 8 L0 -14" stroke="#ffd60a" stroke-width="5" stroke-linecap="round"/></g></g>`, 1.2);
   if (ex.flag) over += at(N.flag, `<path d="M0 0 V-60" stroke="#6c757d" stroke-width="5" stroke-linecap="round"/><path d="M-2 -58 L-40 -49 L-2 -36 Z" fill="#e63946"/>`, 1.1);
-  if (typeof NEW_EXTRAS_SVG !== "undefined") {
-    const wk = N.wings[3] ?? 1.6, wq = [-N.wings[0], N.wings[1], N.wings[2]];
-    if (ex.wings) over += at(wq, NEW_EXTRAS_SVG.wings(0, 0), wk) + at(N.wings, NEW_EXTRAS_SVG.wings(0, 0), wk, true);
-    if (ex.booster) over += at(N.booster, `<circle r="17" fill="#ced4da" stroke="#023047" stroke-width="3"/><circle r="11" fill="#495057"/>
-        <g class="rearFlame"><circle r="9" fill="#ff9f1c"/><circle r="4.5" fill="#ffd60a"/></g>`, 1.2);
-    if (ex.partyhat) over += hasBuddy
-      ? at(N.buddy, `<g transform="translate(${HAT_ON_BUDDY[0]},${HAT_ON_BUDDY[1]})">${NEW_EXTRAS_SVG.partyhat(0, 0)}</g>`, bk)
-      : at(N.hat, NEW_EXTRAS_SVG.partyhat(0, 0), 1.2);
-  }
-  if (typeof shopExtrasRear === "function") over += shopExtrasRear(N, ex, at, R.half);   /* shop pack extras */
+  const wk = N.wings[3] ?? 1.6, wq = [-N.wings[0], N.wings[1], N.wings[2]];
+  if (ex.wings) over += at(wq, NEW_EXTRAS_SVG.wings(0, 0), wk) + at(N.wings, NEW_EXTRAS_SVG.wings(0, 0), wk, true);
+  if (ex.booster) over += at(N.booster, `<circle r="17" fill="#ced4da" stroke="#023047" stroke-width="3"/><circle r="11" fill="#495057"/>
+      <g class="rearFlame"><circle r="9" fill="#ff9f1c"/><circle r="4.5" fill="#ffd60a"/></g>`, 1.2);
+  if (ex.partyhat) over += hasBuddy
+    ? at(N.buddy, `<g transform="translate(${HAT_ON_BUDDY[0]},${HAT_ON_BUDDY[1]})">${NEW_EXTRAS_SVG.partyhat(0, 0)}</g>`, bk)
+    : at(N.hat, NEW_EXTRAS_SVG.partyhat(0, 0), 1.2);
+  over += shopExtrasRear(N, ex, at, R.half);   /* shop pack extras */
   const dq = N.decal;
   if (st.decal && st.decal !== "none" && DECAL_SVG[st.decal]) over += at(dq, `<g data-decal="${st.decal}">${DECAL_SVG[st.decal]}</g>`, dq[3] ?? .6);
-  const rz = R.deco[2];
+  const rz = N.decal[2];
   over += `<g class="mudSpots" style="opacity:${progress.muddy ? 1 : 0}">${
     [[-R.half + 22, 52, 9], [-30, 44, 7], [34, 48, 8], [R.half - 20, 56, 6]].map(([x, y, rr]) => { const [px, py, s] = A([x, y, rz]); return `<circle cx="${fx(px)}" cy="${fx(py)}" r="${fx(rr * s)}" fill="#6b4423"/>`; }).join("")}</g>`;
   over += `<g class="dmgScuff" style="display:${progress.damage >= 1 ? "" : "none"}">${at(dq, `<g stroke="#37474f" stroke-width="3" stroke-linecap="round" opacity=".75" fill="none"><path d="M-52 -6 l22 -6 M-46 4 l16 -4 M34 -8 l18 6"/></g>`)}${
-    at([R.mount[0] + 18, R.mount[1] - 14, R.mount[2]], `<g transform="rotate(-18)"><rect x="-16" y="-6" width="32" height="12" rx="6" fill="#e9d8c3"/><rect x="-6" y="-16" width="12" height="32" rx="6" fill="#e9d8c3"/><circle r="3" fill="#c9b697"/></g>`)}</g>`;
+    at([N.flag[0] + 18, N.flag[1] - 14, N.flag[2]], `<g transform="rotate(-18)"><rect x="-16" y="-6" width="32" height="12" rx="6" fill="#e9d8c3"/><rect x="-6" y="-16" width="12" height="32" rx="6" fill="#e9d8c3"/><circle r="3" fill="#c9b697"/></g>`)}</g>`;
   over += `<g class="dmgCrack" style="display:${progress.damage >= 3 ? "" : "none"}">${at(R.win, `<path d="M6 -12 l-9 9 l11 7 l-7 9 M-3 -3 l-9 3 M8 4 l10 5" stroke="#f8f9fa" stroke-width="3" fill="none" opacity=".9"/>`, 1.2)}</g>`;
   const [sx, sy, ss] = A(R.smoke);
   over += `<g class="dmgSmoke" style="display:${progress.damage >= 5 ? "" : "none"}" fill="#90a4ae">
@@ -4796,7 +4780,7 @@ function paradeUnlocked() {
   return true;
 }
 let LEVEL_LEN = 5200, RAMPS = [], props = [], scenery = [], totalStars = 0, runStars = 0, runDamage = 0, runTime = 0;
-let freeSpawnX = 0, freeThemeIdx = 0, freeSceneryX = 0, freeCourseX = 0, sceneryWorld = 1;
+let freeSpawnX = 0, freeThemeIdx = 0, freeSceneryX = 0, freeCourseX = 0;
 
 function rampElev(x) {
   for (const rp of RAMPS) {
@@ -5359,7 +5343,7 @@ function applyTheme(w) {
 function buildWeather(w) {
   const el = document.getElementById("weather");
   el.innerHTML = "";
-  const spec = (typeof WORLD_WEATHER !== "undefined") && WORLD_WEATHER["w" + w];
+  const spec = WORLD_WEATHER["w" + w];
   if (!spec) return;
   const rng = mulberry32(w * 131);
   for (let i = 0; i < spec.count; i++) {
@@ -5746,12 +5730,11 @@ function addArch(x) {
 }
 function buildScenery(len, world = 1, seed = 0) {
   const key = typeof world === "number" ? "w" + world : world;
-  const farFn = (typeof WORLD_FAR !== "undefined") && WORLD_FAR[key];
+  const farFn = WORLD_FAR[key];
   const lmFn = WORLD_LANDMARK[key];
   scPool = WORLD_SET[key] || WORLD_SET.w1;
   scArch = WORLD_ARCH[key] || null;
   scLast = [-1, -1];
-  sceneryWorld = world;
   let far = "";
   for (let x = 0; x < 1200; x += 520) {   /* 1200 isn't a 520 multiple: hills overlap the seam harmlessly */
     far += farFn ? farFn(x)
@@ -6260,7 +6243,7 @@ function openCapsule(p) {
       roadScene.appendChild(el);
       gagTimer(() => el.remove(), 1900);
       sfx.squeak(); gagTimer(() => sfx.tada(), 400);
-      const muddy = mudEl && mudEl.style.opacity == 1;   /* keep this run's mud through the rebuild */
+      const muddy = mudEl && mudEl.style.opacity === "1";   /* keep this run's mud through the rebuild */
       carWrap.innerHTML = vehicleRearSVG(state);
       wheelEls = carWrap.querySelectorAll(".treadRoll");
       mudEl = carWrap.querySelector(".mudSpots");
@@ -6889,8 +6872,7 @@ function scrubStop() {
 }
 function scrubSet() {
   if (!scrub) return;
-  let c = 0;
-  if (typeof curvAt === "function") { try { c = Math.abs(curvAt(pos + CAR_SCREEN_X)) || 0; } catch (e) { c = 0; } }
+  const c = Math.abs(curvAt(pos + CAR_SCREEN_X));
   const amt = v > 400 && !airborne ? Math.min(1, c * SCRUB_K) * ((v - 400) / 300) : 0;
   const t = actx.currentTime;
   scrub.g.gain.setTargetAtTime(amt * 0.06 * volScale(), t, 0.1);
