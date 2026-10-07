@@ -1337,6 +1337,24 @@ addEventListener("orientationchange", () => { fit(); setTimeout(fit, 350); });
 if (window.visualViewport) visualViewport.addEventListener("resize", fit);
 fit();
 
+/* ============ DOM HELPERS ============ */
+/* append a stylesheet at runtime (content packs, gag + sky-event keyframes) */
+function injectCSS(text) {
+  const st = document.createElement("style");
+  st.textContent = text;
+  document.head.appendChild(st);
+}
+/* restart a one-shot CSS animation: drop the class (and any rival classes), force a reflow, add it back */
+function restartAnim(el, cls, ...also) {
+  el.classList.remove(cls, ...also); void el.offsetWidth; el.classList.add(cls);
+}
+/* a padlock dot on a locked shop button, removed once the part is owned */
+function setLockDot(el, locked) {
+  let dot = el.querySelector(".lockDot");
+  if (locked && !dot) { dot = document.createElement("span"); dot.className = "lockDot"; dot.innerHTML = lockIcon; el.appendChild(dot); }
+  if (!locked && dot) dot.remove();
+}
+
 /* ============ CATALOG + ECONOMY ============ */
 const COLORS = ["#e53935", "#1e88e5", "#fdd835", "#43a047", "#fb8c00", "#ec407a",
                 "#8e24aa", "#00acc1", "#9ccc65", "#f5f5f5", "#37474f", "rainbow"];
@@ -2608,8 +2626,7 @@ const NEW_EXTRAS_SFX = {
 
 
 /* ---- wire the packs into the live registries (must run before loadState) ---- */
-document.head.insertAdjacentHTML("beforeend",
-  `<style>${WORLD_CSS}\n${Object.values(WORLD_WEATHER_CSS).filter(Boolean).join("\n")}\n${NEW_EXTRAS_CSS}</style>`);
+injectCSS(`${WORLD_CSS}\n${Object.values(WORLD_WEATHER_CSS).filter(Boolean).join("\n")}\n${NEW_EXTRAS_CSS}`);
 for (const wk in WORLD_PROPS) for (const wp of WORLD_PROPS[wk]) {
   EXTRA_PROPS[wp.type] = { svg: wp.svg, xOff: wp.xOff, yOff: wp.yOff, hard: wp.kind === "hard", mv: wp.moveSpec || null };
 }
@@ -2622,15 +2639,17 @@ Object.assign(PRICES.body, { limo: 250, dragon: 300, train: 350, royal: 400 });
 Object.assign(PRICES.wheels, { glow: 90, star: 120 });
 WHEEL_ORDER.push("glow", "star");
 PRICES.extras = NEW_EXTRAS_PRICES;
-for (const exName in NEW_EXTRAS_SVG) {
-  state.extras[exName] = false;
-  const exBtn = document.createElement("button");
-  exBtn.className = "bigBtn extraBtn";
-  exBtn.dataset.extra = exName;
-  exBtn.setAttribute("aria-label", exName);
-  exBtn.innerHTML = NEW_EXTRAS_BTN[exName];
-  document.getElementById("extras").appendChild(exBtn);
+/* a paid extra: a build flag (off until the kid taps it) plus a garage tray button */
+function registerExtra(name, iconSvg) {
+  state.extras[name] = false;
+  const b = document.createElement("button");
+  b.className = "bigBtn extraBtn";
+  b.dataset.extra = name;
+  b.setAttribute("aria-label", name);
+  b.innerHTML = iconSvg;
+  document.getElementById("extras").appendChild(b);
 }
+for (const exName in NEW_EXTRAS_SVG) registerExtra(exName, NEW_EXTRAS_BTN[exName]);
 
 /* ======== SHOP PACK anchor: new bodies / wheels / extras / buddies / decals register here
    (append to BODY_ORDER, WHEEL_ORDER, CODE_* lists, PRICES; add garage buttons) — must run
@@ -3124,7 +3143,7 @@ const SHOP_CSS = `
 `;
 
 /* ---- registration (runs before loadState) ---- */
-document.head.insertAdjacentHTML("beforeend", `<style>${SHOP_CSS}</style>`);
+injectCSS(SHOP_CSS);
 Object.assign(BODIES, SHOP_BODIES);
 const SHOP_BODY_IDS = ["bulldozer", "schoolbus", "ambulance", "submarine", "pirate", "dino", "unicorn", "hover"];   /* cheap -> dear; CODE_BODIES appends these */
 BODY_ORDER.push(...SHOP_BODY_IDS);
@@ -3147,15 +3166,7 @@ Object.assign(PRICES.decal, { rainbow: 35, dinofoot: 40, flower: 45 });
 /* extras tray: page every button (first 8 on page 1), add the 4 new buttons + the flip chip */
 {
   const tray = document.getElementById("extras");
-  for (const exName of SHOP_EXTRA_IDS) {
-    state.extras[exName] = false;
-    const exBtn = document.createElement("button");
-    exBtn.className = "bigBtn extraBtn";
-    exBtn.dataset.extra = exName;
-    exBtn.setAttribute("aria-label", exName);
-    exBtn.innerHTML = SHOP_EXTRAS_BTN[exName];
-    tray.appendChild(exBtn);
-  }
+  for (const exName of SHOP_EXTRA_IDS) registerExtra(exName, SHOP_EXTRAS_BTN[exName]);
   tray.querySelectorAll(".extraBtn").forEach((b, i) => { b.dataset.pg = i < 8 ? 1 : 2; });
   const flip = document.createElement("button");
   flip.id = "extrasFlip"; flip.className = "pressable";
@@ -3164,7 +3175,7 @@ Object.assign(PRICES.decal, { rainbow: 35, dinofoot: 40, flower: 45 });
   flip.addEventListener("pointerdown", () => {
     const pg2 = !tray.classList.contains("pg2");
     tray.classList.toggle("pg2", pg2); flip.classList.toggle("pg2", pg2);
-    tray.querySelectorAll(`.extraBtn[data-pg="${pg2 ? 2 : 1}"]`).forEach(b => { b.classList.remove("enter"); void b.offsetWidth; b.classList.add("enter"); });
+    tray.querySelectorAll(`.extraBtn[data-pg="${pg2 ? 2 : 1}"]`).forEach(b => { restartAnim(b, "enter"); });
     sfx.pop();
   });
   tray.appendChild(flip);
@@ -3268,12 +3279,12 @@ const mapWallet = document.getElementById("mapWallet");
 function renderWallets(pop) {
   for (const el of [garageWallet, mapWallet, document.getElementById("albumWallet")]) {
     el.innerHTML = starIcon + `<span>${progress.wallet}</span>`;
-    if (pop) { el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); }
+    if (pop) { restartAnim(el, "pop"); }
   }
 }
 function walletDeny() {
   for (const el of [garageWallet, mapWallet]) {
-    el.classList.remove("deny"); void el.offsetWidth; el.classList.add("deny");
+    restartAnim(el, "deny");
   }
   sfx.deny();
 }
@@ -3306,9 +3317,7 @@ function renderShop() {
 }
 function renderPreview() {
   preview.innerHTML = vehicleSVG(state);
-  preview.classList.remove("bounce");
-  void preview.offsetWidth;
-  preview.classList.add("bounce");
+  restartAnim(preview, "bounce");
   renderShop();
 }
 priceTag.addEventListener("pointerdown", e => {
@@ -3324,7 +3333,7 @@ priceTag.addEventListener("pointerdown", e => {
     award("buy");
   } else {
     walletDeny();
-    priceTag.classList.remove("deny"); void priceTag.offsetWidth; priceTag.classList.add("deny");
+    restartAnim(priceTag, "deny");
   }
 });
 
@@ -3386,16 +3395,13 @@ function showPaintPage(pg, animate) {
   swatchesEl.classList.toggle("pg2", pg === 2);
   paintFlip.classList.toggle("pg2", pg === 2);
   if (!animate) return;
-  swatchesEl.querySelectorAll(`.swatch[data-pg="${pg}"]`).forEach(s => { s.classList.remove("enter"); void s.offsetWidth; s.classList.add("enter"); });
+  swatchesEl.querySelectorAll(`.swatch[data-pg="${pg}"]`).forEach(s => { restartAnim(s, "enter"); });
 }
 showPaintPage(PATTERNS[state.color] ? 2 : 1, false);
 paintFlip.addEventListener("pointerdown", () => { showPaintPage(swatchesEl.classList.contains("pg2") ? 1 : 2, true); sfx.pop(); });
 function renderSwatchLocks() {
   swatchesEl.querySelectorAll(".swatch").forEach(s => {
-    const locked = !owns("color", s.dataset.color);
-    let dot = s.querySelector(".lockDot");
-    if (locked && !dot) { dot = document.createElement("span"); dot.className = "lockDot"; dot.innerHTML = lockIcon; s.appendChild(dot); }
-    if (!locked && dot) dot.remove();
+    setLockDot(s, !owns("color", s.dataset.color));
   });
 }
 document.querySelectorAll(".extraBtn").forEach(btn => {
@@ -3412,10 +3418,7 @@ document.querySelectorAll(".extraBtn").forEach(btn => {
 });
 function renderExtrasLocks() {
   document.querySelectorAll(".extraBtn").forEach(b => {
-    const locked = !owns("extras", b.dataset.extra);
-    let dot = b.querySelector(".lockDot");
-    if (locked && !dot) { dot = document.createElement("span"); dot.className = "lockDot"; dot.innerHTML = lockIcon; b.appendChild(dot); }
-    if (!locked && dot) dot.remove();
+    setLockDot(b, !owns("extras", b.dataset.extra));
   });
 }
 preview.addEventListener("pointerdown", () => { sfx.honk(state.body); renderPreview(); });
@@ -3442,7 +3445,7 @@ document.querySelectorAll(".upgBtn").forEach(b => b.addEventListener("pointerdow
     sfx.buy(); confettiBurst(garageScene, 24);
   } else {
     walletDeny();
-    b.classList.remove("deny"); void b.offsetWidth; b.classList.add("deny");
+    restartAnim(b, "deny");
   }
 }));
 const repairBtn = document.getElementById("repairBtn");
@@ -3493,13 +3496,14 @@ diceBtn.addEventListener("pointerdown", () => {
 /* ---- car wash: mud stays until the kid scrubs it off ---- */
 const washBtn = document.getElementById("washBtn");
 const washOverlay = document.getElementById("washOverlay");
+const washCar = document.getElementById("washCar");
 let washProgress = 0;
 function renderWash() { washBtn.classList.toggle("show", !!progress.muddy); }
 washBtn.addEventListener("pointerdown", () => {
   sfx.pop();
   washProgress = 0;
   document.getElementById("washFill").style.width = "0%";
-  document.getElementById("washCar").innerHTML = vehicleSVG(state);
+  washCar.innerHTML = vehicleSVG(state);
   document.getElementById("washCard").classList.remove("rinsing");
   washOverlay.classList.add("show");
 });
@@ -3507,9 +3511,9 @@ washOverlay.addEventListener("pointerdown", e => {
   if (e.target === washOverlay) { washOverlay.classList.remove("show"); sfx.pop(); }
 });
 let lastScrub = 0;
-document.getElementById("washCar").addEventListener("pointermove", e => {
+washCar.addEventListener("pointermove", e => {
   if (!washOverlay.classList.contains("show") || washProgress >= 100 || e.buttons === 0 && e.pointerType !== "touch") return;
-  const rect = document.getElementById("washCar").getBoundingClientRect();
+  const rect = washCar.getBoundingClientRect();
   /* soap bubbles trail the finger */
   const b = document.createElement("div");
   b.className = "bubble";
@@ -3517,7 +3521,7 @@ document.getElementById("washCar").addEventListener("pointermove", e => {
   b.style.width = b.style.height = size + "px";
   b.style.left = (e.clientX - rect.left - size / 2) + "px";
   b.style.top = (e.clientY - rect.top - size / 2) + "px";
-  document.getElementById("washCar").appendChild(b);
+  washCar.appendChild(b);
   setTimeout(() => b.remove(), 900);
   washProgress = Math.min(100, washProgress + 1.6);
   document.getElementById("washFill").style.width = washProgress + "%";
@@ -3530,7 +3534,7 @@ document.getElementById("washCar").addEventListener("pointermove", e => {
     document.getElementById("washCard").classList.add("rinsing");
     sfx.splash(); setTimeout(() => sfx.fixed(), 350);
     setTimeout(() => {
-      document.getElementById("washCar").innerHTML = vehicleSVG(state);
+      washCar.innerHTML = vehicleSVG(state);
       confettiBurst(garageScene, 24);
     }, 400);
     setTimeout(() => {
@@ -3558,7 +3562,7 @@ renderQuiet();
 document.getElementById("sun").addEventListener("pointerdown", () => {
   const sun = document.getElementById("sun");
   const night = worldMeta(curWorld()).dark;
-  sun.classList.remove("cool"); void sun.offsetWidth; sun.classList.add("cool");
+  restartAnim(sun, "cool");
   const old = sun.querySelector(".shades"); if (old) old.remove();
   if (!night) {
     sun.insertAdjacentHTML("beforeend",
@@ -3570,18 +3574,18 @@ document.getElementById("sun").addEventListener("pointerdown", () => {
   }
 });
 document.querySelectorAll(".cloud").forEach(c => c.addEventListener("pointerdown", () => {
-  c.classList.remove("puffed"); void c.offsetWidth; c.classList.add("puffed");
+  restartAnim(c, "puffed");
   sfx.pop(); setTimeout(() => sfx.whoosh(), 500);
 }));
 const signEl = document.getElementById("garageSign");
 signEl.innerHTML = "VROOM".split("").map((ch, i) => `<span style="animation-delay:${i * 80}ms">${ch}</span>`).join("");
 signEl.addEventListener("pointerdown", () => {
-  signEl.classList.remove("bouncy"); void signEl.offsetWidth; signEl.classList.add("bouncy");
+  restartAnim(signEl, "bouncy");
   sfx.whee();
 });
 /* the preview's eye blinks when honked; a riding buddy squeaks along */
 preview.addEventListener("pointerdown", () => {
-  preview.classList.remove("blink"); void preview.offsetWidth; preview.classList.add("blink");
+  restartAnim(preview, "blink");
   if (state.buddy) setTimeout(() => sfx.squeak(), 160);
 });
 
@@ -3617,7 +3621,11 @@ function showScene(el) {
   document.querySelectorAll(".scene").forEach(s => s.classList.remove("active"));
   el.classList.add("active");
   /* iris reveal: cover instantly, shrink away over the new scene */
-  iris.classList.remove("go"); void iris.offsetWidth; iris.classList.add("go");
+  restartAnim(iris, "go");
+  resetRoadOverlays();
+}
+/* clear the finish card and every transient particle / gag left on the road */
+function resetRoadOverlays() {
   document.getElementById("celebrate").classList.remove("active");
   document.getElementById("celebrateRow").classList.remove("ready");
   roadScene.classList.remove("celebrating");
@@ -3630,7 +3638,7 @@ function showAlbum() { showScene(albumScene); renderAlbum(); renderWallets(false
 
 /* ============ STICKER ALBUM ============ */
 function wiggleSlot(el) {
-  el.classList.remove("wiggle"); void el.offsetWidth; el.classList.add("wiggle");
+  restartAnim(el, "wiggle");
 }
 function renderAlbum() {
   const bRow = document.getElementById("buddyRow");
@@ -4100,7 +4108,7 @@ function renderMap() {
     b.setAttribute("aria-label", "world " + w);
     b.addEventListener("pointerdown", () => {
       if (open) { sfx.pop(); selectedWorld = w; renderMap(); }
-      else { sfx.deny(); b.classList.remove("deny"); void b.offsetWidth; b.classList.add("deny"); }
+      else { sfx.deny(); restartAnim(b, "deny"); }
     });
     tabs.appendChild(b);
   }
@@ -4142,7 +4150,7 @@ function renderMap() {
       else { b.classList.add("far"); b.innerHTML = ""; }
       b.addEventListener("pointerdown", () => {
         sfx.deny();
-        b.classList.remove("deny"); void b.offsetWidth; b.classList.add("deny");
+        restartAnim(b, "deny");
       });
     } else {
       b.classList.add(done ? "done" : "open");
@@ -5889,9 +5897,15 @@ function setLane(t) {
   if (clamped !== targetLane) { targetLane = clamped; sfx.whoosh(); }
 }
 
+/* every road entry passes the shop gate: an unpaid part on the car blocks driving (map and replay too) */
+function shopGateOpen() {
+  if (!lockedParts().length) return true;
+  walletDeny();
+  return false;
+}
 function drive(n) {
   if (n === PARADE_LEVEL) return driveParade();
-  if (lockedParts().length) { walletDeny(); return; }   /* map/replay can't bypass the shop gate */
+  if (!shopGateOpen()) return;
   bankFreeRun();
   paradeMode = false;
   level = lastPlayed = n;
@@ -5899,7 +5913,7 @@ function drive(n) {
   startDrive();
 }
 function driveParade() {
-  if (lockedParts().length) { walletDeny(); return; }
+  if (!shopGateOpen()) return;
   bankFreeRun();
   paradeMode = true;
   level = lastPlayed = PARADE_LEVEL;
@@ -5907,7 +5921,7 @@ function driveParade() {
   startDrive();
 }
 function driveFree() {
-  if (lockedParts().length) { walletDeny(); return; }
+  if (!shopGateOpen()) return;
   paradeMode = false;
   freeMode = true;
   level = 0;
@@ -5930,6 +5944,13 @@ function setHeadlights(on) {
   svg.classList.toggle("lit", on);   /* tail lights glow after dark */
   if (!on && b) b.remove();
 }
+/* (re)build the chase-cam car from the current build and re-bind the parts the loop animates */
+function mountCar() {
+  carWrap.innerHTML = vehicleRearSVG(state);
+  wheelEls = carWrap.querySelectorAll(".treadRoll");
+  mudEl = carWrap.querySelector(".mudSpots");
+  setHeadlights(worldMeta(curWorld()).dark);
+}
 function startDrive() {
   stopDrive();
   pos = 0; v = 0; jumpY = 0; vy = 0; airborne = false; finished = false;
@@ -5939,16 +5960,10 @@ function startDrive() {
   steerHold = 0; steerPointers.clear();
   speedLines.style.opacity = 0;
   roadPointers.clear(); gasPointers.clear(); brakePointers.clear();
-  document.getElementById("celebrate").classList.remove("active");
-  document.getElementById("celebrateRow").classList.remove("ready");
-  roadScene.classList.remove("celebrating");
-  document.querySelectorAll(".confetti, .flyStar, .gagWrap, .dust, .firework").forEach(c => c.remove());
+  resetRoadOverlays();
   if (paradeMode) buildParade(); else if (freeMode) buildFree(); else buildLevel(level);
   carWrap.classList.remove("wobble", "spin");   /* a leftover class would replay on the fresh svg */
-  carWrap.innerHTML = vehicleRearSVG(state);
-  setHeadlights(worldMeta(curWorld()).dark);
-  wheelEls = carWrap.querySelectorAll(".treadRoll");
-  mudEl = carWrap.querySelector(".mudSpots");
+  mountCar();
   document.querySelectorAll(".pedal").forEach(p => p.classList.remove("held", "nudge"));
   hudLevel.innerHTML = paradeMode
     ? BADGES.find(b => b.id === "champ").icon
@@ -6131,7 +6146,7 @@ function tickFree() {
 }
 function renderHudStars(pop) {
   hudStars.innerHTML = starIcon + `<span>${runStars}</span>`;
-  if (pop) { hudStars.classList.remove("pop"); void hudStars.offsetWidth; hudStars.classList.add("pop"); }
+  if (pop) { restartAnim(hudStars, "pop"); }
 }
 
 /* ---- surprise capsules: weighted prize roll, star showers or a one-off gag ---- */
@@ -6204,12 +6219,7 @@ let gagTimers = [];
 function gagTimer(fn, ms) { gagTimers.push(setTimeout(fn, ms)); }
 function runGag() {
   const g = GAGS[Math.floor(Math.random() * GAGS.length)];
-  if (!injectedGagCSS.has(g.name)) {
-    const st = document.createElement("style");
-    st.textContent = g.css;
-    document.head.appendChild(st);
-    injectedGagCSS.add(g.name);
-  }
+  if (!injectedGagCSS.has(g.name)) { injectCSS(g.css); injectedGagCSS.add(g.name); }
   const el = document.createElement("div");
   el.className = "gagWrap " + g.className;
   el.innerHTML = g.svg;
@@ -6244,11 +6254,8 @@ function openCapsule(p) {
       gagTimer(() => el.remove(), 1900);
       sfx.squeak(); gagTimer(() => sfx.tada(), 400);
       const muddy = mudEl && mudEl.style.opacity === "1";   /* keep this run's mud through the rebuild */
-      carWrap.innerHTML = vehicleRearSVG(state);
-      wheelEls = carWrap.querySelectorAll(".treadRoll");
-      mudEl = carWrap.querySelector(".mudSpots");
+      mountCar();
       if (muddy) mudEl.style.opacity = 1;
-      setHeadlights(worldMeta(curWorld()).dark);
       return;
     }
     /* all six found: consolation stars */
@@ -6270,7 +6277,7 @@ function award(id) {
   const badge = BADGES.find(x => x.id === id);
   const toast = document.getElementById("stickerToast");
   toast.innerHTML = badge.icon + starIcon;
-  toast.classList.remove("show"); void toast.offsetWidth; toast.classList.add("show");
+  restartAnim(toast, "show");
   sfx.chime();
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove("show"), 1900);
@@ -6313,7 +6320,7 @@ const PROP_HIT = {
     if (Math.round(laneVis) !== p.lane) return;
     if (d > -60 && d < 80 && v > 80 && jumpY < 45) {
       p.done = true; v *= 0.45; sfx.slip();
-      carWrap.classList.remove("spin", "wobble"); void carWrap.offsetWidth; carWrap.classList.add("spin");
+      restartAnim(carWrap, "spin", "wobble");
     }
   },
   puddle(p, d) {
@@ -6393,9 +6400,8 @@ PROP_HIT.alien = (p, d) => {
 };
 function shakeCar() {
   freezeUntil = performance.now() + 90;   /* hit-stop: a comedy beat before the wobble */
-  /* drop both hit classes: the later .spin rule would shadow .wobble in the cascade */
-  carWrap.classList.remove("wobble", "spin"); void carWrap.offsetWidth; carWrap.classList.add("wobble");
-  roadScene.classList.remove("quake"); void roadScene.offsetWidth; roadScene.classList.add("quake");
+  restartAnim(carWrap, "wobble", "spin");   /* drop .spin too: its later rule would shadow .wobble */
+  restartAnim(roadScene, "quake");
 }
 function spawnDust() {
   const cx = carScreenX();
@@ -6434,7 +6440,7 @@ function updateDamageVisuals() {
 function renderHudDamage(pop) {
   hudDamage.innerHTML = wrenchIcon + `<span>${progress.damage}</span>`;
   hudDamage.classList.toggle("hurt", progress.damage >= 5);
-  if (pop) { hudDamage.classList.remove("pop"); void hudDamage.offsetWidth; hudDamage.classList.add("pop"); }
+  if (pop) { restartAnim(hudDamage, "pop"); }
 }
 
 function tick(now) {
@@ -7025,8 +7031,7 @@ let eventCSSDone = false;
 function injectEventCSS() {
   if (eventCSSDone) return;
   eventCSSDone = true;
-  const st = document.createElement("style");
-  st.textContent = `
+  injectCSS(`
   .liveEv { position: absolute; z-index: 16; pointer-events: none; }
   .liveEv svg { position: absolute; left: 0; top: 0; }
   .evFlock { width: 140px; height: 70px; animation: evFly 3.1s linear forwards; }
@@ -7080,13 +7085,12 @@ function injectEventCSS() {
   @keyframes evBob { 100% { transform: translateY(5px); } }
   .evBanner { position: absolute; left: 20px; top: 8px; width: 150px; height: 46px; background: #fff8ec; border: 3px solid #4a3523; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
   .evBanner svg { position: static; width: 36px; height: 36px; }
-  `;
-  document.head.appendChild(st);
+  `);
 }
 
 /* ---- the three hook-ins ---- */
 function worldAudioStart() {
-  if (paradeMode) { /* parade keeps its own fixed schedule */ LEVEL_EVENTS = []; eventIdx = 0; eventsFired = 0; scheduleEvents(PARADE_LEVEL, 1); }
+  if (paradeMode) scheduleEvents(PARADE_LEVEL, 1);   /* the parade has its own fixed sky schedule */
   if (!actx) return;
   try { playJingle(); ambStart(); scrubStart(); } catch (e) { /* audio hiccups never stop a level */ }
 }
@@ -7207,9 +7211,9 @@ function finishLevel() {
       span.textContent = shown;
       walletSpan.textContent = walletStart + shown;
       flyStar(tally, cWallet);
-      cWallet.classList.remove("pop"); void cWallet.offsetWidth; cWallet.classList.add("pop");
+      restartAnim(cWallet, "pop");
       sfx.tick(shown);
-      tally.classList.remove("pop"); void tally.offsetWidth; tally.classList.add("pop");
+      restartAnim(tally, "pop");
       if (shown >= banked) {
         clearInterval(tallyTimer); tallyTimer = null;
         const rs = ratingRow.querySelectorAll(".rateStar");
@@ -7248,7 +7252,7 @@ function finishLevel() {
   /* the bomb lands at (560 ± 420, ~420): roadside at that depth, and clear of the wheel and pedal overlays */
   const bombArc = (dir) => [...Array(11)].map((_, i) => { const t = i / 10; return `${i * 10}% { transform: translate(${Math.round(dir * 420 * t)}px, ${Math.round(440 * t * t - 60 * t)}px) rotate(${Math.round(dir * 400 * t)}deg); }`; }).join(" ");
   const beanHop = [...Array(9)].map((_, i) => { const t = i / 8, up = i % 2; return `${i * 12.5}% { transform: translate(${Math.round(1400 * t)}px, ${up ? -110 : 0}px) scale(${up ? ".9,1.1" : "1.15,.85"}); }`; }).join(" ");
-  document.head.insertAdjacentHTML("beforeend", `<style>
+  injectCSS(`
   /* ----- world 9: VOLCANO — ember sky, a red sun low in the smoke, ash clouds ----- */
   #road.w9 { background: linear-gradient(#2b0b0b 0%, #a8321c 45%, #ff8c42 62%); }
   #road.w9 #sun { background: #ff5a1f; width: 120px; height: 120px; box-shadow: 0 0 80px 30px rgba(255,90,31,.5); top: 110px; }
@@ -7293,7 +7297,7 @@ function finishLevel() {
   @keyframes evBlobBurp { 0%, 15% { transform: scale(.4, .2); } 30% { transform: scale(1.25, 1.4); } 45% { transform: scale(.95, .9); } 60%, 100% { transform: scale(1, 1); } }
   .evFountain .evFBub { animation: evBubUp 1s ease-out infinite; transform-box: fill-box; transform-origin: center; }
   @keyframes evBubUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-50px); opacity: 0; } }
-  </style>`);
+  `);
 
   /* ---- ground palettes: black basalt with ember cracks; licorice with candy-cane strips ---- */
   ROAD_PAL[9]  = { ground: "#2a2628", ground2: "#332a2b", road: "#17161a", road2: "#1e1b1f", dash: "#ff7b00", rumA: "#ff4d00", rumB: "#3a3538", haze: "#ff8c42" };
@@ -7518,7 +7522,7 @@ function finishLevel() {
   LIVE_EVENTS.volcanoBurp = () => {   /* the far volcano coughs a smoke ring; the ground shivers */
     evEl("evBurp", `<svg viewBox="0 0 200 200" width="200" height="200"><circle class="evPuff" cx="100" cy="170" r="26" fill="#a39b96" opacity=".75"/><ellipse class="evRing" cx="100" cy="170" rx="54" ry="20" fill="none" stroke="${ash}" stroke-width="16" opacity=".85"/></svg>`, 300 + Math.random() * 500, 100, 3000);
     tone("sine", 60, 36, 1.2, 0.18); noiseBurst(0.9, 180, 0.16); noiseBurst(0.3, 600, 0.12, 0.05);
-    roadScene.classList.remove("quake"); void roadScene.offsetWidth; roadScene.classList.add("quake");
+    restartAnim(roadScene, "quake");
   };
   LIVE_EVENTS.lavaBomb = () => {   /* a glowing blob arcs out of the sky and plops down beside the road, never on it */
     const left = Math.random() < 0.5;
@@ -7570,7 +7574,7 @@ function finishLevel() {
   ROAD_PAL[12] = { ground: "#f6dcd6", ground2: "#f0d1cb", road: "#6c7a92", road2: "#65738a", dash: "#ffd60a", rumA: "#ff5d8f", rumB: "#ffd60a", haze: "#ff9f85" };
 
   /* ---- themes + prop/scenery animations + weather + live-event CSS ---- */
-  document.head.insertAdjacentHTML("beforeend", `<style>
+  injectCSS(`
   /* ----- world 11: DEEP SEA — glass tunnel on the seabed, the sun a wobble far above ----- */
   #road.w11 { background: linear-gradient(#03045e 0%, #0353a4 35%, #0096c7 62%); }
   #road.w11 #sun { background: #caf0f8; opacity: .55; top: 14px; right: 140px; width: 96px; height: 96px; box-shadow: 0 0 90px 44px rgba(202,240,248,.35); }
@@ -7622,7 +7626,7 @@ function finishLevel() {
   .liveEv.evBigBow svg { opacity: .72; }
   .evSunburst { width: 520px; height: 520px; animation: evSunburst 3.2s ease-in-out forwards; }
   @keyframes evSunburst { 0% { transform: rotate(0deg) scale(.6); opacity: 0; } 30% { opacity: 1; } 100% { transform: rotate(40deg) scale(1.1); opacity: 0; } }
-  </style>`);
+  `);
 
   /* ---- weather: light shafts + rising bubbles / drifting puffs + sparkles ---- */
   WORLD_WEATHER.w11 = {
