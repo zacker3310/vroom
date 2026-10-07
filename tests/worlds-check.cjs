@@ -47,6 +47,24 @@ function check(name, ok, detail) {
   check('gen: stars never starve, length capped', gen.minStars >= 5 && gen.maxLen === 3500 + 20 * 250 + 60 * 100, JSON.stringify({ minStars: gen.minStars, maxLen: gen.maxLen }));
   check('gen: world hazards appear in worlds 5-8', [5,6,7,8].every(w => gen.worldProps[w] > 0), JSON.stringify(gen.worldProps));
 
+  /* ---- worlds 9-10 (volcano, candy land): hazards, no 3-lane walls, theme class, weather ---- */
+  const gen2 = await page.evaluate(() => {
+    const rep = { worldProps: {}, wall: 0, cls: {}, weather: {} };
+    for (let n = 81; n <= 100; n++) {
+      buildLevel(n);
+      const w = worldOf(n), hard = props.filter(p => HARD_T(p.type));
+      for (const p of props) if (WORLD_ITEMS[w] && WORLD_ITEMS[w].includes(p.type)) rep.worldProps[w] = (rep.worldProps[w] || 0) + 1;
+      for (const a of hard) for (const b of hard) for (const c of hard) {
+        if (a === b || b === c || a === c) continue;
+        const xs = [a.x, b.x, c.x];
+        if (Math.max(...xs) - Math.min(...xs) < 240 && new Set([a.lane, b.lane, c.lane]).size === 3) rep.wall++;
+      }
+    }
+    for (const [n, want] of [[85, 'w9'], [95, 'w10']]) { buildLevel(n); rep.cls[want] = roadScene.classList.contains(want); rep.weather[want] = document.getElementById('weather').childElementCount; }
+    return rep;
+  });
+  check('worlds 9-10: hazards appear, no 3-lane walls, theme classes w9/w10, ash + sprinkle weather', gen2.worldProps[9] > 0 && gen2.worldProps[10] > 0 && gen2.wall === 0 && gen2.cls.w9 && gen2.cls.w10 && gen2.weather.w9 > 0 && gen2.weather.w10 > 0, JSON.stringify(gen2));
+
   /* ---- themes + scenery + weather per world ---- */
   const themes = await page.evaluate(() => {
     const out = {};

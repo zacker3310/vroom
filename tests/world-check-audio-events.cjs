@@ -33,9 +33,9 @@ function check(name, ok, detail) {
     worldEvents: [1,2,3,4,5,6,7,8].every(w => WORLD_EVENTS[w].length >= 1 && WORLD_EVENTS[w].every(k => typeof LIVE_EVENTS[k] === 'function')),
     eventKinds: Object.keys(LIVE_EVENTS).length
   }));
-  check('star scale table has 8 worlds, each a rising 9-step ladder', tables.scales === 8 && tables.scaleLens, JSON.stringify(tables));
+  check('star scale table covers at least 8 worlds, each a rising 9-step ladder', tables.scales >= 8 && tables.scaleLens, JSON.stringify(tables));
   check('jingle + ambience bed per world (+ parade)', tables.jingles && tables.beds);
-  check('6-10 event kinds, every world mapped to valid kinds', tables.worldEvents && tables.eventKinds >= 6 && tables.eventKinds <= 10, 'kinds=' + tables.eventKinds);
+  check('6+ event kinds, every world mapped to valid kinds', tables.worldEvents && tables.eventKinds >= 6, 'kinds=' + tables.eventKinds);
 
   /* ---- scheduling invariants across all 80 levels ---- */
   const sched = await page.evaluate(() => {

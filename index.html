@@ -4621,6 +4621,7 @@ function tickMovers(dt) {
       }
       p.lx += (laneX(p.lane) - p.lx) * Math.min(1, dt * 8);
     }
+    if (p.mv.pulse) { p.mvT = (p.mvT || 0) + dt; p.erupt = (p.mvT + p.x * 0.003) % p.mv.pulse < p.mv.pulse * 0.42; p.el.classList.toggle("erupting", p.erupt); }   /* geyser: erupts on a timer, phase by position */
   }
 }
 
@@ -6479,6 +6480,328 @@ function finishLevel() {
    <style> injection, WORLD_SET/WORLD_ARCH/WORLD_LANDMARK/WORLD_FAR/WORLD_WEATHER, WORLD_ITEMS +
    EXTRA_PROPS + PROP_HIT, WORLD_ROAD, defBeat(...), JINGLES/AMBIENCE/STAR_SCALES/WORLD_EVENTS,
    WORLD_ICONS/WORLD_TINT). Everything above is defined by now. ======== */
+/* ---------------- WORLD 9 VOLCANO + WORLD 10 CANDY LAND ----------------
+   Registered by assignment into the live tables; helpers stay inside this closure. */
+(() => {
+  const CANDY = ["#f06292", "#ffd60a", "#4cc9f0", "#8338ec", "#43aa8b", "#ff9f1c"];
+  const ash = "#6c6362", rock = "#2a2628", rock2 = "#3a3538", lava = "#ff6d00", lava2 = "#ffb703", bone = "#f1faee";
+
+  /* ---- physics / identity ---- */
+  WORLD_META[9]  = { dark: false, gravity: 1500, hill: 120 };   /* big black-rock rises */
+  WORLD_META[10] = { dark: false, gravity: 1500, hill: 60 };    /* rolling gumdrop hills */
+  WORLD_TINT.w9 = "#d62828"; WORLD_TINT.w10 = "#f06292";
+  /* volcano with lava streaks and two smoke puffs */
+  WORLD_ICONS.w9 = `<svg viewBox="0 0 100 100"><path d="M8 88 L36 32 H64 L92 88 Z" fill="#fff"/><path d="M36 32 Q50 46 64 32 L58 56 Q50 48 42 56 Z" fill="#ff9f1c"/><path d="M44 54 L38 76 M56 54 L62 76" stroke="#ff9f1c" stroke-width="5" stroke-linecap="round"/><circle cx="52" cy="20" r="9" fill="#fff" opacity=".85"/><circle cx="66" cy="13" r="7" fill="#fff" opacity=".65"/></svg>`;
+  /* a swirly lollipop */
+  WORLD_ICONS.w10 = `<svg viewBox="0 0 100 100"><rect x="46" y="52" width="8" height="42" rx="4" fill="#fff"/><circle cx="50" cy="34" r="27" fill="#fff"/><path d="M50 34 m-17 0 a17 17 0 1 1 17 17 M50 34 m-7 0 a7 7 0 1 1 7 7" stroke="#f06292" stroke-width="7" fill="none" stroke-linecap="round"/></svg>`;
+
+  /* ---- sky + weather + prop + event CSS ---- */
+  /* the bomb lands at (560 ± 420, ~420): roadside at that depth, and clear of the wheel and pedal overlays */
+  const bombArc = (dir) => [...Array(11)].map((_, i) => { const t = i / 10; return `${i * 10}% { transform: translate(${Math.round(dir * 420 * t)}px, ${Math.round(440 * t * t - 60 * t)}px) rotate(${Math.round(dir * 400 * t)}deg); }`; }).join(" ");
+  const beanHop = [...Array(9)].map((_, i) => { const t = i / 8, up = i % 2; return `${i * 12.5}% { transform: translate(${Math.round(1400 * t)}px, ${up ? -110 : 0}px) scale(${up ? ".9,1.1" : "1.15,.85"}); }`; }).join(" ");
+  document.head.insertAdjacentHTML("beforeend", `<style>
+  /* ----- world 9: VOLCANO — ember sky, a red sun low in the smoke, ash clouds ----- */
+  #road.w9 { background: linear-gradient(#2b0b0b 0%, #a8321c 45%, #ff8c42 62%); }
+  #road.w9 #sun { background: #ff5a1f; width: 120px; height: 120px; box-shadow: 0 0 80px 30px rgba(255,90,31,.5); top: 110px; }
+  #road.w9 .cloud { background: #5e5553; opacity: .9; }
+  #road.w9 .cloud::before, #road.w9 .cloud::after { background: #5e5553; }
+  /* ----- world 10: CANDY LAND — cotton-candy sky, lemon-drop sun, pink clouds ----- */
+  #road.w10 { background: linear-gradient(#f48fb1 0%, #fbc4dc 45%, #dff3ff 62%); }
+  #road.w10 #sun { background: #fff176; box-shadow: 0 0 60px 24px rgba(255,241,118,.6); }
+  #road.w10 .cloud { background: #ffb3d9; opacity: 1; }
+  #road.w10 .cloud::before, #road.w10 .cloud::after { background: #ffb3d9; }
+  .ashFlake { position: absolute; border-radius: 50%; background: #8d8580; opacity: .7; pointer-events: none; z-index: 15; animation: ashFall linear infinite; }
+  @keyframes ashFall { 0% { transform: translate(0, 0); } 33% { transform: translate(-30px, 250px); } 66% { transform: translate(20px, 500px); } 100% { transform: translate(-10px, 760px); } }
+  .sprinkle, .evSprk { position: absolute; width: 5px; border-radius: 3px; opacity: .95; pointer-events: none; z-index: 15; animation: sprinkleFall linear infinite; }
+  @keyframes sprinkleFall { 0% { transform: translateY(0) rotate(0deg); } 100% { transform: translateY(760px) rotate(540deg); } }
+  .lavaBubble svg { animation: lavaBulge 1.3s ease-in-out infinite alternate; transform-origin: 50% 100%; }
+  @keyframes lavaBulge { from { transform: scale(1, .86); } to { transform: scale(1.06, 1.08); } }
+  .geyser .gColumn { transform: scaleY(0); transform-origin: 50% 100%; transform-box: fill-box; transition: transform .22s ease-out; }
+  .geyser.erupting .gColumn { transform: scaleY(1); }
+  .geyser .gDrip { opacity: 0; transition: opacity .2s; }
+  .geyser.erupting .gDrip { opacity: 1; }
+  .geyser.doused .gColumn { transform: scaleY(0); }
+  .gumdrop svg { animation: gumWobble 1.6s ease-in-out infinite alternate; transform-origin: 50% 100%; }
+  @keyframes gumWobble { from { transform: scale(.98, 1.02); } to { transform: scale(1.03, .97); } }
+  .evBurp { width: 200px; height: 200px; animation: evRise 3s ease-out forwards; }
+  .evBurp .evRing { animation: evRingUp 2.6s ease-out forwards; transform-box: fill-box; transform-origin: center; }
+  @keyframes evRingUp { 0% { transform: translateY(0) scale(.4); opacity: 1; } 100% { transform: translateY(-170px) scale(1.7); opacity: 0; } }
+  .evBurp .evPuff { animation: evPoof 1.4s ease-out forwards; transform-box: fill-box; transform-origin: center; }
+  .evBomb { width: 60px; height: 60px; animation: evBombR 1.3s linear forwards; }
+  .evBomb.l { animation-name: evBombL; }
+  @keyframes evBombR { ${bombArc(1)} }
+  @keyframes evBombL { ${bombArc(-1)} }
+  .evBomb.landed svg { animation: evSplat 1.2s ease-out forwards; transform-origin: 50% 100%; }
+  @keyframes evSplat { 0% { transform: scale(1.5, .5); opacity: 1; } 100% { transform: scale(2, .3); opacity: 0; } }
+  .evPtero { width: 180px; height: 90px; animation: evFly 3.4s linear forwards; }
+  .evPtero svg { animation: evFlap .55s ease-in-out infinite alternate; transform-origin: 50% 55%; }
+  .evShower { inset: 0; }
+  .evShower .evSprk { animation-iteration-count: 1; animation-fill-mode: forwards; }
+  .evBean { width: 70px; height: 50px; animation: evBeanHop 3s linear forwards; transform-origin: 50% 100%; }
+  @keyframes evBeanHop { ${beanHop} }
+  .evFountain { width: 160px; height: 160px; animation: evRise 3s ease-in-out forwards; }
+  .evFountain .evFBlob { animation: evBlobBurp 3s ease-out forwards; transform-box: fill-box; transform-origin: 50% 100%; }
+  @keyframes evBlobBurp { 0%, 15% { transform: scale(.4, .2); } 30% { transform: scale(1.25, 1.4); } 45% { transform: scale(.95, .9); } 60%, 100% { transform: scale(1, 1); } }
+  .evFountain .evFBub { animation: evBubUp 1s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes evBubUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-50px); opacity: 0; } }
+  </style>`);
+
+  /* ---- ground palettes: black basalt with ember cracks; licorice with candy-cane strips ---- */
+  ROAD_PAL[9]  = { ground: "#2a2628", ground2: "#332a2b", road: "#17161a", road2: "#1e1b1f", dash: "#ff7b00", rumA: "#ff4d00", rumB: "#3a3538", haze: "#ff8c42" };
+  ROAD_PAL[10] = { ground: "#ffd1e8", ground2: "#ffc3e0", road: "#2a2129", road2: "#312733", dash: "#ffe66d", rumA: "#e63946", rumB: "#ffffff", haze: "#ffe5f1" };
+
+  /* ---- weather: drifting ash puffs / falling sprinkles ---- */
+  WORLD_WEATHER.w9 = {
+    count: 18,
+    make: (i, rng) => { const s = 5 + Math.floor(rng() * 7); return { className: "ashFlake",
+      cssText: `left:${Math.floor(rng() * 1200)}px; top:${-30 - Math.floor(rng() * 60)}px; width:${s}px; height:${s}px; ` +
+               `animation-duration:${(5 + rng() * 4).toFixed(2)}s; animation-delay:${(rng() * 5).toFixed(2)}s;` }; }
+  };
+  WORLD_WEATHER.w10 = {
+    count: 24,
+    make: (i, rng) => ({ className: "sprinkle",
+      cssText: `left:${Math.floor(rng() * 1200)}px; top:${-40 - Math.floor(rng() * 80)}px; height:${12 + Math.floor(rng() * 8)}px; background:${CANDY[i % CANDY.length]}; ` +
+               `animation-duration:${(2.2 + rng() * 2).toFixed(2)}s; animation-delay:${(rng() * 2.5).toFixed(2)}s;` })
+  };
+
+  /* ---- roadside pieces ---- */
+  const glow = (x, y, r) => C(x, y, r, lava, 0.22) + C(x, y, r * 0.6, lava, 0.25);
+  const frond = (x, tx, ty, c) => `<path d="M${x} 0 Q${(x + tx) / 2 - 14} ${ty * 0.6} ${tx} ${ty} Q${(x + tx) / 2 + 14} ${ty * 0.6} ${x} 0 Z" fill="${c}"/>`;
+  const fernG = (x, c = "#40916c") => frond(x, x - 60, -90, c) + frond(x, x - 26, -120, c) + frond(x, x + 10, -130, c) + frond(x, x + 44, -112, c) + frond(x, x + 70, -70, c);
+  const lolliG = (x, h, r, c, c2 = "#fff") => R(x - 6, -h, 12, h, "#fff", 6) + C(x, -h, r, c) +
+    `<path d="M${x} ${-h} m-${r * 0.62} 0 a${r * 0.62} ${r * 0.62} 0 1 1 ${r * 0.62} ${r * 0.62} M${x} ${-h} m-${r * 0.26} 0 a${r * 0.26} ${r * 0.26} 0 1 1 ${r * 0.26} ${r * 0.26}" stroke="${c2}" stroke-width="${r * 0.22}" fill="none" stroke-linecap="round"/>`;
+  const gumdropG = (x, w, h, c) => `<path d="M${x} 0 L${x + w * 0.08} ${-h * 0.55} Q${x + w * 0.14} ${-h} ${x + w / 2} ${-h} Q${x + w * 0.86} ${-h} ${x + w * 0.92} ${-h * 0.55} L${x + w} 0 Z" fill="${c}"/>` +
+    [[0.3, 0.3], [0.6, 0.2], [0.75, 0.55], [0.25, 0.7], [0.5, 0.8]].map(([fx, fy]) => C(x + w * fx, -h * fy, 4, "#fff", 0.7)).join("");
+  const sprinklesG = (x, y, w, n) => [...Array(n)].map((_, i) => `<rect x="${x + (i * 37) % w}" y="${y - (i * 23) % 26}" width="5" height="12" rx="2.5" fill="${CANDY[i % CANDY.length]}" transform="rotate(${(i * 53) % 180} ${x + (i * 37) % w} ${y})"/>`).join("");
+  const caneG = (x, h, s = 1) => `<path d="M${x} 0 V${-h} Q${x} ${-h - 24 * s} ${x + 24 * s} ${-h - 24 * s} Q${x + 48 * s} ${-h - 24 * s} ${x + 48 * s} ${-h}" stroke="#fff" stroke-width="${16 * s}" fill="none" stroke-linecap="round"/>` +
+    `<path d="M${x} 0 V${-h} Q${x} ${-h - 24 * s} ${x + 24 * s} ${-h - 24 * s} Q${x + 48 * s} ${-h - 24 * s} ${x + 48 * s} ${-h}" stroke="#e63946" stroke-width="${16 * s}" fill="none" stroke-dasharray="${14 * s} ${14 * s}"/>`;
+
+  WORLD_SET.w9 = [
+    /* lava pool with a hot white heart, rocks at the rim, two bubbles */
+    pc(320, 80, glow(160, -30, 120) + `<ellipse cx="160" cy="-26" rx="150" ry="26" fill="${lava}"/><ellipse cx="160" cy="-28" rx="104" ry="15" fill="${lava2}"/><ellipse cx="160" cy="-30" rx="46" ry="6" fill="#fff3b0"/>` +
+      C(92, -32, 11, lava2) + C(230, -24, 8, lava2) + C(92, -32, 5, "#fff3b0") + C(26, -24, 20, rock2) + C(300, -20, 16, rock2) + C(200, -46, 12, rock), 1, 0),
+    /* obsidian spikes with a purple sheen */
+    pc(260, 250, T(0, 0, 90, 170, "#1b1a21") + T(60, 0, 120, 240, "#24222d") + T(160, 0, 90, 150, "#1b1a21") +
+      `<path d="M112 -30 L118 -210 M212 -20 L205 -130 M40 -20 L44 -140" stroke="#6c5b9a" stroke-width="5" stroke-linecap="round" opacity=".6"/>`, 1.1, 40),
+    /* steaming vent: stone ring, a tall white plume, drips */
+    pc(240, 310, `<ellipse cx="110" cy="-14" rx="70" ry="16" fill="${rock2}"/><ellipse cx="110" cy="-16" rx="44" ry="9" fill="#6b8f9c"/>` +
+      `<path d="M92 -20 Q78 -120 96 -240 Q110 -262 124 -240 Q142 -120 128 -20 Z" fill="#dff3ff" opacity=".9"/>` +
+      C(110, -258, 30, "#fff", 0.9) + C(80, -236, 20, "#fff", 0.85) + C(142, -238, 22, "#fff", 0.85) + C(58, -150, 6, "#dff3ff") + C(170, -120, 5, "#dff3ff") + C(44, -90, 4, "#dff3ff"), 1, 20),
+    /* cooled lava mounds, cracks still glowing */
+    pc(380, 150, glow(90, -40, 70) + `<path d="M0 0 Q90 -130 180 0 Z" fill="${rock2}"/><path d="M160 0 Q270 -110 380 0 Z" fill="#45393c"/>` +
+      `<path d="M60 -40 L90 -72 L112 -50 M80 -20 L96 -36 M230 -30 L262 -66 L284 -44 M300 -16 L318 -34" stroke="${lava}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>` +
+      C(90, -72, 5, lava2) + C(262, -66, 5, lava2), 1, 10),
+    /* a friendly dinosaur skeleton: ribs, a smiling skull, two bone legs */
+    pc(440, 220, R(60, -60, 18, 60, bone, 8) + R(250, -60, 18, 60, bone, 8) +
+      `<path d="M30 -130 Q180 -190 340 -120" stroke="${bone}" stroke-width="12" fill="none" stroke-linecap="round"/>` +
+      [90, 140, 190, 240, 290].map(x => `<path d="M${x} ${-150 + (x - 190) * (x - 190) / 400} Q${x - 18} -90 ${x + 6} -46" stroke="${bone}" stroke-width="9" fill="none" stroke-linecap="round"/>`).join("") +
+      `<path d="M30 -130 Q0 -110 -0 -80" stroke="${bone}" stroke-width="10" fill="none" stroke-linecap="round"/>` +
+      `<ellipse cx="380" cy="-130" rx="52" ry="34" fill="${bone}"/><path d="M400 -110 Q436 -112 438 -92 Q410 -84 380 -96 Z" fill="${bone}"/>` +
+      C(392, -140, 10, rock) + C(392, -140, 3, lava2) + `<path d="M386 -100 Q404 -90 424 -98" stroke="${rock}" stroke-width="4" fill="none" stroke-linecap="round"/>` +
+      [392, 406, 420].map(x => R(x, -100, 6, 8, bone)).join(""), 1.2, 60),
+    /* bubbling mud pots */
+    pc(320, 80, `<ellipse cx="80" cy="-20" rx="80" ry="20" fill="#6b4423"/><ellipse cx="230" cy="-16" rx="86" ry="16" fill="#7a4f2a"/>` +
+      C(60, -34, 14, "#8d5a2f") + C(104, -26, 9, "#8d5a2f") + C(60, -34, 6, "#a9714f") + C(220, -30, 16, "#8d5a2f") + C(262, -22, 8, "#8d5a2f") +
+      `<ellipse cx="220" cy="-46" rx="22" ry="7" fill="none" stroke="#a9714f" stroke-width="4"/>` + C(150, -62, 6, "#a9714f", 0.6) + C(40, -70, 5, "#a9714f", 0.5), 1, 0),
+    /* fern clumps, a splash of green on the black rock */
+    pc(300, 150, fernG(80) + fernG(210, "#2d6a4f") + `<path d="M0 0 Q60 -30 130 0 Z M150 0 Q220 -24 300 0 Z" fill="${rock2}"/>`, 1, 0)
+  ];
+  WORLD_SET.w10 = [
+    /* lollipop trees: two swirls on white sticks */
+    pc(280, 250, lolliG(70, 170, 62, "#f06292") + lolliG(200, 130, 48, "#43aa8b", "#ffd60a"), 1.1, 30),
+    /* gingerbread house with icing eaves and candy buttons */
+    pc(280, 250, R(30, -130, 220, 130, "#b5651d") + `<path d="M10 -130 L140 -236 L270 -130 Z" fill="#8d5a2f"/>` +
+      `<path d="M10 -130 L140 -236 L270 -130" stroke="#fff" stroke-width="14" fill="none" stroke-linejoin="round"/>` +
+      [30, 70, 110, 150, 190, 230].map(x => C(x + 20, -126, 12, "#fff")).join("") +
+      R(112, -84, 56, 84, "#6b3e26", 28) + R(50, -110, 44, 40, "#fff", 4) + R(186, -110, 44, 40, "#fff", 4) + R(58, -102, 28, 24, "#4cc9f0") + R(194, -102, 28, 24, "#4cc9f0") +
+      C(140, -200, 10, "#e63946") + C(80, -56, 9, "#ffd60a") + C(200, -56, 9, "#8338ec") + C(140, -50, 4, "#ffd60a") + caneG(20, 60, 0.6) + caneG(236, 60, 0.6), 1.1, 60),
+    /* gumdrop hills with sugar dots */
+    pc(440, 170, gumdropG(0, 180, 110, "#43aa8b") + gumdropG(150, 200, 150, "#8338ec") + gumdropG(320, 120, 90, "#ff9f1c"), 1, 40),
+    /* a giant cupcake: pleated wrapper, swirled frosting, cherry, sprinkles */
+    pc(280, 280, `<path d="M50 0 L26 -120 H254 L230 0 Z" fill="#f06292"/>` + [60, 100, 140, 180, 220].map(x => `<path d="M${x - 4} -120 L${x + 2} 0" stroke="#d81b60" stroke-width="5"/>`).join("") +
+      `<ellipse cx="140" cy="-124" rx="118" ry="30" fill="#fff"/><ellipse cx="140" cy="-160" rx="92" ry="30" fill="#ffd6e7"/><ellipse cx="140" cy="-194" rx="62" ry="26" fill="#fff"/><ellipse cx="140" cy="-220" rx="34" ry="18" fill="#ffd6e7"/>` +
+      sprinklesG(60, -150, 160, 12) + C(140, -246, 16, "#e63946") + `<path d="M140 -258 Q152 -280 166 -276" stroke="#43aa8b" stroke-width="5" fill="none" stroke-linecap="round"/>` + C(134, -252, 5, "#fff", 0.7), 1.1, 50),
+    /* a chocolate river under a striped candy bridge */
+    pc(560, 150, R(0, -30, 560, 30, "#6b3e26") + `<path d="M20 -16 Q60 -26 100 -16 T180 -16 M300 -14 Q340 -24 380 -14 T460 -14 M480 -22 Q510 -30 540 -22" stroke="#8d5a3c" stroke-width="5" fill="none" stroke-linecap="round"/>` +
+      `<path d="M150 -30 Q280 -150 410 -30" stroke="#fff" stroke-width="18" fill="none"/><path d="M150 -30 Q280 -150 410 -30" stroke="#e63946" stroke-width="18" fill="none" stroke-dasharray="20 20"/>` +
+      R(146, -60, 12, 36, "#ffd60a", 4) + R(402, -60, 12, 36, "#ffd60a", 4) + C(152, -66, 10, "#f06292") + C(408, -66, 10, "#f06292") + C(200, -10, 7, "#a9714f") + C(360, -8, 5, "#a9714f"), 1.2, 160),
+    /* ice-cream cone mountains with dripping scoops */
+    pc(400, 320, `<path d="M20 0 L110 -190 L200 0 Z" fill="#e9c46a"/><path d="M50 -60 L160 -120 M40 -30 L170 -90 M80 -130 L150 -50 M110 -170 L185 -30 M60 -110 L120 -10" stroke="#c99a3a" stroke-width="4"/>` +
+      C(110, -210, 68, "#f8bbd0") + `<path d="M60 -180 Q64 -140 72 -150 M150 -176 Q156 -130 164 -146" stroke="#f8bbd0" stroke-width="12" fill="none" stroke-linecap="round"/>` + C(110, -270, 13, "#e63946") +
+      `<path d="M230 0 L310 -150 L390 0 Z" fill="#e9c46a"/><path d="M260 -50 L350 -100 M250 -20 L360 -70 M290 -110 L350 -40" stroke="#c99a3a" stroke-width="4"/>` + C(310, -166, 54, "#b5e48c") + C(310, -214, 10, "#e63946") + sprinklesG(70, -230, 90, 7), 1.2, 120),
+    /* a peppermint windmill */
+    pc(280, 340, `<path d="M90 0 L106 -220 H174 L190 0 Z" fill="#fff"/><path d="M96 -40 L184 -80 M100 -110 L180 -150 M104 -180 L176 -210" stroke="#e63946" stroke-width="16"/>` +
+      `<path d="M100 -220 Q140 -262 180 -220 Z" fill="#f06292"/>` + R(126, -60, 28, 60, "#6b3e26", 6) + C(140, -150, 12, "#4cc9f0") +
+      `<g transform="translate(140,-248) rotate(15)">` + [0, 90, 180, 270].map(a => `<g transform="rotate(${a})"><rect x="-9" y="-100" width="18" height="94" rx="9" fill="#fff"/><path d="M-9 -90 L9 -78 M-9 -66 L9 -54 M-9 -42 L9 -30" stroke="#e63946" stroke-width="7"/></g>`).join("") + C(0, 0, 12, "#e63946") + `</g>`, 1.3, 150)
+  ];
+
+  /* ---- overheads ---- */
+  /* basalt arch: stacked column blocks, an ember-cracked beam, one glowing drip in the middle */
+  const basaltCol = (x, w, h) => [...Array(Math.floor(h / 60))].map((_, i) => R(x + (i % 2) * 4, -60 * (i + 1), w - 4, 56, i % 2 ? rock2 : "#302a2d", 6)).join("");
+  WORLD_ARCH.w9 = arch(430, glow(440, -300, 60) + basaltCol(20, 80, 300) + basaltCol(780, 80, 300) +
+    `<path d="M0 -300 Q120 -400 440 -410 Q760 -400 880 -300 L880 -340 Q760 -440 440 -450 Q120 -440 0 -340 Z" fill="${rock2}"/>` +
+    `<path d="M20 -300 Q440 -400 860 -300 L860 -330 Q440 -430 20 -330 Z" fill="#302a2d"/>` +
+    `<path d="M200 -360 L240 -380 L260 -352 M560 -370 L600 -392 L640 -366 M400 -395 L440 -380" stroke="${lava}" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` +
+    `<path d="M420 -352 Q428 -280 440 -250 Q452 -280 460 -352 Z" fill="${lava}"/>` + C(440, -246, 14, lava2) + C(436, -250, 5, "#fff3b0"));
+  /* candy-cane arch with a big pink bow */
+  const canePath = "M40 0 V-250 Q40 -400 240 -400 H640 Q840 -400 840 -250 V0";
+  WORLD_ARCH.w10 = arch(450, `<path d="${canePath}" stroke="#fff" stroke-width="46" fill="none"/><path d="${canePath}" stroke="#e63946" stroke-width="46" fill="none" stroke-dasharray="36 36"/>` +
+    `<path d="M440 -400 Q380 -470 340 -430 Q330 -390 440 -400 Z M440 -400 Q500 -470 540 -430 Q550 -390 440 -400 Z" fill="#f06292"/>` +
+    `<path d="M440 -400 Q400 -360 410 -330 L440 -376 L470 -330 Q480 -360 440 -400 Z" fill="#d81b60"/>` + C(440, -400, 16, "#ffd60a") + R(0, -20, 90, 20, "#f06292", 6) + R(790, -20, 90, 20, "#f06292", 6));
+
+  /* ---- horizon landmarks ---- */
+  /* a big smoking volcano with lava streams and a baby cone */
+  WORLD_LANDMARK.w9 = x => `<path d="M${x + 300} 465 L${x + 560} 250 L${x + 820} 465 Z" fill="${rock2}"/>` +
+    `<path d="M${x + 520} 283 L${x + 560} 250 L${x + 600} 283 L${x + 580} 292 L${x + 560} 272 L${x + 540} 292 Z" fill="${lava}"/>` +
+    `<path d="M${x + 548} 282 Q${x + 530} 360 ${x + 500} 465 M${x + 574} 284 Q${x + 604} 380 ${x + 640} 465" stroke="${lava}" stroke-width="8" fill="none" stroke-linecap="round"/>` +
+    `<ellipse cx="${x + 580}" cy="232" rx="36" ry="20" fill="${ash}" opacity=".85"/><ellipse cx="${x + 618}" cy="208" rx="28" ry="16" fill="${ash}" opacity=".7"/><ellipse cx="${x + 650}" cy="188" rx="18" ry="11" fill="${ash}" opacity=".55"/>` +
+    `<path d="M${x + 920} 465 L${x + 1030} 350 L${x + 1140} 465 Z" fill="#241f21"/><path d="M${x + 1016} 364 L${x + 1030} 350 L${x + 1044} 364 Z" fill="${lava}"/>`;
+  /* ice-cream mountains, a lollipop and a cupcake on the skyline */
+  WORLD_LANDMARK.w10 = x => `<path d="M${x + 120} 465 L${x + 280} 300 L${x + 440} 465 Z" fill="#e9c46a"/><circle cx="${x + 280}" cy="296" r="54" fill="#f8bbd0"/><circle cx="${x + 280}" cy="246" r="10" fill="#e63946"/>` +
+    `<path d="M${x + 500} 465 L${x + 620} 350 L${x + 740} 465 Z" fill="#e9c46a"/><circle cx="${x + 620}" cy="346" r="40" fill="#b5e48c"/>` +
+    R(x + 996, 330, 8, 135, "#fff") + `<circle cx="${x + 1000}" cy="300" r="46" fill="#f06292"/><path d="M${x + 1000} 300 m-28 0 a28 28 0 1 1 28 28 M${x + 1000} 300 m-12 0 a12 12 0 1 1 12 12" stroke="#fff" stroke-width="9" fill="none" stroke-linecap="round"/>` +
+    `<path d="M${x + 820} 465 L${x + 812} 420 H${x + 896} L${x + 888} 465 Z" fill="#8338ec"/><ellipse cx="${x + 854}" cy="416" rx="48" ry="16" fill="#fff"/><ellipse cx="${x + 854}" cy="400" rx="30" ry="12" fill="#ffd6e7"/><circle cx="${x + 854}" cy="386" r="7" fill="#e63946"/>`;
+
+  /* ---- far hills ---- */
+  /* jagged black ridges with a few glowing cracks */
+  WORLD_FAR.w9 = x => `<path d="M${x} 465 L${x + 60} 380 L${x + 130} 320 L${x + 200} 400 L${x + 260} 465 L${x + 320} 410 L${x + 390} 340 L${x + 460} 420 L${x + 520} 465 Z" fill="#241f21" opacity=".95"/>` +
+    `<path d="M${x + 130} 332 L${x + 146} 384 M${x + 390} 352 L${x + 378} 400" stroke="${lava}" stroke-width="4" stroke-linecap="round" opacity=".75"/>`;
+  /* soft gumdrop hills dusted with sugar */
+  WORLD_FAR.w10 = x => `<path d="M${x} 465 Q${x} 330 ${x + 130} 330 Q${x + 260} 330 ${x + 260} 465 Z" fill="#b5e48c" opacity=".9"/><path d="M${x + 260} 465 Q${x + 260} 352 ${x + 390} 352 Q${x + 520} 352 ${x + 520} 465 Z" fill="#cdb4db" opacity=".9"/>` +
+    [[x + 100, 380], [x + 160, 360], [x + 130, 420], [x + 370, 400], [x + 420, 390]].map(([cx, cy]) => C(cx, cy, 5, "#fff", 0.7)).join("");
+
+  /* ---- hazards ---- */
+  WORLD_ITEMS[9] = ["lavaBubble", "geyser"];
+  WORLD_ITEMS[10] = ["gumdrop", "rollingDonut"];
+  EXTRA_PROPS.lavaBubble = { xOff: -55, yOff: -58, hard: true, mv: null,   /* a bulging dome of lava: stop + ding, jump clean over */
+    svg: `<svg width="110" height="60" viewBox="0 0 110 60"><ellipse cx="55" cy="50" rx="54" ry="10" fill="${rock2}"/><path d="M6 50 Q55 -30 104 50 Z" fill="${lava}"/><path d="M24 48 Q55 -4 86 48 Z" fill="${lava2}" opacity=".85"/><circle cx="42" cy="26" r="7" fill="#fff3b0" opacity=".85"/><circle cx="70" cy="36" r="4" fill="#fff3b0" opacity=".6"/><circle cx="16" cy="44" r="4" fill="${lava2}"/><circle cx="96" cy="46" r="3" fill="${lava2}"/></svg>` };
+  EXTRA_PROPS.geyser = { xOff: -45, yOff: -168, hard: false, mv: { pulse: 2.6 },   /* erupts on a timer: a wet soft bonk while up, harmless when dormant */
+    svg: `<svg width="90" height="170" viewBox="0 0 90 170"><g class="gColumn"><path d="M30 158 Q22 90 30 10 Q45 -4 60 10 Q68 90 60 158 Z" fill="#dff3ff" opacity=".92"/><circle cx="45" cy="14" r="20" fill="#fff"/><circle cx="24" cy="30" r="13" fill="#fff" opacity=".9"/><circle cx="66" cy="28" r="14" fill="#fff" opacity=".9"/></g><g class="gDrip"><circle cx="10" cy="120" r="5" fill="#dff3ff"/><circle cx="82" cy="98" r="4" fill="#dff3ff"/><circle cx="14" cy="70" r="3" fill="#dff3ff"/></g><path d="M38 150 Q34 136 40 126 M54 148 Q58 134 50 124" stroke="#fff" stroke-width="3" opacity=".5" fill="none" stroke-linecap="round"/><ellipse cx="45" cy="160" rx="44" ry="10" fill="${rock2}"/><ellipse cx="45" cy="158" rx="28" ry="6" fill="#6b8f9c"/></svg>` };
+  EXTRA_PROPS.gumdrop = { xOff: -35, yOff: -68, hard: false, mv: null,   /* squishy: a happy bonk and a tiny slow */
+    svg: `<svg width="70" height="70" viewBox="0 0 70 70"><path d="M4 68 L10 30 Q14 4 35 4 Q56 4 60 30 L66 68 Z" fill="#8338ec"/>${[[18, 22], [48, 18], [56, 46], [14, 50], [36, 60]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3.5" fill="#fff" opacity=".75"/>`).join("")}<circle cx="27" cy="34" r="3.5" fill="#fff"/><circle cx="43" cy="34" r="3.5" fill="#fff"/><path d="M28 44 Q35 50 42 44" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/></svg>` };
+  EXTRA_PROPS.rollingDonut = { xOff: -32, yOff: -62, hard: false, mv: { vx: -180, spin: true },   /* rolls down the road at you, faster than a tumbleweed */
+    svg: `<svg width="64" height="64" viewBox="0 0 64 64"><path fill-rule="evenodd" d="M32 4 A28 28 0 1 0 32 60 A28 28 0 1 0 32 4 Z M32 22 A10 10 0 1 1 32 42 A10 10 0 1 1 32 22 Z" fill="#d4a373"/><path fill-rule="evenodd" d="M32 8 A24 24 0 1 0 32 56 A24 24 0 1 0 32 8 Z M32 20 A12 12 0 1 1 32 44 A12 12 0 1 1 32 20 Z" fill="#f06292"/>${[[32, 12, 20], [48, 22, 80], [50, 42, 140], [32, 52, 10], [14, 40, 60], [16, 20, 120]].map(([x, y, a]) => `<rect x="${x - 2}" y="${y - 5}" width="4" height="10" rx="2" fill="${a % 2 ? "#ffd60a" : "#4cc9f0"}" transform="rotate(${a} ${x} ${y})"/>`).join("")}</svg>` };
+  PROP_HIT.lavaBubble = (p, d) => hardHit(p, d, 1);
+  PROP_HIT.geyser = (p, d) => {
+    if (!p.erupt || Math.round(laneVis) !== p.lane) return;
+    if (d > -30 && d < 90 && v > 30) {
+      p.done = true; p.el.classList.remove("erupting"); p.el.classList.add("doused");
+      sfx.splash(); tone("sine", 700, 300, 0.25, 0.14); v *= 0.85;
+    }
+  };
+  PROP_HIT.gumdrop = (p, d) => {
+    if (Math.round(laneVis) !== p.lane) return;
+    if (d > -30 && d < 90 && v > 30) { p.done = true; p.el.classList.add("hit"); sfx.boink(); tone("sine", 900, 1400, 0.12, 0.16, 0.08); v *= 0.9; }
+  };
+  PROP_HIT.rollingDonut = softBonk;
+
+  /* ---- roads: drag strips into tight hairpins / swoopy esses ---- */
+  WORLD_ROAD[9]  = { k: CURVE.tight * 0.95, hp: 1.2, len: 0.85, gap: 0.75, order: ["drag", "hairpins", "chicanes", "drag", "hairpins", "wiggle", "spiral", "drag", "hairpins", "tour"] };
+  WORLD_ROAD[10] = { k: CURVE.medium * 1.15, hp: 0.8, len: 1.2, gap: 1.0, order: ["esses", "wiggle", "esses", "twin", "spiral", "esses", "chicanes", "esses", "hairpins", "tour"] };
+
+  /* ---- beats ---- */
+  defBeat("lavaHop", "world9", 81, (b, x) => {   /* the cool ridge steps one lane at a time (stars mark it); lava domes fill the lanes it
+                                                      is neither on nor heading to, so the move is always open early. A held ridge is a gate. */
+    const k = 5 + Math.floor(b.d * 2), step = 400;
+    let s = b.last;
+    for (let i = 0; i < k; i++) {
+      const cx = x + i * step;
+      const nx = b.rng() < 0.65 ? (s === 1 ? (b.rng() < 0.5 ? 0 : 2) : 1) : s;   /* where the ridge goes next */
+      if (nx !== s) b.put("lavaBubble", cx, 3 - s - nx);
+      else { b.put("lavaBubble", cx, (s + 1) % 3); if (b.n >= 85 && b.rng() < 0.5) b.put("lavaBubble", cx, (s + 2) % 3); }
+      b.star(cx, s); b.star(cx + step / 2, nx);
+      s = nx;
+    }
+    return x + k * step;
+  });
+  defBeat("geyserRow", "world9", 81, (b, x) => {   /* a lane of geysers puffing in turn, stars beside them, a lava dome pinches the far lane */
+    const l = b.pickLane(x), k = 4 + Math.floor(b.rng() * 2), other = l === 1 ? (b.rng() < 0.5 ? 0 : 2) : 1, far = 3 - l - other;
+    for (let i = 0; i < k; i++) { b.put("geyser", x + i * 220, l); b.star(x + i * 220 + 110, other); }
+    if (b.n >= 83) b.put("lavaBubble", x + Math.floor(k / 2) * 220 + 110, far);
+    return x + k * 220;
+  });
+  defBeat("gumdropGarden", "world10", 91, (b, x) => {   /* gumdrops strewn like a sweet-shop floor, a star path weaving through */
+    const k = 5 + Math.floor(b.rng() * 3);
+    let free = b.last;
+    for (let i = 0; i < k; i++) {
+      const cx = x + i * 170;
+      for (let l = 0; l < 3; l++) if (l !== free && b.rng() < 0.6) b.put("gumdrop", cx, l);
+      b.star(cx, free);
+      if (b.rng() < 0.6) free = Math.max(0, Math.min(2, free + (b.rng() < 0.5 ? 1 : -1)));
+    }
+    if (b.n >= 93) b.put(b.hard(), x + k * 170 + 60, (free + 1) % 3);   /* a hard one tucked at the exit */
+    return x + k * 170 + 120;
+  });
+  defBeat("donutRoll", "world10", 91, (b, x) => {   /* donuts roll down at you, stars on the clear side */
+    const k = 3 + Math.floor(b.d * 1.5);
+    for (let i = 0; i < k; i++) {
+      const l = Math.floor(b.rng() * 3), sl = (l + 1 + Math.floor(b.rng() * 2)) % 3;
+      b.put("rollingDonut", x + 600 + i * 420, l);
+      b.star(x + i * 420 + 100, sl); b.star(x + i * 420 + 250, sl);
+    }
+    return x + k * 420 + 300;
+  });
+
+  /* ---- audio ---- */
+  JINGLES[9] = () => { /* volcano: tribal drums, then a conch call */
+    [0, 0.22, 0.44, 0.58, 0.8].forEach((d, i) => { tone("sine", i % 2 ? 150 : 95, 60, 0.18, 0.3, d); noiseBurst(0.05, 900, 0.18, d); });
+    tone("triangle", 220, 330, 0.5, 0.16, 1.0); tone("triangle", 330, 330, 0.5, 0.16, 1.5); tone("sine", 165, 165, 0.7, 0.1, 1.0);
+  };
+  JINGLES[10] = () => { /* candy: a music-box waltz */
+    [[1047, 0], [1319, 0.18], [1568, 0.36], [1047, 0.54], [1760, 0.72], [1568, 0.9]].forEach(([f, d]) => { tone("sine", f, f, 0.4, 0.14, d); tone("sine", f * 2, f * 2, 0.2, 0.05, d); });
+    tone("sine", 2093, 2093, 0.7, 0.1, 1.1);
+  };
+  AMBIENCE[9] = () => { /* volcano: a deep rumble under bubbling mud */
+    const r = ambNoise("lowpass", 110, 0.7, 0.9); ambLFO(r.g.gain, 0.07, 0.4); ambOsc("sine", 38, 0.45);
+    ambEvery(260, 700, () => ambPing("sine", 220 + Math.random() * 160, 90, 0.12, 0.35));
+  };
+  AMBIENCE[10] = () => { /* candy: soft soda fizz + a far-off carousel waltz */
+    const f = ambNoise("highpass", 5200, 0.6, 0.35); ambLFO(f.g.gain, 0.2, 0.15);
+    const wz = [1047, 1319, 1568, 1319, 1760, 1568];
+    ambEvery(2600, 4800, () => wz.forEach((fr, i) => ambPing("sine", fr, fr, 0.22, 0.22, i * 0.2)));
+  };
+  STAR_SCALES[9]  = [1, 6/5, 4/3, 3/2, 9/5, 2, 12/5, 8/3, 3]; STAR_BASE[9] = 440;     /* minor pentatonic, low */
+  STAR_SCALES[10] = [1, 9/8, 5/4, 3/2, 5/3, 2, 9/4, 5/2, 3]; STAR_BASE[10] = 1319;    /* major pentatonic, high and bright */
+
+  /* ---- live events ---- */
+  WORLD_EVENTS[9] = ["volcanoBurp", "lavaBomb", "pterodactyl"];
+  WORLD_EVENTS[10] = ["sprinkleShower", "jellyBean", "chocoFountain"];
+  LIVE_EVENTS.volcanoBurp = () => {   /* the far volcano coughs a smoke ring; the ground shivers */
+    evEl("evBurp", `<svg viewBox="0 0 200 200" width="200" height="200"><circle class="evPuff" cx="100" cy="170" r="26" fill="#a39b96" opacity=".75"/><ellipse class="evRing" cx="100" cy="170" rx="54" ry="20" fill="none" stroke="${ash}" stroke-width="16" opacity=".85"/></svg>`, 300 + Math.random() * 500, 100, 3000);
+    tone("sine", 60, 36, 1.2, 0.18); noiseBurst(0.9, 180, 0.16); noiseBurst(0.3, 600, 0.12, 0.05);
+    roadScene.classList.remove("quake"); void roadScene.offsetWidth; roadScene.classList.add("quake");
+  };
+  LIVE_EVENTS.lavaBomb = () => {   /* a glowing blob arcs out of the sky and plops down beside the road, never on it */
+    const left = Math.random() < 0.5;
+    const el = evEl("evBomb" + (left ? " l" : ""), `<svg viewBox="0 0 60 60" width="60" height="60"><circle cx="30" cy="30" r="20" fill="${lava}"/><circle cx="30" cy="30" r="12" fill="${lava2}"/><circle cx="25" cy="25" r="4" fill="#fff3b0"/></svg>`, 560, 40, 2700);
+    tone("sine", 900, 300, 1.3, 0.06);
+    gagTimer(() => {
+      el.classList.add("landed");
+      el.innerHTML = `<svg viewBox="0 0 60 60" width="60" height="60"><ellipse cx="30" cy="50" rx="28" ry="9" fill="${lava}"/><ellipse cx="30" cy="49" rx="16" ry="5" fill="${lava2}"/>${[[6, 36], [52, 34], [30, 28], [16, 26]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4" fill="${lava}"/>`).join("")}</svg>`;
+      noiseBurst(0.18, 700, 0.25); tone("sine", 220, 60, 0.25, 0.25);
+    }, 1300);
+  };
+  LIVE_EVENTS.pterodactyl = () => {   /* a friendly pterodactyl glides across the sky, flapping, with two happy caws */
+    const ink = skyInk(), top = 50 + Math.random() * 100;
+    evEl("evPtero", `<svg viewBox="0 0 180 90" width="180" height="90"><path d="M90 50 Q60 14 10 30 Q40 40 60 58 Z M90 50 Q120 14 170 30 Q140 40 120 58 Z" fill="${ink}"/><path d="M90 50 Q104 54 110 64 L148 72 L112 72 Q98 70 90 56 Z M108 62 L96 48 L114 58 Z M90 50 L60 78 L72 56 Z" fill="${ink}"/><circle cx="114" cy="66" r="3" fill="#ffd60a"/></svg>`, -200, top, 3500);
+    [0.4, 1.6].forEach(d => { tone("sawtooth", 700, 1100, 0.18, 0.05, d); tone("sine", 1100, 800, 0.2, 0.06, d + 0.15); });
+  };
+  LIVE_EVENTS.sprinkleShower = () => {   /* a sudden shower of sprinkles across the whole sky */
+    let h = "";
+    for (let i = 0; i < 26; i++) h += `<i class="evSprk" style="left:${Math.floor(Math.random() * 1200)}px; top:${-40 - Math.floor(Math.random() * 120)}px; background:${CANDY[i % CANDY.length]}; height:${12 + Math.floor(Math.random() * 8)}px; animation-duration:${(1.4 + Math.random() * 0.9).toFixed(2)}s; animation-delay:${(Math.random() * 0.6).toFixed(2)}s"></i>`;
+    evEl("evShower", h, 0, 0, 3200);
+    [0, 0.15, 0.3, 0.5, 0.7].forEach(d => noiseBurst(0.06, 6000, 0.05, d)); [1568, 1760, 2093, 2349].forEach((f, i) => tone("sine", f, f, 0.25, 0.07, 0.1 + i * 0.12));
+  };
+  LIVE_EVENTS.jellyBean = () => {   /* a jelly bean boings along the skyline, squashing on every landing */
+    const c = CANDY[Math.floor(Math.random() * CANDY.length)];
+    evEl("evBean", `<svg viewBox="0 0 70 50" width="70" height="50"><path d="M14 10 Q35 -2 56 10 Q70 25 56 40 Q35 52 14 40 Q0 25 14 10 Z" fill="${c}"/><ellipse cx="22" cy="18" rx="8" ry="5" fill="#fff" opacity=".7"/><circle cx="40" cy="22" r="3" fill="#2b2d42"/><circle cx="52" cy="22" r="3" fill="#2b2d42"/><path d="M42 30 Q47 35 52 30" stroke="#2b2d42" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`, -80, 246, 3100);
+    [0, 0.75, 1.5, 2.25].forEach(d => tone("sine", 500, 900, 0.1, 0.1, d + 0.37));
+  };
+  LIVE_EVENTS.chocoFountain = () => {   /* a chocolate fountain on the horizon burps up a blob and bubbles */
+    evEl("evFountain", `<svg viewBox="0 0 160 160" width="160" height="160"><path d="M30 156 L40 126 H120 L130 156 Z" fill="#8d5a3c"/><rect x="66" y="80" width="28" height="48" fill="#6b3e26"/><ellipse cx="80" cy="82" rx="40" ry="10" fill="#6b3e26"/><g class="evFBlob"><ellipse cx="80" cy="72" rx="26" ry="20" fill="#8d5a3c"/><circle cx="62" cy="64" r="8" fill="#a9714f"/><circle cx="96" cy="60" r="7" fill="#a9714f"/><circle cx="80" cy="50" r="6" fill="#a9714f"/></g>${[50, 80, 110].map(x => `<circle class="evFBub" cx="${x}" cy="76" r="5" fill="#a9714f"/>`).join("")}</svg>`, 200 + Math.random() * 700, 150, 3000);
+    tone("sine", 180, 70, 0.35, 0.18, 0.5); noiseBurst(0.25, 500, 0.14, 0.5); [0.9, 1.1, 1.35].forEach(d => tone("sine", 600 + Math.random() * 300, 300, 0.08, 0.08, d));
+  };
+})();
 
 /* ======== WORLD PACK anchor B: worlds 11-12 register here (same contract) ======== */
 
