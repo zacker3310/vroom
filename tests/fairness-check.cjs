@@ -1,4 +1,4 @@
-/* fairness-check: two headless bots drive all 80 levels through the real collision code.
+/* fairness-check: two headless bots drive every level through the real collision code.
    "smart" steers one lane at a time toward the nearest star ahead (≤900) and away from hard
    obstacles (≤500), never more than one lane change per 350 units; it must finish every
    level, grab ≥45% of the stars and take ≤4 hard hits. "lazy toddler" sits in the middle
