@@ -41,23 +41,15 @@
     position: absolute; left: 60px; right: 60px; top: 30px; height: 360px;
     background: #e9ecef; border-radius: 18px 18px 0 0; border: 8px solid #adb5bd; border-bottom: none;
   }
-  #garageWall::before {
-    content: ""; position: absolute; left: 20px; right: 20px; top: 18px; height: 26px;
-    background: repeating-linear-gradient(90deg, #f77f00 0 40px, #fcbf49 40px 80px); border-radius: 8px;
-  }
-  #garageSign {
-    position: absolute; left: 50%; top: -6px; transform: translateX(-50%);
-    background: #023047; color: #ffb703; font: 900 34px/1 -apple-system, "Arial Rounded MT Bold", sans-serif;
-    letter-spacing: 6px; padding: 10px 28px; border-radius: 14px; border: 5px solid #ffb703;
-  }
+  /* hero: 506px wide (15% up from 440); wheel bottoms (viewBox y=200) land on the bench rim at y≈436 */
   #preview {
-    position: absolute; left: 50%; top: 164px; transform: translateX(-50%);
-    width: 440px; cursor: pointer; touch-action: none; pointer-events: auto;
+    position: absolute; left: 50%; top: 120px; transform: translateX(-50%);
+    width: 506px; cursor: pointer; touch-action: none; pointer-events: auto;
   }
   #preview svg { width: 100%; height: auto; overflow: visible; }
   /* locked stays full color — the kid needs to see the cool thing; the padlock badge says "not yet" */
   #previewLock {
-    position: absolute; left: 50%; top: 150px; transform: translateX(-50%);
+    position: absolute; left: 50%; top: 140px; transform: translateX(-50%);
     width: 96px; height: 96px; border-radius: 50%; background: #023047; border: 6px solid #ffb703;
     display: none; align-items: center; justify-content: center; z-index: 6;
     animation: lockPulse 1.1s ease infinite; pointer-events: none;
@@ -81,7 +73,7 @@
     background: #6c757d; border-top: 6px solid #495057;
   }
   #priceTag {
-    position: absolute; left: calc(50% + 205px); top: 250px; height: 96px;
+    position: absolute; left: calc(50% + 236px); top: 250px; height: 96px;
     border-radius: 26px; background: #ffb703; border: 6px solid #023047;
     display: none; align-items: center; gap: 10px; padding: 0 24px; z-index: 6;
     font: 900 46px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #023047;
@@ -97,19 +89,6 @@
   #priceTag.deny { animation: denyShake .4s ease, tagWiggle 1.6s ease .4s infinite; }
   @keyframes tagWiggle { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
 
-  /* ---------- DICE + QUIET + EASTER EGGS ---------- */
-  #diceBtn, #quietBtn {
-    position: absolute; width: 96px; height: 96px; border-radius: 26px;
-    background: #fff; border: 6px solid #023047; z-index: 5;
-  }
-  /* right-wall stack mirrors the upgrade rack: 96px buttons at tops 128 / 232 / 336 (8px gaps), inset 84 from the
-     stage edge like the rack; the bottom one + its 6px shadow (438) clears the 440px workbench */
-  #diceBtn { right: 84px; top: 336px; width: 96px; height: 96px; }
-  #washBtn { position: absolute; right: 84px; top: 232px; width: 96px; height: 96px; border-radius: 26px; background: #6fc0df; border: 6px solid #fff; z-index: 5; display: none; animation: pulse 1.1s ease infinite; }
-  #washBtn.show { display: flex; }
-  #washBtn svg { width: 60px; height: 60px; }
-  /* garage top row, right side: album 352-448 | quiet 240-336 | wallet 24-224, even 16px gaps */
-  #quietBtn { right: 240px; top: 24px; background: #e9ecef; z-index: 20; }
   #profileBtn {
     position: absolute; left: 24px; top: 24px; width: 96px; height: 96px;
     border-radius: 50%; background: #fff; border: 6px solid #023047; z-index: 20;
@@ -159,7 +138,6 @@
   #importYes { width: 170px; height: 170px; border-radius: 50%; background: #38b000; border: 10px solid #d8f3dc; }
   #importNo { width: 130px; height: 130px; border-radius: 50%; background: #e63946; border: 10px solid #fff; }
   #importYes svg, #importNo svg { width: 80px; height: 80px; }
-  #diceBtn svg, #quietBtn svg { width: 60px; height: 60px; }
   #diceBtn.rolling { animation: diceShake .12s linear infinite; }
   @keyframes diceShake { 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
   .vEye { transform-box: fill-box; transform-origin: center; }
@@ -173,100 +151,32 @@
   .cloud { cursor: pointer; pointer-events: auto; }
   .cloud.puffed { animation: cloudPuff 1.2s ease; }
   @keyframes cloudPuff { 30% { transform: scale(1.28, .7); opacity: .55; } 60% { transform: scale(.75, 1.2); } }
-  #garageSign { cursor: pointer; }
-  #garageSign span { display: inline-block; }
-  #garageSign.bouncy span { animation: signHop .5s ease; }
-  @keyframes signHop { 40% { transform: translateY(-16px) scale(1.15); } }
 
-  /* ---------- UPGRADES + REPAIR ---------- */
-  /* rack bottom + 6px shadow must clear the 260px workbench (top edge 440) */
-  #upgrades { position: absolute; left: 84px; top: 128px; display: flex; flex-direction: column; gap: 8px; z-index: 5; }
-  .upgBtn {
-    width: 96px; height: 96px; border-radius: 24px; background: #457b9d;
-    flex-direction: column; gap: 3px; position: relative;
-  }
-  .upgBtn > svg { width: 40px; height: 40px; }
-  .upgBtn.maxed { background: #2a9d8f; }
-  .upgBtn.deny { animation: denyShake .4s ease; }
   .pips { display: flex; gap: 5px; }
   .pips i { width: 13px; height: 13px; border-radius: 50%; background: #02304766; display: block; }
   .pips i.on { background: #ffd60a; }
   .upgPrice { display: flex; align-items: center; gap: 3px; font: 900 20px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #fff; }
   .upgPrice svg { width: 20px; height: 20px; }
-  .upgBtn.cant .upgPrice { opacity: .55; }
-  #repairBtn {
-    position: absolute; right: 84px; top: 128px; width: 96px; height: 96px;
-    border-radius: 50%; background: #e76f51; border: 8px solid #fff;
-    display: none; flex-direction: column; gap: 2px; z-index: 5;
-    animation: pulse 1.1s ease infinite;
-  }
-  #repairBtn.show { display: flex; }
-  #repairBtn > svg { width: 48px; height: 48px; }
+  .cant .upgPrice { opacity: .55; }
 
+  /* workbench: rim 432-440, content 440-700; children are placed absolutely (tabs / strip / GO column) */
   #controls {
     position: absolute; left: 0; right: 0; bottom: 0; height: 260px;
     background: #023047; border-top: 8px solid #ffb703;
-    display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 8px;   /* 8px gap: the paint tray grew a flip chip */
   }
-  .tray {
-    display: flex; align-items: center; gap: 10px;
-    background: rgba(255,255,255,.08); border-radius: 24px; padding: 8px;
-  }
-  /* build tray: body / wheels / decal side by side */
-  #goCol { display: flex; flex-direction: column; align-items: center; gap: 10px; }
   .bigBtn {
     border: none; border-radius: 24px; cursor: pointer; touch-action: none;
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 6px 0 rgba(0,0,0,.35); transition: transform .08s;
   }
   .bigBtn:active, .bigBtn.pressed { transform: translateY(4px) scale(.96); box-shadow: 0 2px 0 rgba(0,0,0,.35); }
-  #bodyBtn, #wheelBtn, #decalBtn { width: 104px; height: 104px; background: #219ebc; }
-  #bodyBtn svg, #wheelBtn svg, #decalBtn svg { width: 76px; height: 76px; }
 
-  /* 76px stage size = 64.8px rendered at iPad landscape scale (.853) — SPEC floor is 64 */
-  #swatches { display: grid; grid-template-columns: repeat(4, 76px); grid-template-rows: repeat(3, 76px); gap: 7px; }
-  .swatch {
-    position: relative; width: 76px; height: 76px; border-radius: 50%; border: 5px solid rgba(255,255,255,.85);
-    cursor: pointer; touch-action: none; box-shadow: 0 4px 0 rgba(0,0,0,.35); transition: transform .08s;
-  }
-  .swatch:active { transform: scale(.9); }
-  .swatch.selected { border-color: #ffb703; transform: scale(1.1); }
-  .swatch .lockDot, .lvlBtn .lockDot {
+  .lockDot {
     position: absolute; right: -6px; bottom: -6px; width: 28px; height: 28px; border-radius: 50%;
     background: #023047; display: flex; align-items: center; justify-content: center;
   }
   .lockDot svg { width: 16px; height: 16px; }
-  /* pattern swatches carry a mini SVG circle of the real paint; the ring stays the button's border */
-  .swatch > svg { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; pointer-events: none; }
-  /* two-page paint tray: page 1 = colors, page 2 = patterns; the flip chip toggles #swatches.pg2 */
-  #swatches:not(.pg2) .swatch[data-pg="2"], #swatches.pg2 .swatch[data-pg="1"] { display: none; }
-  #trayPaint { gap: 6px; padding: 8px 6px; }
-  #paintFlip {
-    width: 76px; height: 76px; border-radius: 50%; flex: none; cursor: pointer; touch-action: none;
-    background: #fff; border: 5px solid rgba(255,255,255,.85); box-shadow: 0 4px 0 rgba(0,0,0,.35);
-    display: flex; align-items: center; justify-content: center; transition: transform .08s;
-  }
-  #paintFlip svg { width: 48px; height: 48px; }
-  #paintFlip .flipArrow { transform-box: fill-box; transform-origin: center; transition: transform .2s; }
-  #paintFlip.pg2 .flipArrow { transform: scaleX(-1); }   /* arrow points back to the colors page */
 
-  #extras { display: grid; grid-template-columns: repeat(3, 76px); gap: 7px; }
-  .extraBtn {
-    position: relative; width: 76px; height: 76px; border-radius: 20px; background: #457b9d; opacity: .55;
-    border: 5px solid rgba(255,255,255,.5);
-  }
-  .extraBtn.on { background: #2a9d8f; opacity: 1; border-color: #ffb703; }
-  .extraBtn svg { width: 48px; height: 48px; }
-
-  #mapBtn { width: 84px; height: 84px; border-radius: 50%; background: #219ebc; border: 6px solid #bde0fe; }
-  #mapBtn svg { width: 52px; height: 52px; }
-
-  #goBtn {
-    width: 140px; height: 140px; border-radius: 50%; background: #38b000;
-    border: 8px solid #d8f3dc;
-  }
-  #goBtn svg { width: 72px; height: 72px; }
-  #goBtn.locked { background: #6c757d; border-color: #adb5bd; filter: opacity(.7); }
 
   /* ---------- STICKER ALBUM ---------- */
   #album { background: linear-gradient(#f7ede2, #f2e0c9); }
@@ -313,7 +223,6 @@
   }
   #stickerToast.show { transform: translateX(-50%) scale(1); }
   #stickerToast svg { width: 64px; height: 64px; }
-  #albumBtn { position: absolute; right: 352px; top: 24px; width: 96px; height: 96px; border-radius: 26px; background: #fff; border: 6px solid #023047; z-index: 20; }
   #albumBtn svg { width: 60px; height: 60px; }
   .buddyPop { animation: buddyPopUp 1.9s ease forwards; }
   @keyframes buddyPopUp {
@@ -692,7 +601,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #rotateOverlay { background: #2f241a; }
 
 /* ---------- 3. TYPOGRAPHY ---------- */
-.chip, #garageSign, .upgPrice, .photoCap, .worldTab span, .lvlBtn, .profileSlot .plus {
+.chip, .upgPrice, .photoCap, .worldTab span, .lvlBtn, .profileSlot .plus {
   font-family: var(--v-font);
 }
 .chip, .chip span, .lvlBtn, .upgPrice {
@@ -722,7 +631,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 .bigBtn [fill="#6c757d"], .chip [fill="#6c757d"] { fill: var(--v-ink-soft); }
 
 /* --- cream chrome (home/dice/album/quiet/profile) --- */
-#homeBtn, #mapHomeBtn, #albumHomeBtn, #albumBtn, #diceBtn, #quietBtn {
+#homeBtn, #mapHomeBtn, #albumHomeBtn, #albumBtn, #diceBtn, #quietBtn, .stripArrow {
   background: var(--v-surface);
   border: 6px solid var(--v-surface-line);
   border-radius: var(--v-r-lg);
@@ -735,12 +644,12 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 }
 
 /* --- blue chrome --- */
-#mapBtn, #bodyBtn, #wheelBtn, #copyCodeBtn, #pasteCodeBtn, #replayBtn, #celebrateHomeBtn {
+#mapBtn, #copyCodeBtn, #pasteCodeBtn, #replayBtn, #celebrateHomeBtn {
   background: var(--v-accent-blue);
   border: 6px solid var(--v-blue-line);
   box-shadow: 0 6px 0 var(--v-blue-down);
 }
-#bodyBtn, #wheelBtn, #copyCodeBtn, #pasteCodeBtn { border-radius: var(--v-r-lg); }
+#copyCodeBtn, #pasteCodeBtn { border-radius: var(--v-r-lg); }
 
 /* --- green = GO --- */
 #goBtn, #freeBtn, #nextBtn, #importYes {
@@ -771,45 +680,8 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 
 /* --- pedals: drawn in the toybox green/red (see the pedal svgs) --- */
 
-/* --- upgrades: wood tool-rack --- */
-.upgBtn {
-  background: var(--v-wood-deep);
-  border: 5px solid var(--v-wood-line);
-  border-radius: var(--v-r-md);
-  box-shadow: 0 6px 0 var(--v-wood-dark);
-}
-.upgBtn.maxed {
-  background: var(--v-accent-green);
-  border-color: var(--v-green-line);
-  box-shadow: 0 6px 0 var(--v-green-down);
-}
-.pips i { background: rgba(74, 53, 35, .35); }
-.pips i.on { background: var(--v-accent-yellow); }
 
-/* --- extras --- */
-.extraBtn {
-  background: var(--v-wood-deep);
-  border: 5px solid var(--v-wood-line);
-  border-radius: var(--v-r-md);
-  box-shadow: 0 5px 0 var(--v-wood-dark);
-}
-.extraBtn.on {
-  background: var(--v-accent-green);
-  border-color: var(--v-accent-yellow);
-  box-shadow: 0 5px 0 var(--v-green-down);
-}
 
-/* --- paint swatches: white ring stays (they ARE the color), warm shadow --- */
-.swatch {
-  border: 5px solid rgba(255, 248, 236, .9);
-  box-shadow: 0 4px 0 rgba(74, 53, 35, .25);
-}
-.swatch.selected { border-color: var(--v-accent-yellow); }
-#paintFlip {
-  background: var(--v-surface);
-  border: 5px solid var(--v-surface-line);
-  box-shadow: 0 4px 0 var(--v-surface-down);
-}
 
 /* --- price tag: putty until affordable, then green --- */
 #priceTag {
@@ -828,7 +700,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 
 /* --- locks --- */
 #previewLock { background: var(--v-wood-dark); border: 6px solid var(--v-accent-yellow); }
-.swatch .lockDot, .lvlBtn .lockDot { background: var(--v-wood-dark); }
+.lockDot { background: var(--v-wood-dark); }
 
 /* ---------- 5. CHIPS (HUD / wallets / tallies) ---------- */
 .chip {
@@ -876,16 +748,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
   border-bottom: none;
   border-radius: var(--v-r-md) var(--v-r-md) 0 0;
 }
-#garageWall::before {          /* bunting stripe, pastel instead of hazard-orange */
-  background: repeating-linear-gradient(90deg, #ffd98c 0 40px, #ffb98a 40px 80px);
-}
 #garageFloor { background: #b8905c; border-top: 6px solid #97744a; }
-#garageSign {
-  background: var(--v-wood-dark);
-  color: #ffe6a8;
-  border: 5px solid #57402a;
-  box-shadow: 0 4px 0 #57402a;
-}
 
 /* --- controls: wood workbench, was navy --- */
 #controls {
@@ -1028,10 +891,6 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 }
 
 
-/* ---- T7 reconciliation: rules that must win over the toybox layer ---- */
-/* SPEC floor: 76px stage = 64.8px rendered at iPad landscape scale */
-.swatch { width: 76px; height: 76px; }
-#swatches { grid-template-columns: repeat(4, 76px); grid-template-rows: repeat(3, 76px); }
 
 /* ---- car wash mini-game ---- */
 #washOverlay {
@@ -1101,31 +960,21 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ============ T8 POLISH PASS: one radius per size, one shadow, one panel, no leftover navy/white chrome ============ */
 /* radius rule: 96-104px square buttons wear --v-r-lg (like the cream chrome), 76-80px cells wear --v-r-md,
    trays wrap their 30px buttons with 8px padding so they sit at --v-r-xl; panels are --v-r-xl */
-.upgBtn, #repairBtn, #washBtn, #decalBtn { border-radius: var(--v-r-lg); }
-.tray { border-radius: var(--v-r-xl); }
+#repairBtn, #washBtn { border-radius: var(--v-r-lg); }
 #qrBox { border-radius: var(--v-r-md); }
 
-/* blue chrome the override sheet missed: decal button (was flat #219ebc, no border) + wash bay button (white border) */
-#decalBtn, #washBtn {
+/* wash bay button: blue chrome */
+#washBtn {
   background: var(--v-accent-blue);
   border: 6px solid var(--v-blue-line);
   box-shadow: 0 6px 0 var(--v-blue-down);
 }
-#repairBtn, .upgBtn { border-width: 6px; }   /* the two 96px columns share one edge weight */
+#repairBtn { border-width: 6px; }
 #repairBtn > svg { width: 44px; height: 44px; }
 #washBtn svg { width: 64px; height: 64px; }
 /* update gate: green on green like the GO family, not a white ring */
 #updateBtn { border-color: var(--v-green-line); }
 
-/* extras flip chip matches the paint flip chip (was pure white + black shadow) */
-#controls #extrasFlip {   /* outranks the JS-injected SHOP_CSS rule */
-  background: var(--v-surface);
-  border: 5px solid var(--v-surface-line);
-  box-shadow: 0 4px 0 var(--v-surface-down);
-}
-/* catalog position dots: warm ink, big enough to read from a lap */
-#garage #cycleDots i { width: 10px; height: 10px; background: rgba(255, 248, 236, .55); border-color: rgba(74, 53, 35, .35); }
-#garage #cycleDots i.on { background: var(--v-accent-yellow); border-color: var(--v-yellow-line); }
 
 /* copy / paste glyphs: old sky-blue strokes and cold gray -> toybox blue ink */
 #copyCodeBtn [stroke="#219ebc"], #pasteCodeBtn [stroke="#219ebc"] { stroke: var(--v-blue-down); }
@@ -1175,39 +1024,123 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 .buddySlot:not(.filled), .badgeSlot:not(.filled), .photoSlot.empty { box-shadow: none; }
 .photoSlot { border-radius: var(--v-r-sm); }
 .photoCar { border-radius: 10px; }
+/* ============ GARAGE REDESIGN: one hierarchy — the car is the hero, GO is the one primary action ============
+   stage coordinates: top bar 24-120 (profile 24 | album right 240 | wallet right 24)
+   hero: preview 506 wide, floor line y≈436; right column x-centre 1086: repair 128-224, wash 230-326 (contextual),
+   dice 332-420, map 426-502, GO 508-688. bench rim 432-440; tabs y 452-528 at x 108; strip row y 548-664 at x 24-936 */
+#garageWall { background-image: radial-gradient(rgba(90, 70, 52, .032) 2.4px, transparent 2.6px); }
+#albumBtn { position: absolute; right: 240px; top: 24px; width: 96px; height: 96px; z-index: 20; }
+#diceBtn { position: absolute; right: 68px; top: 332px; width: 88px; height: 88px; z-index: 5; }
+#diceBtn svg { width: 56px; height: 56px; }
+#washBtn { position: absolute; right: 62px; top: 230px; width: 96px; height: 96px; z-index: 5; display: none; animation: pulse 1.1s ease infinite; }
+#washBtn.show { display: flex; }
+#repairBtn {
+  position: absolute; right: 62px; top: 128px; width: 96px; height: 96px; z-index: 5;
+  display: none; flex-direction: column; gap: 2px; animation: pulse 1.1s ease infinite;
+}
+#repairBtn.show { display: flex; }
+
+/* --- category tabs: putty at rest, the chosen one lifts in blue with the map's yellow outline --- */
+#catTabs { position: absolute; left: 108px; top: 12px; display: flex; gap: 12px; }
+.catTab {
+  width: 76px; height: 76px; padding: 0; cursor: pointer; touch-action: none;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--v-mute); border: 5px solid var(--v-mute-line); border-radius: var(--v-r-md);
+  box-shadow: 0 5px 0 var(--v-mute-down);
+  transition: transform .14s cubic-bezier(.34, 1.56, .64, 1), background .14s, box-shadow .14s;
+}
+.catTab svg { width: 48px; height: 48px; opacity: .9; }
+.catTab [fill="#023047"] { fill: var(--v-wood-dark); }
+.catTab [stroke="#023047"] { stroke: var(--v-wood-dark); }
+.catTab:active { transform: translateY(3px) scale(.96); box-shadow: 0 1px 0 var(--v-mute-down); }
+.catTab.sel {
+  background: var(--v-accent-blue); border-color: var(--v-blue-line); box-shadow: 0 5px 0 var(--v-blue-down);
+  outline: 6px solid var(--v-accent-yellow); transform: translateY(-4px);
+}
+.catTab.sel svg { opacity: 1; }
+.catTab.sel [fill="#023047"] { fill: var(--v-ink-strong); }
+.catTab.sel [stroke="#023047"] { stroke: var(--v-ink-strong); }
+
+/* --- options strip: one momentum scroller with page arrows at its ends --- */
+#stripRow { position: absolute; left: 24px; top: 108px; height: 116px; display: flex; align-items: center; gap: 12px; }
+#strip {
+  width: 760px; height: 116px; box-sizing: border-box; padding: 10px 8px;
+  display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x mandatory; scroll-padding-inline: 8px; -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain; scrollbar-width: none; transition: opacity .12s;
+}
+#strip::-webkit-scrollbar { display: none; }
+#strip.fade { opacity: 0; }
+.stripArrow {
+  width: 64px; height: 64px; padding: 0; flex: none; cursor: pointer; touch-action: none;
+  display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  transition: transform .1s cubic-bezier(.34, 1.56, .64, 1), box-shadow .1s, opacity .2s;
+}
+.stripArrow svg { width: 36px; height: 36px; }
+.stripArrow:active { transform: translateY(5px) scale(.96); box-shadow: 0 1px 0 var(--v-surface-down); }
+.stripArrow.off { visibility: hidden; }
+.stripArrow.end { opacity: .35; }
+
+/* --- tiles: 96px cream cards; colored variants for extras / workbench --- */
+.tile {
+  position: relative; flex: none; width: 96px; height: 96px; padding: 0; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: var(--v-surface); border: 5px solid var(--v-surface-line); border-radius: var(--v-r-lg);
+  box-shadow: 0 6px 0 var(--v-surface-down); cursor: pointer; touch-action: pan-x; scroll-snap-align: start;
+  transition: transform .1s cubic-bezier(.34, 1.56, .64, 1), box-shadow .1s, opacity .15s;
+}
+.tile.pressed { transform: translateY(4px) scale(.97, .94); box-shadow: 0 2px 0 var(--v-surface-down); }
+.tile.sel, .tile.on { outline: 6px solid var(--v-accent-yellow); }
+.tile.justSel { animation: chipPop .35s ease; }
+.tile.enter { animation: popIn .3s cubic-bezier(.2, 1.6, .4, 1) backwards; animation-delay: calc(var(--i, 0) * 35ms); }
+.tile.justSel.enter { animation: popIn .3s cubic-bezier(.2, 1.6, .4, 1) backwards, chipPop .35s ease; }
+.tile .carPic { width: 84px; height: 51px; overflow: visible; }
+.tile .wheelPic { width: 64px; height: 64px; }
+.tile .decalPic { width: 64px; height: 64px; overflow: visible; }
+.tile .swatchPic { width: 62px; height: 62px; border-radius: 50%; overflow: hidden; box-shadow: inset 0 0 0 3px rgba(74, 53, 35, .14); }
+.tile .swatchPic svg { display: block; width: 100%; height: 100%; }
+.tile .glyph { width: 54px; height: 54px; }
+.tile .nonePic { width: 40px; height: 40px; border-radius: 50%; border: 5px dashed rgba(138, 115, 96, .55); box-sizing: border-box; }
+/* a locked tile makes room for its star price */
+.tile.locked .carPic { width: 70px; height: 43px; }
+.tile.locked .wheelPic, .tile.locked .decalPic { width: 50px; height: 50px; }
+.tile.locked .swatchPic { width: 48px; height: 48px; }
+.tile .upgPrice { font-size: 17px; color: var(--v-ink); }
+.tile .upgPrice svg { width: 17px; height: 17px; }
+.tile .lockDot { right: -5px; bottom: -5px; }
+.tile .pips { gap: 4px; } .tile .pips i { width: 11px; height: 11px; }
+/* wood tiles: extras (dim until on) and the workbench upgrades (green when maxed) */
+.tile.wood { background: var(--v-wood-deep); border-color: var(--v-wood-line); box-shadow: 0 6px 0 var(--v-wood-dark); }
+.tile.wood.pressed { box-shadow: 0 2px 0 var(--v-wood-dark); }
+.tile.wood .upgPrice { color: #fff; }
+.tile.dim { opacity: .62; }
+.tile.on, .tile.maxed { background: var(--v-accent-green); border-color: var(--v-green-line); box-shadow: 0 6px 0 var(--v-green-down); opacity: 1; }
+.tile.red { background: var(--v-accent-red); border-color: var(--v-red-line); box-shadow: 0 6px 0 var(--v-red-down); }
+.tile.blue { background: var(--v-accent-blue); border-color: var(--v-blue-line); box-shadow: 0 6px 0 var(--v-blue-down); }
+.tile.red .upgPrice, .tile.blue .upgPrice { color: #fff; }
+.tile.red .glyph, .tile.blue .glyph { width: 44px; height: 44px; }
+.tile.deny { animation: denyShake .4s ease; }
+
+/* --- map above GO, right column, GO the biggest thing on screen --- */
+#goCol { position: absolute; right: 24px; top: -14px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+#mapBtn { width: 76px; height: 76px; border-radius: 50%; }
+#mapBtn svg { width: 46px; height: 46px; }
+#goBtn { width: 180px; height: 180px; border-radius: 50%; border: 8px solid var(--v-green-line); }
+#goBtn svg { width: 92px; height: 92px; }
+
+/* --- grown-ups overlay: the quiet toggle (cream = sound on, putty = quiet) --- */
+#quietBtn { width: 96px; height: 96px; }
+#quietBtn svg { width: 60px; height: 60px; }
+#quietBtn.on { background: var(--v-mute); border-color: var(--v-mute-line); box-shadow: 0 6px 0 var(--v-mute-down); }
 </style>
 </head>
 <body>
 <div id="stage">
 
   <div id="garage" class="scene active">
-    <div id="garageWall"><div id="garageSign">VROOM</div></div>
+    <div id="garageWall"></div>
     <div id="garageFloor"></div>
-    <div id="upgrades">
-      <button class="bigBtn upgBtn" data-upg="engine" aria-label="engine speed upgrade">
-        <svg viewBox="0 0 64 64"><path d="M12 40 Q4 32 12 22 Q20 10 34 12 Q30 20 36 24 Q44 14 54 20 Q46 24 48 32 Q58 34 56 44 Q46 42 42 48 Q46 56 38 58 Q34 50 26 52 Q22 60 14 54 Q18 46 12 40 Z" fill="#ff9f1c"/><circle cx="32" cy="36" r="9" fill="#ffd60a"/></svg>
-        <span class="pips"></span><span class="upgPrice"></span>
-      </button>
-      <button class="bigBtn upgBtn" data-upg="armor" aria-label="shield upgrade">
-        <svg viewBox="0 0 64 64"><path d="M32 4 L56 14 V32 Q56 52 32 60 Q8 52 8 32 V14 Z" fill="#bde0fe" stroke="#1d3557" stroke-width="4"/><path d="M22 32 L30 40 L44 24" stroke="#1d3557" stroke-width="6" fill="none" stroke-linecap="round"/></svg>
-        <span class="pips"></span><span class="upgPrice"></span>
-      </button>
-      <button class="bigBtn upgBtn" data-upg="magnet" aria-label="star magnet upgrade">
-        <svg viewBox="0 0 64 64"><path d="M14 8 H28 V30 Q28 38 32 38 Q36 38 36 30 V8 H50 V30 Q50 52 32 52 Q14 52 14 30 Z" fill="#e63946"/><rect x="14" y="8" width="14" height="10" fill="#f1faee"/><rect x="36" y="8" width="14" height="10" fill="#f1faee"/><path d="M50 56 L54 60 M32 56 V62 M14 56 L10 60" stroke="#ffd60a" stroke-width="4" stroke-linecap="round"/></svg>
-        <span class="pips"></span><span class="upgPrice"></span>
-      </button>
-    </div>
-    <button class="bigBtn" id="repairBtn" aria-label="fix the truck with stars">
-      <svg viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#fff"/></svg>
-      <span class="upgPrice"></span>
-    </button>
-    <button class="bigBtn" id="washBtn" aria-label="wash the muddy truck">
-      <svg viewBox="0 0 100 100"><rect x="18" y="34" width="52" height="38" rx="14" fill="#ffd66e" stroke="#dca63f" stroke-width="4"/><circle cx="30" cy="30" r="9" fill="#fff" opacity=".9"/><circle cx="48" cy="22" r="12" fill="#fff" opacity=".9"/><circle cx="66" cy="30" r="8" fill="#fff" opacity=".9"/><circle cx="80" cy="44" r="6" fill="#fff" opacity=".8"/></svg>
-    </button>
-    <button class="bigBtn" id="diceBtn" aria-label="surprise me: random truck">
-      <svg viewBox="0 0 100 100"><rect x="12" y="12" width="76" height="76" rx="18" fill="#fff" stroke="#023047" stroke-width="5"/><circle cx="32" cy="32" r="9" fill="#e63946"/><circle cx="68" cy="32" r="9" fill="#ff9f1c"/><circle cx="50" cy="50" r="9" fill="#ffd60a"/><circle cx="32" cy="68" r="9" fill="#74c69d"/><circle cx="68" cy="68" r="9" fill="#4cc9f0"/></svg>
-    </button>
-    <button class="bigBtn" id="quietBtn" aria-label="quiet mode for the car"></button>
+    <!-- top bar: who is playing (left) | album + star wallet (right); the speaker lives in the grown-ups overlay -->
     <button class="bigBtn" id="profileBtn" aria-label="who is playing"></button>
     <button id="updateBtn" aria-label="new version ready: press and hold to update">
       <svg viewBox="0 0 100 100">
@@ -1223,42 +1156,61 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     <button class="bigBtn" id="albumBtn" aria-label="sticker album">
       <svg viewBox="0 0 100 100"><path d="M50 18 Q30 8 14 14 V78 Q30 72 50 82 Q70 72 86 78 V14 Q70 8 50 18 Z" fill="#fff" stroke="#023047" stroke-width="5"/><path d="M50 18 V82" stroke="#023047" stroke-width="4"/><path d="M30 34 L33 41 L41 42 L35 47 L37 55 L30 50 L23 55 L25 47 L19 42 L27 41 Z" fill="#ffd60a"/><circle cx="68" cy="44" r="9" fill="#74c69d"/></svg>
     </button>
+    <div class="chip" id="garageWallet" aria-label="star wallet"></div>
+    <!-- hero: the car on the workbench floor line; the tag + padlock appear under it for a locked part -->
     <div id="preview"></div>
     <button id="priceTag" aria-label="unlock with stars"></button>
     <div id="previewLock">
       <svg viewBox="0 0 64 64"><rect x="12" y="28" width="40" height="30" rx="7" fill="#ffb703"/><path d="M20 28 V20 a12 12 0 0 1 24 0 V28" stroke="#ffb703" stroke-width="8" fill="none"/></svg>
     </div>
-    <div class="chip" id="garageWallet" aria-label="star wallet"></div>
-    <div id="cycleDots" aria-hidden="true"></div>
+    <!-- right wall: repair + wash only when needed (damage / mud), the dice always, all one column with map + GO -->
+    <button class="bigBtn" id="repairBtn" aria-label="fix the truck with stars">
+      <svg viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#fff"/></svg>
+      <span class="upgPrice"></span>
+    </button>
+    <button class="bigBtn" id="washBtn" aria-label="wash the muddy truck">
+      <svg viewBox="0 0 100 100"><rect x="18" y="34" width="52" height="38" rx="14" fill="#ffd66e" stroke="#dca63f" stroke-width="4"/><circle cx="30" cy="30" r="9" fill="#fff" opacity=".9"/><circle cx="48" cy="22" r="12" fill="#fff" opacity=".9"/><circle cx="66" cy="30" r="8" fill="#fff" opacity=".9"/><circle cx="80" cy="44" r="6" fill="#fff" opacity=".8"/></svg>
+    </button>
+    <button class="bigBtn" id="diceBtn" aria-label="surprise me: random truck">
+      <svg viewBox="0 0 100 100"><rect x="12" y="12" width="76" height="76" rx="18" fill="#fff" stroke="#023047" stroke-width="5"/><circle cx="32" cy="32" r="9" fill="#e63946"/><circle cx="68" cy="32" r="9" fill="#ff9f1c"/><circle cx="50" cy="50" r="9" fill="#ffd60a"/><circle cx="32" cy="68" r="9" fill="#74c69d"/><circle cx="68" cy="68" r="9" fill="#4cc9f0"/></svg>
+    </button>
+    <!-- extras glyph registry: the content packs append their .extraBtn pictograms here; the extras strip clones them -->
+    <div id="extras" hidden aria-hidden="true">
+      <button class="bigBtn extraBtn" data-extra="horn" aria-label="horn">
+        <svg viewBox="0 0 100 100"><path d="M20 50 Q20 30 45 30 L70 15 L70 85 L45 70 Q20 70 20 50Z" fill="#ffd60a" stroke="#fff" stroke-width="4"/><path d="M80 35 Q92 50 80 65" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round"/></svg>
+      </button>
+      <button class="bigBtn extraBtn" data-extra="beacon" aria-label="flashing light">
+        <svg viewBox="0 0 100 100"><path d="M30 70 Q30 35 50 35 Q70 35 70 70 Z" fill="#ff9f1c" stroke="#fff" stroke-width="4"/><rect x="22" y="70" width="56" height="12" rx="6" fill="#fff"/><path d="M50 22 V8 M28 30 L18 20 M72 30 L82 20" stroke="#ffd60a" stroke-width="6" stroke-linecap="round"/></svg>
+      </button>
+      <button class="bigBtn extraBtn" data-extra="flag" aria-label="flag">
+        <svg viewBox="0 0 100 100"><path d="M35 90 V12" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M40 15 L82 25 L40 40 Z" fill="#e63946" stroke="#fff" stroke-width="3"/></svg>
+      </button>
+    </div>
     <div id="controls">
-      <div class="tray" id="trayBuild">
-      <button class="bigBtn" id="bodyBtn" aria-label="change truck body">
+      <div id="catTabs" role="tablist" aria-label="what to change">
+        <button class="catTab sel" data-cat="body" role="tab" aria-selected="true" aria-label="truck bodies">
         <svg viewBox="0 0 100 100"><path d="M10 62 L10 40 L48 40 L48 26 L74 26 L86 44 L90 62 Z" fill="#fff"/><circle cx="30" cy="66" r="12" fill="#023047" stroke="#fff" stroke-width="4"/><circle cx="72" cy="66" r="12" fill="#023047" stroke="#fff" stroke-width="4"/><path d="M40 18 L46 8 M50 18 L50 6 M60 18 L54 8" stroke="#ffb703" stroke-width="5" stroke-linecap="round"/></svg>
-      </button>
-      <button class="bigBtn" id="wheelBtn" aria-label="change wheels">
+        </button>
+        <button class="catTab" data-cat="wheels" role="tab" aria-selected="false" aria-label="wheels">
         <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="#fff"/><circle cx="50" cy="50" r="16" fill="#023047"/><g stroke="#023047" stroke-width="8" stroke-linecap="round"><path d="M50 12 V30 M50 70 V88 M12 50 H30 M70 50 H88 M23 23 L36 36 M64 64 L77 77 M77 23 L64 36 M36 64 L23 77"/></g></svg>
-      </button>
-      <button class="bigBtn" id="decalBtn" aria-label="change sticker decal">
+        </button>
+        <button class="catTab" data-cat="color" role="tab" aria-selected="false" aria-label="paint">
+        <svg viewBox="0 0 100 100"><path d="M50 10 Q86 12 90 46 Q92 66 74 64 Q62 62 62 72 Q62 90 44 90 Q10 88 10 50 Q12 14 50 10 Z" fill="#fff"/><circle cx="32" cy="40" r="9" fill="#e63946"/><circle cx="54" cy="30" r="8" fill="#ffb703"/><circle cx="30" cy="64" r="8" fill="#2a9d8f"/><circle cx="70" cy="46" r="7" fill="#4cc9f0"/></svg>
+        </button>
+        <button class="catTab" data-cat="decal" role="tab" aria-selected="false" aria-label="stickers">
         <svg viewBox="0 0 100 100"><rect x="14" y="14" width="72" height="72" rx="16" fill="#fff"/><path d="M50 26 L57 42 L74 44 L61 55 L65 72 L50 63 L35 72 L39 55 L26 44 L43 42 Z" fill="#ffb703"/><path d="M70 24 Q80 18 82 28" stroke="#e63946" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
-      </button>
-      </div>
-      <div class="tray" id="trayPaint"><div id="swatches"></div>
-        <button class="pressable" id="paintFlip" aria-label="more paints: flip between colors and patterns">
-          <svg viewBox="0 0 64 64"><path d="M10 14 h30 a8 8 0 0 1 8 8 v22 l-10 10 h-28 a8 8 0 0 1 -8 -8 v-24 a8 8 0 0 1 8 -8Z" fill="#fff"/><path d="M48 44 l-10 10 v-10Z" fill="#cfc0a6"/><circle cx="24" cy="30" r="7" fill="#e63946"/><circle cx="38" cy="26" r="4" fill="#1e88e5"/><circle cx="36" cy="40" r="4" fill="#43a047"/><path class="flipArrow" d="M52 10 l10 10 l-10 10" stroke="#5a4634" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="catTab" data-cat="extras" role="tab" aria-selected="false" aria-label="extras">
+        <svg viewBox="0 0 100 100"><path d="M50 8 Q54 42 92 50 Q54 58 50 92 Q46 58 8 50 Q46 42 50 8 Z" fill="#fff"/><path d="M78 12 q2 10 12 12 q-10 2 -12 12 q-2 -10 -12 -12 q10 -2 12 -12Z" fill="#ffd60a"/><path d="M20 66 q1.5 8 9 9 q-7.5 1.5 -9 9 q-1.5 -7.5 -9 -9 q7.5 -1.5 9 -9Z" fill="#ffd60a"/></svg>
+        </button>
+        <button class="catTab" data-cat="work" role="tab" aria-selected="false" aria-label="workbench: upgrades and repairs">
+        <svg viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#fff"/></svg>
         </button>
       </div>
-      <div class="tray" id="trayExtras">
-      <div id="extras">
-        <button class="bigBtn extraBtn" data-extra="horn" aria-label="horn">
-          <svg viewBox="0 0 100 100"><path d="M20 50 Q20 30 45 30 L70 15 L70 85 L45 70 Q20 70 20 50Z" fill="#ffd60a" stroke="#fff" stroke-width="4"/><path d="M80 35 Q92 50 80 65" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round"/></svg>
-        </button>
-        <button class="bigBtn extraBtn" data-extra="beacon" aria-label="flashing light">
-          <svg viewBox="0 0 100 100"><path d="M30 70 Q30 35 50 35 Q70 35 70 70 Z" fill="#ff9f1c" stroke="#fff" stroke-width="4"/><rect x="22" y="70" width="56" height="12" rx="6" fill="#fff"/><path d="M50 22 V8 M28 30 L18 20 M72 30 L82 20" stroke="#ffd60a" stroke-width="6" stroke-linecap="round"/></svg>
-        </button>
-        <button class="bigBtn extraBtn" data-extra="flag" aria-label="flag">
-          <svg viewBox="0 0 100 100"><path d="M35 90 V12" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M40 15 L82 25 L40 40 Z" fill="#e63946" stroke="#fff" stroke-width="3"/></svg>
-        </button>
-      </div>
+      <div id="stripRow">
+        <button class="stripArrow" id="stripPrev" aria-label="earlier items"><svg viewBox="0 0 64 64"><path d="M38 14 L20 32 L38 50" stroke="#5a4634" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div id="strip" aria-label="options"></div>
+        <button class="stripArrow" id="stripNext" aria-label="more items"><svg viewBox="0 0 64 64"><path d="M26 14 L44 32 L26 50" stroke="#5a4634" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
       <div id="goCol">
       <button class="bigBtn" id="mapBtn" aria-label="pick a level">
@@ -1385,6 +1337,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
         <button class="bigBtn" id="pasteCodeBtn" aria-label="paste save code">
           <svg viewBox="0 0 100 100"><rect x="22" y="16" width="56" height="72" rx="8" fill="#fff"/><rect x="38" y="8" width="24" height="16" rx="5" fill="#adb5bd"/><path d="M50 38 V66 M38 54 L50 66 L62 54" stroke="#219ebc" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
+        <button class="bigBtn" id="quietBtn" aria-label="quiet mode for the car" aria-pressed="false"></button>
       </div>
     </div>
   </div>
@@ -3396,6 +3349,7 @@ function renderShop() {
     priceTag.classList.add("show");
     priceTag.classList.toggle("afford", progress.wallet >= cost);
   } else priceTag.classList.remove("show");
+  syncStrip();
 }
 function renderPreview() {
   preview.innerHTML = vehicleSVG(state);
@@ -3421,111 +3375,206 @@ priceTag.addEventListener("pointerdown", e => {
   }
 });
 
-/* body / wheel / decal buttons tap-cycle forward; holding one 600 ms steps BACK instead (the tap's
-   forward step is undone) and keeps stepping back every 450 ms while held. A dot row under the
-   buttons shows where in the catalog the kid is (one dot per item, the big gold one is current). */
-const cycleDots = document.getElementById("cycleDots");
-let cycleDotsTimer = null;
-function showCycleDots(order, cur) {
-  cycleDots.innerHTML = order.map(id => `<i class="${id === cur ? "on" : ""}"></i>`).join("");
-  cycleDots.classList.add("show");
-  clearTimeout(cycleDotsTimer);
-  cycleDotsTimer = setTimeout(() => cycleDots.classList.remove("show"), 2200);
-}
-function cycleButton(btnId, key, order, snd) {
-  const step = d => {
-    const list = order();
-    state[key] = list[(list.indexOf(state[key]) + d + list.length) % list.length];
-    save(); renderPreview(); snd();
-    showCycleDots(list, state[key]);
-  };
-  const btn = document.getElementById(btnId);
-  let holdT = null, repeatT = null;
-  const stop = () => { clearTimeout(holdT); clearInterval(repeatT); holdT = repeatT = null; };
-  btn.addEventListener("pointerdown", () => {
-    step(1);
-    stop();
-    holdT = setTimeout(() => { step(-2); repeatT = setInterval(() => step(-1), 450); }, 600);
-  });
-  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) btn.addEventListener(ev, stop);
-}
-cycleButton("bodyBtn", "body", () => BODY_ORDER, () => sfx.pop());
-cycleButton("wheelBtn", "wheels", () => WHEEL_ORDER, () => sfx.clank());
-cycleButton("decalBtn", "decal", () => DECAL_ORDER, () => sfx.splat());
-const swatchesEl = document.getElementById("swatches");
-const paintFlip = document.getElementById("paintFlip");
-/* page 1 = the 12 colors, page 2 = pattern paints (4x3 each); --i restarts per page for popIn */
-COLORS.forEach((c, i) => {
-  const b = document.createElement("button");
-  b.className = "swatch pressable enter"; b.dataset.color = c;
-  b.dataset.pg = PATTERNS[c] ? 2 : 1;
-  b.style.setProperty("--i", i % 12);
-  if (PATTERNS[c]) { b.innerHTML = paintSwatchSVG(c); b.setAttribute("aria-label", PATTERNS[c].name + " paint"); }
-  else {
-    b.style.background = c === "rainbow"
-      ? "conic-gradient(#e53935,#fb8c00,#fdd835,#43a047,#1e88e5,#8e24aa,#e53935)"
-      : c;
-    b.setAttribute("aria-label", "paint color");
+/* ============ OPTIONS STRIP: six category tabs, one horizontal scroller ============
+   The bench shows one category at a time (body / wheels / paint / sticker / extras / workbench) as 96px tiles in a
+   snap scroller with page arrows. Tiles act on pointerup (a swipe through them scrolls instead of equipping).
+   Selection rings, locks and prices are re-synced from state by syncStrip(), which renderShop() runs after every
+   change, so the tag / buy flow stays exactly as before: state.x = id -> tag under the preview -> tap tag -> buy. */
+const stripEl = document.getElementById("strip");
+const stripPrev = document.getElementById("stripPrev"), stripNext = document.getElementById("stripNext");
+const TILE_STEP = 108, STRIP_COLS = 7;                 /* 96px tile + 12px gap; seven tiles per page */
+let curCat = "body", stripColor = null, tabFadeT = null;
+const TILE_SND = { body: () => sfx.pop(), wheels: () => sfx.clank(), color: () => sfx.splat(), decal: () => sfx.splat() };
+
+const UPG_ICON = {
+  engine: `<svg class="glyph" viewBox="0 0 64 64"><path d="M12 40 Q4 32 12 22 Q20 10 34 12 Q30 20 36 24 Q44 14 54 20 Q46 24 48 32 Q58 34 56 44 Q46 42 42 48 Q46 56 38 58 Q34 50 26 52 Q22 60 14 54 Q18 46 12 40 Z" fill="#ff9f1c"/><circle cx="32" cy="36" r="9" fill="#ffd60a"/></svg>`,
+  armor:  `<svg class="glyph" viewBox="0 0 64 64"><path d="M32 4 L56 14 V32 Q56 52 32 60 Q8 52 8 32 V14 Z" fill="#bde0fe" stroke="#1d3557" stroke-width="4"/><path d="M22 32 L30 40 L44 24" stroke="#1d3557" stroke-width="6" fill="none" stroke-linecap="round"/></svg>`,
+  magnet: `<svg class="glyph" viewBox="0 0 64 64"><path d="M14 8 H28 V30 Q28 38 32 38 Q36 38 36 30 V8 H50 V30 Q50 52 32 52 Q14 52 14 30 Z" fill="#e63946"/><rect x="14" y="8" width="14" height="10" fill="#f1faee"/><rect x="36" y="8" width="14" height="10" fill="#f1faee"/><path d="M50 56 L54 60 M32 56 V62 M14 56 L10 60" stroke="#ffd60a" stroke-width="4" stroke-linecap="round"/></svg>`
+};
+const WORK_ICON = {
+  repair: `<svg class="glyph" viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#fff"/></svg>`,
+  wash:   `<svg class="glyph" viewBox="0 0 100 100"><rect x="18" y="34" width="52" height="38" rx="14" fill="#ffd66e" stroke="#dca63f" stroke-width="4"/><circle cx="30" cy="30" r="9" fill="#fff" opacity=".9"/><circle cx="48" cy="22" r="12" fill="#fff" opacity=".9"/><circle cx="66" cy="30" r="8" fill="#fff" opacity=".9"/><circle cx="80" cy="44" r="6" fill="#fff" opacity=".8"/></svg>`
+};
+
+/* body tile: the body in the current paint on default wheels — no extras, buddy, mud or dings; cached per body+paint */
+const miniCarCache = new Map();
+function miniCarSVG(body) {
+  const key = body + "|" + state.color;
+  let out = miniCarCache.get(key);
+  if (!out) {
+    const tpl = document.createElement("template");
+    tpl.innerHTML = vehicleSVG({ body, wheels: "normal", color: state.color, extras: {}, decal: "none", buddy: null });
+    const svg = tpl.content.firstElementChild;
+    svg.querySelectorAll(".mudSpots, .dmgScuff, .dmgCrack, .dmgSmoke").forEach(g => g.remove());
+    svg.classList.add("carPic");
+    svg.setAttribute("viewBox", "0 30 320 196");   /* crop the empty sky so the car sits centred in its tile */
+    out = svg.outerHTML;
+    miniCarCache.set(key, out);
   }
-  b.addEventListener("pointerdown", () => {
-    state.color = c; save();
-    swatchesEl.querySelectorAll(".swatch").forEach(s => s.classList.toggle("selected", s === b));
-    renderPreview(); sfx.splat();
+  return out;
+}
+function wheelPicSVG(type) {
+  const r = WHEELS[type].r, box = Math.max(2 * r + 10, 72);
+  return `<svg class="wheelPic" viewBox="${50 - box / 2} ${200 - r - box / 2} ${box} ${box}">${wheelSVG(type, 50)}</svg>`;
+}
+function swatchPic(c) {
+  if (PATTERNS[c]) return `<span class="swatchPic">${paintSwatchSVG(c)}</span>`;
+  const bg = c === "rainbow" ? "conic-gradient(#e53935,#fb8c00,#fdd835,#43a047,#1e88e5,#8e24aa,#e53935)" : c;
+  return `<span class="swatchPic" style="background:${bg}"></span>`;
+}
+/* extras pictograms come from the hidden #extras registry the content packs append to */
+function extraGlyph(id) {
+  const src = document.querySelector(`#extras .extraBtn[data-extra="${id}"] svg`);
+  if (!src) return "";
+  const c = src.cloneNode(true); c.classList.add("glyph");
+  return c.outerHTML;
+}
+function stripItems(cat) {
+  switch (cat) {
+    case "body":   return BODY_ORDER.map(id => ({ id, kind: "body", pic: miniCarSVG(id), label: id + " body" }));
+    case "wheels": return WHEEL_ORDER.map(id => ({ id, kind: "wheels", pic: wheelPicSVG(id), label: id + " wheels" }));
+    case "color":  return COLORS.map(id => ({ id, kind: "color", pic: swatchPic(id), label: PATTERNS[id] ? PATTERNS[id].name + " paint" : "paint color" }));
+    case "decal":  return DECAL_ORDER.map(id => ({ id, kind: "decal", label: id === "none" ? "no sticker" : id + " sticker",
+                     pic: id === "none" ? `<span class="nonePic"></span>` : `<svg class="decalPic" viewBox="-48 -48 96 96">${DECAL_SVG[id]}</svg>` }));
+    case "extras": return Object.keys(state.extras).map(id => ({ id, kind: "extras", pic: extraGlyph(id), label: id, cls: "wood" }));
+    case "work": {
+      const items = [];
+      if (progress.damage > 0) items.push({ id: "repair", kind: "act", pic: WORK_ICON.repair, label: "fix the truck with stars", cls: "red" });
+      if (progress.muddy) items.push({ id: "wash", kind: "act", pic: WORK_ICON.wash, label: "wash the muddy truck", cls: "blue" });
+      for (const k of Object.keys(UPG)) items.push({ id: k, kind: "upg", pic: UPG_ICON[k], label: k + " upgrade", cls: "wood" });
+      return items;
+    }
+  }
+  return [];
+}
+const TILE_ATTR = { body: "body", wheels: "wheels", color: "color", decal: "decal", extras: "extra", upg: "upg", act: "act" };
+function buildTile(it) {
+  const b = document.createElement("button");
+  b.className = "tile" + (it.cls ? " " + it.cls : "");
+  b.dataset.kind = it.kind; b.dataset.id = it.id; b.dataset[TILE_ATTR[it.kind]] = it.id;
+  b.setAttribute("aria-label", it.label);
+  b.innerHTML = it.pic + (it.kind === "upg" ? `<span class="pips"></span>` : "") + `<span class="upgPrice"></span>`;
+  return b;
+}
+function setTileLock(t, locked, price) {
+  t.classList.toggle("locked", locked);
+  let dot = t.querySelector(".lockDot");
+  if (locked && !dot) { dot = document.createElement("span"); dot.className = "lockDot"; dot.innerHTML = lockIcon; t.appendChild(dot); }
+  if (!locked && dot) dot.remove();
+  t.querySelector(".upgPrice").innerHTML = locked ? starIcon + `<span>${price}</span>` : "";
+}
+/* re-sync every tile from state: selection ring, locks + prices, extras on/off, upgrade pips */
+function syncStrip() {
+  if (curCat === "body" && stripEl.children.length && stripColor !== state.color) { renderStrip(false); return; }
+  stripEl.querySelectorAll(".tile").forEach(t => {
+    const kind = t.dataset.kind, id = t.dataset.id;
+    if (kind === "body" || kind === "wheels" || kind === "color" || kind === "decal") {
+      t.classList.toggle("sel", state[kind] === id);
+      setTileLock(t, !owns(kind, id), priceOf(kind, id));
+    } else if (kind === "extras") {
+      t.classList.toggle("on", !!state.extras[id]); t.classList.toggle("dim", !state.extras[id]);
+      setTileLock(t, !owns("extras", id), priceOf("extras", id));
+    } else if (kind === "upg") {
+      const lvl = progress.upgrades[id], maxed = lvl >= 3;
+      t.querySelector(".pips").innerHTML = [0, 1, 2].map(i => `<i class="${i < lvl ? "on" : ""}"></i>`).join("");
+      t.classList.toggle("maxed", maxed);
+      t.classList.toggle("cant", !maxed && progress.wallet < UPG[id].prices[lvl]);
+      t.querySelector(".upgPrice").innerHTML = maxed ? "" : starIcon + `<span>${UPG[id].prices[lvl]}</span>`;
+    } else if (kind === "act") {
+      t.querySelector(".upgPrice").innerHTML = id === "repair" ? starIcon + `<span>${progress.damage * REPAIR_RATE}</span>` : "";
+    }
   });
-  if (c === state.color) b.classList.add("selected");
-  swatchesEl.appendChild(b);
+  updateArrows();
+}
+function renderSwatchLocks() { syncStrip(); }
+function renderExtrasLocks() { syncStrip(); }
+function stripCurrentIndex(items) {
+  const i = items.findIndex(it => it.kind in state && state[it.kind] === it.id);
+  return Math.max(0, i);
+}
+/* (re)build the strip for the current tab; the page holding the current item is scrolled into view */
+function renderStrip(animate) {
+  const items = stripItems(curCat);
+  stripColor = state.color;
+  const first = Math.floor(stripCurrentIndex(items) / STRIP_COLS) * STRIP_COLS;
+  stripEl.innerHTML = "";
+  items.forEach((it, i) => {
+    const t = buildTile(it);
+    if (animate) { t.classList.add("enter"); t.style.setProperty("--i", Math.min(8, Math.max(0, i - first))); }
+    stripEl.appendChild(t);
+  });
+  syncStrip();
+  stripEl.scrollLeft = first * TILE_STEP;
+  updateArrows();
+}
+function updateArrows() {
+  const fits = stripEl.scrollWidth <= stripEl.clientWidth + 1;
+  stripPrev.classList.toggle("off", fits); stripNext.classList.toggle("off", fits);
+  stripPrev.classList.toggle("end", stripEl.scrollLeft < 4);
+  stripNext.classList.toggle("end", stripEl.scrollLeft > stripEl.scrollWidth - stripEl.clientWidth - 4);
+}
+stripEl.addEventListener("scroll", updateArrows, { passive: true });
+stripPrev.addEventListener("pointerdown", () => { stripEl.scrollBy({ left: -TILE_STEP * STRIP_COLS, behavior: "smooth" }); sfx.pop(); });
+stripNext.addEventListener("pointerdown", () => { stripEl.scrollBy({ left: TILE_STEP * STRIP_COLS, behavior: "smooth" }); sfx.pop(); });
+
+/* tabs: 120ms cross-fade, then the new tiles pop in staggered from the first visible one */
+function openTab(cat, animate = true) {
+  curCat = cat;
+  document.querySelectorAll(".catTab").forEach(t => {
+    const on = t.dataset.cat === cat;
+    t.classList.toggle("sel", on); t.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  clearTimeout(tabFadeT);
+  if (!animate) { stripEl.classList.remove("fade"); renderStrip(false); return; }
+  stripEl.classList.add("fade");
+  tabFadeT = setTimeout(() => { renderStrip(true); stripEl.classList.remove("fade"); }, 120);
+}
+document.querySelectorAll(".catTab").forEach(t => t.addEventListener("pointerdown", () => {
+  if (t.dataset.cat !== curCat) openTab(t.dataset.cat);
+  sfx.pop();
+}));
+
+/* tiles act on release: a finger that moved more than 10px (or a pointercancel from the scroller) is a swipe */
+let tilePress = null;
+function cancelPress() { if (tilePress) tilePress.t.classList.remove("pressed"); tilePress = null; }
+stripEl.addEventListener("pointerdown", e => {
+  const t = e.target.closest(".tile"); if (!t) return;
+  cancelPress();
+  tilePress = { t, x: e.clientX, y: e.clientY };
+  t.classList.add("pressed");
 });
-function showPaintPage(pg, animate) {
-  swatchesEl.classList.toggle("pg2", pg === 2);
-  paintFlip.classList.toggle("pg2", pg === 2);
-  if (!animate) return;
-  swatchesEl.querySelectorAll(`.swatch[data-pg="${pg}"]`).forEach(s => { s.classList.remove("enter"); void s.offsetWidth; s.classList.add("enter"); });
-}
-showPaintPage(PATTERNS[state.color] ? 2 : 1, false);
-paintFlip.addEventListener("pointerdown", () => { showPaintPage(swatchesEl.classList.contains("pg2") ? 1 : 2, true); sfx.pop(); });
-function renderSwatchLocks() {
-  swatchesEl.querySelectorAll(".swatch").forEach(s => {
-    const locked = !owns("color", s.dataset.color);
-    let dot = s.querySelector(".lockDot");
-    if (locked && !dot) { dot = document.createElement("span"); dot.className = "lockDot"; dot.innerHTML = lockIcon; s.appendChild(dot); }
-    if (!locked && dot) dot.remove();
-  });
-}
-document.querySelectorAll(".extraBtn").forEach(btn => {
-  const name = btn.dataset.extra;
-  btn.classList.toggle("on", state.extras[name]);
-  btn.addEventListener("pointerdown", () => {
-    state.extras[name] = !state.extras[name];
-    btn.classList.toggle("on", state.extras[name]);
+stripEl.addEventListener("pointermove", e => {
+  if (tilePress && Math.hypot(e.clientX - tilePress.x, e.clientY - tilePress.y) > 10) cancelPress();
+});
+stripEl.addEventListener("pointercancel", cancelPress);
+stripEl.addEventListener("pointerleave", cancelPress);
+stripEl.addEventListener("pointerup", e => {
+  if (!tilePress) return;
+  const t = tilePress.t; cancelPress();
+  if (e.target.closest(".tile") === t) tapTile(t);
+});
+function tapTile(t) {
+  const kind = t.dataset.kind, id = t.dataset.id;
+  if (kind in TILE_SND) {
+    /* equip (owned or not): the tag / lock flow in renderShop handles a locked pick */
+    state[kind] = id; save(); renderPreview(); TILE_SND[kind]();
+    t.classList.remove("enter", "justSel"); void t.offsetWidth; t.classList.add("justSel");
+  } else if (kind === "extras") {
+    state.extras[id] = !state.extras[id];
     save(); renderPreview();
-    if (name === "horn" && state.extras.horn) sfx.honk(state.body);
-    else if (name === "booster" && state.extras.booster && typeof NEW_EXTRAS_SFX !== "undefined") NEW_EXTRAS_SFX.boosterWhoosh();
+    if (id === "horn" && state.extras.horn) sfx.honk(state.body);
+    else if (id === "booster" && state.extras.booster && typeof NEW_EXTRAS_SFX !== "undefined") NEW_EXTRAS_SFX.boosterWhoosh();
     else sfx.clank();
-  });
-});
-function renderExtrasLocks() {
-  document.querySelectorAll(".extraBtn").forEach(b => {
-    const locked = !owns("extras", b.dataset.extra);
-    let dot = b.querySelector(".lockDot");
-    if (locked && !dot) { dot = document.createElement("span"); dot.className = "lockDot"; dot.innerHTML = lockIcon; b.appendChild(dot); }
-    if (!locked && dot) dot.remove();
-  });
+  } else if (kind === "upg") buyUpgrade(id, t);
+  else if (id === "repair") doRepair();
+  else if (id === "wash") openWash();
 }
 preview.addEventListener("pointerdown", () => { sfx.honk(state.body); renderPreview(); });
 
-/* ---- upgrades + repair ---- */
-function renderUpgrades() {
-  document.querySelectorAll(".upgBtn").forEach(b => {
-    const k = b.dataset.upg, lvl = progress.upgrades[k];
-    const maxed = lvl >= 3;
-    b.querySelector(".pips").innerHTML = [0, 1, 2].map(i => `<i class="${i < lvl ? "on" : ""}"></i>`).join("");
-    b.classList.toggle("maxed", maxed);
-    b.querySelector(".upgPrice").innerHTML = maxed ? "" : starIcon + `<span>${UPG[k].prices[lvl]}</span>`;
-    b.classList.toggle("cant", !maxed && progress.wallet < UPG[k].prices[lvl]);
-  });
-}
-document.querySelectorAll(".upgBtn").forEach(b => b.addEventListener("pointerdown", () => {
-  const k = b.dataset.upg, lvl = progress.upgrades[k];
+/* ---- workbench: upgrades + repair (tiles on the workbench tab; repair also pulses on the right wall) ---- */
+function renderUpgrades() { if (curCat === "work") syncStrip(); }
+function buyUpgrade(k, tile) {
+  const lvl = progress.upgrades[k];
   if (lvl >= 3) { sfx.chime(); return; }   /* already maxed: happy ping */
   const price = UPG[k].prices[lvl];
   if (progress.wallet >= price) {
@@ -3535,16 +3584,17 @@ document.querySelectorAll(".upgBtn").forEach(b => b.addEventListener("pointerdow
     sfx.buy(); confettiBurst(garageScene, 24);
   } else {
     walletDeny();
-    b.classList.remove("deny"); void b.offsetWidth; b.classList.add("deny");
+    if (tile) { tile.classList.remove("deny"); void tile.offsetWidth; tile.classList.add("deny"); }
   }
-}));
+}
 const repairBtn = document.getElementById("repairBtn");
 function renderRepair() {
   const cost = progress.damage * REPAIR_RATE;
   repairBtn.classList.toggle("show", progress.damage > 0);
   if (progress.damage > 0) repairBtn.querySelector(".upgPrice").innerHTML = starIcon + `<span>${cost}</span>`;
+  if (curCat === "work") renderStrip(false);
 }
-repairBtn.addEventListener("pointerdown", () => {
+function doRepair() {
   const cost = progress.damage * REPAIR_RATE;
   if (!progress.damage) return;
   if (progress.wallet >= cost) {
@@ -3555,7 +3605,8 @@ repairBtn.addEventListener("pointerdown", () => {
   } else {
     walletDeny();
   }
-});
+}
+repairBtn.addEventListener("pointerdown", doRepair);
 
 /* ---- magic dice: drumroll shuffle through OWNED parts, land on a surprise ---- */
 const diceBtn = document.getElementById("diceBtn");
@@ -3576,8 +3627,6 @@ diceBtn.addEventListener("pointerdown", () => {
     if (++spins >= 8) {
       clearInterval(diceTimer); diceTimer = null;
       diceBtn.classList.remove("rolling");
-      swatchesEl.querySelectorAll(".swatch").forEach(s => s.classList.toggle("selected", s.dataset.color === state.color));
-      showPaintPage(PATTERNS[state.color] ? 2 : 1, false);
       save(); sfx.tada();
     }
   }, 110);
@@ -3587,15 +3636,19 @@ diceBtn.addEventListener("pointerdown", () => {
 const washBtn = document.getElementById("washBtn");
 const washOverlay = document.getElementById("washOverlay");
 let washProgress = 0;
-function renderWash() { washBtn.classList.toggle("show", !!progress.muddy); }
-washBtn.addEventListener("pointerdown", () => {
+function renderWash() {
+  washBtn.classList.toggle("show", !!progress.muddy);
+  if (curCat === "work") renderStrip(false);
+}
+function openWash() {
   sfx.pop();
   washProgress = 0;
   document.getElementById("washFill").style.width = "0%";
   document.getElementById("washCar").innerHTML = vehicleSVG(state);
   document.getElementById("washCard").classList.remove("rinsing");
   washOverlay.classList.add("show");
-});
+}
+washBtn.addEventListener("pointerdown", openWash);
 washOverlay.addEventListener("pointerdown", e => {
   if (e.target === washOverlay) { washOverlay.classList.remove("show"); sfx.pop(); }
 });
@@ -3633,9 +3686,11 @@ document.getElementById("washCar").addEventListener("pointermove", e => {
   }
 });
 
-/* ---- quiet mode: one wordless toggle, persists ---- */
+/* ---- quiet mode: one wordless toggle in the grown-ups overlay, persists ---- */
 const quietBtn = document.getElementById("quietBtn");
 function renderQuiet() {
+  quietBtn.classList.toggle("on", !!progress.quiet);
+  quietBtn.setAttribute("aria-pressed", progress.quiet ? "true" : "false");
   quietBtn.innerHTML = progress.quiet
     ? `<svg viewBox="0 0 100 100"><path d="M14 40 H32 L52 22 V78 L32 60 H14 Z" fill="#6c757d"/><path d="M78 30 A22 22 0 1 0 92 62 A17 17 0 0 1 78 30 Z" fill="#023047"/></svg>`
     : `<svg viewBox="0 0 100 100"><path d="M14 40 H32 L52 22 V78 L32 60 H14 Z" fill="#023047"/><path d="M62 34 Q74 50 62 66 M72 24 Q90 50 72 76" stroke="#023047" stroke-width="7" fill="none" stroke-linecap="round"/></svg>`;
@@ -3666,23 +3721,16 @@ document.querySelectorAll(".cloud").forEach(c => c.addEventListener("pointerdown
   c.classList.remove("puffed"); void c.offsetWidth; c.classList.add("puffed");
   sfx.pop(); setTimeout(() => sfx.whoosh(), 500);
 }));
-const signEl = document.getElementById("garageSign");
-signEl.innerHTML = "VROOM".split("").map((ch, i) => `<span style="animation-delay:${i * 80}ms">${ch}</span>`).join("");
-signEl.addEventListener("pointerdown", () => {
-  signEl.classList.remove("bouncy"); void signEl.offsetWidth; signEl.classList.add("bouncy");
-  sfx.whee();
-});
 /* the preview's eye blinks when honked; a riding buddy squeaks along */
 preview.addEventListener("pointerdown", () => {
   preview.classList.remove("blink"); void preview.offsetWidth; preview.classList.add("blink");
   if (state.buddy) setTimeout(() => sfx.squeak(), 160);
 });
 
+openTab("body", false);
 renderPreview();
 preview.classList.remove("bounce");
 renderWallets(false);
-renderSwatchLocks();
-renderExtrasLocks();
 renderUpgrades();
 renderRepair();
 renderWash();
@@ -3716,7 +3764,7 @@ function showScene(el) {
   roadScene.classList.remove("celebrating");
   document.querySelectorAll(".confetti, .flyStar, .gagWrap, .dust, .firework").forEach(c => c.remove());
 }
-function showGarage() { bankFreeRun(); showScene(garageScene); renderPreview(); renderWallets(false); renderUpgrades(); renderRepair(); renderWash(); }
+function showGarage() { bankFreeRun(); showScene(garageScene); renderPreview(); renderWallets(false); renderUpgrades(); renderRepair(); renderWash(); syncStrip(); }
 function showMap() { selectedWorld = worldOf(progress.current); showScene(mapScene); renderMap(); renderWallets(false); }
 const albumScene = document.getElementById("album");
 function showAlbum() { showScene(albumScene); renderAlbum(); renderWallets(false); }
