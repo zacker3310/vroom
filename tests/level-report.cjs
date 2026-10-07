@@ -1,4 +1,4 @@
-/* level-report: not a pass/fail suite — builds all 80 levels and prints, per level,
+/* level-report: not a pass/fail suite — builds every level and prints, per level,
    the beat sequence and prop counts so you can eyeball that the levels differ.
    Usage: CHROMIUM=... VROOM_URL=http://localhost:4173/index.html node level-report.cjs [--shots] */
 const pw = require('playwright-core');

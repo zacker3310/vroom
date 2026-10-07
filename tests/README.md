@@ -3,7 +3,7 @@
 Fifteen Playwright regression suites (237 checks) that drive the real game in headless
 Chromium. They are the gate for every change: CI runs them on each push and pull request.
 
-## Run
+## Run everything
 
 ```bash
 npm ci                                   # from the repo root: playwright-core + jsqr (test-only)
@@ -57,3 +57,9 @@ Each suite is a flat script: `check(name, ok, detail)` pushes a result and the s
 with `N/M passed` and a non-zero exit on failure, which is the contract `run-all.cjs` parses.
 Add your check to the suite that owns the area, keep it deterministic (levels are seeded, so
 assert exact values where you can), and update the count in the table above.
+
+## Lint
+
+`node tests/lint.cjs` extracts the inline script and runs ESLint (`eslint.config.js`:
+no-unused-vars, no-undef with browser globals, no-redeclare, no-dupe-keys, no-unreachable, eqeqeq).
+It should report zero findings; `lastBeats` and `eventsFired` are referenced only by the suites.
