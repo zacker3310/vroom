@@ -57,7 +57,7 @@ const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); retu
     return { threw, bounce: titleCar.classList.contains('bounce'), still: document.getElementById('title').classList.contains('active') }; });
   check('car: a tap honks and bounces, stays on the title', !honk.threw && honk.bounce && honk.still, JSON.stringify(honk));
 
-  /* ---- 4. GO -> garage, gift capsule on the wall above the dice (88px, centred on x=1086, top 180) ---- */
+  /* ---- 4. GO -> garage, gift capsule on the wall above the shuffle button (88px, centred on x=1086, top 192: one 16px rhythm with shuffle, map and GO) ---- */
   await tap(page, 'titleGo');
   await page.waitForTimeout(500);
   const garage = await page.evaluate(() => {
@@ -70,7 +70,7 @@ const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); retu
       size: Math.min(g.width, g.height), cx: Math.round((g.left + g.width / 2 - st.left) / s), top: Math.round((g.top - st.top) / s),
       aboveDice: g.bottom < d.top, sameAxis: Math.abs((g.left + g.width / 2) - (d.left + d.width / 2)) < 1, anim };
   });
-  check('GO: lands in the garage; the gift capsule pulses above the dice, 88px, centred on x=1086 at top 180', garage.active === 'garage' && garage.show && garage.size >= 64 && garage.cx === 1086 && garage.top === 180 && garage.aboveDice && garage.sameAxis && garage.anim === 'pulse', JSON.stringify(garage));
+  check('GO: lands in the garage; the gift capsule pulses above the dice, 88px, centred on x=1086 at top 192', garage.active === 'garage' && garage.show && garage.size >= 64 && garage.cx === 1086 && garage.top === 192 && garage.aboveDice && garage.sameAxis && garage.anim === 'pulse', JSON.stringify(garage));
   await page.screenshot({ path: SHOT + 'title-gift.png' });
 
   /* ---- 5. opening the gift: 15..40 stars or a new buddy; the capsule disappears; the day is stamped ---- */
