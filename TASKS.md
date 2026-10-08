@@ -117,12 +117,17 @@
 
 - [x] T20.1: The shuffle button ends the tab row (76px, x 664-740, 28px after the wrench so it reads as a tool, not a tab); the right wall keeps only the daily gift. GO is a glossy green dome with a double ring, bevelled chevron and a press that sinks; the map is a 96px blue card with a folded map, route and pin. Column: gift 192-280, map 392-488, GO 504-684. Tests: upkeep-check column geometry, title-check gift placement.
 
-## v12.9 (2026-10-08, user-directed: "see-through hills, two-decimal times")
+## v12.9 (2026-10-08, user-directed: "jumps and corkscrews and wackier courses like hard turns, go wild")
 
-- [x] T21.1: Solid hills. Every far-hill tile (`WORLD_FAR` and the default) draws with a solid pre-blended fill instead of 0.7 to 0.95 opacity, so the sky no longer shows through and the 520px tiles no longer stack darker bands at their seams. World packs 9 to 12 stripped too.
-- [x] T21.2: Times to two decimals: the HUD run clock, the results card and the ghost gap chip (`+1.25` / `-0.40`); best times are stored to 0.01. HUD time slot widened with tabular numerals; ghost chip 176px at 32px type so `+12.34` fits beside the progress bar. verify.cjs checks the formats; its star-collect check now picks a star with no neighbour inside the collect window.
+- [x] T2.3: Speed-linked mixer drum. The chase-cam mixer's drum (`.drum`) is turned from `tick()` at 40 + 0.95·v degrees a second (a lazy churn parked, about two turns a second flat out) instead of the fixed 2.2 s CSS spin; still under reduced motion. The garage idle putter half shipped with T17.5. course-check.
+- [x] T21: Wild courses. Corkscrews (`TWISTS`, `rollAt`, 2200 long): the road ahead rolls about the vanishing point while the ground, roadside and `#env` sky layers roll the other way, so the world spins around an upright car through a tunnel of striped hoops; stars only inside (a helix laid first), no ramps or arches near one, a swirl sound on entry, reduced motion keeps the hoops and drops the roll. Hard turns (`CURVE.hard`) with red chevron boards on the outside verge and a tire howl at speed. Four new course shapes swapped into every world's order (`corkscrew`, `roller`, from world 3 `switchback` and `zigzag`); finales from world 2 add a twist. Jumps: `rampLaunch` is the one launch rule (the fairness bot calls it too), `megaRamp` (150 high, kick 1.1, launch capped at 740) and `hopChain` (three 45-high kickers) with physics-derived clear zones. New suite course-check (21). 23 suites, 392/392.
+- [x] T21.1: Re-review fixes. Ramp beats are measured by what they place: `tryRamp` takes back any that would touch down past `landLimit` (L13, L22, L28, L34, L114 had ramps past the flags, one finish on a slope, one in the air) and retries a plain ramp; when none fits, the road home is star trails. The forced-ramp clash check uses the real launch x (after the 350 run-up), the runway floor can no longer push the only jump into a twist, twist bookkeeping is restored exactly on a take-back. Filler barrels keep the last 300 of a ramp run-up and the 300 before a same-lane star clear. World 1's corkscrew moves to level 9 (level 7 is too short for a twist and a jump). course-check 22. 23 suites, 393/393.
+
+## v12.10 (2026-10-08, user-directed: "see-through hills, two-decimal times")
+
+- [x] T22.1: Solid hills. Every far-hill tile (`WORLD_FAR` and the default) draws with a solid pre-blended fill instead of 0.7 to 0.95 opacity, so the sky no longer shows through and the 520px tiles no longer stack darker bands at their seams. World packs 9 to 12 stripped too.
+- [x] T22.2: Times to two decimals: the HUD run clock, the results card and the ghost gap chip (`+1.25` / `-0.40`); best times are stored to 0.01. HUD time slot widened with tabular numerals; ghost chip 176px at 32px type so `+12.34` fits beside the progress bar. verify.cjs checks the formats; its star-collect check now picks a star with no neighbour inside the collect window.
 
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
-- [ ] T2.3: Speed-linked mixer drum spin and idle engine putter in garage.

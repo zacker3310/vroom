@@ -135,6 +135,31 @@ and the finale `tour` (sweeper, chicane, hairpin, esses back to back). Later lev
 world bend 15% harder (`k·(0.85 + 0.3·i/9)`). Bends stay out of the first 950 and last 1020
 units.
 
+v12.9 added four wilder shapes, two or three per world's order: `switchback` (alternating
+hard turns), `zigzag` (sharp kinks on a straight), `corkscrew` (one twist, two rolling opposite
+ways from world 3) and `roller` (a train of big short hills whatever the world's own hill
+setting); finales from world 2 add a twist to their `tour`. A **hard turn** is a stretch at
+`CURVE.hard = 0.00075` (anything at `HARD_K` or sharper): `addChevrons()` stands red boards with
+white chevrons on its outside verge, splitting the road at the midpoint between close kinks so
+every board stands nearest its own turn, and the tires squeal through it above 450.
+
+### Corkscrews
+
+`TWISTS` is a list of `{x0, x1, dir}` (`TWIST_LEN = 2200`); `rollAt(x)` is the road's roll,
+`dir·2π·smootherstep`. The camera rides the road, so a roll about the view axis is a screen
+rotation about the vanishing point: `proj()` and `placeSprite()` turn the road and everything on
+it by `rollAt(x) − rollAt(car)`, while the ground plane, the roadside scenery and the `#env`
+sky layers (sun, stars, clouds, skyline; weather stays outside so it still falls over the road) turn by `−rollAt(car)`. The car stays upright
+and the world spins around it, upside down at the midpoint. `drawHoops()` rings the twist with
+striped hoops every 150 units (only the arc above the deck). Twists carry stars only: the helix
+(three stars a lane, `[1, 2, 1, 0]`) is laid before any formation, `put` and `spotFor` refuse
+blockers within 150, overhead arches stay 700 away, and a ramp beat whose run-up-to-touchdown
+would cross one is taken back whole (`tryRamp`) and flown after it. `tryRamp` also takes back any ramp beat
+that would touch down past `landLimit` (the last 600 before the flags, or a finale's star shower), retrying
+it as a plain ramp; when not even that fits, the rest of the road is star trails, never new hazards.
+World 1's corkscrew is level 9: a shorter road cannot hold a 2200 twist and a jump. Reduced motion keeps the
+hoops and drops the roll (`rollOK`).
+
 ### Hills
 
 `HILLS` is a list of `{x0, x1, amp}`; `elevAt(x)` sums `amp·(1 − cos(2π·t))/2` over the hills
@@ -168,7 +193,11 @@ a tire tile (1 star a unit, the whole set). `finishLevel` adds the shine bonus, 
 collected stars rounded up, when the truck crosses the line with no mud and zero damage. Jumps use the world's gravity: 1500 on earth, 640 on the
 moon, 1100 in the deep sea, 900 in the sky kingdom; `flightLen(w)` interpolates ramp
 flight distance from gravity (950 units on earth, 1850 on the moon) so the level generator
-can keep landings clean. Collisions run in `tick()`: every live prop's `PROP_HIT[type](p, d)`
+can keep landings clean. A ramp is `{x, w, h, tail}` plus an optional `kick`; `rampLaunch(rp, v)`
+is the one launch rule (leave the lip at `h`, rising at `kick·v`, default 95 and 0.9) and the
+fairness bot calls it too. `RAMP_KIND` adds the mega ramp (340 long, 150 high, kick 1.1, launch
+speed capped at 740 so an upgraded engine stays on screen) and the hop kicker (150 / 45 / 0.55);
+their clear zones come from the physics (`rampFlight`, `kindTail`) rather than the table. Collisions run in `tick()`: every live prop's `PROP_HIT[type](p, d)`
 handler is called with `d = carX − p.x` and decides its own hit window (typically a few
 dozen units around the car and within 0.65 lanes; `CAR_HIT_Z = 100` puts the contact point
 up by the hood rather than the bumper). Stars chime up a combo ladder, cones tumble,
@@ -201,10 +230,10 @@ registers one; `fn(b, x)` places props from `x` using the beat context `b` (safe
 `put`, `star`, `high`, `capsule`; lane helpers `inside`/`outside` read `curvAt` so star trails
 hug the inside of a bend and obstacles crowd the outside; `pickLane` gives the middle lane a
 30% share so a toddler who never steers still finds stars) and returns where it ended.
-38 beats ship: 8 star beats (`trailStraight`, `snake`, `rainbow`, `arc`, `doubleRow`,
+40 beats ship: 8 star beats (`trailStraight`, `snake`, `rainbow`, `arc`, `doubleRow`,
 `starGate`, `starShower`, `stairway`), 6 obstacle beats (`slalom`, `gate`, `closingWalls`,
 `coneForest`, `bowling`, `minefield`), 4 rhythm beats (`capsuleAlley`, `puddleParty`,
-`oilSlalom`, `breather`), 4 ramp beats (`ramp`, `rampArc`, `rampStairway`, `rampShower`) and
+`oilSlalom`, `breather`), 6 ramp beats (`ramp`, `rampArc`, `rampStairway`, `rampShower`, `megaRamp`, `hopChain`) and
 two per world for worlds 5-12 (`snowmanChoir`, `icePatch`, `cactusCanyon`, `tumbleweeds`,
 `crabCrossing`, `sandcastles`, `craterField`, `alienWelcome`, `lavaHop`, `geyserRow`,
 `gumdropGarden`, `donutRoll`, `jellyBloom`, `crabCourt`, `stormFront`, `kiteFestival`).
@@ -356,7 +385,7 @@ stray toddler tap does nothing. Only the style and script blocks are fingerprint
 
 ## Tests
 
-Twenty-two Playwright suites (368 checks) in `tests/`, driving the real page in headless
+Twenty-three Playwright suites (393 checks) in `tests/`, driving the real page in headless
 Chromium through `playwright-core`; `tests/run-all.cjs` is the runner behind `npm test` and
 `.github/workflows/test.yml` runs it in CI. See [tests/README.md](../tests/README.md) for the
 map of what each suite owns.

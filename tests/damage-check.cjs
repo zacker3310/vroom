@@ -78,7 +78,9 @@ function check(name, ok, detail) {
   /* ---- oil: spin-out, no damage ---- */
   const oil = await page.evaluate(async () => {
     let found = null;
-    for (let n = 5; n <= 14 && !found; n++) { buildLevel(n); found = props.find(p => p.type === 'oil'); }
+    /* an oil slick with a clear run-up in its lane, so nothing else (a puddle, a barrel) is hit on the way in */
+    const clearRunUp = q => !props.some(o => o !== q && o.lane === q.lane && BLOCKER_T(o.type) && o.x < q.x && q.x - o.x < 400);
+    for (let n = 5; n <= 14 && !found; n++) { buildLevel(n); found = props.find(p => p.type === 'oil' && clearRunUp(p)); }
     if (!found) return { skip: true, note: 'no oil in L5-14' };
     pos = 0; v = 0; progress.damage = 0; runDamage = 0;
     targetLane = laneVis = found.lane;
@@ -92,7 +94,9 @@ function check(name, ok, detail) {
   /* ---- tnt: boom = 2 damage + stop ---- */
   const tnt = await page.evaluate(async () => {
     let found = null;
-    for (let n = 12; n <= 24 && !found; n++) { buildLevel(n); found = props.find(p => p.type === 'tnt'); }
+    /* a tnt with a clear run-up in its lane, so the only hit is the boom */
+    const clearRunUp = q => !props.some(o => o !== q && o.lane === q.lane && BLOCKER_T(o.type) && o.x < q.x && q.x - o.x < 400);
+    for (let n = 12; n <= 24 && !found; n++) { buildLevel(n); found = props.find(p => p.type === 'tnt' && clearRunUp(p)); }
     if (!found) return { skip: true, note: 'no tnt in L12-24' };
     pos = 0; v = 0; progress.damage = 0; runDamage = 0; renderHudDamage(false);
     targetLane = laneVis = found.lane;

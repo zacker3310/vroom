@@ -94,6 +94,9 @@ const TODAY = '2026-10-08';
   await page.screenshot({ path: SHOT + 'ev-road-dino.png' });
   const bump = await page.evaluate(async total0 => {
     progress.damage = 0; runDamage = 0;
+    /* the level only promises an empty road before 1000; this drive runs to ~1450, so the level's own
+       middle-lane hazards out there are taken off the road: the check is about the dino, not them */
+    for (const p of props) if (p.type !== 'napdino' && p.lane === 1 && BLOCKER_T(p.type) && p.x < 1800) p.done = true;
     gasKey = true;
     let minV = Infinity, woke = -1;
     const t0 = performance.now();

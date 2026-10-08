@@ -38,10 +38,24 @@ const EXE = process.env.CHROMIUM || pw.chromium.executablePath();
   await road(103, 'sea.png', 2, 2400);
   await road(114, 'sky.png', 1, 2400);
   await road(36, 'rain.png', 0, 2200);
+  /* the wild courses (v12.9): parked at a set spot, so the frame is the same every run */
+  const spot = async (file, fn) => {
+    await page.evaluate(() => { showGarage(); progress.damage = 0; progress.muddy = false; });   /* a spotless car: earlier drives may have dinged it */
+    await page.waitForTimeout(300);
+    await page.evaluate(fn);
+    await page.waitForTimeout(1100);   /* the scene iris has opened */
+    await page.screenshot({ path: OUT + file });
+  };
+  await spot('corkscrew.png', () => { drive(9); const t = TWISTS[0]; pos = t.x0 + (t.x1 - t.x0) * 0.4 - CAR_SCREEN_X + CAR_HIT_Z; v = 0; });
+  await spot('hardturn.png', () => { drive(56); const c = COURSE.find(c => c.hard); pos = c.x0 - CAR_SCREEN_X - 420; v = 0; });
+  await spot('megaramp.png', () => {
+    let n = 0; for (let k = 6; k <= 40 && !n; k++) { buildLevel(k); if (RAMPS.some(r => r.kick === 1.1)) n = k; }
+    drive(n); const rp = RAMPS.find(r => r.kick === 1.1); pos = rp.x - CAR_SCREEN_X - 760; v = 0;   /* the big red one dead ahead, its star arc rising */
+  });
   /* results card: a shiny S-tier finish */
   await page.evaluate(async () => { showGarage(); progress.muddy = false; progress.damage = 0; drive(12); await new Promise(r => setTimeout(r, 200)); runStars = 9; runDamage = 0; renderHudStars(false); pos = LEVEL_LEN - 350; gasKey = true; });
   await page.waitForTimeout(3600); await page.evaluate(() => { gasKey = false; });
   await page.screenshot({ path: OUT + 'celebrate.png' });
-  console.log('wrote 8 screenshots to', OUT, errs.length ? '\nerrors: ' + errs.join('\n') : '');
+  console.log('wrote 11 screenshots to', OUT, errs.length ? '\nerrors: ' + errs.join('\n') : '');
   await b.close();
 })();

@@ -16,7 +16,7 @@
   <a href="https://github.com/zacker3310/vroom/actions/workflows/test.yml"><img src="https://github.com/zacker3310/vroom/actions/workflows/test.yml/badge.svg" alt="tests"></a>
   <img src="https://img.shields.io/badge/dependencies-0-74c465" alt="zero dependencies">
   <img src="https://img.shields.io/badge/one%20file-index.html-ffd66e" alt="one file">
-  <img src="https://img.shields.io/badge/version-12.8.0-6fc0df" alt="version 12.8.0">
+  <img src="https://img.shields.io/badge/version-12.9.0-6fc0df" alt="version 12.9.0">
 </p>
 
 ![The garage: a pirate-ship car with a fox buddy, the body strip open below](docs/garage.png)
@@ -25,8 +25,8 @@
 
 - **Build it, then drive it.** 23 bodies, 14 wheel sets, 24 paints (one of them a secret), 8 flank decals, 12 bolt-on extras, a race number you type on a keypad, and 10 buddies, every one of them drawn in code. The exact car you build in the garage is the car you see from behind on the road, party hat and all.
 - **Twelve worlds, 120 levels.** Construction, sunset, night, rain, snow, desert, beach, space, volcano, candy land, deep sea and sky kingdom. Each is a place with its own roadside, weather, hazards, hills, jingle, ambience and star-chime scale.
-- **A road that bends and rolls.** An OutRun-style chase cam with eased curvature stretches and cosine hills, three lanes, a gas pedal, a brake pedal, and steering by swiping the road.
-- **Levels with a signature.** Every level is sequenced from a library of 38 formations so level 7 feels like "the snake-trail level" and level 8 like "the barrel-bowling level". Two headless bots drive all of them in the test suite to prove each is fair.
+- **A road that bends and rolls.** An OutRun-style chase cam with eased curvature stretches and cosine hills, three lanes, a gas pedal, a brake pedal, and steering by swiping the road. Corkscrews roll the whole world around the car through a tunnel of striped hoops, hard turns come with red chevron boards and howling tires, roller levels stack big hills back to back, and the jumps run from little green hop kickers to a big red mega ramp.
+- **Levels with a signature.** Every level is sequenced from a library of 40 formations so level 7 feels like "the snake-trail level" and level 8 like "the barrel-bowling level". Two headless bots drive all of them in the test suite to prove each is fair.
 - **Race yourself.** Your fastest run on every level rides along as a translucent ghost next time, with a gap chip and a bigger medal when you beat it.
 - **Something new every day.** A gift capsule in the garage once a day, and three surprises on the map seeded from the date: a sleeping dino to honk awake, a rainbow day with a secret paint, a weather day. The garage car idles, blinks and yawns; tap the hood or a wheel.
 - **Keep it running.** Fuel burns and tires wear as you drive, mud sticks until you wash it, dings stay until you fix them. A dry tank crawls and bald tires slide, but nothing ever stops you, and crossing the line spotless pays a shine bonus.
@@ -43,7 +43,12 @@
 | Worlds | |
 |---|---|
 | ![Deep Sea: a glass tunnel on the seabed under a whale-bone arch, dolphins overhead](docs/sea.png) | ![Sky Kingdom: the cloud causeway with floating castles under a rainbow](docs/sky.png) |
-| ![Rain world: a rainbow over the city after the lightning, driving under a sign gantry](docs/rain.png) | ![The world map with the day's surprises: a sleeping dino on one level, a rainbow, a weather badge on a world tab](docs/map.png) |
+| ![Rain world: a corkscrew of hoops waiting under a rainbow over the city](docs/rain.png) | ![The world map with the day's surprises: a sleeping dino on one level, a rainbow, a weather badge on a world tab](docs/map.png) |
+
+| Wild roads | |
+|---|---|
+| ![A corkscrew: the world rolls around the car through a tunnel of red and yellow hoops](docs/corkscrew.png) | ![A desert switchback: red chevron boards on the outside of a hard turn](docs/hardturn.png) |
+| ![The big red mega ramp dead ahead under the construction gantry](docs/megaramp.png) | |
 
 | Album | Results |
 |---|---|
@@ -109,7 +114,7 @@ python3 -m http.server 4173     # then open http://localhost:4173/
 
 There is no build. Edit `index.html`, reload.
 
-The test suite is 22 Playwright suites (372 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the race number, the title screen and daily gift, the ghost race, garage life, the map surprises, the update gate, and the fairness bots that drive all 120 levels.
+The test suite is 23 Playwright suites (394 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the race number, the title screen and daily gift, the ghost race, garage life, the map surprises, the update gate, and the fairness bots that drive all 120 levels.
 
 ```bash
 npm ci                                   # playwright-core + jsqr, test-only
