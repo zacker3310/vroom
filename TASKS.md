@@ -140,6 +140,8 @@
 
 - [x] T24.1: Corkscrew as a car barrel-roll. The road, ground, sky and sprites no longer move at all (`rollPt`, `rollNear`, `groundRoll` and the twist branches in `proj` / `placeSprite` / `drawRoad` are gone); `tick` rotates `#carWrap` by `rollAt(carX)` with a 30 px lift through the top, the baked contact shadow fades while rolling and the canvas footprint stays on the road. Screenshot sequences along the twist on levels 9, 17 (opposite roll) and 28 (two twists, night) in three lanes; course-check asserts a flat world, an upside-down car mid-twist and a level car after. 23 suites, 394/394.
 
+- [x] T24.2: Hills hide what stands behind them. `buildOcc` keeps a per-frame running minimum of the ground's screen y by depth; `placeSprite` clips sprites (props, scenery, the ghost) at the crest line in front of them, `occClip` does the same for ramps, the finish stripe and the hoops. Houses, silos, stars and ramps no longer float over the face of a hill. course-check 23. 23 suites, 395/395.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

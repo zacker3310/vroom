@@ -179,7 +179,12 @@ the sky and a dip hides it. World amplitudes: 0 for construction, rain and beach
 `drawRoad(carX)` repaints `#roadCanvas` (2x backing store) every frame: sky haze at the
 horizon, grass bands alternating every `SEG = 160` units, asphalt, rumble strips, lane
 dashes, sloped ramps, the checkered finish stripe and the ground shadow under a jumping car,
-all as `quad()`s of four `proj()`ed corners with the world's `ROAD_PAL[w]` palette.
+all as `quad()`s of four `proj()`ed corners with the world's `ROAD_PAL[w]` palette. The road paints back to
+front, so a crest hides the road behind it on its own; everything else is clipped against `OCC`, a per-frame
+running minimum of the ground's screen y by depth (`buildOcc`, `occAt(z)`): `placeSprite` cuts a sprite at the
+crest line with a `clip-path` in its own pre-transform pixels, and ramps, the finish stripe and the hoops draw
+inside `occClip` (a canvas clip rect). A thing on the crest itself is never cut: `OCC[i]` only counts ground
+strictly nearer than its depth.
 
 ## Physics
 

@@ -77,6 +77,26 @@ function check(name, ok, detail) {
   const rollers = scan.filter(r => r.shape === 'roller');
   check('roller: nine roller levels, each a train of >= 3 big hills, even in the flat worlds (construction, rain, beach)',
     rollers.length === 9 && rollers.every(r => r.bigHills >= 3), rollers.map(r => `L${r.n}:${r.bigHills}`).join(' '));
+  /* a crest hides what stands behind it (13.2.1): on the run-up to the first big hill of a roller level, every sprite
+     whose ground point projects below the crest line is clipped at it, nothing nearer than the crest is clipped at all */
+  const occ = await page.evaluate(async () => {
+    drive(18);
+    const h = HILLS[0];
+    pos = h.x0 - (h.x1 - h.x0) * 0.15 - CAR_SCREEN_X; v = 0;
+    await new Promise(r => setTimeout(r, 200));
+    const crestX = (h.x0 + h.x1) / 2, carX = pos + CAR_SCREEN_X - CAR_HIT_Z;
+    const vis = props.concat(scenery).filter(p => p.vis);
+    const behind = vis.filter(p => p.x > crestX + 60 && p.x < carX + DRAW_FAR), front = vis.filter(p => p.x < crestX - 60);
+    const cut = behind.filter(p => p.wrap.style.clipPath), cutFront = front.filter(p => p.wrap.style.clipPath);
+    /* things whose ground point projects below the crest line (the far ones near the horizon show above it) */
+    const gy = p => { const z = p.x - carX; return HORIZON + (CAM_H + camElev - elevAt(p.x) - p.h) * CAM_D / (z + CAM_D); };
+    const low = behind.filter(p => gy(p) > occAt(p.x - carX) + 1.5);
+    const lowCut = low.filter(p => p.wrap.style.clipPath);
+    return { amp: h.amp, behind: behind.length, cut: cut.length, low: low.length, lowCut: lowCut.length, front: front.length, cutFront: cutFront.length, occCrest: occAt(crestX - carX), occNear: occAt(200) };
+  });
+  await page.screenshot({ path: SHOT + 'course-hill-occlusion.png' });
+  check('hills: things on the ground behind a crest are clipped at the crest line, nothing in front of it is',
+    occ.amp > 150 && occ.low >= 3 && occ.lowCut === occ.low && occ.front >= 1 && occ.cutFront === 0 && occ.occCrest < occ.occNear, JSON.stringify(occ));
   const kinds = scan.flatMap(r => r.kinds);
   const hopRuns = scan.filter(r => r.kinds.join(',').includes('hop,hop,hop'));
   check('jumps: mega ramps and three-kicker hop chains appear across the 120 levels, standard ramps still lead (a chain counts once)',

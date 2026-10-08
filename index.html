@@ -1710,7 +1710,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.2.0";
+const APP_VERSION = "13.2.1";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -6806,6 +6806,9 @@ function placeSprite(p, carX) {
   const sx = 600 + (p.lx + offAt(z) - camX) * s;
   const sy = HORIZON + (CAM_H + camElev - elevAt(p.x) - p.h) * s;
   p.wrap.style.transform = `translate(${sx.toFixed(1)}px,${sy.toFixed(1)}px) scale(${(s * p.k).toFixed(4)})`;
+  /* behind a crest: cut the sprite at the crest line (in its own, pre-transform pixels; its anchor is its ground point) */
+  const top = occAt(z), ly = sy - top > 1.5 ? ((top - sy) / (s * p.k)).toFixed(1) : "";
+  if (ly !== p.cut) { p.cut = ly; p.wrap.style.clipPath = ly === "" ? "" : `polygon(-4000px -6000px, 4000px -6000px, 4000px ${ly}px, -4000px ${ly}px)`; }
   /* nearer = higher; the car sits at depth 10. Something the car just hit or grabbed
      pops out over it (it happens up by the hood, which the body otherwise hides) */
   const zi = (p.done && !FLAT_PROPS.has(p.type) ? 25000 : 20000) - Math.round(z);
@@ -6816,6 +6819,28 @@ function placeSprite(p, carX) {
 
 /* ---- the ground plane: grass bands, road, rumble strips, lane dashes, ramps, finish ---- */
 const SEG = 160;
+/* ---- hill occlusion: a crest hides what stands behind it. OCC[i] is the lowest screen y (the highest
+   point) the ground reaches anywhere nearer than z = DRAW_NEAR + i * OCC_STEP, a running minimum
+   rebuilt every frame. Anything at depth z is only visible above occAt(z): the road paints itself
+   back to front so it needs nothing, but sprites, ramps, the finish stripe and the hoops are clipped
+   to it (13.2.1: houses, stars and ramps used to float over the face of the hill in front of them). ---- */
+const OCC_STEP = 40, OCC_N = Math.ceil((DRAW_FAR + 1200 - DRAW_NEAR) / OCC_STEP) + 2, OCC = new Float64Array(OCC_N);
+function buildOcc() {
+  let m = Infinity;
+  for (let i = 0; i < OCC_N; i++) {
+    const z = DRAW_NEAR + i * OCC_STEP;
+    OCC[i] = m;   /* strictly nearer ground only: a thing on the crest itself is never cut by that crest */
+    const y = HORIZON + (CAM_H + camElev - elevAt(curCarX + z)) * CAM_D / (z + CAM_D);
+    if (y < m) m = y;
+  }
+}
+const occAt = z => OCC[Math.min(OCC_N - 1, Math.max(0, Math.floor((z - DRAW_NEAR) / OCC_STEP)))];
+/* run a canvas draw clipped to what a crest in front of depth z leaves visible */
+function occClip(c, z, draw) {
+  const top = occAt(z);
+  if (top > 700) { draw(); return; }
+  c.save(); c.beginPath(); c.rect(0, 0, 1200, top); c.clip(); draw(); c.restore();
+}
 function proj(z, lx, h) {
   const s = CAM_D / (z + CAM_D);
   return [600 + (lx + offAt(z) - camX) * s, HORIZON + (CAM_H + camElev - elevAt(curCarX + z) - (h || 0)) * s, s];
@@ -6838,16 +6863,18 @@ function drawHoops(c, carX) {
       c.globalAlpha = fade;
       c.lineWidth = Math.max(1.5, 30 * s);
       const SEGS = 8, a0 = -HOOP_A, a1 = Math.PI + HOOP_A;
-      for (let j = 0; j < SEGS; j++) {
-        c.strokeStyle = j % 2 ? "#ffd60a" : roadPal.rumA;
-        c.beginPath();
-        for (let q = 0; q <= 4; q++) {
-          const f = a0 + (a1 - a0) * (j + q / 4) / SEGS;
-          const pt = proj(z, Math.cos(f) * HOOP_R, HOOP_C + Math.sin(f) * HOOP_R);
-          q ? c.lineTo(pt[0], pt[1]) : c.moveTo(pt[0], pt[1]);
+      occClip(c, z, () => {
+        for (let j = 0; j < SEGS; j++) {
+          c.strokeStyle = j % 2 ? "#ffd60a" : roadPal.rumA;
+          c.beginPath();
+          for (let q = 0; q <= 4; q++) {
+            const f = a0 + (a1 - a0) * (j + q / 4) / SEGS;
+            const pt = proj(z, Math.cos(f) * HOOP_R, HOOP_C + Math.sin(f) * HOOP_R);
+            q ? c.lineTo(pt[0], pt[1]) : c.moveTo(pt[0], pt[1]);
+          }
+          c.stroke();
         }
-        c.stroke();
-      }
+      });
     }
   }
   c.globalAlpha = 1;
@@ -6881,25 +6908,27 @@ function drawRoad(carX) {
   /* finish line: a checkered band across the road */
   if (!freeMode) {
     const zf = LEVEL_LEN - carX;
-    if (zf > DRAW_NEAR && zf < DRAW_FAR) {
+    if (zf > DRAW_NEAR && zf < DRAW_FAR) occClip(c, zf, () => {
       for (let r = 0; r < 2; r++) for (let col = 0; col < 12; col++) {
         const l0 = -ROAD_HALF + col * (ROAD_HALF / 6);
         quad(c, Math.max(DRAW_NEAR, zf + r * 30), zf + r * 30 + 30, l0, l0 + ROAD_HALF / 6, (r + col) % 2 ? "#fff" : "#212529");
       }
-    }
+    });
   }
   /* ramps: a sloped deck up to the lip, chevrons painted on */
   for (const rp of RAMPS) {
     const z0 = rp.x - carX, z1 = z0 + rp.w;
     if (z1 < DRAW_NEAR || z0 > DRAW_FAR) continue;
     const zz0 = Math.max(DRAW_NEAR, z0), hh0 = (zz0 - z0) / rp.w * rp.h;
-    quad(c, zz0, z1, -ROAD_HALF, ROAD_HALF, rp.edge || "#b08968", hh0, rp.h);
-    quad(c, zz0, z1, -ROAD_HALF + 10, ROAD_HALF - 10, rp.deck || "#e9c46a", hh0, rp.h);
-    for (const f of [0.3, 0.6, 0.9]) {
-      const za = z0 + rp.w * f - 14, zb = za + 14;
-      if (za < zz0) continue;
-      quad(c, za, zb, -ROAD_HALF + 30, ROAD_HALF - 30, rp.chev || "#e76f51", rp.h * (za - z0) / rp.w, rp.h * (zb - z0) / rp.w);
-    }
+    occClip(c, zz0, () => {
+      quad(c, zz0, z1, -ROAD_HALF, ROAD_HALF, rp.edge || "#b08968", hh0, rp.h);
+      quad(c, zz0, z1, -ROAD_HALF + 10, ROAD_HALF - 10, rp.deck || "#e9c46a", hh0, rp.h);
+      for (const f of [0.3, 0.6, 0.9]) {
+        const za = z0 + rp.w * f - 14, zb = za + 14;
+        if (za < zz0) continue;
+        quad(c, za, zb, -ROAD_HALF + 30, ROAD_HALF - 30, rp.chev || "#e76f51", rp.h * (za - z0) / rp.w, rp.h * (zb - z0) / rp.w);
+      }
+    });
   }
   drawHoops(c, carX);
   /* horizon haze melts the far road into the sky */
@@ -6919,6 +6948,7 @@ function renderWorld() {
   twistLive = rollOK && inTwist(carX);
   rollCar = twistLive ? rollAt(carX) % (Math.PI * 2) : 0;
   buildOffsets(carX);
+  buildOcc();
   drawRoad(carX);
   for (const p of props) placeSprite(p, carX);
   for (const p of scenery) placeSprite(p, carX);
