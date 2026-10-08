@@ -197,13 +197,21 @@ function check(name, ok, detail) {
     const b = props.find(p => p.type === 'barrel' || p.type === 'rock');
     if (!b) return { skip: true };
     progress.damage = 0; runDamage = 0;
+    armorRoll = () => 0;   /* force the shield to hold for this hit */
     targetLane = laneVis = b.lane;
     pos = b.x - 300 - 150; gasKey = true;
     await new Promise(r => setTimeout(r, 650));
     gasKey = false;
-    return { hit: b.done, damage: progress.damage, armorLvl: progress.upgrades.armor };
+    const held = { hit: b.done, damage: progress.damage, armorLvl: progress.upgrades.armor, flash: !!carWrap.querySelector('svg.shieldHit') };
+    /* the shield is not perfect: a miss lets the point through; odds are 50 / 65 / 80% per pip; a TNT (2) can be half-blocked */
+    armorRoll = () => 0.99; applyDamage(1);
+    const missed = progress.damage;
+    let seq = [0.1, 0.9]; armorRoll = () => seq.shift(); applyDamage(2);
+    const half = progress.damage;
+    armorRoll = () => Math.random();
+    return { held, missed, half, odds: ARMOR_BLOCK.join(',') };
   });
-  check('upgrade: armor L1 soaks barrel damage', armor.skip || (armor.hit && armor.damage === 0 && armor.armorLvl === 1), JSON.stringify(armor));
+  check('upgrade: armor L1 can hold a barrel (ping + blue flash) but is not perfect: a miss lands, a TNT can be half-blocked, odds 50/65/80', armor.skip || (armor.held.hit && armor.held.damage === 0 && armor.held.armorLvl === 1 && armor.held.flash && armor.missed === 1 && armor.half === 2 && armor.odds === '0,0.5,0.65,0.8'), JSON.stringify(armor));
 
   /* upgrades persist */
   await page.reload();

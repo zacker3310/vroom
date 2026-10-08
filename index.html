@@ -378,6 +378,9 @@
   .puddle.splashing .splash { opacity: 1; }
   /* a bonked barrel/rock hops off the road instead of sitting inside the car */
   .prop.hit { animation: propAway .7s ease forwards; }
+  /* the shield catching a hit: a quick blue bloom over the car */
+  #carWrap svg.shieldHit { animation: shieldHit .45s ease; }
+  @keyframes shieldHit { 0% { filter: drop-shadow(0 0 0 #4cc9f0); } 30% { filter: drop-shadow(0 0 18px #4cc9f0) brightness(1.25); } 100% { filter: drop-shadow(0 0 0 #4cc9f0); } }
   @keyframes propAway {
     30% { transform: translate(46px, -120px) rotate(140deg); opacity: 1; }
     100% { transform: translate(110px, 60px) rotate(330deg); opacity: 0; }
@@ -1688,7 +1691,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "12.6.0";
+const APP_VERSION = "12.6.1";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -1745,7 +1748,7 @@ function owns(kind, id) { return (priceOf(kind, id) === 0 && !isSecret(kind, id)
 /* upgrade tracks: 3 levels each; repair costs 2 stars per damage point */
 const UPG = {
   engine: { prices: [20, 40, 80] },   /* +80 top speed per level */
-  armor:  { prices: [20, 40, 80] },   /* soaks 1 damage per hit per level */
+  armor:  { prices: [20, 40, 80] },   /* each pip raises the per-point block chance: 50 / 65 / 80% (ARMOR_BLOCK) */
   magnet: { prices: [15, 30, 60] }    /* wider star pull per level */
 };
 const MAX_DAMAGE = 9, REPAIR_RATE = 2;
@@ -7364,9 +7367,16 @@ function renderHudUpkeep(pop) {
   hudUpkeep.classList.toggle("down", fLow && !tLow);
   if (pop) { restartAnim(hudFuel, "pop"); restartAnim(hudTires, "pop"); restartAnim(hudUpkeep, "pop"); }
 }
+/* the shield is good, not perfect (v12.6): each pip raises the chance that a point of damage bounces off.
+   armorRoll is a seam the suites replace to force a block or a miss. */
+const ARMOR_BLOCK = [0, 0.5, 0.65, 0.8];
+let armorRoll = () => Math.random();
 function applyDamage(n) {
-  const soaked = Math.max(0, n - progress.upgrades.armor);
-  if (!soaked) { sfx.clank(); return; }   /* the shield takes it — ping, no harm */
+  const block = ARMOR_BLOCK[progress.upgrades.armor] || 0;
+  let soaked = 0;
+  for (let i = 0; i < n; i++) if (armorRoll() >= block) soaked++;
+  if (soaked < n) { sfx.clank(); shieldFlash(); }   /* the shield took some of it: ping + blue flash */
+  if (!soaked) return;
   progress.damage = Math.min(MAX_DAMAGE, progress.damage + soaked);
   progress.tread = Math.max(0, progress.tread - HIT_TREAD * soaked);   /* a hard hit scuffs the tires too */
   runDamage += soaked;
@@ -7376,6 +7386,10 @@ function applyDamage(n) {
   updateDamageVisuals();
   renderHudDamage(true);
   renderHudUpkeep(true);
+}
+function shieldFlash() {
+  const svg = carWrap.querySelector("svg");
+  if (svg) restartAnim(svg, "shieldHit");
 }
 function updateDamageVisuals() {
   for (const [cls, min] of [["dmgScuff", 1], ["dmgCrack", 3], ["dmgSmoke", 5]]) {

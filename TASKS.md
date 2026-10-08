@@ -105,6 +105,7 @@
 
 - [x] T18.1: No tilt. The chase-cam car transform is translate + squat only; the skewX toward the vanishing point and the lane/bend bank are gone.
 - [x] T18.2: 3D lighting. `partSVG` layers shared gradient overlays (`V3D_DEFS`) on every box/cylinder/hull face: top sheen, side fall-off, back-face ambient occlusion with a bevel hairline, tire highlight/contact band; `vehicleRearSVG` draws a blurred footprint shadow under wheeled bodies. Overlays, so pattern paints are untouched.
+- [x] T18.4: Imperfect armor. The shield rolls per point of damage (block chance 50 / 65 / 80% by pip, `ARMOR_BLOCK`) instead of soaking a flat point per pip; a held point pings with a blue bloom on the car, a miss crunches as before; `armorRoll` is the test seam.
 - [x] T18.3: Swipe steering. The slider is gone; a swipe anywhere on the road changes lanes (70 px per lane, long swipes walk several). A lane-dot pill bottom-left shows the lane; two breathing chevrons beside the car hint the swipe on levels 1-2 until the first steer. verify.cjs covers a right swipe and a two-lane left swipe. 22 suites, 368/368.
 
 ## Backlog (v2 candidates, from kid-testing)

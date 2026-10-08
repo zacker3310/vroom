@@ -115,7 +115,7 @@ function check(name, ok, detail) {
   const scuff = await page.evaluate(() => {
     progress.tread = 8; progress.damage = 0; progress.upgrades.armor = 0; runDamage = 0;
     applyDamage(1); const a = +progress.tread.toFixed(4);
-    progress.upgrades.armor = 1; applyDamage(1); const b = +progress.tread.toFixed(4);
+    progress.upgrades.armor = 1; armorRoll = () => 0; applyDamage(1); const b = +progress.tread.toFixed(4); armorRoll = () => Math.random();
     progress.upgrades.armor = 0; progress.damage = 0; runDamage = 0; updateDamageVisuals(); renderHudDamage(false);
     return { a, b };
   });
