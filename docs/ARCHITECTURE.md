@@ -46,6 +46,22 @@ active profile from `vroom.meta` (up to 3). `loadState()` migrates the single-pr
 `vroom.v2` key into profile 0 and the v1 build before that, and validates every saved id
 against the catalog, which is why packs must register before it runs.
 
+## Economy
+
+Stars are the only currency and only ever go up during a run. The catalog has 23 bodies, 14
+wheels, 23 paints (12 colours + 11 patterns), 9 stickers plus the race number, 12 extras (3
+free, 9 paid) and 10 capsule buddies, and `PRICES` is the one table of what costs what. Prices
+form three bands so the garage always holds something just out of reach: everyday parts at
+20-120 stars (horn-grade extras, the first wheels and paints, most bodies up to the ambulance
+at 110), a mid tier at 150-300 (submarine 150, pirate 180, ufo 200, dino 220, limo 250,
+unicorn 280, dragon 300, and from 12.5 the three aspirational accessories: `jetpack` 180,
+`disco` wheels 220 and the `trophyrack` 260 that shows the kid's best five medals as cups),
+then the 400-star race number and the 1000-star hover ship as the long goals. Upkeep (fuel,
+tires, repairs) is priced per unit so a few stars always fix something. Every part in
+`PRICES` adds up to 6,715 stars (7,500 with the race number and the three upgrade ladders),
+and a level pays out its collected stars plus the finish and shine bonuses, so owning
+everything is roughly a tour of all twelve worlds.
+
 ## Vehicles: two views, one build
 
 **Side view** (`vehicleSVG`, viewBox `0 0 320 230`, ground `y=200`, car faces right) is used
@@ -280,14 +296,14 @@ MSB-first bit fields, in order:
 | 1, 1 | quiet, muddy |
 | 2, 2, 2 | upgrades: engine, armor, magnet |
 | 8 + n | owned bodies: count `n` then one flag per `CODE_BODIES` entry (18 today) |
-| 8 + n | owned wheels over `CODE_WHEELS` (10) |
+| 8 + n | owned wheels over `CODE_WHEELS` (11) |
 | 8 + n | owned paints over `CODE_COLORS` (6 colours + 11 patterns) |
-| 8 + n | owned paid extras over `CODE_EXTRAS` (7) |
+| 8 + n | owned paid extras over `CODE_EXTRAS` (9) |
 | 8 + n | owned decals over `CODE_DECALS` (8) |
 | 8 + n | found buddies over `BUDDY_ORDER` (10) |
 | 8 + n | badges over `BADGES` (8) |
 | 8, 8, 8, 8, 8 | the build: indices into `BODY_ORDER`, `WHEEL_ORDER`, `COLORS`, `DECAL_ORDER`, buddy index + 1 (0 = none) |
-| 8 + n | equipped extras over all extras incl. horn/beacon/flag (10) |
+| 8 + n | equipped extras over all extras incl. horn/beacon/flag (12) |
 | pad | to a byte boundary |
 | 8 | level count (`MAX_LEVEL` = 120) |
 | 4 × levels | per level: rating (2 bits, 0 = unplayed) and medal rank (2 bits: C B A S) |
@@ -296,8 +312,8 @@ MSB-first bit fields, in order:
 
 Because every list is count-prefixed, a pack may **append** to any catalog list and older
 codes still decode (shorter lists read fewer bits); reordering would silently swap parts.
-With today's catalog a code is exactly 93 bytes (the layout is fixed-size once the catalog
-is), 124 base64url characters after the prefix; the hosted URL plus the code is 164 bytes
+With today's catalog a code is exactly 94 bytes (the layout is fixed-size once the catalog
+is), 126 base64url characters after the prefix; the hosted URL plus the code is 174 bytes
 and lands in QR version 8 (49x49 modules).
 
 ### Versions 1 and 2 (read-only)
@@ -339,7 +355,7 @@ stray toddler tap does nothing. Only the style and script blocks are fingerprint
 
 ## Tests
 
-Fifteen Playwright suites (237 checks) in `tests/`, driving the real page in headless
+Eighteen Playwright suites (299 checks) in `tests/`, driving the real page in headless
 Chromium through `playwright-core`; `tests/run-all.cjs` is the runner behind `npm test` and
 `.github/workflows/test.yml` runs it in CI. See [tests/README.md](../tests/README.md) for the
 map of what each suite owns.

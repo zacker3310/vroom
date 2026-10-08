@@ -141,6 +141,26 @@ function check(name, ok, detail) {
   }));
   check('celebrate: exiting mid-tally cleans flyStars + class', clean.fly === 0 && !clean.celebrating && clean.garage, JSON.stringify(clean));
 
+  /* ---- reduced motion: decorative keyframes off, confetti spawns nothing, the iris stays (short) ---- */
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.waitForTimeout(100);
+  const rm = await page.evaluate(() => {
+    const an = el => el && getComputedStyle(el).animationName;
+    goBtn.classList.add('nudge'); document.getElementById('gasPedal').classList.add('nudge');
+    const tile = document.querySelector('#strip .tile'); tile && tile.classList.add('enter');
+    const before = garageScene.querySelectorAll('.confetti').length;
+    confettiBurst(garageScene, 30);
+    const pieces = garageScene.querySelectorAll('.confetti').length - before;
+    const iris = document.getElementById('iris'); iris.classList.add('go');
+    const out = { flag: reducedMotion(), go: an(goBtn), pedal: an(document.getElementById('gasPedal')), tile: an(tile), pieces, irisName: an(iris), irisDur: getComputedStyle(iris).animationDuration };
+    goBtn.classList.remove('nudge'); document.getElementById('gasPedal').classList.remove('nudge'); iris.classList.remove('go');
+    return out;
+  });
+  check('reduced motion: pulse / nudge / pop-in report animation-name none, confettiBurst spawns 0 pieces, the iris keeps a .2s reveal', rm.flag && rm.go === 'none' && rm.pedal === 'none' && rm.tile === 'none' && rm.pieces === 0 && rm.irisName === 'irisReveal' && rm.irisDur === '0.2s', JSON.stringify(rm));
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const rmOff = await page.evaluate(() => { goBtn.classList.add('nudge'); const n = getComputedStyle(goBtn).animationName; goBtn.classList.remove('nudge'); return n; });
+  check('reduced motion off: the GO nudge pulses again', rmOff === 'pulse', rmOff);
+
   check('no console errors', errors.length === 0, errors.join(' | ').slice(0, 300));
 
   await browser.close();

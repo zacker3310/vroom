@@ -175,7 +175,7 @@ function check(name, ok, detail) {
     extraBtns: (openTab('extras', false), document.querySelectorAll('#strip .tile[data-extra]').length)
   }));
   check('premium: 4 bodies + 2 wheels + honks registered with prices', premium.bodies && premium.wheels && premium.honks, JSON.stringify(premium));
-  check('extras: 3 purchasable extras with tiles (10 total incl. shop pack)', premium.extras && premium.extraBtns === 10, JSON.stringify({ btns: premium.extraBtns }));
+  check('extras: 3 purchasable extras with tiles (12 total incl. shop pack)', premium.extras && premium.extraBtns === 12, JSON.stringify({ btns: premium.extraBtns }));
 
   /* locked extra gates GO, buying unlocks */
   const extraShop = await page.evaluate(() => {

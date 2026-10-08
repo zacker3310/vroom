@@ -376,9 +376,12 @@
   #hudStars { right: 24px; top: 24px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; }
   #hudDamage { right: 24px; top: 132px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; }
   #hudDamage.hurt { border-color: #e63946; color: #e63946; }
-  /* upkeep gauges stack under the wrench in the same 108px rhythm; red when low */
-  #hudFuel { right: 24px; top: 240px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; }
-  #hudTires { right: 24px; top: 348px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; }
+  /* upkeep gauges stack under the wrench in the same 108px rhythm; red when low.
+     While nothing is low both gauges share one wide chip (#hudUpkeep) in the fuel slot; a low gauge
+     gets its own red chip in its slot and the other keeps the combined chip in the free slot. */
+  #hudFuel { right: 24px; top: 240px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; display: none; }
+  #hudTires { right: 24px; top: 348px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; display: none; }
+  #hudFuel.solo, #hudTires.solo { display: flex; }
   #hudFuel.low, #hudTires.low { border-color: #e63946; color: #e63946; }
   /* GHOST RACE (T17.3): the medal-chase chip sits under the level chip; signed seconds to the ghost,
      green when the kid is ahead, putty when behind; only shown while a stored ghost is on the road */
@@ -395,6 +398,12 @@
   #celebrateTime.newBest .medal svg { animation: medalBig .8s cubic-bezier(.2,1.8,.4,1) .4s backwards; }
   @keyframes medalBig { 0% { transform: scale(0) rotate(-180deg); } 60% { transform: scale(1.7) rotate(12deg); } 100% { transform: scale(1) rotate(0); } }
   @keyframes ghostWinPop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+  #hudUpkeep { right: 24px; top: 240px; width: 236px; justify-content: center; padding: 0; gap: 6px; box-sizing: border-box; font-size: 40px; }
+  #hudUpkeep svg { width: 46px; height: 46px; }
+  #hudUpkeep span + svg { margin-left: 10px; }
+  #hudUpkeep.half { width: 176px; }
+  #hudUpkeep.down { top: 348px; }
+  #hudUpkeep.off { display: none; }
   #hudProgress { left: 316px; right: 216px; top: 24px; padding: 0 24px; gap: 16px; box-sizing: border-box; }
   #progTrack { position: relative; flex: 1; height: 12px; background: #e9ecef; border-radius: 6px; }
   #hudProgress #hudTime { min-width: 2ch; text-align: right; }
@@ -405,7 +414,7 @@
   #hudProgress svg { width: 40px; height: 40px; }
   /* during the celebration the run HUD and controls step aside */
   #road.celebrating #hudStars, #road.celebrating #hudLevel, #road.celebrating #hudProgress,
-  #road.celebrating #hudDamage, #road.celebrating #hudFuel, #road.celebrating #hudTires, #road.celebrating .pedal, #road.celebrating #steerSlider,
+  #road.celebrating #hudDamage, #road.celebrating #hudFuel, #road.celebrating #hudTires, #road.celebrating #hudUpkeep, #road.celebrating .pedal, #road.celebrating #steerSlider,
   #road.celebrating #homeBtn, #road.celebrating #hudGhost { display: none; }
   /* wallets are fixed width (fits 3 digits) so the row never shifts as stars pile up */
   #garageWallet, #albumWallet, #mapWallet, #celebrateWallet { width: 200px; justify-content: center; padding: 0; box-sizing: border-box; }
@@ -1270,6 +1279,20 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #giftBtn svg { width: 54px; height: 58px; }
 #giftBtn.opening { animation: chipPop .35s ease; }
 @media (prefers-reduced-motion: reduce) { #giftBtn { animation: none; } }
+/* --- reduced motion: decorative keyframes off (pulses, nudges, pop-ins, confetti, idle bobs, shimmers,
+   accessory flutter); the functional ones (scene iris, chip pops, deny shakes, road hits) stay but short --- */
+@media (prefers-reduced-motion: reduce) {
+  #updateBtn, #nextBtn, #goBtn.nudge, #gasPedal.nudge, .catTab.needs .alert, .tile.urgent, #previewLock, #priceTag:not(.deny),
+  .enter, .tile.enter, .tile.justSel.enter, #celebrate.active #resultsCard, #importConfirm.show #importCard, #numCard, #peekCard, #stickerToast.show,
+  .confetti, .buddyBob, .buddyPop, .hoverBob, .hoverGlow, .hoverTrail, .spinner, .rearFlame, .flapWing, .boosterFlame, .antennaSway, .bubbleDrift,
+  .lavaGlow, .maneWave, .lightFlashA, .lightFlashB, .jetPuff, .discoGlint, .decalShimmer, .decalStomp, .decalSpin, .decalFlicker, .decalTwinkle,
+  .decalBeat, .decalCrackle .sparks, .decalPupil, .decalPupilB, .fanBounce, .prop.trophy svg, #preview.blink .vEye, #preview.bounce, #sun.cool,
+  .cloud.puffed, .buddySlot.wiggle, .badgeSlot.wiggle, .photoSlot.wiggle, .peekBadge, #celebrateDamage .medal svg, #celebrateTime .medal svg,
+  #rotateOverlay svg, #diceBtn.rolling, #title.active #titleLogo, #title.active #titleCar, #title.active #titleGo, #titleCar.idle svg, #titleGift, #giftBtn,
+  .prop.ghost, #celebrateTime .ghostWin svg, #celebrateTime.newBest .medal svg { animation: none !important; }
+  #iris.go { animation-duration: .2s; }
+  #strip, .scene, .tile, .chip, #previewLock, #priceTag { transition-duration: .1s !important; }
+}
 </style>
 </head>
 <body>
@@ -1430,6 +1453,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     </div>
     <div class="chip" id="hudStars" aria-label="stars collected"></div>
     <div class="chip" id="hudDamage" aria-label="damage"></div>
+    <div class="chip" id="hudUpkeep" aria-label="fuel and tire tread left"></div>
     <div class="chip" id="hudFuel" aria-label="fuel left"></div>
     <div class="chip" id="hudTires" aria-label="tire tread left"></div>
     <div id="steerSlider" role="slider" aria-label="steer: slide left or right to pick a lane" aria-valuemin="0" aria-valuemax="2" aria-valuenow="1">
@@ -1603,6 +1627,8 @@ function injectCSS(text) {
   st.textContent = text;
   document.head.appendChild(st);
 }
+/* the OS accessibility switch: decorative motion (confetti pieces, idle bobs) stays off while it is set */
+const reducedMotion = () => !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
 /* restart a one-shot CSS animation: drop the class (and any rival classes), force a reflow, add it back */
 function restartAnim(el, cls, ...also) {
   el.classList.remove(cls, ...also); void el.offsetWidth; el.classList.add(cls);
@@ -2247,7 +2273,7 @@ function extrasSVG(body, extras, hasBuddy) {
   if (extras.partyhat) {
     out += hasBuddy
       ? `<g transform="${buddyXform(A.buddy)} translate(32,6)">${NEW_EXTRAS_SVG.partyhat(...HAT_ON_BUDDY)}</g>`
-      : SIDE_EXTRA_SVG.partyhat(A.hat);
+      : SIDE_EXTRA_SVG.partyhat(extras.jetpack ? [A.hat[0], A.hat[1] - JET_H] : A.hat);   /* on top of the jetpack tanks */
   }
   return out;
 }
@@ -2324,7 +2350,7 @@ function vehicleSVG(st) {
       ${buddyInFront ? buddy : ""}
       ${decal}
       ${extrasSVG(st.body, st.extras, hasBuddy)}
-      ${shopExtrasSVG(st.body, st.extras)}
+      ${shopExtrasSVG(st.body, st.extras, hasBuddy ? A.buddy : null)}
       <g class="mudSpots" style="opacity:${progress.muddy ? 1 : 0}">
         <circle cx="70" cy="160" r="9" fill="#6b4423"/><circle cx="120" cy="170" r="7" fill="#6b4423"/>
         <circle cx="180" cy="165" r="8" fill="#6b4423"/><circle cx="240" cy="158" r="6" fill="#6b4423"/>
@@ -2933,7 +2959,7 @@ for (const exName in NEW_EXTRAS_SVG) {
   document.getElementById("extras").appendChild(exBtn);
 }
 
-/* ============ 10. PACK: SHOP — 8 bodies, 5 wheels, 4 extras, 4 buddies, 3 decals ============ */
+/* ============ 10. PACK: SHOP — 8 bodies, 6 wheels, 6 extras, 4 buddies, 3 decals ============ */
 /* Registers into BODY_ORDER / WHEEL_ORDER / BUDDY_ORDER / DECAL_ORDER / PRICES and adds garage
    buttons; the CODE_* lists (section 17) append its ids. Must run before loadState() so saved
    builds validate against the full catalog.
@@ -3201,7 +3227,8 @@ const SHOP_WHEELS = {
   cookie:  { r: 28, hub: "#c68642" },
   lava:    { r: 30, hub: "#8d2b0b" },
   bubble:  { r: 30, hub: "#e3f6ff" },
-  crystal: { r: 29, hub: "#e0b0ff" }
+  crystal: { r: 29, hub: "#e0b0ff" },
+  disco:   { r: 29, hub: "#e9ecef" }
 };
 const SHOP_WHEEL_DECOR = {
   /* pink frosting over the dough ring, confetti sprinkles; the hub is the dough showing at the hole */
@@ -3219,8 +3246,15 @@ const SHOP_WHEEL_DECOR = {
   /* faceted purple gem: a dark octagon with lighter triangular facets */
   crystal: (r) => `<circle r="${r}" fill="#5a189a"/>` +
     [0, 1, 2, 3, 4, 5, 6, 7].map(a => `<path d="M0 0 L${-r * .38} ${-r + 2} L${r * .38} ${-r + 2} Z" fill="${a % 2 ? "#9d4edd" : "#c77dff"}" transform="rotate(${a * 45})"/>`).join("") +
-    `<path d="M-6 -16 L-12 -6" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".8"/>`
+    `<path d="M-6 -16 L-12 -6" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".8"/>`,
+  /* mirror ball: two rings of little square tiles in cool silvers, one white glint that twinkles */
+  disco: (r) => `<circle r="${r}" fill="#dee2e6"/>` +
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map(a => `<rect x="-3" y="${-r + 2}" width="6" height="6" rx="1" fill="${DISCO_TILES[a % 3]}" transform="rotate(${a * 360 / 14})"/>`).join("") +
+    [0, 1, 2, 3, 4, 5, 6, 7].map(a => `<rect x="-3" y="${-r * .66 - 3}" width="6" height="6" rx="1" fill="${DISCO_TILES[(a + 1) % 3]}" transform="rotate(${a * 45 + 22})"/>`).join("") +
+    `<g class="discoGlint" transform="translate(${r * .45},${-r * .5})">${DISCO_STAR}</g>`
 };
+const DISCO_TILES = ["#f8f9fa", "#adb5bd", "#a5d8ff"];
+const DISCO_STAR = `<path d="M0 -8 L2 -2 L8 0 L2 2 L0 8 L-2 2 L-8 0 L-2 -2 Z" fill="#fff" stroke="#74c0fc" stroke-width="1"/>`;
 /* rear-view tire accent for the shop wheels: called from tire3D with the outer sidewall box */
 function shopTireAccent(type, outerX, x, y, tw, th, rr) {
   const cx = outerX + 2, out = [];
@@ -3233,6 +3267,9 @@ function shopTireAccent(type, outerX, x, y, tw, th, rr) {
     `<rect x="${fx(x - 3)}" y="${fx(y - 3)}" width="${fx(tw + 6)}" height="${fx(th + 6)}" rx="${fx(rr + 3)}" fill="none" stroke="#fff" stroke-width="2" opacity=".7"/>`);
   if (type === "crystal") out.push(`<rect x="${fx(outerX - 1)}" y="${fx(y + 4)}" width="8" height="${fx(th - 8)}" rx="2" fill="#9d4edd"/>`,
     `<path d="M${fx(cx + 3)} ${fx(y + 8)} L${fx(cx + 3)} ${fx(y + th - 8)}" stroke="#e0b0ff" stroke-width="2" stroke-linecap="round"/>`);
+  if (type === "disco") out.push(`<rect x="${fx(outerX - 1)}" y="${fx(y + 3)}" width="8" height="${fx(th - 6)}" rx="2" fill="#dee2e6"/>`,
+    ...[0.2, 0.4, 0.6, 0.8].map((k, i) => `<rect x="${fx(cx)}" y="${fx(y + th * k - 2.5)}" width="5" height="5" rx="1" fill="${DISCO_TILES[i % 3]}"/>`),
+    `<g class="discoGlint" transform="translate(${fx(cx + 2.5)},${fx(y + th * 0.3)}) scale(.7)">${DISCO_STAR}</g>`);
   return out.join("");
 }
 
@@ -3241,7 +3278,35 @@ function shopTireAccent(type, outerX, x, y, tw, th, rr) {
      spoiler  -> flag anchor: wing on two struts just forward of the pole foot (x+4..x+40, y-20..y)
      antenna  -> midpoint of beacon and horn, on the roof: 3px pole 40 tall with a red ball
      surf     -> beacon anchor: roof rack 34px tall, board 120 long centred over it
-     bubbles  -> booster anchor, 26px above it: machine box on the rear face, bubbles drift back-up */
+     bubbles  -> booster anchor, 26px above it: machine box on the rear face, bubbles drift back-up
+   Mid-tier (12.5):
+     jetpack  -> hat anchor: twin tanks 36 tall standing on the roof, a nozzle each side puffing;
+                 with a buddy riding the tanks strap on the buddy (flank its head) like the party
+                 hat moves to its head, and the party hat perches on top of the tanks otherwise
+     trophyrack -> beacon anchor: a 30px roof rack (56 wide, clear of the hat slot) whose rail carries the kid's medals as tiny cups
+                 (best five, S gold / A silver / B bronze / C grey); on top of the surf board when both ride */
+const JET_H = 36, JET_BUDDY_GAP = 62, SURF_LIFT = 46, TROPHY_MAX = 5;
+function jetpackSVG(gap) {
+  const h = gap / 2, tank = (cx) => `<rect x="${cx - 7}" y="${-JET_H}" width="14" height="${JET_H - 4}" rx="6" fill="#ced4da" stroke="#023047" stroke-width="2.5"/>
+      <rect x="${cx - 7}" y="-22" width="14" height="6" fill="#e63946"/><rect x="${cx - 4}" y="-32" width="3" height="12" rx="1.5" fill="#fff" opacity=".75"/>`;
+  const nozzle = (d) => `<path d="M${d * (h + 6)} -12 L${d * (h + 14)} -16 L${d * (h + 14)} -4 Z" fill="#495057" stroke="#023047" stroke-width="2" stroke-linejoin="round"/>
+      <g class="jetPuff"><circle cx="${d * (h + 20)}" cy="-10" r="5" fill="#f8f9fa" opacity=".85"/></g>
+      <g class="jetPuff" style="animation-delay:.45s"><circle cx="${d * (h + 26)}" cy="-8" r="4" fill="#f8f9fa" opacity=".7"/></g>`;
+  return (gap < 40 ? `<rect x="${-h - 9}" y="-5" width="${gap + 18}" height="5" rx="2" fill="#6c757d"/>` : "") + tank(-h) + tank(h) + nozzle(-1) + nozzle(1);
+}
+/* the medals on the rack: best five tiers across every played level, S first (exported for the tests) */
+function trophyCups() {
+  const tiers = Object.values(progress.levels || {}).map(l => l && l.tier).filter(t => TIER_RANK[t] !== undefined);
+  tiers.sort((a, b) => TIER_RANK[b] - TIER_RANK[a]);
+  return tiers.slice(0, TROPHY_MAX);
+}
+function trophyRackSVG() {
+  const cups = trophyCups(), x0 = -(cups.length - 1) * 5.5;
+  const cup = (cx, t) => `<g class="trophyCup" data-tier="${t}" transform="translate(${cx},-34) scale(.8)"><path d="M-6 -16 H6 V-9 Q6 -2 0 -2 Q-6 -2 -6 -9 Z" fill="${TIER_COLOR[t]}" stroke="#023047" stroke-width="2"/>
+      <path d="M-7 -14 Q-12 -9 -7 -6 M7 -14 Q12 -9 7 -6" fill="none" stroke="${TIER_COLOR[t]}" stroke-width="2"/><rect x="-1.5" y="-2" width="3" height="4" fill="#023047"/><rect x="-5" y="2" width="10" height="3" rx="1" fill="#023047"/></g>`;
+  return `<rect x="-24" y="-30" width="5" height="30" fill="#6c757d"/><rect x="19" y="-30" width="5" height="30" fill="#6c757d"/>
+      <rect x="-28" y="-35" width="56" height="7" rx="3" fill="#8a5a2b" stroke="#023047" stroke-width="2"/>${cups.map((t, i) => cup(x0 + i * 11, t)).join("")}`;
+}
 const SHOP_EXTRAS_SVG = {
   spoiler: (x, y) => `<g transform="translate(${x},${y})">
       <rect x="10" y="-16" width="5" height="16" fill="#343a40"/><rect x="30" y="-16" width="5" height="16" fill="#343a40"/>
@@ -3257,13 +3322,17 @@ const SHOP_EXTRAS_SVG = {
       <rect x="-14" y="-10" width="22" height="18" rx="5" fill="#2a9d8f" stroke="#023047" stroke-width="3"/>
       <path d="M-14 -4 L-22 -8 L-22 0 Z" fill="#023047"/>
       <g fill="none" stroke="#4cc9f0" stroke-width="2.5">
-        <circle class="bubbleDrift" cx="-26" cy="-6" r="6"/><circle class="bubbleDrift" cx="-30" cy="-2" r="4" style="animation-delay:.5s"/><circle class="bubbleDrift" cx="-22" cy="-10" r="3" style="animation-delay:1s"/></g></g>`
+        <circle class="bubbleDrift" cx="-26" cy="-6" r="6"/><circle class="bubbleDrift" cx="-30" cy="-2" r="4" style="animation-delay:.5s"/><circle class="bubbleDrift" cx="-22" cy="-10" r="3" style="animation-delay:1s"/></g></g>`,
+  jetpack: (x, y) => `<g transform="translate(${x},${y})">${jetpackSVG(18)}</g>`,
+  trophyrack: (x, y) => `<g transform="translate(${x},${y})">${trophyRackSVG()}</g>`
 };
 const SHOP_EXTRAS_BTN = {
   spoiler: `<svg viewBox="0 0 100 100"><rect x="28" y="50" width="8" height="32" fill="#fff"/><rect x="64" y="50" width="8" height="32" fill="#fff"/><path d="M8 44 Q50 24 92 44 L92 58 Q50 40 8 58 Z" fill="#fff" stroke="#023047" stroke-width="3"/><rect x="14" y="82" width="72" height="8" rx="4" fill="#fff"/></svg>`,
   antenna: `<svg viewBox="0 0 100 100"><path d="M50 90 V34" stroke="#fff" stroke-width="7" stroke-linecap="round"/><circle cx="50" cy="24" r="14" fill="#e63946" stroke="#fff" stroke-width="4"/><path d="M28 60 q-8 -12 0 -24 M72 60 q8 -12 0 -24" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`,
   surf: `<svg viewBox="0 0 100 100"><path d="M14 50 Q50 10 86 50 Q50 90 14 50 Z" fill="#ffd60a" stroke="#fff" stroke-width="4" transform="rotate(-30 50 50)"/><path d="M26 58 L74 42" stroke="#e63946" stroke-width="5" stroke-linecap="round" transform="rotate(-30 50 50)"/></svg>`,
-  bubbles: `<svg viewBox="0 0 100 100"><rect x="26" y="56" width="40" height="30" rx="8" fill="#2a9d8f" stroke="#fff" stroke-width="4"/><g fill="none" stroke="#fff" stroke-width="4"><circle cx="40" cy="30" r="10"/><circle cx="66" cy="40" r="7"/><circle cx="60" cy="16" r="5"/></g></svg>`
+  bubbles: `<svg viewBox="0 0 100 100"><rect x="26" y="56" width="40" height="30" rx="8" fill="#2a9d8f" stroke="#fff" stroke-width="4"/><g fill="none" stroke="#fff" stroke-width="4"><circle cx="40" cy="30" r="10"/><circle cx="66" cy="40" r="7"/><circle cx="60" cy="16" r="5"/></g></svg>`,
+  jetpack: `<svg viewBox="0 0 100 100"><rect x="26" y="14" width="22" height="56" rx="10" fill="#ced4da" stroke="#fff" stroke-width="4"/><rect x="52" y="14" width="22" height="56" rx="10" fill="#ced4da" stroke="#fff" stroke-width="4"/><rect x="26" y="40" width="48" height="8" fill="#e63946"/><path d="M30 72 L24 88 L40 80 Z M70 72 L76 88 L60 80 Z" fill="#fff"/><circle cx="18" cy="92" r="5" fill="#fff" opacity=".8"/><circle cx="82" cy="92" r="5" fill="#fff" opacity=".8"/></svg>`,
+  trophyrack: `<svg viewBox="0 0 100 100"><rect x="10" y="58" width="80" height="8" rx="4" fill="#fff"/><rect x="18" y="66" width="6" height="22" fill="#fff"/><rect x="76" y="66" width="6" height="22" fill="#fff"/><g stroke="#fff" stroke-width="3"><path d="M22 22 H42 V36 Q42 48 32 48 Q22 48 22 36 Z" fill="#ffd60a"/><path d="M58 22 H78 V36 Q78 48 68 48 Q58 48 58 36 Z" fill="#cfd8dc"/></g><rect x="29" y="48" width="6" height="8" fill="#fff"/><rect x="65" y="48" width="6" height="8" fill="#fff"/></svg>`
 };
 /* rear-view versions, drawn at the projected anchor (sprite px ~ 1 car unit at z=0) */
 const SHOP_EXTRAS_REAR = {
@@ -3273,26 +3342,42 @@ const SHOP_EXTRAS_REAR = {
   surf: () => `<rect x="-28" y="-30" width="6" height="30" fill="#343a40"/><rect x="22" y="-30" width="6" height="30" fill="#343a40"/>
       <rect x="-30" y="-44" width="60" height="14" rx="7" fill="#ffd60a" stroke="#023047" stroke-width="3"/><path d="M-6 -30 L0 -18 L6 -30 Z" fill="#023047"/>`,
   bubbles: () => `<g transform="translate(0,-26)"><rect x="-12" y="-10" width="24" height="18" rx="5" fill="#2a9d8f" stroke="#023047" stroke-width="3"/><circle cx="0" cy="-1" r="5" fill="#023047"/>
-      <g fill="none" stroke="#4cc9f0" stroke-width="2.5"><circle class="bubbleDrift" cx="-8" cy="-22" r="6"/><circle class="bubbleDrift" cx="10" cy="-18" r="4" style="animation-delay:.5s"/><circle class="bubbleDrift" cx="2" cy="-30" r="3" style="animation-delay:1s"/></g></g>`
+      <g fill="none" stroke="#4cc9f0" stroke-width="2.5"><circle class="bubbleDrift" cx="-8" cy="-22" r="6"/><circle class="bubbleDrift" cx="10" cy="-18" r="4" style="animation-delay:.5s"/><circle class="bubbleDrift" cx="2" cy="-30" r="3" style="animation-delay:1s"/></g></g>`,
+  jetpack: (gap) => jetpackSVG(gap),
+  trophyrack: () => trophyRackSVG()
 };
-const SHOP_EXTRAS_PRICES = { spoiler: 30, antenna: 20, surf: 40, bubbles: 45 };
+const SHOP_EXTRAS_PRICES = { spoiler: 30, antenna: 20, surf: 40, bubbles: 45, jetpack: 180, trophyrack: 260 };
+/* equip voices for the mid-tier extras (the booster has its own in NEW_EXTRAS_SFX) */
+const SHOP_EXTRAS_SFX = {
+  jetHiss() { noiseBurst(0.35, 1800, 0.16); tone("sine", 300, 900, 0.3, 0.12, 0.05); tone("sine", 900, 420, 0.25, 0.1, 0.3); },
+  trophyDing() { tone("sine", 1568, 1568, 0.5, 0.18); tone("sine", 2093, 2093, 0.6, 0.14, 0.12); tone("triangle", 3136, 3100, 0.5, 0.05, 0.12); }
+};
 /* side-view anchor resolution for the new extras (see the placement rule above) */
 function shopExtraAnchor(A, k) {
   if (A[k]) return A[k];
   if (k === "spoiler") return [A.flag[0], A.flag[1]];
   if (k === "antenna") return [Math.round((A.beacon[0] + A.horn[0]) / 2), Math.min(A.beacon[1], A.horn[1])];
-  if (k === "surf") return [A.beacon[0], A.beacon[1]];
+  if (k === "surf" || k === "trophyrack") return [A.beacon[0], A.beacon[1]];
+  if (k === "jetpack") return [A.hat[0], A.hat[1]];
   return [A.booster[0], A.booster[1]];   /* bubbles */
 }
-function shopExtrasSVG(body, extras) {
+/* buddyA: the buddy anchor when one rides (the jetpack straps onto it), else null */
+function shopExtrasSVG(body, extras, buddyA) {
   const A = BODIES[body].anchors;
   let out = "";
-  for (const k in SHOP_EXTRAS_SVG) if (extras[k]) out += SHOP_EXTRAS_SVG[k](...shopExtraAnchor(A, k));
+  for (const k in SHOP_EXTRAS_SVG) {
+    if (!extras[k]) continue;
+    if (k === "jetpack" && buddyA) { out += `<g transform="${buddyXform(buddyA)} translate(32,6)">${jetpackSVG(JET_BUDDY_GAP)}</g>`; continue; }
+    const [x, y] = shopExtraAnchor(A, k);
+    out += SHOP_EXTRAS_SVG[k](x, k === "trophyrack" && extras.surf ? y - SURF_LIFT : y);
+  }
   return out;
 }
 /* rear view: `at(q, svg, k)` is vehicleRearSVG's projector; N = CAR3D anchors, half = body half-width */
-function shopExtrasRear(N, ex, at, half) {
+function shopExtrasRear(N, ex, at, half, buddyK) {
   let out = "";
+  if (ex.jetpack) out += buddyK ? at(N.buddy, SHOP_EXTRAS_REAR.jetpack(JET_BUDDY_GAP), buddyK) : at(N.jetpack || N.hat, SHOP_EXTRAS_REAR.jetpack(18), 1.2);
+  if (ex.trophyrack) out += at(N.trophyrack || N.beacon, `<g transform="translate(0,${ex.surf ? -SURF_LIFT : 0})">${SHOP_EXTRAS_REAR.trophyrack()}</g>`, 1.3);
   if (ex.spoiler) out += at(N.spoiler || [0, N.flag[1], N.flag[2]], SHOP_EXTRAS_REAR.spoiler(half), 1.1);
   if (ex.antenna) out += at(N.antenna || [(N.beacon[0] + N.horn[0]) / 2, Math.min(N.beacon[1], N.horn[1]), (N.beacon[2] + N.horn[2]) / 2], SHOP_EXTRAS_REAR.antenna(), 1.2);
   if (ex.surf) out += at(N.surf || N.beacon, SHOP_EXTRAS_REAR.surf(), 1.3);
@@ -3407,6 +3492,10 @@ const SHOP_CSS = `
   @keyframes decalStomp { 50% { transform: scale(1.15) rotate(-6deg); } }
   .decalSpin { animation: decalSpin 6s linear infinite; transform-box: fill-box; transform-origin: center; }
   @keyframes decalSpin { to { transform: rotate(360deg); } }
+  .jetPuff { animation: jetPuff .9s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes jetPuff { 0% { transform: scale(.3); opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
+  .discoGlint { animation: discoGlint 1.3s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes discoGlint { 0%, 100% { transform: scale(.5) rotate(0deg); opacity: .25; } 50% { transform: scale(1.25) rotate(45deg); opacity: 1; } }
   /* extras tray: 3x3 cells, two pages (8 + 2 extras), the flip chip is the last cell on both */
   #extras { grid-template-rows: repeat(3, 76px); }
   #extras:not(.pg2) .extraBtn[data-pg="2"], #extras.pg2 .extraBtn[data-pg="1"] { display: none; }
@@ -3433,9 +3522,9 @@ Object.assign(HONKS, SHOP_HONKS);
 Object.assign(PRICES.body, { bulldozer: 75, schoolbus: 90, ambulance: 110, submarine: 150, pirate: 180, dino: 220, unicorn: 280, hover: 1000 });
 Object.assign(WHEELS, SHOP_WHEELS);
 Object.assign(WHEEL_DECOR, SHOP_WHEEL_DECOR);
-const SHOP_WHEEL_IDS = ["donut", "cookie", "lava", "bubble", "crystal"];
+const SHOP_WHEEL_IDS = ["donut", "cookie", "lava", "bubble", "crystal", "disco"];   /* append only: CODE_WHEELS spreads this */
 WHEEL_ORDER.push(...SHOP_WHEEL_IDS);
-Object.assign(PRICES.wheels, { donut: 50, cookie: 50, lava: 80, bubble: 85, crystal: 120 });
+Object.assign(PRICES.wheels, { donut: 50, cookie: 50, lava: 80, bubble: 85, crystal: 120, disco: 220 });
 Object.assign(PRICES.extras, SHOP_EXTRAS_PRICES);
 const SHOP_EXTRA_IDS = Object.keys(SHOP_EXTRAS_SVG);
 Object.assign(BUDDY_SVG, SHOP_BUDDY_SVG);
@@ -3444,7 +3533,7 @@ Object.assign(DECAL_SVG, SHOP_DECAL_SVG);
 const SHOP_DECAL_IDS = ["rainbow", "dinofoot", "flower"];
 DECAL_ORDER.push(...SHOP_DECAL_IDS);
 Object.assign(PRICES.decal, { rainbow: 35, dinofoot: 40, flower: 45 });
-/* extras tray: page every button (first 8 on page 1), add the 4 new buttons + the flip chip */
+/* extras tray: page every button (first 8 on page 1), add the 6 new buttons + the flip chip */
 {
   const tray = document.getElementById("extras");
   for (const exName of SHOP_EXTRA_IDS) {
@@ -3840,6 +3929,8 @@ function tapTile(t) {
     save(); renderPreview();
     if (id === "horn" && state.extras.horn) sfx.honk(state.body);
     else if (id === "booster" && state.extras.booster) NEW_EXTRAS_SFX.boosterWhoosh();
+    else if (id === "jetpack" && state.extras.jetpack) SHOP_EXTRAS_SFX.jetHiss();
+    else if (id === "trophyrack" && state.extras.trophyrack) SHOP_EXTRAS_SFX.trophyDing();
     else sfx.clank();
   } else if (kind === "upg") buyUpgrade(id, t);
   else if (id === "repair") doRepair();
@@ -4700,7 +4791,7 @@ const carWrap = document.getElementById("carWrap");
 const hudStars = document.getElementById("hudStars");
 const hudLevel = document.getElementById("hudLevel");
 const hudDamage = document.getElementById("hudDamage");
-const hudFuel = document.getElementById("hudFuel"), hudTires = document.getElementById("hudTires");
+const hudFuel = document.getElementById("hudFuel"), hudTires = document.getElementById("hudTires"), hudUpkeep = document.getElementById("hudUpkeep");
 const progDot = document.getElementById("progDot");
 const hudTime = document.getElementById("hudTime");
 const speedLines = document.getElementById("speedLines");
@@ -5242,8 +5333,8 @@ function vehicleRearSVG(st) {
       <g class="rearFlame"><circle r="9" fill="#ff9f1c"/><circle r="4.5" fill="#ffd60a"/></g>`, 1.2);
   if (ex.partyhat) over += hasBuddy
     ? at(N.buddy, `<g transform="translate(${HAT_ON_BUDDY[0]},${HAT_ON_BUDDY[1]})">${NEW_EXTRAS_SVG.partyhat(0, 0)}</g>`, bk)
-    : at(N.hat, NEW_EXTRAS_SVG.partyhat(0, 0), 1.2);
-  over += shopExtrasRear(N, ex, at, R.half);   /* shop pack extras */
+    : at(N.hat, `<g transform="translate(0,${ex.jetpack ? -JET_H : 0})">${NEW_EXTRAS_SVG.partyhat(0, 0)}</g>`, 1.2);   /* on top of the jetpack tanks */
+  over += shopExtrasRear(N, ex, at, R.half, hasBuddy ? bk : 0);   /* shop pack extras */
   const dq = N.decal;
   {
     const hasDecal = !!(st.decal && st.decal !== "none" && DECAL_SVG[st.decal]), hasNum = !!st.number;
@@ -7056,15 +7147,20 @@ function burnUpkeep(d, now) {
   if (progress.fuel <= FUEL_LOW && v > 40 && now - sputterT > (progress.fuel <= 0 ? 340 : 620)) {
     sputterT = now;
     tone("square", 120, 60, 0.09, 0.14); noiseBurst(0.05, 700, 0.12);
-    restartAnim(hudFuel, "pop");
+    restartAnim(hudFuel, "pop"); restartAnim(hudUpkeep, "pop");
   }
 }
 function renderHudUpkeep(pop) {
-  hudFuel.innerHTML = fuelIcon + `<span>${Math.ceil(progress.fuel)}</span>`;
-  hudFuel.classList.toggle("low", progress.fuel <= FUEL_LOW);
-  hudTires.innerHTML = tireIcon + `<span>${Math.ceil(progress.tread)}</span>`;
-  hudTires.classList.toggle("low", progress.tread <= TREAD_LOW);
-  if (pop) { restartAnim(hudFuel, "pop"); restartAnim(hudTires, "pop"); }
+  const fLow = progress.fuel <= FUEL_LOW, tLow = progress.tread <= TREAD_LOW;
+  const fuelHTML = fuelIcon + `<span>${Math.ceil(progress.fuel)}</span>`, tireHTML = tireIcon + `<span>${Math.ceil(progress.tread)}</span>`;
+  hudFuel.innerHTML = fuelHTML; hudFuel.classList.toggle("low", fLow); hudFuel.classList.toggle("solo", fLow);
+  hudTires.innerHTML = tireHTML; hudTires.classList.toggle("low", tLow); hudTires.classList.toggle("solo", tLow);
+  /* the combined chip carries whatever is not low: both in the fuel slot, or the healthy one in the free slot */
+  hudUpkeep.innerHTML = (fLow ? "" : fuelHTML) + (tLow ? "" : tireHTML);
+  hudUpkeep.classList.toggle("off", fLow && tLow);
+  hudUpkeep.classList.toggle("half", fLow !== tLow);
+  hudUpkeep.classList.toggle("down", fLow && !tLow);
+  if (pop) { restartAnim(hudFuel, "pop"); restartAnim(hudTires, "pop"); restartAnim(hudUpkeep, "pop"); }
 }
 function applyDamage(n) {
   const soaked = Math.max(0, n - progress.upgrades.armor);
@@ -7761,6 +7857,7 @@ function worldTick(dt) {
 /* ============ 27. FINISH + CELEBRATION ============ */
 function confettiBurst(sceneEl, count) {
   const cols = ["#e63946", "#ffd60a", "#43a047", "#1e88e5", "#ec407a", "#fb8c00"];
+  if (reducedMotion()) return;   /* no pieces to spawn when the device asks for less motion */
   for (let i = 0; i < count; i++) {
     const c = document.createElement("div");
     c.className = "confetti";

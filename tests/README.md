@@ -28,7 +28,7 @@ built-in one, e.g. `python3 -m http.server 4173` then
 `VROOM_URL=http://localhost:4173/index.html npm test`).
 
 - `verify.cjs` — garage/shop/economy/levels/map/persistence core loop (35)
-- `polish-check.cjs` — kid-UX round: locks, tags, magnet, headlights, celebrate (14)
+- `polish-check.cjs` — kid-UX round: locks, tags, magnet, headlights, celebrate, `prefers-reduced-motion` (decorative keyframes off, no confetti pieces, short iris) (16)
 - `damage-check.cjs` — damage/repair/upgrades/keyboard (20)
 - `free-check.cjs` — capsules, free drive, time tiers (14)
 - `feel-check.cjs` — game feel: dynamics, hit-stop, choreography, iPad shell (12)
@@ -40,13 +40,13 @@ built-in one, e.g. `python3 -m http.server 4173` then
 - `update-check.cjs` — new-version gate: detection, tap-proof hold-to-reload (5)
 - `world-check-audio-events.cjs` — per-world jingles/ambience beds, star scales, live sky events, quiet mode, level-80 frame time (16; honours `VROOM_URL`)
 - `paint-check.cjs` — pattern paint pack: 11 pattern tiles after the 12 colors in the one paint strip, arrows page to them, `<pattern>`/gradient defs in side + rear views, buying a pattern, v3 compact save code (count-prefixed colors + equipped paint) and legacy v2 decode, album photo re-render (22; honours `VROOM_URL`)
-- `shop-check.cjs` — shop pack: 23-body / 13-wheel / 9-decal catalog, 23-tile body strip (every tile equips), arrow paging by 7, hover (no wheels in either view, floats + bobs, glow + trail), every new body x extras x buddy x decal in both views, new wheels / decals / buddies, 10-tile extras strip, hover at 999 denied / 1000 bought, v3 code round trip with new parts, frozen-width v2 legacy decode (21; honours `VROOM_URL`)
-- `garage-check.cjs` — redesigned garage: <=16 controls at rest, six category tabs with 23/13/23/1+9/10/3(+repair/wash/fuel/tires) tiles, selection ring follows state, locked tile -> tag -> buy -> equipped, arrows page the strip, a swipe scrolls instead of equipping, speaker toggle in the grown-ups overlay persists, >=64px targets, zero text (19; honours `VROOM_URL`)
+- `shop-check.cjs` — shop pack: 23-body / 14-wheel / 9-decal catalog, 23-tile body strip (every tile equips), arrow paging by 7, hover (no wheels in either view, floats + bobs, glow + trail), every new body x extras x buddy x decal in both views, new wheels / decals / buddies, the 12.5 mid-tier items (jetpack 180 / disco 220 / trophy rack 260: both views on four bodies, medal cups, buddy and hat stacking, a 660 tag denied at 659 and bought at 700), 12-tile extras strip, hover at 999 denied / 1000 bought, v3 code round trip with new parts (94 bytes), frozen-width v2 legacy decode (23; honours `VROOM_URL`)
+- `garage-check.cjs` — redesigned garage: <=16 controls at rest, six category tabs with 23/14/23/1+9/12/3(+repair/wash/fuel/tires) tiles, selection ring follows state, locked tile -> tag -> buy -> equipped, arrows page the strip, a swipe scrolls instead of equipping, speaker toggle in the grown-ups overlay persists, >=64px targets, zero text (19; honours `VROOM_URL`)
 - `fairness-check.cjs` — two headless bots drive all 80 levels through the real collision code: a "smart" bot (one lane change per 350 units, toward stars, away from hard obstacles) must finish every level with ≥45% of the stars and ≤4 hard hits; a "lazy toddler" (middle lane, gas only) must finish every level and still find ≥15% of the stars on levels 1-20; world 1 stays gentle (9; `--table` prints the per-level table, `--hits` lists each hard hit; honours `VROOM_URL`)
 - `number-check.cjs` — race number: the number tile leads the sticker tab (400, greyed when poor), keypad rules (two digits, leading zeros trimmed, backspace, clear), OK pays 400 and draws the roundel on the flank, sticker + number share the panel at 80% scale, rear view, same-number and broke-wallet rules, free removal, reload + v3 tail + 12.2 code decode, photo, malformed stored value dropped, 64px keys, the race car's painted slot (13; honours `VROOM_URL`)
 - `title-check.cjs`: start screen + daily gift: title scene active on boot (GO >= 180 stage px, car + emblem, avatar, zero text), pulsing gift badge on GO while unclaimed, car honk, GO to the garage, the capsule on the wall above the dice (88px at x=1086 / top 180), opening pays 15..40 stars or an unowned buddy with confetti and stamps `progress.lastGift`, a second open gives nothing, reload keeps it claimed, lastGift = yesterday brings it back, `?garage` and `vroom.skipTitle` skip the title, lastGift never rides in a save code, reduced motion skips the pop-ins (13; honours `VROOM_URL`)
 - `ghost-check.cjs` — ghost race: a first run stores a sampled trace, a replay spawns the translucent twin that follows it through the projector (lane and depth match the recording at a known time), slower runs keep the old ghost and faster ones replace it with the new-best flourish, the signed gap chip (hidden with no ghost), the twin fades after its own finish, ghosts survive a reload, stay out of the full save code and malformed ones are dropped (16; honours `VROOM_URL`)
-- `upkeep-check.cjs` — fuel + tires + shine: full gauges on a fresh save, HUD gauge column, burn per unit of road (tread at half rate), no burn in free drive or the parade, dry-tank crawl speeds, bald-tire lane lag, hit scuffs tread, shine bonus (+50%) and its sticker, muddy = no shine, workbench fill-up / tire tiles with per-unit prices, partial fills, deny shakes, v3 save-code tail + tail-less decode, reload + pre-12.2 save defaults, the dice/map/GO column geometry (20; honours `VROOM_URL`)
+- `upkeep-check.cjs` — fuel + tires + shine: full gauges on a fresh save, the combined HUD chip that splits into red singles when a gauge is low, burn per unit of road (tread at half rate), no burn in free drive or the parade, dry-tank crawl speeds, bald-tire lane lag, hit scuffs tread, shine bonus (+50%) and its sticker, muddy = no shine, workbench fill-up / tire tiles with per-unit prices, partial fills, deny shakes, v3 save-code tail + tail-less decode, reload + pre-12.2 save defaults, the dice/map/GO column geometry (21; honours `VROOM_URL`)
 
 ```bash
 cd tests && CHROMIUM=... VROOM_URL=http://localhost:4173/index.html node shop-check.cjs
@@ -61,7 +61,7 @@ click stability check.
 | Suite | Checks | Covers |
 |---|---|---|
 | `verify.cjs` | 35 | core loop: garage inventory and 64 px touch floor, shop/economy, level invariants, map, persistence |
-| `polish-check.cjs` | 14 | kid-UX round: locks, price tags, magnet, headlights, celebrate choreography |
+| `polish-check.cjs` | 16 | kid-UX round: locks, price tags, magnet, headlights, celebrate choreography |
 | `damage-check.cjs` | 20 | damage tiers, repair, upgrades, keyboard controls |
 | `free-check.cjs` | 14 | capsules and prizes, free drive, time-medal tiers |
 | `feel-check.cjs` | 12 | game feel: body dynamics, hit-stop, celebrate pacing, iPad shell metas |
@@ -73,11 +73,11 @@ click stability check.
 | `update-check.cjs` | 5 | new-version gate: detection, tap-proof hold-to-reload |
 | `world-check-audio-events.cjs` | 16 | per-world jingles, ambience beds, star scales, live sky events, quiet mode, deep-level frame time |
 | `paint-check.cjs` | 22 | pattern paints: 11 swatches on the second tray page, defs in both views, buying, v3 save code round trip, v2 legacy decode, album re-render |
-| `shop-check.cjs` | 21 | shop pack: 23-body / 13-wheel / 9-entry decal catalog, tap-forward + hold-back cycling, hover body, every body x extras x buddy x decal in both views, two-page extras tray, v3 round trip, frozen-width v2 decode |
+| `shop-check.cjs` | 23 | shop pack: 23-body / 14-wheel / 9-entry decal catalog, tap-forward + hold-back cycling, hover body, every body x extras x buddy x decal in both views, the mid-tier jetpack / disco / trophy rack, two-page extras tray, v3 round trip, frozen-width v2 decode |
 | `number-check.cjs` | 13 | race number: sticker-tab tile, keypad rules, 400-star change / free removal, roundel in both views beside a sticker, save-code tail, photos |
 | `title-check.cjs` | 13 | start screen: title scene on boot, 180 px GO, gift badge, honk; daily gift: once-a-day capsule above the dice, 15..40 stars or an unowned buddy, claimed state across reloads, next-day return, the `?garage` / `vroom.skipTitle` skips, reduced motion |
-| `upkeep-check.cjs` | 20 | fuel and tire wear, dry-tank crawl, bald-tire grip, shine bonus, workbench fill-up and tire tiles, save-code tail, legacy defaults, garage column geometry |
 | `ghost-check.cjs` | 16 | ghost race: trace recording, replay sprite follows the trace, slower keeps / faster replaces, gap chip, fade at the line, reload, save-code exclusion, malformed ghost dropped |
+| `upkeep-check.cjs` | 21 | fuel and tire wear, the combined HUD chip and its low-gauge split, dry-tank crawl, bald-tire grip, shine bonus, workbench fill-up and tire tiles, save-code tail, legacy defaults, garage column geometry |
 | `fairness-check.cjs` | 9 | two headless bots drive all 120 levels through the real collision code: "smart" must finish every level with ≥45% of the stars and ≤4 hard hits; "lazy toddler" (centre lane, gas only) must finish every level and find ≥15% of the stars on levels 1-20; world 1 stays gentle. `--table` prints per-level results, `--hits` each hard hit |
 
 Not a suite: `level-report.cjs` builds every level and prints its beat sequence and prop

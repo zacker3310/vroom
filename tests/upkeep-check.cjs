@@ -35,16 +35,30 @@ function check(name, ok, detail) {
   });
   check('fresh: full tank + fresh tires (8/8), workbench shows only the 3 upgrades, no wrench dot', fresh.fuel === 8 && fresh.tread === 8 && fresh.tiles === 3 && !fresh.dot, JSON.stringify(fresh));
 
-  /* ---- 2. gauges on the HUD, in the right column rhythm, >= 64px, clear of the pedal ---- */
+  /* ---- 2. gauges on the HUD: one combined chip in the fuel slot while nothing is low, >= 64px, clear of the pedal ---- */
   const hud = await page.evaluate(() => {
     drive(3);
     const r = id => document.getElementById(id).getBoundingClientRect();
-    const f = r('hudFuel'), t = r('hudTires'), d = r('hudDamage'), g = r('gasPedal');
-    return { fuelTxt: hudFuel.textContent.trim(), tireTxt: hudTires.textContent.trim(), low: hudFuel.classList.contains('low') || hudTires.classList.contains('low'),
-      size: Math.min(f.width, f.height, t.width, t.height), gapDF: Math.round(f.top - d.bottom), gapFT: Math.round(t.top - f.bottom),
-      clearPedal: t.bottom < g.top, sameX: Math.abs(f.left - d.left) < 1 && Math.abs(t.left - d.left) < 1 };
+    const u = r('hudUpkeep'), f = r('hudFuel'), t = r('hudTires'), d = r('hudDamage'), g = r('gasPedal');
+    return { fuelTxt: hudFuel.textContent.trim(), tireTxt: hudTires.textContent.trim(), bothTxt: hudUpkeep.textContent.trim(), low: hudFuel.classList.contains('low') || hudTires.classList.contains('low'),
+      size: Math.min(u.width, u.height), gapDU: Math.round(u.top - d.bottom), singlesHidden: f.width === 0 && t.width === 0,
+      icons: hudUpkeep.querySelectorAll('svg').length, clearPedal: u.bottom < g.top, sameRight: Math.abs(u.right - d.right) < 1 };
   });
-  check('hud: fuel 8 + tread 8 gauges under the wrench, even gaps, >= 64px, clear of the gas pedal', hud.fuelTxt === '8' && hud.tireTxt === '8' && !hud.low && hud.size >= 64 && hud.gapDF === hud.gapFT && hud.gapDF > 0 && hud.clearPedal && hud.sameX, JSON.stringify(hud));
+  check('hud: fuel 8 + tread 8 share one chip under the wrench (both pictograms, 12px gap, >= 64px, clear of the gas pedal); the singles stay hidden', hud.fuelTxt === '8' && hud.tireTxt === '8' && hud.bothTxt === '88' && hud.icons === 2 && !hud.low && hud.size >= 64 && hud.gapDU === 12 && hud.singlesHidden && hud.clearPedal && hud.sameRight, JSON.stringify(hud));
+  const split = await page.evaluate(() => {
+    const r = id => document.getElementById(id).getBoundingClientRect();
+    const d = r('hudDamage');
+    progress.fuel = 2; renderHudUpkeep(false);
+    const f = r('hudFuel'), u = r('hudUpkeep'), t = r('hudTires');
+    const a = { fuelRed: hudFuel.classList.contains('low') && f.width > 0, gapDF: Math.round(f.top - d.bottom), gapFU: Math.round(u.top - f.bottom), uTxt: hudUpkeep.textContent.trim(), uIcons: hudUpkeep.querySelectorAll('svg').length, tiresHidden: t.width === 0, sameX: Math.abs(f.left - u.left) < 1 && Math.abs(f.left - d.left) < 1 };
+    progress.tread = 2; renderHudUpkeep(false);
+    const t2 = r('hudTires'), u2 = r('hudUpkeep'), f2 = r('hudFuel');
+    const b = { tiresRed: hudTires.classList.contains('low') && t2.width > 0, gapFT: Math.round(t2.top - f2.bottom), combinedHidden: u2.width === 0 };
+    progress.fuel = 8; progress.tread = 8; renderHudUpkeep(false);
+    const u3 = r('hudUpkeep');
+    return { a, b, back: u3.width > 0 && r('hudFuel').width === 0 && Math.round(u3.top - d.bottom) === 12 };
+  });
+  check('hud: a low tank splits out a red fuel chip in its slot with the tire gauge alone in the chip below (even 12px gaps); both low = two red singles; full again = one chip', split.a.fuelRed && split.a.gapDF === 12 && split.a.gapFU === 12 && split.a.uTxt === '8' && split.a.uIcons === 1 && split.a.tiresHidden && split.a.sameX && split.b.tiresRed && split.b.gapFT === 12 && split.b.combinedHidden && split.back, JSON.stringify(split));
 
   /* ---- 3. burn with distance: fuel 1 unit per 5200, tread half as fast ---- */
   const burn = await page.evaluate(async () => {

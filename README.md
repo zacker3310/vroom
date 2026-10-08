@@ -125,3 +125,7 @@ The game grew in twelve user-directed versions over a few months, from a five-bo
 Designed and directed by Zac Acker for one particular kid. Built with Claude. All art and sound are original and generated in code; the only third-party code anywhere in the project is the test tooling (`playwright-core`, `jsqr`), and none of it ships.
 
 If it keeps your kid busy on a road trip too, it did its job.
+
+## License
+
+MIT, see [LICENSE](LICENSE). Copyright (c) 2026 zacker3310.

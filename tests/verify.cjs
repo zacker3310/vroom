@@ -42,7 +42,7 @@ function check(name, ok, detail) {
   }));
   check('garage: 23 paint tiles in the strip (12 colors + 11 patterns)', inv.swatches === 23, 'got ' + inv.swatches);
   check('garage: 23 bodies all defined', inv.bodies === 23 && inv.bodyKeys);
-  check('garage: 13 wheels all defined', inv.wheels === 13 && inv.wheelKeys);
+  check('garage: 14 wheels all defined', inv.wheels === 14 && inv.wheelKeys);
 
   /* ---- 3. touch targets >= 64px rendered at 1024x768 (after entrance staggers settle) ---- */
   await page.waitForTimeout(1100);
