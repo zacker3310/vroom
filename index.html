@@ -1094,6 +1094,53 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
   box-shadow: 0 7px 0 var(--v-yellow-down);
 }
 
+/* ============ SURPRISE EVENTS: map markers, the today chip, the road dino ============ */
+/* today chip: sun + day numeral, mirrors the road HUD's level chip slot (home 24-120 | chip 136-300) */
+#todayChip { left: 136px; top: 24px; width: 164px; justify-content: center; padding: 0; box-sizing: border-box; display: none; }
+#todayChip.show { display: flex; }
+#todayChip svg { width: 56px; height: 56px; }
+/* rainbow day: a soft arc over the meadow, behind the tabs and nodes */
+#mapRainbow { position: absolute; left: 50%; top: 10px; width: 1000px; height: 330px; transform: translateX(-50%); pointer-events: none; z-index: 1; display: none; }
+#mapRainbow.show { display: block; }
+#mapRainbow svg { width: 100%; height: 100%; }
+/* a snoozing dino curled on its level node, bubbles drifting up */
+.lvlBtn .evDino { position: absolute; left: 50%; top: -58px; width: 96px; height: 70px; margin-left: -48px; pointer-events: none; }
+.lvlBtn .evDino svg { width: 96px; height: 70px; }
+.evZz circle { animation: evZz 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.evZz circle:nth-child(2) { animation-delay: .6s; }
+.evZz circle:nth-child(3) { animation-delay: 1.2s; }
+@keyframes evZz { 0% { transform: translateY(0) scale(.5); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(-20px) scale(1.15); opacity: 0; } }
+/* rainbow pip on the day's level node (bottom-right corner, clear of the medal) */
+.lvlBtn .evPip { position: absolute; right: -14px; bottom: -14px; width: 42px; height: 42px; }
+.lvlBtn .evPip svg { width: 42px; height: 42px; }
+/* weather badge on a world tab */
+.worldTab .evBadge {
+  position: absolute; right: -14px; top: -14px; width: 40px; height: 40px; border-radius: 50%;
+  background: var(--v-surface); border: 4px solid var(--v-outline-soft); box-shadow: 0 3px 0 rgba(74, 53, 35, .25);
+  display: flex; align-items: center; justify-content: center; pointer-events: none;
+}
+.worldTab .evBadge svg { width: 26px; height: 26px; }
+/* the road dino: eyes shut while napping; awake it yawns, then stomps off to the right roadside */
+.prop.napdino { transform-origin: 50% 100%; }
+.prop.napdino .eyeOpen { display: none; }
+.prop.napdino.awake .eyeOpen { display: block; }
+.prop.napdino.awake .eyeShut, .prop.napdino.awake .evZz { display: none; }
+.prop.napdino.awake { animation: dinoWake 1.5s ease-in-out forwards; }
+@keyframes dinoWake {
+  0%   { transform: translateX(0) scale(1, 1); }
+  18%  { transform: translateX(0) scale(.94, 1.18); }
+  32%  { transform: translateX(0) scale(1, 1); }
+  48%  { transform: translate(130px, -46px); }
+  62%  { transform: translate(260px, 0); }
+  80%  { transform: translate(390px, -40px); }
+  100% { transform: translate(520px, 0); }
+}
+.bonusDrop { animation: bonusDrop .5s cubic-bezier(.2, 1.6, .4, 1) backwards; }
+@keyframes bonusDrop { 0% { transform: translateY(-140px) scale(.2); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .evZz circle, .prop.napdino.awake, .bonusDrop { animation-duration: .01s !important; animation-iteration-count: 1 !important; }
+}
+
 /* ---- road: pedal arms were cold gray ---- */
 .pedal [fill="#6c757d"] { fill: var(--v-ink-soft); }
 
@@ -1420,6 +1467,9 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     </button>
     <div class="chip" id="mapWallet" aria-label="star wallet"></div>
     <div id="mapGround"></div>
+    <!-- surprise events: rainbow day arc + the "today" sun chip (filled by renderMapEvents) -->
+    <div id="mapRainbow" aria-hidden="true"></div>
+    <div class="chip" id="todayChip" aria-label="today"></div>
     <div id="worldTabs"></div>
     <button class="bigBtn" id="paradeBtn" aria-label="victory parade">
       <svg viewBox="0 0 64 64"><path d="M22 4 L26 10 L32 5 L38 10 L42 4 L44 14 H20 Z" fill="#fff8ec"/><path d="M18 14 H46 V30 Q46 44 32 48 Q18 44 18 30 Z" fill="#fff8ec" stroke="#dca63f" stroke-width="3"/><path d="M18 18 Q6 20 12 32 Q15 38 20 38 M46 18 Q58 20 52 32 Q49 38 44 38" stroke="#fff8ec" stroke-width="4" fill="none"/><rect x="26" y="48" width="12" height="7" fill="#dca63f"/><rect x="20" y="55" width="24" height="6" rx="3" fill="#c69334"/></svg>
@@ -1592,6 +1642,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     25. ROAD: INPUT               pedals, swipe lanes, steering wheel, keyboard
     26. WORLD AUDIO + SKY EVENTS  jingles, ambience beds, star-chime scales, bend scrub, live events
     27. FINISH + CELEBRATION      confetti, flyStar, finishLevel + the tally card
+    27b. SURPRISE EVENTS          daily map surprises: sleeping dino, rainbow day, weather day, today chip
     28. WORLD PACK: 9 + 10        volcano and candy land, registered into the tables above
     29. WORLD PACK: 11 + 12       deep sea and sky kingdom
     30. SCENE: TITLE + DAILY GIFT the boot ceremony (logo, idling car, big GO) and the once-a-day capsule
@@ -1655,7 +1706,10 @@ const DECAL_SVG = {
   eyes:  `<g><circle cx="-15" cy="0" r="14" fill="#fff" stroke="#5a4634" stroke-width="3.5"/><circle cx="15" cy="0" r="14" fill="#fff" stroke="#5a4634" stroke-width="3.5"/><circle class="decalPupil" cx="-11" cy="4" r="6" fill="#212529"/><circle class="decalPupilB" cx="19" cy="4" r="6" fill="#212529"/></g>`
 };
 function priceOf(kind, id) { return (PRICES[kind] && PRICES[kind][id]) || 0; }
-function owns(kind, id) { return priceOf(kind, id) === 0 || progress.owned[kind].includes(id); }
+/* secret parts (the surprise-event paint): priced 0 but never free, only an award puts them in owned[] */
+const SECRET_PARTS = { color: new Set() };
+function isSecret(kind, id) { return !!(SECRET_PARTS[kind] && SECRET_PARTS[kind].has(id)); }
+function owns(kind, id) { return (priceOf(kind, id) === 0 && !isSecret(kind, id)) || progress.owned[kind].includes(id); }
 
 /* upgrade tracks: 3 levels each; repair costs 2 stars per damage point */
 const UPG = {
@@ -1801,7 +1855,7 @@ function loadState() {
   for (const k in state.extras) state.extras[k] = !!(b.extras && b.extras[k]);
   if (Number.isFinite(saved.wallet) && saved.wallet >= 0) progress.wallet = Math.floor(saved.wallet);
   if (saved.owned) for (const kind of ["body", "wheels", "color", "extras", "decal"]) {
-    if (Array.isArray(saved.owned[kind])) progress.owned[kind] = saved.owned[kind].filter(id => priceOf(kind, id) > 0);
+    if (Array.isArray(saved.owned[kind])) progress.owned[kind] = saved.owned[kind].filter(id => priceOf(kind, id) > 0 || isSecret(kind, id));
   }
   if (saved.levels) for (const n in saved.levels) {
     const lv = saved.levels[n], num = +n;
@@ -3622,9 +3676,16 @@ const PATTERNS = {
   "p:bolt": { name: "lightning", price: 65, def: (id, v) => paintTile(id, v, 60, 72,
     `<rect width="60" height="72" fill="#1e62d6"/>
      <path d="M26 4 L10 34 L22 34 L16 60 L40 24 L28 24 L34 4Z" fill="#ffd60a" stroke="#fb8500" stroke-width="2.5" stroke-linejoin="round"/>
-     <path d="M52 40 L44 54 L50 54 L47 68 L58 50 L52 50 L55 40Z" fill="#ffe66d"/>`) }
+     <path d="M52 40 L44 54 L50 54 L47 68 L58 50 L52 50 L55 40Z" fill="#ffe66d"/>`) },
+  /* ---- SURPRISE EVENTS: rainbow-day paint (appended LAST so save codes keep their bit order; secret: not for sale) ---- */
+  "p:rainbowshine": { name: "rainbow shine", price: 0, secret: true, def: (id, v) => {
+    /* a gold-rainbow stripe band: warm gold at the edges, the six rainbow bands shimmering through the middle */
+    const dir = v === PAINT_VIEWS.rear ? "h" : "v";
+    return paintBand(id, v, dir, [[0, "#8a5a00"], [.12, "#e3a81c"], [.2, "#fff3b0"], [.28, "#e53935"], [.38, "#fb8c00"], [.48, "#fdd835"],
+      [.58, "#43a047"], [.68, "#1e88e5"], [.78, "#8e24aa"], [.86, "#fff3b0"], [.93, "#e3a81c"], [1, "#6e4600"]]);
+  } }
 };
-for (const id in PATTERNS) { COLORS.push(id); PRICES.color[id] = PATTERNS[id].price; }
+for (const id in PATTERNS) { COLORS.push(id); PRICES.color[id] = PATTERNS[id].price; if (PATTERNS[id].secret) SECRET_PARTS.color.add(id); }
 /* { defs, paint } for any paint id: flat color, rainbow, or a pattern. uid keeps ids unique per render */
 function paintDefs(color, uid, view) {
   if (color === "rainbow") {
@@ -3778,7 +3839,8 @@ function stripItems(cat) {
   switch (cat) {
     case "body":   return BODY_ORDER.map(id => ({ id, kind: "body", pic: miniCarSVG(id), label: id + " body" }));
     case "wheels": return WHEEL_ORDER.map(id => ({ id, kind: "wheels", pic: wheelPicSVG(id), label: id + " wheels" }));
-    case "color":  return COLORS.map(id => ({ id, kind: "color", pic: swatchPic(id), label: PATTERNS[id] ? PATTERNS[id].name + " paint" : "paint color" }));
+    case "color":  return COLORS.filter(id => !isSecret("color", id) || progress.owned.color.includes(id))   /* a secret paint only shows once awarded */
+                     .map(id => ({ id, kind: "color", pic: swatchPic(id), label: PATTERNS[id] ? PATTERNS[id].name + " paint" : "paint color" }));
     case "decal":  return [{ id: "number", kind: "act", label: "race number: type one on the keypad", cls: "ink",
                      pic: `<svg class="decalPic" viewBox="-48 -48 96 96">${state.number ? numberSVG(state.number) : numberSVG("") + `<path d="M-14 0 H14 M0 -14 V14" stroke="#adb5bd" stroke-width="7" stroke-linecap="round"/>`}</svg>` },
                      ...DECAL_ORDER.map(id => ({ id, kind: "decal", label: id === "none" ? "no sticker" : id + " sticker",
@@ -4776,6 +4838,7 @@ function renderMap() {
     b.setAttribute("aria-label", "level " + n);
     mapGrid.appendChild(b);
   }
+  renderMapEvents();   /* SURPRISE EVENTS: today's dino / rainbow / weather markers + the day chip */
 }
 
 /* ============ 19. ROAD: CAMERA + COURSE ============ */
@@ -5915,6 +5978,7 @@ function buildLevel(n) {
   for (let i = lowStars.length - 1; i >= 0 && count(p => p.type === "star") > maxStars(n); i--) removeProp(lowStars[i]);
 
   addProp("finish", LEVEL_LEN, 1, 0, finishSVG, -400, -380);
+  eventDressLevel(n);   /* SURPRISE EVENTS: the sleeping dino on its day (after every budget pass, never counted) */
   lastBeats = beats;
 
   buildScenery(LEVEL_LEN + 1600, w, n);
@@ -5967,7 +6031,7 @@ function applyTheme(w) {
 function buildWeather(w) {
   const el = document.getElementById("weather");
   el.innerHTML = "";
-  const spec = WORLD_WEATHER["w" + w];
+  const spec = eventWeatherSpec(w) || WORLD_WEATHER["w" + w];   /* SURPRISE EVENTS: a weather day overrides the world's own */
   if (!spec) return;
   const rng = mulberry32(w * 131);
   for (let i = 0; i < spec.count; i++) {
@@ -7409,6 +7473,7 @@ document.addEventListener("visibilitychange", () => {
 carWrap.addEventListener("pointerdown", () => {
   sfx.honk(state.body);
   if (state.buddy) setTimeout(() => sfx.squeak(), 160);
+  eventHonk();   /* SURPRISE EVENTS: a honk wakes the sleeping dino */
 });
 
 /* ============ 26. WORLD AUDIO + SKY EVENTS ============ */
@@ -7946,6 +8011,7 @@ function finishLevel() {
   }
   /* ---- end GHOST RACE ---- */
   save();
+  if (!isParade) eventFinish(level);   /* SURPRISE EVENTS: rainbow day hands over its paint */
 
   /* build the tally UI */
   const tally = document.getElementById("tallyChip");
@@ -7998,6 +8064,181 @@ function finishLevel() {
       }
     }, banked > 15 ? 60 : 120);   /* long tallies (world bonus) tick twice as fast */
   }, 700);
+}
+
+/* ============ 27b. SURPRISE EVENTS: daily map surprises ============ */
+/* Three small events rotate with the calendar day. The picks come from a tiny seeded RNG keyed on
+   the local YYYY-MM-DD (window.__today overrides it for the suites), so the whole day shows the
+   same surprise and tomorrow brings a fresh one. Every draw happens unconditionally so a kid's
+   progress during the day never reshuffles the rest; no date at all means no events, quietly.
+     1. sleeping dino: a snoozing dino on one beaten level of the current world (never the
+        frontier). On that road it naps across the middle lane near the start. A honk (tap the
+        car), crawling up to it, or simply bumping into it wakes it: a yawn, a stomp off to the
+        roadside and 5 bonus stars on the lane. Not hard, no damage, never a stop, never counted
+        in the level's star total (the fairness bots see only a gift).
+     2. rainbow day (once level 30 is beaten): a rainbow over the map and a rainbow pip on one
+        unlocked level; finishing it today awards the secret "p:rainbowshine" paint, once.
+     3. weather day: one unlocked world's tab wears a rain or snow badge; every level of that
+        world runs with that weather's particles (the world's own spec is swapped for it).
+   Plus the "today" chip: a sun with the day of the month, so the kid ties surprises to days.
+   Hooks: renderMapEvents() at the end of renderMap, eventDressLevel() in buildLevel,
+   eventWeatherSpec() in buildWeather, eventHonk() on the car tap, eventFinish() in finishLevel. */
+function todayKey() {
+  try {
+    if (typeof window.__today === "string") return /^\d{4}-\d{2}-\d{2}$/.test(window.__today) ? window.__today : null;
+    const d = new Date();
+    if (isNaN(d.getTime())) return null;
+    const p = n => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  } catch (e) { return null; }
+}
+function daySeed(key) {   /* FNV-1a over the date string -> a mulberry32 seed */
+  let h = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function seededShuffle(arr, rng) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+/* weather kinds the event can borrow: the world whose particle spec + badge glyph it reuses */
+const EVENT_WEATHER = {
+  rain: { world: 4, icon: `<svg viewBox="0 0 64 64"><path d="M18 34 a12 12 0 0 1 2 -24 a14 14 0 0 1 26 2 a10 10 0 0 1 2 22 Z" fill="#fff8ec" stroke="#1d3557" stroke-width="4" stroke-linejoin="round"/><path d="M22 42 L18 52 M32 42 L28 52 M42 42 L38 52" stroke="#4cc9f0" stroke-width="5" stroke-linecap="round"/></svg>` },
+  snow: { world: 5, icon: `<svg viewBox="0 0 64 64"><g stroke="#4cc9f0" stroke-width="5" stroke-linecap="round" fill="none"><path d="M32 8 V56 M11 20 L53 44 M53 20 L11 44"/><path d="M26 14 L32 20 L38 14 M26 50 L32 44 L38 50 M14 28 L22 30 L20 22 M50 28 L42 30 L44 22 M14 36 L22 34 L20 42 M50 36 L42 34 L44 42"/></g></svg>` }
+};
+const EV_SUN = `<svg viewBox="0 0 64 64"><g stroke="#fb8500" stroke-width="5" stroke-linecap="round"><path d="M32 4 V12 M32 52 V60 M4 32 H12 M52 32 H60 M12 12 L18 18 M46 46 L52 52 M12 52 L18 46 M46 18 L52 12"/></g><circle cx="32" cy="32" r="14" fill="#ffd60a" stroke="#fb8500" stroke-width="4"/></svg>`;
+const EV_RAINBOW_ARC = (() => {
+  const cols = ["#e53935", "#fb8c00", "#fdd835", "#43a047", "#1e88e5", "#8e24aa"];
+  return `<svg viewBox="0 0 1000 330">` + cols.map((c, i) => {
+    const r = 470 - i * 24;
+    return `<path d="M ${500 - r} 330 A ${r} ${r} 0 0 1 ${500 + r} 330" stroke="${c}" stroke-width="24" fill="none" opacity=".55"/>`;
+  }).join("") + `</svg>`;
+})();
+const EV_RAINBOW_PIP = `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#fff8ec" stroke="#1d3557" stroke-width="4"/>` +
+  ["#e53935", "#fb8c00", "#fdd835", "#43a047", "#1e88e5", "#8e24aa"].map((c, i) => `<path d="M ${10 + i * 3.6} 44 A ${22 - i * 3.6} ${22 - i * 3.6} 0 0 1 ${54 - i * 3.6} 44" stroke="${c}" stroke-width="4" fill="none"/>`).join("") + `</svg>`;
+/* the map marker: a curled-up dino, eyes shut, three sleep bubbles rising */
+const EV_DINO_MAP = `<svg viewBox="0 0 96 70">
+  <path d="M14 56 Q4 44 16 36 Q30 26 52 30 Q74 34 76 50 Q78 60 64 60 H20 Q14 60 14 56 Z" fill="#74c69d" stroke="#1d3557" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M22 36 L26 26 L32 34 L38 24 L44 32 L50 24 L54 32" fill="#2a9d8f" stroke="#1d3557" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M18 52 Q6 54 8 44" stroke="#1d3557" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <circle cx="66" cy="44" r="15" fill="#74c69d" stroke="#1d3557" stroke-width="3"/>
+  <path d="M60 44 q4 3 8 0" stroke="#1d3557" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M70 52 q4 2 8 -1" stroke="#1d3557" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <ellipse cx="42" cy="52" rx="14" ry="5" fill="#b7e4c7"/>
+  <g class="evZz" fill="#fff8ec" stroke="#1d3557" stroke-width="2.5"><circle cx="80" cy="26" r="4"/><circle cx="86" cy="16" r="5.5"/><circle cx="92" cy="6" r="4"/></g>
+</svg>`;
+/* the road dino: big, soft and asleep across the lane; .eyeOpen swaps in when it wakes */
+const NAPDINO_SVG = `<svg width="200" height="120" viewBox="0 0 200 120">
+  <ellipse cx="100" cy="112" rx="92" ry="9" fill="#00000022"/>
+  <path d="M30 104 Q6 90 18 70 Q30 52 70 50 Q110 48 134 60 Q152 70 150 92 Q150 106 130 108 H40 Q30 108 30 104 Z" fill="#74c69d" stroke="#1d3557" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M40 66 L48 46 L60 60 L70 40 L82 56 L94 38 L104 54 L116 42 L124 58" fill="#2a9d8f" stroke="#1d3557" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M30 96 Q6 100 10 80 Q14 70 26 76" stroke="#1d3557" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <ellipse cx="86" cy="92" rx="34" ry="10" fill="#b7e4c7"/>
+  <circle cx="158" cy="80" r="30" fill="#74c69d" stroke="#1d3557" stroke-width="4"/>
+  <path d="M184 90 q8 -2 10 -10" stroke="#1d3557" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path class="eyeShut" d="M146 76 q6 5 12 0 M166 76 q6 5 12 0" stroke="#1d3557" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <g class="eyeOpen"><circle cx="152" cy="76" r="6" fill="#fff"/><circle cx="153" cy="77" r="3" fill="#1d3557"/><circle cx="172" cy="76" r="6" fill="#fff"/><circle cx="173" cy="77" r="3" fill="#1d3557"/></g>
+  <path d="M150 94 q10 6 22 0" stroke="#1d3557" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <circle cx="144" cy="88" r="3" fill="#2a9d8f"/><circle cx="178" cy="88" r="3" fill="#2a9d8f"/>
+  <g class="evZz" fill="#fff8ec" stroke="#1d3557" stroke-width="3"><circle cx="180" cy="44" r="6"/><circle cx="188" cy="28" r="8"/><circle cx="196" cy="10" r="6"/></g>
+</svg>`;
+/* today's three picks (plus the day number) for the current progress; 0 / null = no event */
+function dailyEvents() {
+  const key = todayKey();
+  const out = { key, day: 0, dino: 0, rainbow: 0, weather: null, weatherWorld: 0 };
+  if (!key) return out;
+  out.day = parseInt(key.slice(8), 10) || 0;
+  const rng = mulberry32(daySeed(key));
+  /* the frontier is the first level not yet beaten; its world is "the current world" */
+  let frontier = 1;
+  while (frontier < MAX_LEVEL && progress.levels[frontier]) frontier++;
+  const w = worldOf(frontier);
+  const worldLevels = k => Array.from({ length: WORLD_SIZE }, (_, i) => (k - 1) * WORLD_SIZE + 1 + i);
+  const dinoOrder = seededShuffle(worldLevels(w), rng), dinoPrev = seededShuffle(worldLevels(Math.max(1, w - 1)), rng);
+  const napSpot = n => levelUnlocked(n) && n !== frontier;
+  out.dino = dinoOrder.find(napSpot) || (w > 1 ? dinoPrev.find(napSpot) : 0) || 0;
+  const rbOrder = seededShuffle(worldLevels(w), rng);
+  const rb = rbOrder.find(n => levelUnlocked(n) && n !== out.dino) || rbOrder.find(n => levelUnlocked(n)) || 0;
+  if (progress.levels[30]) out.rainbow = rb;
+  const kinds = Object.keys(EVENT_WEATHER);
+  out.weather = kinds[Math.floor(rng() * kinds.length)];
+  const wOrder = seededShuffle(Array.from({ length: WORLD_COUNT }, (_, i) => i + 1), rng);
+  out.weatherWorld = wOrder.find(k => k <= w && k !== EVENT_WEATHER[out.weather].world) || 0;
+  return out;
+}
+/* ---- map: markers on the nodes and tabs, the arc, the day chip ---- */
+function renderMapEvents() {
+  const ev = dailyEvents();
+  const chip = document.getElementById("todayChip");
+  chip.classList.toggle("show", ev.day > 0);
+  chip.innerHTML = ev.day > 0 ? EV_SUN + `<span>${ev.day}</span>` : "";
+  const arc = document.getElementById("mapRainbow");
+  arc.classList.toggle("show", ev.rainbow > 0);
+  arc.innerHTML = ev.rainbow > 0 ? EV_RAINBOW_ARC : "";
+  const node = n => n > 0 ? mapGrid.querySelector(`.lvlBtn[aria-label="level ${n}"]:not(.locked)`) : null;
+  const dn = node(ev.dino);
+  if (dn) dn.insertAdjacentHTML("beforeend", `<span class="evDino" aria-label="sleeping dino">${EV_DINO_MAP}</span>`);
+  const rn = node(ev.rainbow);
+  if (rn) rn.insertAdjacentHTML("beforeend", `<span class="evPip" aria-label="rainbow day">${EV_RAINBOW_PIP}</span>`);
+  const tab = ev.weatherWorld > 0 ? document.querySelector(`#worldTabs .worldTab[aria-label="world ${ev.weatherWorld}"]:not(.locked)`) : null;
+  if (tab) tab.insertAdjacentHTML("beforeend", `<span class="evBadge ${ev.weather}" aria-label="${ev.weather} day">${EVENT_WEATHER[ev.weather].icon}</span>`);
+}
+/* ---- road: the weather swap, the sleeping dino and its bonus stars, the rainbow paint ---- */
+function eventWeatherSpec(w) {
+  if (freeMode || paradeMode) return null;
+  const ev = dailyEvents();
+  if (!ev.weather || ev.weatherWorld !== w) return null;
+  return WORLD_WEATHER["w" + EVENT_WEATHER[ev.weather].world] || null;
+}
+let napDino = null, runEvents = null;   /* the live dino prop; the picks as they stood when this road was built */
+const NAPDINO_X = 640;                  /* in the quiet first 1000 units, middle lane; its stars end by 1050 */
+function eventDressLevel(n) {
+  napDino = null;
+  runEvents = dailyEvents();
+  if (runEvents.dino !== n) return;
+  napDino = addProp("napdino", NAPDINO_X, 1, 0, NAPDINO_SVG, -100, -112);
+}
+function sfxDinoWake() {
+  tone("triangle", 170, 330, 0.5, 0.2);                 /* the yawn stretches up... */
+  tone("triangle", 330, 140, 0.5, 0.18, 0.5);           /* ...and sighs down */
+  for (let i = 0; i < 4; i++) tone("square", 84, 48, 0.12, 0.22, 1.0 + i * 0.2);          /* stomps */
+  for (let i = 0; i < 5; i++) tone("sine", 900 + i * 120, 900 + i * 120, 0.12, 0.1, 1.05 + i * 0.09);   /* stars rolling out */
+}
+function wakeDino(p) {
+  if (!p || p.done) return;
+  p.done = true; napDino = null;
+  p.el.classList.add("awake");
+  sfxDinoWake();
+  /* five bonus stars roll out along the lane: extras on top of the level's total, never part of it */
+  for (let i = 0; i < 5; i++) {
+    const s = addProp("star", p.x + 130 + i * 70, 1, LOW_STAR_H, starSVG, -32, -32);
+    s.bonus = true; s.el.classList.add("bonusDrop");
+    gagTimer(() => s.el.classList.remove("bonusDrop"), 700);
+  }
+}
+PROP_HIT.napdino = (p, d) => {
+  if (p.done) return;
+  const near = Math.abs(laneVis - p.lane) <= 0.65;
+  /* crawling up to it, or just bumping into it: it wakes and hops off, no stop, no damage */
+  if (near && ((d > -40 && d < 110) || (d > -260 && d < 0 && v < 170))) wakeDino(p);
+};
+function eventHonk() {
+  if (napDino && !napDino.done && napDino.x - (pos + CAR_SCREEN_X) < DRAW_FAR) wakeDino(napDino);
+}
+function eventFinish(n) {
+  if (!runEvents || runEvents.rainbow !== n) return;
+  const id = "p:rainbowshine";
+  if (progress.owned.color.includes(id)) return;
+  progress.owned.color.push(id);
+  save();
+  /* the sticker-toast treatment, with the paint's swatch as the picture */
+  const toast = document.getElementById("stickerToast");
+  toast.innerHTML = paintSwatchSVG(id) + starIcon;
+  restartAnim(toast, "show");
+  sfx.chime();
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("show"), 1900);
 }
 
 /* ============ 28. WORLD PACK: 9 VOLCANO (81-90) + 10 CANDY LAND (91-100) ============ */

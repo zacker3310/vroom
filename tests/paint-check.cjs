@@ -38,7 +38,8 @@ function check(name, ok, detail) {
     return {
       n: pats.length, colors: COLORS.length, inColors: pats.every(p => COLORS.includes(p)),
       inCode: pats.every(p => CODE_COLORS.includes(p)),
-      prices: pats.map(p => PRICES.color[p]), priciest: ['p:galaxy', 'p:gold'].every(p => PRICES.color[p] >= 100),
+      prices: pats.filter(p => !PATTERNS[p].secret).map(p => PRICES.color[p]), priciest: ['p:galaxy', 'p:gold'].every(p => PRICES.color[p] >= 100),
+      secret: pats.filter(p => PATTERNS[p].secret), secretLast: CODE_COLORS[CODE_COLORS.length - 1] === 'p:rainbowshine' && COLORS[COLORS.length - 1] === 'p:rainbowshine',
       swatches: document.querySelectorAll('#strip .tile[data-color]').length,
       pg1: document.querySelectorAll('#strip .tile[data-color]').length - patTiles.length, pg2: patTiles.length,
       flips: document.querySelectorAll('#paintFlip, #strip .pg2').length,
@@ -46,9 +47,9 @@ function check(name, ok, detail) {
       locks: patTiles.every(s => s.querySelector('.lockDot'))
     };
   });
-  check('catalog: 11 patterns registered in COLORS + CODE_COLORS', cat.n === 11 && cat.inColors && cat.inCode && cat.colors === 23, JSON.stringify([cat.n, cat.colors]));
-  check('catalog: prices 40-120, galaxy + gold priciest', cat.prices.every(p => p >= 40 && p <= 120) && cat.priciest, cat.prices.join(','));
-  check('strip: 23 paint tiles in one strip, no page flip (12 colors + 11 patterns)', cat.swatches === 23 && cat.pg1 === 12 && cat.pg2 === 11 && cat.flips === 0, JSON.stringify([cat.swatches, cat.pg1, cat.pg2]));
+  check('catalog: 12 patterns registered in COLORS + CODE_COLORS (11 for sale + the secret rainbow shine, appended last)', cat.n === 12 && cat.inColors && cat.inCode && cat.colors === 24 && cat.secret.length === 1 && cat.secretLast, JSON.stringify([cat.n, cat.colors, cat.secret]));
+  check('catalog: prices 40-120, galaxy + gold priciest (the secret paint is not for sale)', cat.prices.length === 11 && cat.prices.every(p => p >= 40 && p <= 120) && cat.priciest, cat.prices.join(','));
+  check('strip: 23 paint tiles in one strip, no page flip (12 colors + 11 patterns; the unearned secret paint stays hidden)', cat.swatches === 23 && cat.pg1 === 12 && cat.pg2 === 11 && cat.flips === 0, JSON.stringify([cat.swatches, cat.pg1, cat.pg2]));
   check('strip: pattern tiles show a picture of the pattern', cat.pics);
   check('strip: unowned patterns carry a padlock', cat.locks);
 

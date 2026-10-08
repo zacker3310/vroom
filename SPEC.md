@@ -122,6 +122,12 @@ stripe) is painted on a canvas each frame; roadside set pieces rush past on both
   (S = near-clean full-throttle run; engine upgrades matter late). Small timer in the HUD
   progress chip, medal pops on celebrate, badge on the level map. Best medal is kept —
   time never punishes, only rewards.
+- **Surprise events** (v12.5): three small surprises rotate with the calendar day (seeded on
+  YYYY-MM-DD, so the whole day shows the same one): a sleeping dino on one beaten level's node that
+  naps across the road and drops 5 bonus stars when honked at, approached or bumped (never a stop,
+  never damage); a rainbow day after level 30 whose marked level awards the secret rainbow-shine
+  paint once; a weather day that runs one world under borrowed rain or snow; plus a sun chip with
+  the day of the month on the map.
 - **Free drive** (v4.3): big road button on the map starts an endless cruise — no finish,
   no timer, kid-paced. Difficulty rises gently with distance, day/sunset/night cycle every
   stretch, stars bank automatically when heading home.
