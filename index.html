@@ -355,7 +355,7 @@
   .cloud::before { width: 55%; height: 160%; left: 12%; bottom: 25%; }
   .cloud::after { width: 45%; height: 130%; right: 12%; bottom: 30%; }
   #skyStars { display: none; position: absolute; inset: 0; }
-  #env { position: absolute; inset: 0; transform-origin: 600px 290px; pointer-events: none; }   /* the sky layers a corkscrew rolls */
+  #env { position: absolute; inset: 0; pointer-events: none; }
   .drum { transform-box: fill-box; transform-origin: center; }
   #road.night #skyStars { display: block; }
   #weather { position: absolute; inset: 0; pointer-events: none; z-index: 17; }
@@ -397,6 +397,8 @@
   /* 400x500 box; svg origin (the rear bumper's ground point) lands on stage 600,650 */
   #carWrap { position: absolute; left: 400px; top: 190px; width: 400px; will-change: transform; cursor: pointer; touch-action: none; transform-origin: 50% 92%; pointer-events: none; }
   #carWrap svg { width: 100%; height: auto; overflow: visible; transform-origin: 50% 92%; }
+  #carWrap .v3dShade { transition: opacity .25s; }
+  #carWrap.rolling .v3dShade { opacity: 0; }   /* mid-corkscrew the footprint shadow on the canvas does the job; the baked one would roll with the body */
   #carWrap .hitbox { pointer-events: all; }
   #carWrap.wobble svg { animation: carWobble .55s ease; }
   @keyframes carWobble { 20% { transform: rotate(-7deg); } 40% { transform: rotate(6deg); } 60% { transform: rotate(-4deg); } 80% { transform: rotate(2deg); } }
@@ -1708,7 +1710,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.1.1";
+const APP_VERSION = "13.2.0";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -4998,7 +5000,6 @@ function renderMap() {
    World coords: x = distance along the road (unchanged from the side-scroller, so all the
    level/physics/collision logic still speaks x), lx = lateral offset, h = height. */
 const farLayer = document.getElementById("farLayer");
-const envEl = document.getElementById("env");
 let rollOK = true;   /* startDrive: false when the device asks for reduced motion (corkscrews keep their hoops, lose the roll) */
 const worldEl = document.getElementById("world");
 const roadCanvas = document.getElementById("roadCanvas");
@@ -5098,13 +5099,12 @@ function elevAt(x) {
   return e;
 }
 function addHill(x0, len, amp) { HILLS.push({ x0, x1: x0 + len, amp }); return x0 + len; }
-/* ---- corkscrews: stretches where the road rolls a full turn around its own axis.
-   rollAt(x) is the road's roll at x (0 before a twist, ±2π after it, eased between). The camera
-   rides the road, so the road ahead is drawn turned by rollAt(x) - rollAt(car) about the hoop axis
-   (HOOP_C above the deck) in car space: it climbs one wall, goes over the top inside the hoops and
-   comes down the other side, a real ribbon in perspective. The ground, sky, hills and roadside never
-   move and the car stays flat on its own stretch (13.0: the earlier "world rolls" version tilted some
-   layers and not others, two horizons and a wall of road a car-length ahead). ---- */
+/* ---- corkscrews: stretches where the car barrel-rolls through a tunnel of hoops.
+   rollAt(x) is the roll at x (0 before a twist, ±2π after it, eased between). The road, ground, sky,
+   hills and every sprite are drawn exactly as on any other stretch: nothing in the world tilts. The
+   car itself rolls by rollAt(carX) about its own axis and lifts a little at the top of the turn, inside
+   the striped hoops, so the turn reads as a stunt the car does, not a bend the scenery takes (13.2: the
+   "world rolls" and "road ribbon" versions before it both painted road across the sky). ---- */
 let TWISTS = [], rollCar = 0, twistLive = false;
 const TWIST_LEN = 2200;   /* long enough that the road a car-length ahead turns gently, not in a snap */
 function addTwist(x0, len, dir) { TWISTS.push({ x0, x1: x0 + len, dir }); return x0 + len; }
@@ -5594,7 +5594,7 @@ function vehicleRearBuild(st) {
   const bodyParts = normal.concat(late).map(p => p.k === "tire" ? partSVG(p, 0) : partSVG(p, L)).join("");
   /* contact shadow: the car's footprint on the road, blurred, so it sits on the tarmac instead of floating */
   const sw = R.half + (R.noWheels ? 10 : tw), g = [vp(-sw, 0, -8), vp(sw, 0, -8), vp(sw * 0.9, 0, R.len + 10), vp(-sw * 0.9, 0, R.len + 10)];
-  const shadow = R.hover ? "" : `<polygon points="${ptStr(g)}" fill="#000" opacity=".34" filter="url(#v3dBlur)"/>`;
+  const shadow = R.hover ? "" : `<polygon class="v3dShade" points="${ptStr(g)}" fill="#000" opacity=".34" filter="url(#v3dBlur)"/>`;
   const body = shadow + (R.hover ? `<g class="hoverBob">${bodyParts}</g>` : bodyParts);
 
   /* overlay anchors: project a car-space point, return [x, y, scale] */
@@ -6193,7 +6193,7 @@ function buildLevel(n) {
   /* a finale keeps its last 560 units for the star shower; ramps must have landed by then */
   const showerX = finale ? endX - 560 : Infinity, loopEnd = finale ? showerX - 200 : endX - 350;
   const landLimit = finale ? showerX : endX;   /* every ramp touches down by here: never past the flags, never into a finale's shower */
-  /* a corkscrew is its own beat: a helix of stars that rolls around with the road, laid first so no
+  /* a corkscrew is its own beat: a helix of stars (lane 1, 2, 1, 0...) the car rolls through, laid first so no
      formation (or a ramp flying over it) can crowd it out */
   for (const t of TWISTS) for (let sx = t.x0 + 60, j = 0; sx < t.x1 - 60; sx += 125, j++) b.star(sx, [1, 2, 1, 0][Math.floor(j / 3) % 4]);   /* three stars a lane: small hands keep up */
   while (x < loopEnd && guard++ < 60) {
@@ -6803,19 +6803,9 @@ function placeSprite(p, carX) {
   }
   if (!p.vis) { p.wrap.style.display = "block"; p.vis = true; }
   const s = CAM_D / (z + CAM_D);
-  let sx = 600 + (p.lx + offAt(z) - camX) * s;
-  let sy = HORIZON + (CAM_H + camElev - elevAt(p.x) - p.h) * s;
-  let rot = "";
-  if (twistLive && p.type !== "scenery") {   /* corkscrew: road things ride the ribbon; the roadside stays on the ground */
-    const a = (rollAt(p.x) - rollCar) * rollNear(z);
-    if (Math.abs(a) > 0.001) {
-      const [lx, h] = rollPt(a, p.lx, p.h);
-      sx = 600 + (lx + offAt(z) - camX) * s;
-      sy = HORIZON + (CAM_H + camElev - elevAt(p.x) - h) * s;
-      rot = ` rotate(${a.toFixed(3)}rad)`;
-    }
-  }
-  p.wrap.style.transform = `translate(${sx.toFixed(1)}px,${sy.toFixed(1)}px)${rot} scale(${(s * p.k).toFixed(4)})`;
+  const sx = 600 + (p.lx + offAt(z) - camX) * s;
+  const sy = HORIZON + (CAM_H + camElev - elevAt(p.x) - p.h) * s;
+  p.wrap.style.transform = `translate(${sx.toFixed(1)}px,${sy.toFixed(1)}px) scale(${(s * p.k).toFixed(4)})`;
   /* nearer = higher; the car sits at depth 10. Something the car just hit or grabbed
      pops out over it (it happens up by the hood, which the body otherwise hides) */
   const zi = (p.done && !FLAT_PROPS.has(p.type) ? 25000 : 20000) - Math.round(z);
@@ -6826,21 +6816,8 @@ function placeSprite(p, carX) {
 
 /* ---- the ground plane: grass bands, road, rumble strips, lane dashes, ramps, finish ---- */
 const SEG = 160;
-let groundRoll = false;   /* drawRoad flips it while painting the ground, which rolls with the world, not the road */
-/* the deck stays flat under and just ahead of the car; the ribbon starts twisting 120 units out and is fully
-   in by 420, so the car never sits on a tilted slab and the road behind it never fans out */
-const rollNear = z => Math.min(1, Math.max(0, (Math.abs(z) - 120) / 300));
-/* a point on the road (lateral lx, height h) turned by a about the hoop axis, which runs down the road HOOP_C up */
-function rollPt(a, lx, h) {
-  const c = Math.cos(a), n = Math.sin(a), hy = (h || 0) - HOOP_C;
-  return [lx * c - hy * n, lx * n + hy * c + HOOP_C];
-}
 function proj(z, lx, h) {
   const s = CAM_D / (z + CAM_D);
-  if (twistLive && !groundRoll) {   /* the ribbon ahead twists in car space; the ground plane does not */
-    const a = (rollAt(curCarX + z) - rollCar) * rollNear(z);
-    if (Math.abs(a) > 0.001) [lx, h] = rollPt(a, lx, h);
-  }
   return [600 + (lx + offAt(z) - camX) * s, HORIZON + (CAM_H + camElev - elevAt(curCarX + z) - (h || 0)) * s, s];
 }
 function quad(c, z0, z1, l0, l1, col, h0, h1) {
@@ -6881,9 +6858,7 @@ function drawRoad(carX) {
   c.fillStyle = P.ground;
   c.fillRect(0, HORIZON, 1200, 700 - HORIZON);
   /* the ground plane itself follows the hills, so a rise lifts the whole landscape */
-  groundRoll = true;
   for (let z = DRAW_FAR + 1200; z > DRAW_NEAR; z -= 400) quad(c, Math.max(DRAW_NEAR, z - 400), z, -7000, 7000, P.ground);
-  groundRoll = false;
   /* the far road: coarse bands out past the fade, so a bend keeps curving to the haze */
   for (let z = DRAW_FAR + 1200; z >= 2400; z -= 400) quad(c, z - 400, z, -ROAD_HALF, ROAD_HALF, P.road);
   /* banded near road: alternating stripes sell the speed */
@@ -6891,7 +6866,7 @@ function drawRoad(carX) {
   for (let k = Math.floor((carX + 2400) / SEG); k >= first; k--) {
     const z0 = Math.max(DRAW_NEAR, k * SEG - carX), z1 = (k + 1) * SEG - carX;
     const odd = k & 1;
-    if (odd) { groundRoll = true; quad(c, z0, z1, -4000, 4000, P.ground2); groundRoll = false; }
+    if (odd) quad(c, z0, z1, -4000, 4000, P.ground2);
     quad(c, z0, z1, -ROAD_HALF, ROAD_HALF, P.bands ? P.bands[((k % 6) + 6) % 6] : odd ? P.road2 : P.road);
     quad(c, z0, z1, -ROAD_HALF - 26, -ROAD_HALF, odd ? P.rumA : P.rumB);
     quad(c, z0, z1, ROAD_HALF, ROAD_HALF + 26, odd ? P.rumA : P.rumB);
@@ -6940,10 +6915,9 @@ function renderWorld() {
   const carX = pos + CAR_SCREEN_X - CAR_HIT_Z;   /* z=0 is the car's rear bumper */
   camX = (laneVis - 1) * LANE_W * CAM_FOLLOW;
   curCarX = carX; camElev = elevAt(carX);
-  /* corkscrew roll: only when a twist is in the draw window (and never for reduced motion: hoops only) */
-  twistLive = rollOK && TWISTS.some(t => t.x1 > carX + DRAW_NEAR && t.x0 < carX + DRAW_FAR + 1200);
+  /* corkscrew: the car's own roll, only while it is inside a twist (never for reduced motion: hoops only) */
+  twistLive = rollOK && inTwist(carX);
   rollCar = twistLive ? rollAt(carX) % (Math.PI * 2) : 0;
-  if (envEl.style.transform) envEl.style.transform = "";   /* the sky never rolls (13.0) */
   buildOffsets(carX);
   drawRoad(carX);
   for (const p of props) placeSprite(p, carX);
@@ -7796,7 +7770,12 @@ function tick(now) {
   const squat = Math.max(-6, Math.min(6, bodyTilt * 0.7));
   setCarView(Math.round((laneVis - 1) * LANE_VIEW_STEPS) / LANE_VIEW_STEPS);   /* inner flank in a side lane */
   const cdx = carScreenX() - 600;
-  carWrap.style.transform = `translate(${cdx.toFixed(1)}px,${(squat - jumpY).toFixed(1)}px)`;
+  /* corkscrew: the car barrel-rolls about its own axis and rises a little through the top of the turn */
+  const carRoll = twistLive && Math.abs(rollCar) > 0.002 ? rollCar : 0;
+  const lift = (1 - Math.cos(carRoll)) * 30;
+  const org = carRoll ? "50% 80%" : "50% 92%";
+  if (carWrap.style.transformOrigin !== org) { carWrap.style.transformOrigin = org; carWrap.classList.toggle("rolling", !!carRoll); }   /* the contact shadow stays on the road (canvas), not on the rolling body */
+  carWrap.style.transform = `translate(${cdx.toFixed(1)}px,${(squat - jumpY - lift).toFixed(1)}px)` + (carRoll ? ` rotate(${carRoll.toFixed(3)}rad)` : "");
 
   rafId = requestAnimationFrame(tick);
 }

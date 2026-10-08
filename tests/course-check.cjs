@@ -1,6 +1,6 @@
 /* course-check: the wild courses (v12.9, T21) and the speed-linked mixer drum (T2.3).
-   Corkscrews roll the road a full turn (the road ahead turns about the vanishing point, the world off the road
-   turns the other way, the car stays upright) and carry stars only; hard turns get chevron boards on their
+   Corkscrews barrel-roll the car a full turn through a tunnel of hoops (13.2: the road, ground, sky and sprites
+   never move) and carry stars only; hard turns get chevron boards on their
    outside; roller levels run a train of big hills; mega ramps and hop chains launch by their own numbers
    through the one launch rule the fairness bots share; the chase-cam mixer drum turns with the road speed.
    Reduced motion keeps the hoops and drops the roll. */
@@ -114,7 +114,8 @@ function check(name, ok, detail) {
     const t = TWISTS[0];
     pos = t.x0 - CAR_SCREEN_X - 400; v = 0;
     await new Promise(r => setTimeout(r, 900));   /* let the scene iris finish before any screenshot */
-    const before = { live: twistLive, env: envEl.style.transform };
+    const env = document.getElementById('env');
+    const before = { live: twistLive, env: env.style.transform, carRot: /rotate/.test(carWrap.style.transform) };
     pos = (t.x0 + t.x1) / 2 - CAR_SCREEN_X + CAR_HIT_Z; v = 0;
     await new Promise(r => setTimeout(r, 200));
     const star = props.find(p => p.type === 'star' && !p.done && p.x > t.x0 + (t.x1 - t.x0) * 0.75 && p.x < t.x1);
@@ -124,24 +125,25 @@ function check(name, ok, detail) {
     for (let x = 20; x < 2400; x += 40, n++) if (hexAt(x * 4) === roadPal.ground || hexAt(x * 4) === roadPal.ground2) groundPx++;
     const hex = (groundPx / n).toFixed(2);
     const weatherOut = document.getElementById('weather').parentElement.id === 'road';
-    return { before, weatherOut, live: twistLive, roll: rollCar, env: envEl.style.transform, star: star && star.wrap.style.transform, top: hex, ground: roadPal.ground, ground2: roadPal.ground2, cork: window.__cork,
-      car: carWrap.style.transform, carRot: /rotate/.test(carWrap.style.transform) };
+    const car = carWrap.style.transform, m = /rotate\((-?[\d.]+)rad\)/.exec(car);
+    return { before, weatherOut, live: twistLive, roll: rollCar, env: env.style.transform, star: star && star.wrap.style.transform, top: hex, ground: roadPal.ground, ground2: roadPal.ground2, cork: window.__cork,
+      car, carRot: !!m, carAngle: m ? +m[1] : 0, origin: carWrap.style.transformOrigin };
   });
   await page.screenshot({ path: SHOT + 'course-corkscrew.png' });
   for (const f of [-0.25, 0.25, 0.75]) {
     await page.evaluate(async f => { const t = TWISTS[0]; pos = t.x0 + (t.x1 - t.x0) * f - CAR_SCREEN_X + CAR_HIT_Z; await new Promise(r => setTimeout(r, 120)); }, f);
     await page.screenshot({ path: SHOT + `course-corkscrew-${Math.round(f * 100)}.png` });
   }
-  check('corkscrew: drawn ahead but not rolling before it, rolling mid-twist (roll ~pi); the sky never rolls, weather stays outside over the road',
-    roll.before.live && roll.before.env === '' && roll.live && roll.weatherOut && Math.abs(Math.abs(roll.roll) - Math.PI) < 0.05 && roll.env === '', JSON.stringify({ before: roll.before, weatherOut: roll.weatherOut, live: roll.live, roll: roll.roll, env: roll.env }));
-  check('corkscrew: the horizon stays put (sky at the top of the screen); road sprites ahead turn with the ribbon; the car stays upright',
-    +roll.top < 0.5 && /rotate\(/.test(roll.star || '') && !roll.carRot, JSON.stringify({ groundShareOfTopRow: roll.top, star: roll.star, car: roll.car }));
+  check('corkscrew: level before it, rolling mid-twist (roll ~pi); the sky never rolls, weather stays outside over the road',
+    !roll.before.live && !roll.before.carRot && roll.before.env === '' && roll.live && roll.weatherOut && Math.abs(Math.abs(roll.roll) - Math.PI) < 0.05 && roll.env === '', JSON.stringify({ before: roll.before, weatherOut: roll.weatherOut, live: roll.live, roll: roll.roll, env: roll.env }));
+  check('corkscrew: the world stays flat (sky at the top, no sprite turns); the car itself is upside down mid-twist',
+    +roll.top < 0.5 && !/rotate\(/.test(roll.star || '') && roll.carRot && Math.abs(Math.abs(roll.carAngle) - Math.PI) < 0.05 && roll.origin === '50% 80%', JSON.stringify({ groundShareOfTopRow: roll.top, star: roll.star, car: roll.car, origin: roll.origin }));
   const out = await page.evaluate(async () => {
     const t = TWISTS[0];
     pos = t.x1 + 3600 - CAR_SCREEN_X; await new Promise(r => setTimeout(r, 150));
-    return { live: twistLive, env: envEl.style.transform, cork: window.__cork };
+    return { live: twistLive, env: document.getElementById('env').style.transform, cork: window.__cork, carRot: /rotate/.test(carWrap.style.transform), origin: carWrap.style.transformOrigin };
   });
-  check('corkscrew: a whoosh on the way in, everything squares up after', roll.cork >= 1 && !out.live && out.env === '', JSON.stringify({ cork: roll.cork, out }));
+  check('corkscrew: a whoosh on the way in, the car lands level after', roll.cork >= 1 && !out.live && out.env === '' && !out.carRot && out.origin === '50% 92%', JSON.stringify({ cork: roll.cork, out }));
 
   /* ---- 4. hard turn: squeal at speed ---- */
   const hardTurn = await page.evaluate(async () => {
@@ -209,11 +211,11 @@ function check(name, ok, detail) {
     pos = (t.x0 + t.x1) / 2 - CAR_SCREEN_X + CAR_HIT_Z; v = 0;
     await new Promise(r => setTimeout(r, 200));
     const a = drumEls[0] && drumEls[0].style.transform;
-    return { live: twistLive, env: envEl.style.transform, drum: a || '' };
+    return { live: twistLive, env: document.getElementById('env').style.transform, drum: a || '', carRot: /rotate/.test(carWrap.style.transform) };
   });
   await page.screenshot({ path: SHOT + 'course-corkscrew-reduced.png' });
   await page.emulateMedia({ reducedMotion: null });
-  check('reduced motion: no roll and a still drum', !rm.live && rm.env === '' && rm.drum === '', JSON.stringify(rm));
+  check('reduced motion: no roll and a still drum', !rm.live && rm.env === '' && rm.drum === '' && !rm.carRot, JSON.stringify(rm));
 
   check('no page errors', errors.length === 0, errors.join(' | ').slice(0, 300));
   const passed = results.filter(r => r.ok).length;

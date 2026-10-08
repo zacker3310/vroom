@@ -136,6 +136,10 @@
 - [x] T23.4: Lane perspective. `vehicleRearSVG(st, camOff)` composes the car for the camera's lateral offset (`vpOff` in `vp`: the rear-bumper plane stays put, farther parts drift toward the vanishing point, side faces and the inner tire wall show when the camera is outboard of them). `setCarView` keeps quarter-lane views cached per build and swaps them as `laneVis` slides, re-binding wheels, drum, mud, headlights and damage overlays.
 - [x] T23.3: Gravity 1900 on earth-type worlds (1 to 7, 9, 10; was 1500); the moon 640, the deep sea 1100 and the sky kingdom 900 keep their float. `flightLen` interpolates from `G_EARTH`. Fairness bots green on all 120 levels.
 
+## v13.2 (2026-10-08, user-directed: "the corkscrew has never been worse, spin up some testing")
+
+- [x] T24.1: Corkscrew as a car barrel-roll. The road, ground, sky and sprites no longer move at all (`rollPt`, `rollNear`, `groundRoll` and the twist branches in `proj` / `placeSprite` / `drawRoad` are gone); `tick` rotates `#carWrap` by `rollAt(carX)` with a 30 px lift through the top, the baked contact shadow fades while rolling and the canvas footprint stays on the road. Screenshot sequences along the twist on levels 9, 17 (opposite roll) and 28 (two twists, night) in three lanes; course-check asserts a flat world, an upside-down car mid-twist and a level car after. 23 suites, 394/394.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
