@@ -1,6 +1,6 @@
 # Vroom test suites
 
-Nineteen Playwright regression suites (307 checks) that drive the real game in headless
+Twenty-two Playwright regression suites (368 checks) that drive the real game in headless
 Chromium. They are the gate for every change: CI runs them on each push and pull request.
 
 ## Run everything

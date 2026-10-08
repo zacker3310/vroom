@@ -10,7 +10,7 @@ here is in that file; search for the quoted identifiers. Numbers are the shipped
 <head>      metas, manifest + icon links, <title>
 <style>     ~1100 lines: scenes, chips, Toybox design tokens (:root), per-world themes
 <body>
-  #stage    1200x700, five scenes: #garage #map #road #album #celebrate, plus overlays
+  #stage    1200x700, six scenes: #title #garage #map #road #album #celebrate, plus overlays
   <script>  ~6700 lines, in this order:
             version, stage scaling, catalog + economy, state + persistence, audio,
             side-view bodies (BODIES) + accessories + buddies, premium pack, shop pack,
@@ -355,7 +355,7 @@ stray toddler tap does nothing. Only the style and script blocks are fingerprint
 
 ## Tests
 
-Eighteen Playwright suites (299 checks) in `tests/`, driving the real page in headless
+Twenty-two Playwright suites (368 checks) in `tests/`, driving the real page in headless
 Chromium through `playwright-core`; `tests/run-all.cjs` is the runner behind `npm test` and
 `.github/workflows/test.yml` runs it in CI. See [tests/README.md](../tests/README.md) for the
 map of what each suite owns.

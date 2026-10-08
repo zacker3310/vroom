@@ -86,7 +86,7 @@ These are the rules the game was built on and the test suite enforces. They are 
 
 ## Architecture
 
-Everything is in `index.html`: a `<style>` block, the markup for five scenes (garage, map, road, album, celebrate) and one `<script>`. The deeper tour is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); the short version:
+Everything is in `index.html`: a `<style>` block, the markup for six scenes (title, garage, map, road, album, celebrate) and one `<script>`. The deeper tour is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); the short version:
 
 - **Stage.** A fixed 1200x700 stage scaled to fit the viewport. Vehicles are SVG part groups recoloured through the `--paint` CSS variable; the same build renders in a side view (garage, album) and a projected rear view (road).
 - **Chase-cam projector.** World coordinates keep the side-scroller's `x` (distance along the road) so the level, physics and collision code never changed; the renderer adds a lateral offset and a height and projects through one camera (`HORIZON`, `CAM_D`, `CAM_H`). Curves are eased curvature stretches integrated into a per-frame lateral offset table; hills are cosine bumps the camera rides, so a crest lifts the far road into the sky. Rear-view cars are chunky 3D toy blocks (boxes, cylinders, hulls) painter-sorted and projected through the same camera.
@@ -106,7 +106,7 @@ python3 -m http.server 4173     # then open http://localhost:4173/
 
 There is no build. Edit `index.html`, reload.
 
-The test suite is 18 Playwright suites (294 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the race number, the update gate, and the fairness bots that drive all 120 levels.
+The test suite is 22 Playwright suites (368 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the race number, the update gate, and the fairness bots that drive all 120 levels.
 
 ```bash
 npm ci                                   # playwright-core + jsqr, test-only
