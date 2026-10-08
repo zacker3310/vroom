@@ -1428,8 +1428,8 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
       <svg viewBox="0 0 64 64"><rect x="12" y="28" width="40" height="30" rx="7" fill="#ffb703"/><path d="M20 28 V20 a12 12 0 0 1 24 0 V28" stroke="#ffb703" stroke-width="8" fill="none"/></svg>
     </div>
     <!-- right wall: the dice, in one 16px-rhythm column with map + GO; upkeep lives on the workbench tab -->
-    <button class="bigBtn" id="diceBtn" aria-label="surprise me: random truck">
-      <svg viewBox="0 0 100 100"><rect x="12" y="12" width="76" height="76" rx="18" fill="#fff" stroke="#023047" stroke-width="5"/><circle cx="32" cy="32" r="9" fill="#e63946"/><circle cx="68" cy="32" r="9" fill="#ff9f1c"/><circle cx="50" cy="50" r="9" fill="#ffd60a"/><circle cx="32" cy="68" r="9" fill="#74c69d"/><circle cx="68" cy="68" r="9" fill="#4cc9f0"/></svg>
+    <button class="bigBtn" id="diceBtn" aria-label="shuffle: a surprise truck from the parts you own">
+      <svg viewBox="0 0 100 100"><path d="M12 30 H30 Q42 30 50 42 L58 58 Q66 70 78 70 H86" stroke="#e63946" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 70 H30 Q42 70 50 58 L58 42 Q66 30 78 30 H86" stroke="#4cc9f0" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M78 18 L92 30 L78 42 Z" fill="#4cc9f0"/><path d="M78 58 L92 70 L78 82 Z" fill="#e63946"/></svg>
     </button>
     <!-- daily gift: a capsule on the wall above the dice, once per calendar day (see section 30) -->
     <button class="bigBtn" id="giftBtn" aria-label="today's gift"></button>
@@ -1691,7 +1691,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "12.6.1";
+const APP_VERSION = "12.6.2";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -3848,7 +3848,7 @@ let curCat = "body", stripColor = null, tabFadeT = null;
 const TILE_SND = { body: () => sfx.pop(), wheels: () => sfx.clank(), color: () => sfx.splat(), decal: () => sfx.splat() };
 
 const UPG_ICON = {
-  engine: `<svg class="glyph" viewBox="0 0 64 64"><path d="M12 40 Q4 32 12 22 Q20 10 34 12 Q30 20 36 24 Q44 14 54 20 Q46 24 48 32 Q58 34 56 44 Q46 42 42 48 Q46 56 38 58 Q34 50 26 52 Q22 60 14 54 Q18 46 12 40 Z" fill="#ff9f1c"/><circle cx="32" cy="36" r="9" fill="#ffd60a"/></svg>`,
+  engine: `<svg class="glyph" viewBox="0 0 64 64"><path d="M8 44 A24 24 0 1 1 56 44" stroke="#fff" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M38 44 A24 24 0 0 1 56 44" stroke="#ff9f1c" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M32 46 L47 24" stroke="#ffd60a" stroke-width="6" stroke-linecap="round"/><circle cx="32" cy="46" r="6" fill="#ffd60a" stroke="#fff" stroke-width="3"/></svg>`,
   armor:  `<svg class="glyph" viewBox="0 0 64 64"><path d="M32 4 L56 14 V32 Q56 52 32 60 Q8 52 8 32 V14 Z" fill="#bde0fe" stroke="#1d3557" stroke-width="4"/><path d="M22 32 L30 40 L44 24" stroke="#1d3557" stroke-width="6" fill="none" stroke-linecap="round"/></svg>`,
   magnet: `<svg class="glyph" viewBox="0 0 64 64"><path d="M14 8 H28 V30 Q28 38 32 38 Q36 38 36 30 V8 H50 V30 Q50 52 32 52 Q14 52 14 30 Z" fill="#e63946"/><rect x="14" y="8" width="14" height="10" fill="#f1faee"/><rect x="36" y="8" width="14" height="10" fill="#f1faee"/><path d="M50 56 L54 60 M32 56 V62 M14 56 L10 60" stroke="#ffd60a" stroke-width="4" stroke-linecap="round"/></svg>`
 };
