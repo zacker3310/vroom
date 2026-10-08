@@ -230,11 +230,12 @@ function check(name, ok, detail) {
   /* ---- 12. the shuffle leads the tab row; map and GO share one axis with a 16px gap ---- */
   const column = await page.evaluate(() => {
     const r = id => document.getElementById(id).getBoundingClientRect();
-    const d = r('diceBtn'), m = r('mapBtn'), g = r('goBtn'), t = document.querySelector('.catTab:not(.sel)').getBoundingClientRect();   /* the selected tab lifts 4px */
+    const tabs = [...document.querySelectorAll('.catTab')], last = tabs[tabs.length - 1].getBoundingClientRect(), t = document.querySelector('.catTab:not(.sel)').getBoundingClientRect();   /* the selected tab lifts 4px */
+    const d = r('diceBtn'), m = r('mapBtn'), g = r('goBtn');
     const cx = b => b.left + b.width / 2;
-    return { gapMG: Math.round(g.top - m.bottom), sameAxis: Math.abs(cx(m) - cx(g)) < 1, diceRow: Math.abs(d.top - t.top) < 1 && d.right < t.left, diceSize: Math.min(d.width, d.height) };
+    return { gapMG: Math.round(g.top - m.bottom), sameAxis: Math.abs(cx(m) - cx(g)) < 1, diceRow: Math.abs(d.top - t.top) < 1 && d.left - last.right > 20, diceSize: Math.min(d.width, d.height) };
   });
-  check('garage: shuffle sits in the tab row ahead of the tabs (>= 64px); map and GO share one axis 16px apart', column.diceRow && column.diceSize >= 64 && column.sameAxis && column.gapMG === 16, JSON.stringify(column));
+  check('garage: shuffle ends the tab row after the wrench with a wider gap (>= 64px); map and GO share one axis 16px apart', column.diceRow && column.diceSize >= 64 && column.sameAxis && column.gapMG === 16, JSON.stringify(column));
 
   check('no console errors', errors.length === 0, errors.join(' | ').slice(0, 300));
 

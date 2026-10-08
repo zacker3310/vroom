@@ -115,7 +115,7 @@
 
 ## v12.8 (2026-10-08, user-directed: "shuffle inline with the tabs, production GO and map")
 
-- [x] T20.1: The shuffle button leads the tab row (76px, x 24-100, same footprint as a tab); the right wall keeps only the daily gift. GO is a glossy green dome with a double ring, bevelled chevron and a press that sinks; the map is a 96px blue card with a folded map, route and pin. Column: gift 192-280, map 392-488, GO 504-684. Tests: upkeep-check column geometry, title-check gift placement.
+- [x] T20.1: The shuffle button ends the tab row (76px, x 664-740, 28px after the wrench so it reads as a tool, not a tab); the right wall keeps only the daily gift. GO is a glossy green dome with a double ring, bevelled chevron and a press that sinks; the map is a 96px blue card with a folded map, route and pin. Column: gift 192-280, map 392-488, GO 504-684. Tests: upkeep-check column geometry, title-check gift placement.
 
 ## Backlog (v2 candidates, from kid-testing)
 

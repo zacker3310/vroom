@@ -1190,17 +1190,17 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ============ GARAGE REDESIGN: one hierarchy — the car is the hero, GO is the one primary action ============
    stage coordinates: top bar 24-120 (profile 24 | album right 240 | wallet right 24)
    hero: preview 506 wide, floor line y≈436; right column x-centre 1086, 16px rhythm: gift 192-280 (daily, contextual) on the wall,
-   map 392-488 resting on the bench rim, GO 504-684. The shuffle leads the tab row at x 24-100 (12.8). Upkeep lives on the workbench tab only;
+   map 392-488 resting on the bench rim, GO 504-684. The shuffle ends the tab row at x 664-740, 28px after the wrench (12.8). Upkeep lives on the workbench tab only;
    the wrench tab wears a pulsing dot while the truck needs something. bench rim 432-440; tabs y 452-528 from x 120;
    strip row y 548-664: prev arrow 24-100 | strip 112-872 (7 tiles of 96 + 12 gaps, 8px side padding) | next 884-960 */
 #garageWall { background-image: radial-gradient(rgba(90, 70, 52, .032) 2.4px, transparent 2.6px); }
 #albumBtn { position: absolute; right: 240px; top: 24px; width: 96px; height: 96px; z-index: 20; }
-/* the shuffle leads the tab row (12.8): same footprint as a tab, surface white, a breath of space before the tabs */
-#diceBtn { width: 76px; height: 76px; margin-right: 8px; border-radius: var(--v-r-md); flex: none; }
+/* the shuffle ends the tab row (12.8): same footprint as a tab, surface white, set apart by a wider gap so it reads as a tool */
+#diceBtn { width: 76px; height: 76px; margin-left: 28px; border-radius: var(--v-r-md); flex: none; }
 #diceBtn svg { width: 50px; height: 50px; }
 
 /* --- category tabs: putty at rest, the chosen one lifts in blue with the map's yellow outline --- */
-#catTabs { position: absolute; left: 24px; top: 12px; display: flex; gap: 12px; align-items: center; }
+#catTabs { position: absolute; left: 120px; top: 12px; display: flex; gap: 12px; align-items: center; }
 .catTab {
   width: 76px; height: 76px; padding: 0; cursor: pointer; touch-action: none;
   display: flex; align-items: center; justify-content: center;
@@ -1456,9 +1456,6 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     </div>
     <div id="controls">
       <div id="catTabs" role="tablist" aria-label="what to change">
-        <button class="bigBtn" id="diceBtn" aria-label="shuffle: a surprise truck from the parts you own">
-          <svg viewBox="0 0 100 100"><path d="M12 30 H30 Q42 30 50 42 L58 58 Q66 70 78 70 H86" stroke="#e63946" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 70 H30 Q42 70 50 58 L58 42 Q66 30 78 30 H86" stroke="#4cc9f0" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M78 18 L92 30 L78 42 Z" fill="#4cc9f0"/><path d="M78 58 L92 70 L78 82 Z" fill="#e63946"/></svg>
-        </button>
         <button class="catTab sel" data-cat="body" role="tab" aria-selected="true" aria-label="truck bodies">
         <svg viewBox="0 0 100 100"><path d="M10 62 L10 40 L48 40 L48 26 L74 26 L86 44 L90 62 Z" fill="#fff"/><circle cx="30" cy="66" r="12" fill="#023047" stroke="#fff" stroke-width="4"/><circle cx="72" cy="66" r="12" fill="#023047" stroke="#fff" stroke-width="4"/><path d="M40 18 L46 8 M50 18 L50 6 M60 18 L54 8" stroke="#ffb703" stroke-width="5" stroke-linecap="round"/></svg>
         </button>
@@ -1477,6 +1474,9 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
         <button class="catTab" data-cat="work" role="tab" aria-selected="false" aria-label="workbench: upgrades, repairs, fuel and tires">
         <svg viewBox="0 0 64 64"><path d="M44 6 a13 13 0 0 0 -12 18 L10 46 a7 7 0 0 0 10 10 L42 34 a13 13 0 0 0 16 -13 l-9 6 -8 -8 6 -9 Z" fill="#fff"/></svg>
         <span class="alert"></span>
+        </button>
+        <button class="bigBtn" id="diceBtn" aria-label="shuffle: a surprise truck from the parts you own">
+          <svg viewBox="0 0 100 100"><path d="M12 30 H30 Q42 30 50 42 L58 58 Q66 70 78 70 H86" stroke="#e63946" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 70 H30 Q42 70 50 58 L58 42 Q66 30 78 30 H86" stroke="#4cc9f0" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M78 18 L92 30 L78 42 Z" fill="#4cc9f0"/><path d="M78 58 L92 70 L78 82 Z" fill="#e63946"/></svg>
         </button>
       </div>
       <div id="stripRow">
