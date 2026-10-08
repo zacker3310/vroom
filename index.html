@@ -1708,7 +1708,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.0.0";
+const APP_VERSION = "13.1.0";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -5228,7 +5228,11 @@ function mulberry32(a) {
    authored at full size, the car on the road is half that */
 const CAR_K = 0.5;
 const VS = z => CAM_D / (z * CAR_K + CAM_D) * CAR_K;   /* px per car-space unit at depth z */
-const vp = (x, y, z) => { const s = CAM_D / (z * CAR_K + CAM_D); return [x * CAR_K * s, (CAM_H - y * CAR_K) * s - CAM_H]; };
+/* vpOff (13.1): the camera's lateral offset from the car in car units while a rear view is composed. In a side
+   lane the camera sits inboard of the car, so the inner flank shows and the far end drifts toward the
+   vanishing point; the rear-bumper plane is anchored so the sprite's screen position does not move. */
+let vpOff = 0;
+const vp = (x, y, z) => { const s = CAM_D / (z * CAR_K + CAM_D); return [(x + vpOff) * CAR_K * s - vpOff * CAR_K, (CAM_H - y * CAR_K) * s - CAM_H]; };
 const fx = n => n.toFixed(1);
 const ptStr = a => a.map(p => fx(p[0]) + "," + fx(p[1])).join(" ");
 const vpoly = (pts, fill, extra = "") => `<polygon points="${ptStr(pts)}" fill="${fill}" stroke-linejoin="round" ${extra}/>`;
@@ -5490,8 +5494,8 @@ function partSVG(p, L) {
     /* lighting (v12.6): one key light high and behind the camera. Side faces fall off toward the ground,
        top faces catch a sheen that fades toward the far edge, back faces take ambient occlusion at the
        bottom and a bevel highlight along the top edge. Overlays, so pattern paints keep working. */
-    if (p.x0 > 0) { const f = sideAt(p.x0); out += vpoly(f, p.fill) + vpoly(f, "url(#v3dSide)"); }
-    if (p.x1 < 0) { const f = sideAt(p.x1); out += vpoly(f, p.fill) + vpoly(f, "url(#v3dSide)"); }
+    if (p.x0 + vpOff > 0) { const f = sideAt(p.x0); out += vpoly(f, p.fill) + vpoly(f, "url(#v3dSide)"); }   /* a face shows when the camera is outboard of it */
+    if (p.x1 + vpOff < 0) { const f = sideAt(p.x1); out += vpoly(f, p.fill) + vpoly(f, "url(#v3dSide)"); }
     if (Math.max(y1, yf) < CAM_H) {
       const t = [vp(p.x0, y1, p.z0), vp(p.x1, y1, p.z0), vp(p.x1, yf, p.z1), vp(p.x0, yf, p.z1)];
       out += vpoly(t, p.fill) + vpoly(t, p.topDark ? "#000" : "url(#v3dTop)", p.topDark ? 'opacity=".28"' : "");
@@ -5533,7 +5537,7 @@ function partSVG(p, L) {
 function tire3D(t) {
   const x0 = t.cx - t.tw / 2, x1 = t.cx + t.tw / 2, h = t.r * 1.84, z0 = t.zc - t.r * 0.8, z1 = t.zc + t.r * 0.8;
   let out = "";
-  const inner = t.cx > 0 ? x0 : x1;
+  const inner = t.cx + vpOff > 0 ? x0 : x1;
   out += vpoly([vp(inner, 0, z0), vp(inner, h, z0), vp(inner, h, z1), vp(inner, 0, z1)], "#1d1f23");
   out += vpoly([vp(x0, h, z0), vp(x1, h, z0), vp(x1, h, z1), vp(x0, h, z1)], "#3a3d43", 'stroke="#3a3d43" stroke-width="6"');
   const a = vp(x0, h, z0), b = vp(x1, 0, z0);
@@ -5565,7 +5569,11 @@ const V3D_DEFS = `<defs>
   <linearGradient id="v3dTire" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient>
   <filter id="v3dBlur" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="7"/></filter>
 </defs>`;
-function vehicleRearSVG(st) {
+function vehicleRearSVG(st, camOff = 0) {
+  vpOff = camOff;
+  try { return vehicleRearBuild(st); } finally { vpOff = 0; }
+}
+function vehicleRearBuild(st) {
   const R = CAR3D[st.body] || CAR3D.dump;
   const uid = ++svgUid;
   const r = WHEELS[st.wheels].r;
@@ -7102,12 +7110,29 @@ function setHeadlights(on) {
   if (!on && b) b.remove();
 }
 /* (re)build the chase-cam car from the current build and re-bind the parts the loop animates */
+/* lane perspective (13.1): the car is composed for the camera's real lateral offset, quantised to quarter
+   lanes and cached per build, and swapped as laneVis slides so a side lane shows the inner flank */
+const LANE_VIEW_STEPS = 4, laneViews = new Map();
+let laneViewKey = null, laneViewBuild = "";
+function laneViewOff(q) { return q * LANE_W * (1 - CAM_FOLLOW) / CAR_K; }   /* car units: +96 world px a lane */
 function mountCar() {
-  carWrap.innerHTML = vehicleRearSVG(state);
+  const buildKey = JSON.stringify(state) + "|" + progress.damage;
+  if (buildKey !== laneViewBuild) { laneViews.clear(); laneViewBuild = buildKey; }
+  laneViewKey = null;
+  setCarView(Math.round((laneVis - 1) * LANE_VIEW_STEPS) / LANE_VIEW_STEPS);
+}
+function setCarView(q) {
+  if (q === laneViewKey) return;
+  laneViewKey = q;
+  let svg = laneViews.get(q);
+  if (!svg) { svg = vehicleRearSVG(state, laneViewOff(q)); laneViews.set(q, svg); }
+  carWrap.innerHTML = svg;
   wheelEls = carWrap.querySelectorAll(".treadRoll");
   drumEls = carWrap.querySelectorAll(".drum");
   mudEl = carWrap.querySelector(".mudSpots");
+  if (mudEl) mudEl.style.opacity = progress.muddy ? 1 : 0;   /* a view composed before the splash would hide this run's mud */
   setHeadlights(worldMeta(curWorld()).dark);
+  updateDamageVisuals();
 }
 function startDrive() {
   stopDrive();
@@ -7769,6 +7794,7 @@ function tick(now) {
   renderWorld();
   /* the car stays square to the road: no skew, no bank (v12.6); it squats on the gas, lifts on the brake */
   const squat = Math.max(-6, Math.min(6, bodyTilt * 0.7));
+  setCarView(Math.round((laneVis - 1) * LANE_VIEW_STEPS) / LANE_VIEW_STEPS);   /* inner flank in a side lane */
   const cdx = carScreenX() - 600;
   carWrap.style.transform = `translate(${cdx.toFixed(1)}px,${(squat - jumpY).toFixed(1)}px)`;
 

@@ -125,7 +125,7 @@ outward from the car (`z = 0`, road dead ahead) in `OFF_STEP = 40` steps into th
 `Float32Array OFF`, forward to `DRAW_FAR` and backward to `DRAW_NEAR`; `offAt(z)` interpolates
 it. The car always drives the centreline, so the road, every sprite and the roadside all
 add `offAt(z)`. `headingAt(x)` (a flat approximation of the eased integral) drives the
-skyline parallax. The car itself stays square to the road (v12.6 removed the skew and bank), only squatting on the gas and lifting on the brake. Chase-cam parts are lit by shared object-bounding-box gradients (`V3D_DEFS`: top sheen, side fall-off, back-face ambient occlusion, a bevel hairline, a tire ramp) layered over the fill so pattern paints keep working, and a blurred footprint polygon grounds the car on the tarmac.
+skyline parallax. The car itself stays square to the road (v12.6 removed the skew and bank), only squatting on the gas and lifting on the brake; in a side lane it is composed for the camera's real lateral offset (`vpOff`, quarter-lane views cached by `setCarView`), so the inner flank shows and the far end leans toward the vanishing point. Chase-cam parts are lit by shared object-bounding-box gradients (`V3D_DEFS`: top sheen, side fall-off, back-face ambient occlusion, a bevel hairline, a tire ramp) layered over the fill so pattern paints keep working, and a blurred footprint polygon grounds the car on the tarmac.
 
 `buildCourse(n, rng, len)` authors a level's bends from its world's **road character**
 `WORLD_ROAD[w] = { k, hp, len, gap, order }` (base curvature, hairpin strength, bend-length
