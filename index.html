@@ -380,6 +380,21 @@
   #hudFuel { right: 24px; top: 240px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; }
   #hudTires { right: 24px; top: 348px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; }
   #hudFuel.low, #hudTires.low { border-color: #e63946; color: #e63946; }
+  /* GHOST RACE (T17.3): the medal-chase chip sits under the level chip; signed seconds to the ghost,
+     green when the kid is ahead, putty when behind; only shown while a stored ghost is on the road */
+  #hudGhost { left: 136px; top: 132px; width: 164px; justify-content: center; padding: 0; box-sizing: border-box; display: none; gap: 6px; }
+  #hudGhost.on { display: flex; }
+  #hudGhost.ahead { border-color: var(--v-green-line, #4e9a45); color: var(--v-green-line, #4e9a45); }
+  #hudGhost.behind { border-color: var(--v-mute-line, #b1a082); color: var(--v-ink-soft, #8a7360); }
+  #hudGhost svg { width: 44px; height: 44px; }
+  /* the ghost car: the kid's own build at 45%, a dashed ring on the road under it; transform updates only */
+  .prop.ghost { opacity: .45; width: 400px; height: 500px; }
+  .prop.ghost svg { width: 400px; height: 500px; overflow: visible; }
+  #celebrateTime .ghostWin { display: flex; align-items: center; gap: 2px; }
+  #celebrateTime .ghostWin svg { width: 44px; height: 44px; animation: ghostWinPop .6s cubic-bezier(.2,2,.4,1) .9s backwards; }
+  #celebrateTime.newBest .medal svg { animation: medalBig .8s cubic-bezier(.2,1.8,.4,1) .4s backwards; }
+  @keyframes medalBig { 0% { transform: scale(0) rotate(-180deg); } 60% { transform: scale(1.7) rotate(12deg); } 100% { transform: scale(1) rotate(0); } }
+  @keyframes ghostWinPop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
   #hudProgress { left: 316px; right: 216px; top: 24px; padding: 0 24px; gap: 16px; box-sizing: border-box; }
   #progTrack { position: relative; flex: 1; height: 12px; background: #e9ecef; border-radius: 6px; }
   #hudProgress #hudTime { min-width: 2ch; text-align: right; }
@@ -391,7 +406,7 @@
   /* during the celebration the run HUD and controls step aside */
   #road.celebrating #hudStars, #road.celebrating #hudLevel, #road.celebrating #hudProgress,
   #road.celebrating #hudDamage, #road.celebrating #hudFuel, #road.celebrating #hudTires, #road.celebrating .pedal, #road.celebrating #steerSlider,
-  #road.celebrating #homeBtn { display: none; }
+  #road.celebrating #homeBtn, #road.celebrating #hudGhost { display: none; }
   /* wallets are fixed width (fits 3 digits) so the row never shifts as stars pile up */
   #garageWallet, #albumWallet, #mapWallet, #celebrateWallet { width: 200px; justify-content: center; padding: 0; box-sizing: border-box; }
   #garageWallet { right: 24px; top: 24px; cursor: pointer; }
@@ -1407,6 +1422,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
       <svg viewBox="0 0 100 100"><path d="M50 12 L92 50 H78 V88 H22 V50 H8 Z" fill="#023047"/><rect x="40" y="58" width="20" height="30" fill="#ffb703"/></svg>
     </button>
     <div class="chip" id="hudLevel" aria-label="level number"></div>
+    <div class="chip" id="hudGhost" aria-label="seconds ahead of your best run"></div>
     <div class="chip" id="hudProgress" aria-label="distance to finish">
       <div id="progTrack"><div id="progDot"></div></div>
       <svg viewBox="0 0 64 64"><rect x="10" y="4" width="6" height="56" rx="3" fill="#6c757d"/><g><rect x="16" y="6" width="12" height="10" fill="#212529"/><rect x="28" y="6" width="12" height="10" fill="#fff"/><rect x="16" y="16" width="12" height="10" fill="#fff"/><rect x="28" y="16" width="12" height="10" fill="#212529"/><rect x="40" y="6" width="12" height="10" fill="#212529"/><rect x="40" y="16" width="12" height="10" fill="#fff"/></g></svg>
@@ -1767,6 +1783,7 @@ function loadState() {
       progress.levels[num] = { best: lv.best, rating: Math.min(3, Math.max(1, lv.rating || 1)) };
       if (Number.isFinite(lv.bestTime) && lv.bestTime > 0) progress.levels[num].bestTime = lv.bestTime;
       if (TIER_RANK[lv.tier] !== undefined) progress.levels[num].tier = lv.tier;
+      if (ghostValid(lv.ghost)) progress.levels[num].ghost = { t: lv.ghost.t, p: lv.ghost.p.slice() };   /* GHOST RACE: malformed traces are dropped */
     }
   }
   if (Number.isFinite(saved.current) && saved.current >= 1 && saved.current <= MAX_LEVEL) progress.current = Math.floor(saved.current);
@@ -4320,7 +4337,10 @@ function unpackCompact(code) {
 }
 /* full text code: the entire save, gzip-compressed where the browser can */
 async function exportFullCode() {
-  const json = JSON.stringify({ build: state, ...progress, lastGift: undefined });   /* the daily gift stays on this device */
+  /* ghost traces (GHOST RACE) and the daily gift stamp are local keepsakes: they never ride in a save code */
+  const levels = {};
+  for (const n in progress.levels) { const { ghost, ...rest } = progress.levels[n]; void ghost; levels[n] = rest; }
+  const json = JSON.stringify({ build: state, ...progress, levels, lastGift: undefined });
   if (typeof CompressionStream !== "undefined") {
     const stream = new Blob([json]).stream().pipeThrough(new CompressionStream("gzip"));
     const buf = await new Response(stream).arrayBuffer();
@@ -6382,6 +6402,7 @@ function renderWorld() {
   drawRoad(carX);
   for (const p of props) placeSprite(p, carX);
   for (const p of scenery) placeSprite(p, carX);
+  ghostPlace(carX);   /* GHOST RACE: the twin rides the same projector */
   /* the skyline slides as the road's heading swings through a bend (wraps every 1200) */
   camSkyX = ((-camX * 0.06 - headingAt(carX) * 0.9) % 1200 + 1200) % 1200;
   farLayer.style.transform = `translateX(${(camSkyX - 1200).toFixed(1)}px)`;
@@ -6399,6 +6420,92 @@ let celebrateTimer = null, tallyTimer = null, rateTimers = [];
 const roadPointers = new Map();   /* pointerId -> last x (for swipe lane changes) */
 const gasPointers = new Set(), brakePointers = new Set();
 let gasKey = false, brakeKey = false;
+
+/* ---- GHOST RACE (T17.3): the kid's best run on this level rides along as a translucent twin ----
+   Recording (levels only, never free drive or the parade): every GHOST_DT seconds of runTime the car is
+   sampled as [pos, laneVis, jumpY] into a flat int array (pos rounded, lane x100, jumpY rounded). At the
+   line a run that beat the stored ghost's time replaces it: progress.levels[n].ghost = { t, p }.
+   Replay: one DOM sprite projected through placeSprite like any prop, interpolated between samples by
+   its own clock (ghostT keeps rolling after the kid finishes), extrapolated past the last sample, and
+   faded out GHOST_FADE seconds after its own finish. It never collides with anything. */
+const GHOST_DT = 0.2, GHOST_FADE = 0.8;
+let ghostRec = null;        /* this run's samples, or null when nothing is being recorded */
+let ghostTrace = null;      /* the stored { t, p } being replayed */
+let ghostSprite = null;     /* its sprite (see makeSprite); not in props, so no PROP_HIT / mover ever sees it */
+let ghostT = 0, ghostGapIdx = 0, ghostGapShown = "";
+const hudGhost = document.getElementById("hudGhost");
+const ghostIcon = `<svg viewBox="0 0 64 64"><path d="M12 60 V30 A20 20 0 0 1 52 30 V60 L45 52 L38 60 L32 52 L26 60 L19 52 Z" fill="#fff" stroke="#023047" stroke-width="5" stroke-linejoin="round"/><circle cx="25" cy="30" r="4" fill="#023047"/><circle cx="39" cy="30" r="4" fill="#023047"/></svg>`;
+const ghostCheckIcon = `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="#38b000"/><path d="M18 33 L28 43 L47 22" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+function ghostValid(g) {
+  return !!g && typeof g === "object" && Number.isFinite(g.t) && g.t > 0 && g.t < 600 && Array.isArray(g.p)
+    && g.p.length >= 6 && g.p.length % 3 === 0 && g.p.length <= 9000 && g.p.every(n => Number.isFinite(n));
+}
+function ghostSample() { ghostRec.push(Math.round(pos), Math.round(laneVis * 100), Math.round(jumpY)); }
+/* [pos, lane, jumpY] of the trace at time t: linear between samples, linear past the last one */
+function ghostAt(t) {
+  const p = ghostTrace.p, i = Math.max(0, Math.min(p.length / 3 - 2, Math.floor(t / GHOST_DT))), f = Math.max(0, t / GHOST_DT - i);
+  const a = i * 3, b = a + 3;
+  return [p[a] + (p[b] - p[a]) * f, (p[a + 1] + (p[b + 1] - p[a + 1]) * f) / 100, Math.max(0, p[a + 2] + (p[b + 2] - p[a + 2]) * f)];
+}
+/* when the ghost reached world position x (seconds into its run); clamps at its finish time */
+function ghostTimeAt(x) {
+  const p = ghostTrace.p, last = p.length - 3;
+  if (x >= p[last]) return ghostTrace.t;
+  while (ghostGapIdx * 3 + 3 < last && p[ghostGapIdx * 3 + 3] <= x) ghostGapIdx++;
+  const a = ghostGapIdx * 3, p0 = p[a], p1 = p[a + 3];
+  return (ghostGapIdx + (p1 > p0 ? Math.min(1, Math.max(0, (x - p0) / (p1 - p0))) : 0)) * GHOST_DT;
+}
+/* called from startDrive after the road is built: start recording, spawn the stored ghost if there is one */
+function ghostStart() {
+  if (ghostSprite) { ghostSprite.wrap.remove(); ghostSprite = null; }
+  ghostTrace = null; ghostRec = null; ghostT = 0; ghostGapIdx = 0; ghostGapShown = "";
+  hudGhost.classList.remove("on", "ahead", "behind");
+  if (paradeMode || freeMode) return;
+  ghostRec = [];
+  ghostSample();
+  const lv = progress.levels[level];
+  if (!lv || !ghostValid(lv.ghost)) return;
+  ghostTrace = lv.ghost;
+  /* the kid's own car art, clean: no mud, dings or hitbox; a dashed ring on the road marks it as the twin */
+  const g = makeSprite("ghost", CAR_SCREEN_X - CAR_HIT_Z, 0, 0, vehicleRearSVG(state), -200, -460, 1);
+  g.el.querySelectorAll(".mudSpots, .dmgScuff, .dmgCrack, .dmgSmoke, .hitbox").forEach(x => x.remove());
+  const svg = g.el.querySelector("svg");
+  if (svg) svg.insertAdjacentHTML("afterbegin", `<ellipse cx="0" cy="-6" rx="${Math.round(carHalf + 34)}" ry="16" fill="none" stroke="#fff" stroke-width="6" stroke-dasharray="16 12" opacity=".9"/>`);
+  g.gop = "";
+  ghostSprite = g;
+  hudGhost.innerHTML = ghostIcon + `<span>0</span>`;
+  hudGhost.classList.add("on");
+}
+/* per frame from tick: record this run, roll the ghost's clock, refresh the gap chip */
+function ghostTick(dt) {
+  if (ghostRec && !finished) { while (runTime >= ghostRec.length / 3 * GHOST_DT) ghostSample(); }
+  if (!ghostTrace) return;
+  ghostT += dt;
+  if (finished) return;
+  const gap = ghostTimeAt(pos) - runTime, r = Math.round(gap);   /* + = the kid got here sooner than the ghost */
+  const txt = (r > 0 ? "+" : r < 0 ? "-" : "") + Math.abs(r);
+  if (txt !== ghostGapShown) {
+    ghostGapShown = txt;
+    hudGhost.querySelector("span").textContent = txt;
+    hudGhost.classList.toggle("ahead", gap >= 0);
+    hudGhost.classList.toggle("behind", gap < 0);
+  }
+}
+/* per frame from renderWorld: project the twin with the same math as every prop */
+function ghostPlace(carX) {
+  const g = ghostSprite;
+  if (!g) return;
+  const over = ghostT - ghostTrace.t;
+  if (over > GHOST_FADE) { if (g.vis) { g.wrap.style.display = "none"; g.vis = false; } return; }
+  const [gp, gl, gj] = ghostAt(ghostT);
+  g.x = gp + CAR_SCREEN_X - CAR_HIT_Z; g.lx = (gl - 1) * LANE_W; g.h = gj;
+  placeSprite(g, carX);
+  /* right on top of the kid's car it thins out so it never hides them; past its own line it fades away */
+  const near = Math.min(1, Math.abs(g.x - carX) / 140);
+  const op = (0.45 * (0.3 + 0.7 * near) * (over > 0 ? 1 - over / GHOST_FADE : 1)).toFixed(2);
+  if (op !== g.gop) { g.el.style.opacity = op; g.gop = op; }
+}
+/* ---- end GHOST RACE ---- */
 
 function setLane(t) {
   const clamped = Math.max(0, Math.min(2, t));
@@ -6475,6 +6582,7 @@ function startDrive() {
   if (paradeMode) buildParade(); else if (freeMode) buildFree(); else buildLevel(level);
   carWrap.classList.remove("wobble", "spin");   /* a leftover class would replay on the fresh svg */
   mountCar();
+  ghostStart();   /* GHOST RACE: record this run; replay the stored best, if any */
   document.querySelectorAll(".pedal").forEach(p => p.classList.remove("held", "nudge"));
   hudLevel.innerHTML = paradeMode
     ? BADGES.find(b => b.id === "champ").icon
@@ -7033,6 +7141,7 @@ function tick(now) {
     /* almost there! */
     if (!nearFinish && pos > LEVEL_LEN - 900) { nearFinish = true; sfx.almost(); }
     progDot.style.left = Math.min(100, pos / LEVEL_LEN * 100) + "%";
+    if (!paradeMode) ghostTick(dt);   /* GHOST RACE: sample the run, roll the twin, refresh the gap chip */
   }
 
   const carX = pos + CAR_SCREEN_X;
@@ -7730,6 +7839,15 @@ function finishLevel() {
     };
     if (level < MAX_LEVEL) progress.current = Math.max(progress.current, level + 1);
   }
+  /* ---- GHOST RACE (T17.3): a run that beat the stored ghost replaces it; losing to it changes nothing ---- */
+  let ghostBeaten = false;
+  if (!isParade && ghostRec) {
+    const had = prev && ghostValid(prev.ghost) ? prev.ghost : null;
+    ghostBeaten = !!had && runTime < had.t;
+    progress.levels[level].ghost = (!had || ghostBeaten) ? { t: Math.round(runTime * 100) / 100, p: ghostRec } : had;
+    ghostRec = null;
+  }
+  /* ---- end GHOST RACE ---- */
   save();
 
   /* build the tally UI */
@@ -7740,7 +7858,9 @@ function finishLevel() {
   const cTime = document.getElementById("celebrateTime");
   cTime.innerHTML = isParade
     ? `<span class="medal">${BADGES.find(b => b.id === "champ").icon}</span>`
-    : stopwatchIcon + `<span>${Math.floor(runTime)}</span>` + `<span class="medal">${medalSVG(tier)}</span>`;
+    : stopwatchIcon + `<span>${Math.floor(runTime)}</span>` + `<span class="medal">${medalSVG(tier)}</span>`
+      + (ghostBeaten ? `<span class="ghostWin">${ghostIcon}${ghostCheckIcon}</span>` : "");   /* GHOST RACE: beat your ghost = ghost + check */
+  cTime.classList.toggle("newBest", ghostBeaten);   /* GHOST RACE: the medal pops bigger on a new best */
   const cDamage = document.getElementById("celebrateDamage");
   cDamage.innerHTML = wrenchIcon + `<span>${progress.damage}</span>`;
   cDamage.classList.toggle("clean", clean);

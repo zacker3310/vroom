@@ -160,6 +160,24 @@ barrels/rocks/TNT hit-stop for 90 ms and add damage, oil spins, puddles muddy a 
 capsules roll a prize. `HARD_T(type)` is the single definition of "hard" the budgets, bots
 and world packs all use.
 
+### The ghost race
+
+A level run (never free drive or the parade) is sampled every `GHOST_DT = 0.2` s of `runTime` as
+`[round(pos), round(laneVis x 100), round(jumpY)]`, appended to one flat int array. At the line,
+`finishLevel` keeps the run as `progress.levels[n].ghost = { t, p }` (`t` the run time to 0.01 s,
+`p` the array; about 60-150 samples, 1-2 KB a level) when the level had no ghost or this run was
+faster; a slower run leaves the old ghost alone. Ghosts live in localStorage only: `loadState()`
+drops anything that is not `{ t > 0, p: ints, length a multiple of 3, at least 2 samples }` and
+`exportFullCode` strips them, so no save code ever carries one and `packCompact` is untouched.
+On the next run `ghostStart` spawns one `makeSprite("ghost")` holding `vehicleRearSVG(state)`
+minus mud, damage and hitbox, placed each frame by `ghostPlace` through the same `placeSprite`
+projector as every prop at `x = pos_g + CAR_SCREEN_X - CAR_HIT_Z`, `lx = (lane_g - 1) * LANE_W`,
+`h = jumpY_g`, where `ghostAt(ghostT)` interpolates linearly between samples (and extrapolates
+past the last one). `ghostT` is the ghost's own clock, advanced in `tick` alongside `runTime`, so
+the twin keeps rolling after the kid finishes and fades out `GHOST_FADE = 0.8` s after its own
+line. The sprite is never in `props`, so no `PROP_HIT` or mover sees it. `#hudGhost` shows
+`round(ghostTimeAt(pos) - runTime)` signed: positive means the kid reached this point sooner.
+
 ## The beat sequencer
 
 A level is a seeded sequence of **formations** ("beats"). `defBeat(name, kind, minLvl, fn)`
