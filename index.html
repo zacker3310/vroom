@@ -427,11 +427,11 @@
   #hudFuel.low, #hudTires.low { border-color: #e63946; color: #e63946; }
   /* GHOST RACE (T17.3): the medal-chase chip sits under the level chip; signed seconds to the ghost,
      green when the kid is ahead, putty when behind; only shown while a stored ghost is on the road */
-  #hudGhost { left: 136px; top: 132px; width: 164px; justify-content: center; padding: 0; box-sizing: border-box; display: none; gap: 6px; }
+  #hudGhost { left: 136px; top: 132px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; display: none; gap: 4px; font-size: 32px; }
   #hudGhost.on { display: flex; }
   #hudGhost.ahead { border-color: var(--v-green-line, #4e9a45); color: var(--v-green-line, #4e9a45); }
   #hudGhost.behind { border-color: var(--v-mute-line, #b1a082); color: var(--v-ink-soft, #8a7360); }
-  #hudGhost svg { width: 44px; height: 44px; }
+  #hudGhost svg { width: 40px; height: 40px; }
   /* the ghost car: the kid's own build at 45%, a dashed ring on the road under it; transform updates only */
   .prop.ghost { opacity: .45; width: 400px; height: 500px; }
   .prop.ghost svg { width: 400px; height: 500px; overflow: visible; }
@@ -448,7 +448,7 @@
   #hudUpkeep.off { display: none; }
   #hudProgress { left: 316px; right: 216px; top: 24px; padding: 0 24px; gap: 16px; box-sizing: border-box; }
   #progTrack { position: relative; flex: 1; height: 12px; background: #e9ecef; border-radius: 6px; }
-  #hudProgress #hudTime { min-width: 2ch; text-align: right; }
+  #hudProgress #hudTime { min-width: 5.2ch; text-align: right; font-variant-numeric: tabular-nums; }
   #progDot {
     position: absolute; top: -9px; left: 0; margin-left: -14px; width: 28px; height: 28px;
     border-radius: 50%; background: #e63946; border: 5px solid #fff;
@@ -1703,7 +1703,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "12.8.0";
+const APP_VERSION = "12.9.0";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -2635,27 +2635,27 @@ const WORLD_SCENERY = {
    Same two-hump quad structure as the existing #74c69d hills. */
 const WORLD_FAR = {
   /* sunset: golden hills */
-  w2: x => `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#c9a04a" opacity=".8"/>`,
+  w2: x => `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#cfa85c"/>`,
 
   /* night: deep blue hills */
-  w3: x => `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#1b2a41" opacity=".9"/>`,
+  w3: x => `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#22304a"/>`,
 
   /* rainy hills: desaturated wet green */
-  w4: x => `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#617d70" opacity=".8"/>`,
+  w4: x => `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#6e8a7d"/>`,
 
   /* snow-capped hills: icy blue base + white caps sitting on each apex */
-  w5: x => `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#c9dcea" opacity=".9"/>` +
+  w5: x => `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#cfe0ec"/>` +
            `<path d="M${x + 95} 412 Q${x + 130} 382 ${x + 165} 412 Q${x + 130} 398 ${x + 95} 412 Z" fill="#fff"/>` +
            `<path d="M${x + 355} 420 Q${x + 390} 392 ${x + 425} 420 Q${x + 390} 404 ${x + 355} 420 Z" fill="#fff"/>`,
 
   /* dunes: the same humps, lower and sandier */
-  w6: x => `<path d="M${x} 465 Q${x + 130} 370 ${x + 260} 465 Q${x + 390} 385 ${x + 520} 465" fill="#d4a373" opacity=".85"/>`,
+  w6: x => `<path d="M${x} 465 Q${x + 130} 370 ${x + 260} 465 Q${x + 390} 385 ${x + 520} 465" fill="#d8ab80"/>`,
 
   /* ocean swell: four small wave humps across the tile */
-  w7: x => `<path d="M${x} 465 Q${x + 65} 420 ${x + 130} 465 Q${x + 195} 425 ${x + 260} 465 Q${x + 325} 420 ${x + 390} 465 Q${x + 455} 425 ${x + 520} 465" fill="#0096c7" opacity=".8"/>`,
+  w7: x => `<path d="M${x} 465 Q${x + 65} 420 ${x + 130} 465 Q${x + 195} 425 ${x + 260} 465 Q${x + 325} 420 ${x + 390} 465 Q${x + 455} 425 ${x + 520} 465" fill="#2aa3cf"/>`,
 
   /* crater ridge: dark humps with shadowed crater dents */
-  w8: x => `<path d="M${x} 465 Q${x + 130} 330 ${x + 260} 465 Q${x + 390} 350 ${x + 520} 465" fill="#495057" opacity=".9"/>` +
+  w8: x => `<path d="M${x} 465 Q${x + 130} 330 ${x + 260} 465 Q${x + 390} 350 ${x + 520} 465" fill="#52585f"/>` +
            `<ellipse cx="${x + 130}" cy="430" rx="30" ry="9" fill="#343a40"/>` +
            `<ellipse cx="${x + 390}" cy="438" rx="24" ry="7" fill="#343a40"/>`
 };
@@ -6590,7 +6590,7 @@ function buildScenery(len, world = 1, seed = 0) {
   let far = "";
   for (let x = 0; x < 1200; x += 520) {   /* 1200 isn't a 520 multiple: hills overlap the seam harmlessly */
     far += farFn ? farFn(x)
-      : `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#74c69d" opacity=".8"/>`;
+      : `<path d="M${x} 465 Q${x + 130} 300 ${x + 260} 465 Q${x + 390} 320 ${x + 520} 465" fill="#7fcaa8"/>`;
   }
   if (lmFn) far += lmFn(0);   /* the strip below is drawn 3x, so one landmark per tile tiles cleanly */
   /* squash the old 165px-tall skyline onto the horizon */
@@ -6800,8 +6800,8 @@ function ghostTick(dt) {
   if (!ghostTrace) return;
   ghostT += dt;
   if (finished) return;
-  const gap = ghostTimeAt(pos) - runTime, r = Math.round(gap);   /* + = the kid got here sooner than the ghost */
-  const txt = (r > 0 ? "+" : r < 0 ? "-" : "") + Math.abs(r);
+  const gap = ghostTimeAt(pos) - runTime, r = Math.round(gap * 100) / 100;   /* + = the kid got here sooner than the ghost */
+  const txt = (r > 0 ? "+" : r < 0 ? "-" : "") + Math.abs(r).toFixed(2);
   if (txt !== ghostGapShown) {
     ghostGapShown = txt;
     hudGhost.querySelector("span").textContent = txt;
@@ -7472,7 +7472,7 @@ function tick(now) {
   } else {
     if (!finished) {
       runTime += dt;
-      const shown = Math.floor(runTime);
+      const shown = runTime.toFixed(2);
       if (shown !== lastShownTime) { lastShownTime = shown; hudTime.textContent = shown; }
     }
     /* almost there! */
@@ -8156,7 +8156,7 @@ function finishLevel() {
     progress.levels[level] = {
       best: Math.max(prev ? prev.best : 0, runStars),
       rating: Math.max(prev ? prev.rating : 0, rating),
-      bestTime: Math.min(prev && prev.bestTime ? prev.bestTime : Infinity, Math.round(runTime * 10) / 10),
+      bestTime: Math.min(prev && prev.bestTime ? prev.bestTime : Infinity, Math.round(runTime * 100) / 100),
       tier: (prev && prev.tier && TIER_RANK[prev.tier] > TIER_RANK[tier]) ? prev.tier : tier
     };
     if (level < MAX_LEVEL) progress.current = Math.max(progress.current, level + 1);
@@ -8181,7 +8181,7 @@ function finishLevel() {
   const cTime = document.getElementById("celebrateTime");
   cTime.innerHTML = isParade
     ? `<span class="medal">${BADGES.find(b => b.id === "champ").icon}</span>`
-    : stopwatchIcon + `<span>${Math.floor(runTime)}</span>` + `<span class="medal">${medalSVG(tier)}</span>`
+    : stopwatchIcon + `<span>${runTime.toFixed(2)}</span>` + `<span class="medal">${medalSVG(tier)}</span>`
       + (ghostBeaten ? `<span class="ghostWin">${ghostIcon}${ghostCheckIcon}</span>` : "");   /* GHOST RACE: beat your ghost = ghost + check */
   cTime.classList.toggle("newBest", ghostBeaten);   /* GHOST RACE: the medal pops bigger on a new best */
   const cDamage = document.getElementById("celebrateDamage");
@@ -8589,10 +8589,10 @@ function eventFinish(n) {
 
   /* ---- far hills ---- */
   /* jagged black ridges with a few glowing cracks */
-  WORLD_FAR.w9 = x => `<path d="M${x} 465 L${x + 60} 380 L${x + 130} 320 L${x + 200} 400 L${x + 260} 465 L${x + 320} 410 L${x + 390} 340 L${x + 460} 420 L${x + 520} 465 Z" fill="#241f21" opacity=".95"/>` +
-    `<path d="M${x + 130} 332 L${x + 146} 384 M${x + 390} 352 L${x + 378} 400" stroke="${lava}" stroke-width="4" stroke-linecap="round" opacity=".75"/>`;
+  WORLD_FAR.w9 = x => `<path d="M${x} 465 L${x + 60} 380 L${x + 130} 320 L${x + 200} 400 L${x + 260} 465 L${x + 320} 410 L${x + 390} 340 L${x + 460} 420 L${x + 520} 465 Z" fill="#241f21"/>` +
+    `<path d="M${x + 130} 332 L${x + 146} 384 M${x + 390} 352 L${x + 378} 400" stroke="${lava}" stroke-width="4" stroke-linecap="round"/>`;
   /* soft gumdrop hills dusted with sugar */
-  WORLD_FAR.w10 = x => `<path d="M${x} 465 Q${x} 330 ${x + 130} 330 Q${x + 260} 330 ${x + 260} 465 Z" fill="#b5e48c" opacity=".9"/><path d="M${x + 260} 465 Q${x + 260} 352 ${x + 390} 352 Q${x + 520} 352 ${x + 520} 465 Z" fill="#cdb4db" opacity=".9"/>` +
+  WORLD_FAR.w10 = x => `<path d="M${x} 465 Q${x} 330 ${x + 130} 330 Q${x + 260} 330 ${x + 260} 465 Z" fill="#b5e48c"/><path d="M${x + 260} 465 Q${x + 260} 352 ${x + 390} 352 Q${x + 520} 352 ${x + 520} 465 Z" fill="#cdb4db"/>` +
     [[x + 100, 380], [x + 160, 360], [x + 130, 420], [x + 370, 400], [x + 420, 390]].map(([cx, cy]) => C(cx, cy, 5, "#fff", 0.7)).join("");
 
   /* ---- hazards ---- */
@@ -8815,11 +8815,11 @@ function eventFinish(n) {
 
   /* ---- far strips + landmarks ---- */
   /* deep sea: dark reef humps, lower than hills */
-  WORLD_FAR.w11 = x => `<path d="M${x} 465 Q${x + 130} 350 ${x + 260} 465 Q${x + 390} 370 ${x + 520} 465" fill="#1b5e7a" opacity=".9"/>` +
+  WORLD_FAR.w11 = x => `<path d="M${x} 465 Q${x + 130} 350 ${x + 260} 465 Q${x + 390} 370 ${x + 520} 465" fill="#1b5e7a"/>` +
     C(x + 130, 420, 6, "#48cae4", 0.5) + C(x + 390, 432, 4, "#48cae4", 0.5);
   /* sky kingdom: the cloud sea — rounded fluffy tops */
-  WORLD_FAR.w12 = x => `<path d="M${x} 465 Q${x + 40} 400 ${x + 100} 410 Q${x + 150} 360 ${x + 210} 400 Q${x + 260} 380 ${x + 300} 415 Q${x + 350} 355 ${x + 420} 400 Q${x + 470} 390 ${x + 520} 465 Z" fill="#fff6f8" opacity=".95"/>` +
-    `<path d="M${x} 465 Q${x + 90} 430 ${x + 180} 440 Q${x + 300} 420 ${x + 400} 445 Q${x + 470} 430 ${x + 520} 465 Z" fill="#ffd6e0" opacity=".7"/>`;
+  WORLD_FAR.w12 = x => `<path d="M${x} 465 Q${x + 40} 400 ${x + 100} 410 Q${x + 150} 360 ${x + 210} 400 Q${x + 260} 380 ${x + 300} 415 Q${x + 350} 355 ${x + 420} 400 Q${x + 470} 390 ${x + 520} 465 Z" fill="#fff6f8"/>` +
+    `<path d="M${x} 465 Q${x + 90} 430 ${x + 180} 440 Q${x + 300} 420 ${x + 400} 445 Q${x + 470} 430 ${x + 520} 465 Z" fill="#ffd6e0"/>`;
   /* deep sea: a sunken ship listing on the reef + a rock stack */
   WORLD_LANDMARK.w11 = x => `<g fill="#0b3a53">` + `<path d="M${x + 200} 465 L${x + 236} 392 H${x + 540} L${x + 586} 465 Z"/>` + R(x + 236, 380, 304, 14) +
     `<path d="M${x + 310} 390 L${x + 288} 250 M${x + 450} 390 L${x + 436} 290" stroke="#0b3a53" stroke-width="9" stroke-linecap="round"/>` +

@@ -89,7 +89,7 @@ function check(name, ok, detail) {
   check('replay: at t~1.6 the twin is in the recorded lane 2 (lx = LANE_W), ahead of the parked kid (z > 0, right of them on screen, smaller, behind the car in z-order)',
     s1.t > 1.4 && s1.t < 2.2 && Math.abs(s1.lane - 2) < 0.08 && Math.abs(s1.lx - 240) < 2 && s1.z > 200 && s1.sx > s1.kidX && s1.s < 1 && s1.vis && s1.display === 'block' && s1.zi < 19990, JSON.stringify(s1));
   check('replay: the twin keeps moving: depth, screen x/y and scale all change over the next half second', s2.z > s1.z + 100 && s2.sx !== s1.sx && s2.sy < s1.sy && s2.s < s1.s && s2.zi < s1.zi, JSON.stringify({ s1, s2 }));
-  check('hud: with the kid parked the chip reads a negative gap in putty (behind)', /^-\d+$/.test(s1.chip) && s1.behind && !s1.ahead, JSON.stringify({ chip: s1.chip, behind: s1.behind }));
+  check('hud: with the kid parked the chip reads a negative gap to two decimals in putty (behind)', /^-\d+\.\d{2}$/.test(s1.chip) && s1.behind && !s1.ahead, JSON.stringify({ chip: s1.chip, behind: s1.behind }));
 
   /* ---- 3. a slower run keeps the old ghost ---- */
   await page.evaluate(() => { gasKey = true; });
@@ -108,7 +108,7 @@ function check(name, ok, detail) {
   await page.evaluate(() => { pos = LEVEL_LEN - 1000; gasKey = true; });
   await page.waitForTimeout(1200);
   const mid = await page.evaluate(() => ({ chip: hudGhost.textContent.trim(), ahead: hudGhost.classList.contains('ahead'), behind: hudGhost.classList.contains('behind') }));
-  check('hud: out in front the chip reads a positive gap in green (ahead)', /^\+\d+$/.test(mid.chip) && mid.ahead && !mid.behind, JSON.stringify(mid));
+  check('hud: out in front the chip reads a positive gap to two decimals in green (ahead)', /^\+\d+\.\d{2}$/.test(mid.chip) && mid.ahead && !mid.behind, JSON.stringify(mid));
   await untilFinished();
   const faster = await page.evaluate(() => {
     gasKey = false;

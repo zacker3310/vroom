@@ -117,6 +117,11 @@
 
 - [x] T20.1: The shuffle button ends the tab row (76px, x 664-740, 28px after the wrench so it reads as a tool, not a tab); the right wall keeps only the daily gift. GO is a glossy green dome with a double ring, bevelled chevron and a press that sinks; the map is a 96px blue card with a folded map, route and pin. Column: gift 192-280, map 392-488, GO 504-684. Tests: upkeep-check column geometry, title-check gift placement.
 
+## v12.9 (2026-10-08, user-directed: "see-through hills, two-decimal times")
+
+- [x] T21.1: Solid hills. Every far-hill tile (`WORLD_FAR` and the default) draws with a solid pre-blended fill instead of 0.7 to 0.95 opacity, so the sky no longer shows through and the 520px tiles no longer stack darker bands at their seams. World packs 9 to 12 stripped too.
+- [x] T21.2: Times to two decimals: the HUD run clock, the results card and the ghost gap chip (`+1.25` / `-0.40`); best times are stored to 0.01. HUD time slot widened with tabular numerals; ghost chip 176px at 32px type so `+12.34` fits beside the progress bar. verify.cjs checks the formats; its star-collect check now picks a star with no neighbour inside the collect window.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

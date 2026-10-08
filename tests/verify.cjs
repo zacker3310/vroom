@@ -210,7 +210,8 @@ function check(name, ok, detail) {
 
   /* ---- 8. star collect + hard obstacle hit (teleport to props) ---- */
   const starHit = await page.evaluate(async () => {
-    const s = props.find(p => p.type === 'star' && p.y > 400 && !p.done); /* a low star */
+    const stars = props.filter(p => p.type === 'star' && p.y > 400 && !p.done);   /* low stars */
+    const s = stars.find(a => !stars.some(b => b !== a && b.lane === a.lane && Math.abs(b.x - a.x) < 100));   /* one with no neighbour in the collect window */
     if (!s) return { skip: true };
     targetLane = laneVis = s.lane;
     pos = s.x - 300; v = 0;
@@ -251,6 +252,8 @@ function check(name, ok, detail) {
     wallet: progress.wallet, lvl1: progress.levels[1], current: progress.current
   }));
   check('finish: celebrate overlay shows', fin.finished && fin.celebrate, JSON.stringify({ f: fin.finished, c: fin.celebrate }));
+  const times = await page.evaluate(() => ({ hud: hudTime.textContent, card: document.getElementById('celebrateTime').querySelector('span').textContent, best: progress.levels[1].bestTime }));
+  check('finish: run time shows two decimals on the HUD and the card; best time stored to 0.01', /^\d+\.\d{2}$/.test(times.hud) && /^\d+\.\d{2}$/.test(times.card) && Math.abs(times.best * 100 - Math.round(times.best * 100)) < 1e-6, JSON.stringify(times));
   check('finish: stars banked (4+3+2 clean+2 shine=11) and level 2 current', fin.wallet === 11 && fin.current === 2, JSON.stringify({ wallet: fin.wallet, current: fin.current }));
   check('finish: level 1 progress recorded', fin.lvl1 && fin.lvl1.best >= 4 && fin.lvl1.rating >= 1, JSON.stringify(fin.lvl1));
   await page.waitForTimeout(1400);
