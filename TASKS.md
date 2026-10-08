@@ -92,6 +92,10 @@
 
 - [x] T16.1: Album memories. Photos carry their world: backdrop from `ROAD_PAL` (sky / ground / road bands) and the world's map icon as a stamp on its tint; the parade gets a rainbow road and the champion cup. Tapping a photo opens the peek card (big car on its backdrop, level, stars collected, medal); tapping an earned sticker opens it big with confetti; unearned stickers still only wiggle. album-check 15 (+4). 18 suites, 294/294.
 
+## v12.5
+
+- [x] T17.3: Ghost race against yourself. Level runs are sampled every 0.2 s (`[pos, lane, jumpY]` as a flat int array) and the fastest run per level is kept as `progress.levels[n].ghost = { t, p }` (localStorage only, never in a save code; malformed traces dropped on load). A stored ghost rides the next run as the kid's own car at 45% with a dashed ring, projected through `placeSprite` so it sits right in bends and over hills, interpolated by its own clock, fading out after its own finish; it never collides. A ghost chip under the level chip shows the signed gap in seconds (green ahead, putty behind, hidden with no ghost and during the celebration). Beating the ghost pops the medal bigger and adds a ghost + check on the time chip; losing changes nothing. Suite ghost-check (16).
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
