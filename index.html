@@ -246,6 +246,45 @@
   .buddyBob { animation: buddyBob 1.6s ease-in-out infinite; transform-box: fill-box; }
   @keyframes buddyBob { 50% { transform: translateY(3.5px); } }
 
+  /* ---------- GARAGE LIFE (T17.5): idle blink / yawn, flag flutter, wheel settle, hood + wheel toys, road buddy reactions ---------- */
+  .bEye { transform-box: fill-box; transform-origin: center; animation: bBlink 4.3s ease-in-out infinite; }
+  @keyframes bBlink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+  .bMouth { transform-box: fill-box; transform-origin: 50% 15%; animation: bYawn 11s ease-in-out infinite; }
+  @keyframes bYawn { 0%, 82%, 94%, 100% { transform: scale(1); } 86%, 90% { transform: scale(1.25, 2.4); } }
+  .flagFlutter { transform-box: fill-box; transform-origin: 0% 50%; animation: flagFlutter 1.1s ease-in-out infinite; }
+  @keyframes flagFlutter { 50% { transform: skewY(7deg) scaleX(.88); } }
+  svg.settle .wheelrot { animation: wheelSettle .55s ease-out; }
+  @keyframes wheelSettle { 30% { transform: rotate(-9deg); } 60% { transform: rotate(6deg); } 85% { transform: rotate(-2deg); } }
+  svg .wheelrot.spinTap { animation: wheelSpinTap .75s cubic-bezier(.2,.8,.3,1); }   /* outranks the settle wobble */
+  @keyframes wheelSpinTap { to { transform: rotate(720deg); } }
+  /* the hood toy hides below the roofline until .hoodOpen lands on the svg: the flap swings up on its rear hinge,
+     the engine block rises out and a sparkle pops, then it all tucks back */
+  .hoodFlap { opacity: 0; transform-box: fill-box; transform-origin: 0% 100%; }
+  .hoodEngine { opacity: 0; transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); }
+  .hoodSpark { opacity: 0; transform-box: fill-box; transform-origin: center; }
+  svg.hoodOpen .hoodFlap { animation: hoodFlap 1.15s ease-in-out; }
+  @keyframes hoodFlap { 0%, 100% { opacity: 0; transform: rotate(0); } 6%, 94% { opacity: 1; } 28%, 72% { opacity: 1; transform: rotate(-72deg); } }
+  svg.hoodOpen .hoodEngine { animation: hoodEngine 1.15s ease-in-out; }
+  @keyframes hoodEngine { 0%, 100% { opacity: 0; transform: scaleY(0); } 30%, 70% { opacity: 1; transform: scaleY(1); } }
+  svg.hoodOpen .hoodSpark { animation: hoodSpark 1.15s ease-in-out; }
+  @keyframes hoodSpark { 0%, 28%, 76%, 100% { opacity: 0; transform: scale(.3) rotate(0); } 42%, 62% { opacity: 1; transform: scale(1) rotate(45deg); } }
+  svg.hoodOpen .buddyBob { animation: buddyHop .55s ease; }
+  @keyframes buddyHop { 35% { transform: translateY(-16px); } }
+  .toyHits * { pointer-events: none; }
+  #preview .toyHits * { pointer-events: all; cursor: pointer; }
+  /* chase-cam buddy reactions (buddyReact): cheer on a star streak, duck on a hard hit, wave at the finish */
+  .buddyRe { transform-box: fill-box; transform-origin: 50% 100%; }
+  .buddyRe.cheer { animation: buddyCheer .7s ease; }
+  @keyframes buddyCheer { 30% { transform: translateY(-26px) scale(1.1, .9) rotate(-8deg); } 60% { transform: translateY(-10px) rotate(8deg); } }
+  .buddyRe.duck { animation: buddyDuck 1s ease; }
+  @keyframes buddyDuck { 15%, 85% { transform: translateY(70px); opacity: 0; } }
+  .buddyRe.wave { animation: buddyWave 1.1s ease-in-out; }
+  @keyframes buddyWave { 20%, 60% { transform: rotate(-14deg); } 40%, 80% { transform: rotate(14deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    #preview .buddyBob, #preview .hoverBob, #preview .boosterFlame, #preview .flapWing, #preview .spinner,
+    .bEye, .bMouth, .flagFlutter { animation: none; }
+  }
+
   /* ---------- LEVEL MAP ---------- */
   #map { background: linear-gradient(#8ecae6 0%, #bde0fe 60%, #74c69d 60%, #588157 100%); }
   #freeBtn {
@@ -2312,7 +2351,7 @@ const SIDE_EXTRA_SVG = {
   /* flag: pole foot on the anchor, h px tall (default 52), pennant flies forward */
   flag: ([x, y, h = 52]) => `<g transform="translate(${x},${y})">
       <path d="M0 0 V${-h}" stroke="#6c757d" stroke-width="5" stroke-linecap="round"/>
-      <path d="M2 ${-h + 2} L38 ${-h + 10} L2 ${-h + 22} Z" fill="#e63946"/></g>`,
+      <g class="flagFlutter"><path d="M2 ${-h + 2} L38 ${-h + 10} L2 ${-h + 22} Z" fill="#e63946"/></g></g>`,
   wings: ([x, y]) => NEW_EXTRAS_SVG.wings(x, y),
   booster: ([x, y]) => NEW_EXTRAS_SVG.booster(x, y),
   partyhat: ([x, y]) => NEW_EXTRAS_SVG.partyhat(x, y)
@@ -2337,42 +2376,42 @@ const BUDDY_ORDER = ["pup", "kitty", "ducky", "dino", "penguin", "monkey"];
 const BUDDY_SVG = {
   pup: `<circle cx="32" cy="-18" r="22" fill="#b08968"/>
     <path d="M12 -30 Q2 -14 12 -2 Q20 -8 18 -24 Z" fill="#8a5a2b"/><path d="M52 -30 Q62 -14 52 -2 Q44 -8 46 -24 Z" fill="#8a5a2b"/>
-    <circle cx="25" cy="-22" r="3.5" fill="#212529"/><circle cx="39" cy="-22" r="3.5" fill="#212529"/>
+    <g class="bEye"><circle cx="25" cy="-22" r="3.5" fill="#212529"/><circle cx="39" cy="-22" r="3.5" fill="#212529"/></g>
     <ellipse cx="32" cy="-10" rx="9" ry="7" fill="#e9d8c3"/><circle cx="32" cy="-13" r="4" fill="#212529"/>
-    <path d="M32 -8 Q34 -2 40 -3" stroke="#e76f51" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <g class="bMouth"><path d="M32 -8 Q34 -2 40 -3" stroke="#e76f51" stroke-width="4" fill="none" stroke-linecap="round"/></g>
     <circle cx="14" cy="4" r="6" fill="#b08968"/><circle cx="50" cy="4" r="6" fill="#b08968"/>`,
   kitty: `<circle cx="32" cy="-16" r="20" fill="#adb5bd"/>
     <path d="M16 -30 L12 -46 L28 -34 Z" fill="#adb5bd"/><path d="M48 -30 L52 -46 L36 -34 Z" fill="#adb5bd"/>
     <path d="M17 -31 L15 -41 L25 -34 Z" fill="#ffafcc"/><path d="M47 -31 L49 -41 L39 -34 Z" fill="#ffafcc"/>
-    <circle cx="25" cy="-19" r="3.5" fill="#212529"/><circle cx="39" cy="-19" r="3.5" fill="#212529"/>
-    <path d="M29 -10 L32 -7 L35 -10" stroke="#212529" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <g class="bEye"><circle cx="25" cy="-19" r="3.5" fill="#212529"/><circle cx="39" cy="-19" r="3.5" fill="#212529"/></g>
+    <g class="bMouth"><path d="M29 -10 L32 -7 L35 -10" stroke="#212529" stroke-width="2.5" fill="none" stroke-linecap="round"/></g>
     <path d="M8 -14 L20 -12 M8 -8 L20 -9 M56 -14 L44 -12 M56 -8 L44 -9" stroke="#6c757d" stroke-width="2"/>
     <circle cx="15" cy="4" r="6" fill="#adb5bd"/><circle cx="49" cy="4" r="6" fill="#adb5bd"/>`,
   ducky: `<circle cx="32" cy="-16" r="20" fill="#ffd60a"/>
     <path d="M22 -38 Q32 -46 40 -38 Q36 -34 28 -35 Z" fill="#ffd60a"/>
-    <circle cx="25" cy="-19" r="3.5" fill="#212529"/><circle cx="39" cy="-19" r="3.5" fill="#212529"/>
-    <path d="M24 -9 Q32 -1 40 -9 Q36 -13 28 -13 Z" fill="#fb8500"/>
+    <g class="bEye"><circle cx="25" cy="-19" r="3.5" fill="#212529"/><circle cx="39" cy="-19" r="3.5" fill="#212529"/></g>
+    <g class="bMouth"><path d="M24 -9 Q32 -1 40 -9 Q36 -13 28 -13 Z" fill="#fb8500"/></g>
     <circle cx="14" cy="4" r="6" fill="#ffd60a"/><circle cx="50" cy="4" r="6" fill="#ffd60a"/>`,
   dino: `<circle cx="32" cy="-16" r="20" fill="#74c69d"/>
     <path d="M18 -33 L24 -43 L30 -34 L36 -44 L42 -34 L46 -41 L48 -30 Z" fill="#2a9d8f"/>
-    <circle cx="25" cy="-18" r="4.5" fill="#fff"/><circle cx="26" cy="-18" r="2.5" fill="#212529"/>
-    <circle cx="39" cy="-18" r="4.5" fill="#fff"/><circle cx="40" cy="-18" r="2.5" fill="#212529"/>
-    <path d="M24 -7 Q32 -3 40 -7" stroke="#1d3557" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <g class="bEye"><circle cx="25" cy="-18" r="4.5" fill="#fff"/><circle cx="26" cy="-18" r="2.5" fill="#212529"/>
+    <circle cx="39" cy="-18" r="4.5" fill="#fff"/><circle cx="40" cy="-18" r="2.5" fill="#212529"/></g>
+    <g class="bMouth"><path d="M24 -7 Q32 -3 40 -7" stroke="#1d3557" stroke-width="3" fill="none" stroke-linecap="round"/></g>
     <circle cx="20" cy="-8" r="2" fill="#2a9d8f"/><circle cx="44" cy="-8" r="2" fill="#2a9d8f"/>
     <circle cx="14" cy="4" r="6" fill="#74c69d"/><circle cx="50" cy="4" r="6" fill="#74c69d"/>`,
   penguin: `<circle cx="32" cy="-16" r="20" fill="#212529"/>
     <ellipse cx="32" cy="-12" rx="13" ry="12" fill="#f1faee"/>
-    <circle cx="26" cy="-19" r="3.5" fill="#fff"/><circle cx="27" cy="-19" r="2" fill="#212529"/>
-    <circle cx="38" cy="-19" r="3.5" fill="#fff"/><circle cx="39" cy="-19" r="2" fill="#212529"/>
-    <path d="M27 -10 L32 -4 L37 -10 Z" fill="#fb8500"/>
+    <g class="bEye"><circle cx="26" cy="-19" r="3.5" fill="#fff"/><circle cx="27" cy="-19" r="2" fill="#212529"/>
+    <circle cx="38" cy="-19" r="3.5" fill="#fff"/><circle cx="39" cy="-19" r="2" fill="#212529"/></g>
+    <g class="bMouth"><path d="M27 -10 L32 -4 L37 -10 Z" fill="#fb8500"/></g>
     <circle cx="14" cy="4" r="6" fill="#212529"/><circle cx="50" cy="4" r="6" fill="#212529"/>`,
   monkey: `<circle cx="10" cy="-22" r="8" fill="#8a5a2b"/><circle cx="54" cy="-22" r="8" fill="#8a5a2b"/>
     <circle cx="10" cy="-22" r="4" fill="#e9d8c3"/><circle cx="54" cy="-22" r="4" fill="#e9d8c3"/>
     <circle cx="32" cy="-16" r="20" fill="#8a5a2b"/>
     <path d="M18 -20 Q32 -38 46 -20 Q40 -28 32 -28 Q24 -28 18 -20 Z" fill="#6b4423"/>
     <ellipse cx="32" cy="-10" rx="12" ry="9" fill="#e9d8c3"/>
-    <circle cx="25" cy="-18" r="3.5" fill="#212529"/><circle cx="39" cy="-18" r="3.5" fill="#212529"/>
-    <path d="M27 -7 Q32 -3 37 -7" stroke="#212529" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <g class="bEye"><circle cx="25" cy="-18" r="3.5" fill="#212529"/><circle cx="39" cy="-18" r="3.5" fill="#212529"/></g>
+    <g class="bMouth"><path d="M27 -7 Q32 -3 37 -7" stroke="#212529" stroke-width="2.5" fill="none" stroke-linecap="round"/></g>
     <circle cx="14" cy="4" r="6" fill="#8a5a2b"/><circle cx="50" cy="4" r="6" fill="#8a5a2b"/>`
 };
 
@@ -2400,6 +2439,7 @@ function vehicleSVG(st) {
     ${defs}
     <g transform="translate(0,${-lift})"><g class="${B.hover ? "hoverBob" : ""}">
       ${buddyInFront ? "" : buddy}
+      ${B.noHood ? "" : hoodToySVG(A.hat)}
       ${B.svg(st)}
       ${buddyInFront ? buddy : ""}
       ${decal}
@@ -2426,9 +2466,27 @@ function vehicleSVG(st) {
         <circle cx="296" cy="84" r="10" opacity=".7" style="animation-delay:.45s"/>
         <circle cx="281" cy="81" r="8" opacity=".6" style="animation-delay:.9s"/>
       </g>
+      <g class="toyHits">${B.noHood ? "" : `<rect class="hoodHit" x="${A.hat[0] - 32}" y="${A.hat[1] - 36}" width="64" height="48" fill="none"/>`}</g>
     </g></g>
     ${B.noWheels ? "" : wheelSVG(st.wheels, 85) + wheelSVG(st.wheels, 235)}
+    <g class="toyHits">${B.noWheels ? "" : [85, 235].map((cx, i) => `<circle class="wheelHit" data-i="${i}" cx="${cx}" cy="${200 - WHEELS[st.wheels].r}" r="${Math.max(WHEELS[st.wheels].r, 24)}" fill="none"/>`).join("")}</g>
   </svg>`;
+}
+/* GARAGE LIFE (T17.5): the hood toy sits under the body's `hat` roof point, hidden until a tap adds .hoodOpen to the svg
+   (see the garage CSS). Hinge at (x, y+10): the painted flap swings up, a cartoon engine block rises out, a sparkle pops.
+   Drawn behind the body so only the part above the roofline shows; a body may opt out with `noHood: true`. */
+function hoodToySVG([x, y]) {
+  return `<g class="hoodToy" transform="translate(${x},${y + 10})">
+      <g class="hoodEngine">
+        <rect x="-21" y="-30" width="42" height="30" rx="6" fill="#6c757d" stroke="#343a40" stroke-width="3"/>
+        <rect x="-17" y="-38" width="9" height="11" rx="2" fill="#adb5bd" stroke="#343a40" stroke-width="2"/>
+        <rect x="-4" y="-38" width="9" height="11" rx="2" fill="#adb5bd" stroke="#343a40" stroke-width="2"/>
+        <rect x="9" y="-38" width="9" height="11" rx="2" fill="#adb5bd" stroke="#343a40" stroke-width="2"/>
+        <circle cx="0" cy="-15" r="7" fill="#ffd60a" stroke="#343a40" stroke-width="3"/>
+      </g>
+      <path class="hoodSpark" d="M0 -60 L4 -50 L14 -46 L4 -42 L0 -32 L-4 -42 L-14 -46 L-4 -50 Z" fill="#fff" stroke="#ffd60a" stroke-width="2.5" stroke-linejoin="round"/>
+      <rect class="hoodFlap" x="-26" y="-9" width="52" height="9" rx="3" fill="var(--paint)" stroke="#00000044" stroke-width="3"/>
+    </g>`;
 }
 
 /* ============ 8. ART: WORLDS 1-8 — sky CSS, roadside vignettes, far hills, weather, hazards, icons, tints ============ */
@@ -3445,29 +3503,29 @@ const SHOP_BUDDY_SVG = {
     <path d="M13 -30 L11 -42 L22 -34 Z" fill="#212529"/><path d="M51 -30 L53 -42 L42 -34 Z" fill="#212529"/>
     <circle cx="32" cy="-16" r="20" fill="#f4a261"/>
     <path d="M14 -12 Q32 10 50 -12 Q40 -2 32 -2 Q24 -2 14 -12 Z" fill="#fff"/>
-    <circle cx="25" cy="-19" r="3.5" fill="#212529"/><circle cx="39" cy="-19" r="3.5" fill="#212529"/>
-    <ellipse cx="32" cy="-7" rx="4" ry="3" fill="#212529"/>
+    <g class="bEye"><circle cx="25" cy="-19" r="3.5" fill="#212529"/><circle cx="39" cy="-19" r="3.5" fill="#212529"/></g>
+    <g class="bMouth"><ellipse cx="32" cy="-7" rx="4" ry="3" fill="#212529"/></g>
     <circle cx="14" cy="4" r="6" fill="#f4a261"/><circle cx="50" cy="4" r="6" fill="#f4a261"/>`,
   bunny: `<ellipse cx="22" cy="-44" rx="7" ry="16" fill="#f1faee"/><ellipse cx="42" cy="-44" rx="7" ry="16" fill="#f1faee"/>
     <ellipse cx="22" cy="-44" rx="3.5" ry="11" fill="#ffafcc"/><ellipse cx="42" cy="-44" rx="3.5" ry="11" fill="#ffafcc"/>
     <circle cx="32" cy="-16" r="20" fill="#f1faee"/>
-    <circle cx="25" cy="-19" r="3.5" fill="#212529"/><circle cx="39" cy="-19" r="3.5" fill="#212529"/>
+    <g class="bEye"><circle cx="25" cy="-19" r="3.5" fill="#212529"/><circle cx="39" cy="-19" r="3.5" fill="#212529"/></g>
     <ellipse cx="32" cy="-10" rx="3.5" ry="2.5" fill="#ffafcc"/>
-    <rect x="28" y="-7" width="4" height="6" rx="1" fill="#fff" stroke="#adb5bd" stroke-width="1"/><rect x="32" y="-7" width="4" height="6" rx="1" fill="#fff" stroke="#adb5bd" stroke-width="1"/>
+    <g class="bMouth"><rect x="28" y="-7" width="4" height="6" rx="1" fill="#fff" stroke="#adb5bd" stroke-width="1"/><rect x="32" y="-7" width="4" height="6" rx="1" fill="#fff" stroke="#adb5bd" stroke-width="1"/></g>
     <circle cx="20" cy="-12" r="3" fill="#ffafcc" opacity=".6"/><circle cx="44" cy="-12" r="3" fill="#ffafcc" opacity=".6"/>
     <circle cx="14" cy="4" r="6" fill="#f1faee"/><circle cx="50" cy="4" r="6" fill="#f1faee"/>`,
   frog: `<circle cx="22" cy="-32" r="8" fill="#80ed99"/><circle cx="42" cy="-32" r="8" fill="#80ed99"/>
     <ellipse cx="32" cy="-14" rx="22" ry="18" fill="#80ed99"/>
-    <circle cx="22" cy="-32" r="5" fill="#fff"/><circle cx="23" cy="-32" r="2.5" fill="#212529"/>
-    <circle cx="42" cy="-32" r="5" fill="#fff"/><circle cx="43" cy="-32" r="2.5" fill="#212529"/>
-    <path d="M18 -10 Q32 2 46 -10" stroke="#1d3557" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <g class="bEye"><circle cx="22" cy="-32" r="5" fill="#fff"/><circle cx="23" cy="-32" r="2.5" fill="#212529"/>
+    <circle cx="42" cy="-32" r="5" fill="#fff"/><circle cx="43" cy="-32" r="2.5" fill="#212529"/></g>
+    <g class="bMouth"><path d="M18 -10 Q32 2 46 -10" stroke="#1d3557" stroke-width="3" fill="none" stroke-linecap="round"/></g>
     <circle cx="16" cy="-14" r="3" fill="#ef7d6d" opacity=".7"/><circle cx="48" cy="-14" r="3" fill="#ef7d6d" opacity=".7"/>
     <circle cx="14" cy="4" r="6" fill="#80ed99"/><circle cx="50" cy="4" r="6" fill="#80ed99"/>`,
   robot: `<path d="M32 -38 V-48" stroke="#6c757d" stroke-width="3"/><circle cx="32" cy="-50" r="4" fill="#e63946"/>
     <rect x="12" y="-38" width="40" height="40" rx="8" fill="#adb5bd"/>
     <rect x="18" y="-32" width="28" height="18" rx="4" fill="#1d3557"/>
-    <circle cx="26" cy="-23" r="4" fill="#4cc9f0"/><circle cx="38" cy="-23" r="4" fill="#4cc9f0"/>
-    <rect x="22" y="-9" width="20" height="5" rx="2" fill="#495057"/><path d="M27 -9 V-4 M32 -9 V-4 M37 -9 V-4" stroke="#adb5bd" stroke-width="1.5"/>
+    <g class="bEye"><circle cx="26" cy="-23" r="4" fill="#4cc9f0"/><circle cx="38" cy="-23" r="4" fill="#4cc9f0"/></g>
+    <g class="bMouth"><rect x="22" y="-9" width="20" height="5" rx="2" fill="#495057"/><path d="M27 -9 V-4 M32 -9 V-4 M37 -9 V-4" stroke="#adb5bd" stroke-width="1.5"/></g>
     <rect x="6" y="-30" width="6" height="12" rx="2" fill="#6c757d"/><rect x="52" y="-30" width="6" height="12" rx="2" fill="#6c757d"/>
     <rect x="9" y="-1" width="11" height="10" rx="3" fill="#adb5bd"/><rect x="44" y="-1" width="11" height="10" rx="3" fill="#adb5bd"/>`
 };
@@ -3755,8 +3813,12 @@ function renderShop() {
   } else priceTag.classList.remove("show");
   syncStrip();
 }
+let lastFit = "";   /* body|wheels last shown: a change wobbles the wheels into place (GARAGE LIFE) */
 function renderPreview() {
   preview.innerHTML = vehicleSVG(state);
+  const fit = state.body + "|" + state.wheels;
+  if (lastFit && fit !== lastFit) preview.firstElementChild.classList.add("settle");
+  lastFit = fit;
   preview.classList.remove("bounce");
   void preview.offsetWidth;
   preview.classList.add("bounce");
@@ -4042,7 +4104,11 @@ numOk.addEventListener("pointerdown", () => {
   renderWallets(true); closeNumpad();
   sfx.buy(); confettiBurst(garageScene, 40);
 });
-preview.addEventListener("pointerdown", () => { sfx.honk(state.body); renderPreview(); });
+preview.addEventListener("pointerdown", e => {
+  const toy = e.target.closest && e.target.closest(".hoodHit, .wheelHit");   /* GARAGE LIFE: hood + wheel toys */
+  if (toy) { previewToy(toy); return; }
+  sfx.honk(state.body); renderPreview();
+});
 
 /* ---- workbench: upgrades + upkeep (repair, wash, fuel, tires), all tiles on the workbench tab ---- */
 function renderUpgrades() { if (curCat === "work") syncStrip(); }
@@ -4215,7 +4281,8 @@ document.querySelectorAll(".cloud").forEach(c => c.addEventListener("pointerdown
   sfx.pop(); setTimeout(() => sfx.whoosh(), 500);
 }));
 /* the preview's eye blinks when honked; a riding buddy squeaks along */
-preview.addEventListener("pointerdown", () => {
+preview.addEventListener("pointerdown", e => {
+  if (e.target.closest && e.target.closest(".hoodHit, .wheelHit")) return;
   preview.classList.remove("blink"); void preview.offsetWidth; preview.classList.add("blink");
   if (state.buddy) setTimeout(() => sfx.squeak(), 160);
 });
@@ -4239,6 +4306,66 @@ setInterval(() => {
     goBtn.classList.add("nudge");
   }
 }, 1000);
+
+/* ---- GARAGE LIFE (T17.5): idle engine putter + the hood / wheel toys ----
+   The putter is a very quiet low square pulse (52 Hz through a 220 Hz lowpass, amplitude wobbled by a 2 Hz LFO)
+   on the master bus. It runs only while the garage is the active scene and the tab is visible, starts once audio
+   is unlocked, follows quiet mode, and is torn down within a poll tick of any scene change. */
+let putter = null, hoodT = null;
+const PUTTER_VOL = 0.016, PUTTER_DEPTH = 0.8;
+const lifeStats = { hood: 0, spin: 0 };   /* toy counters the life suite reads */
+function putterStart() {
+  const o = actx.createOscillator(), f = actx.createBiquadFilter(), g = actx.createGain();
+  const lfo = actx.createOscillator(), lg = actx.createGain();
+  o.type = "square"; o.frequency.value = 52;
+  f.type = "lowpass"; f.frequency.value = 220;
+  g.gain.value = 0;
+  lfo.type = "sine"; lfo.frequency.value = 2; lg.gain.value = 0;
+  lfo.connect(lg).connect(g.gain);
+  o.connect(f).connect(g).connect(masterBus);
+  o.start(); lfo.start();
+  putter = { o, f, g, lfo, lg };
+}
+function putterStop() {
+  const t = actx.currentTime, p = putter;
+  p.g.gain.cancelScheduledValues(t); p.g.gain.setTargetAtTime(0, t, 0.05);
+  p.lg.gain.setTargetAtTime(0, t, 0.05);
+  p.o.stop(t + 0.4); p.lfo.stop(t + 0.4);
+  putter = null;
+}
+function putterSync() {
+  const want = !!actx && garageEl.classList.contains("active") && !document.hidden;
+  if (want && !putter) putterStart();
+  else if (!want && putter) putterStop();
+  if (putter) {
+    const t = actx.currentTime, v = PUTTER_VOL * volScale();
+    putter.g.gain.setTargetAtTime(v, t, 0.3);
+    putter.lg.gain.setTargetAtTime(v * PUTTER_DEPTH, t, 0.3);
+  }
+}
+setInterval(putterSync, 250);
+addEventListener("pointerdown", putterSync);   /* runs after unlockAudio's capture listener has made the context */
+
+/* tap toys on the preview: the hood pops open for a second with a clank (and the buddy hops), a wheel spins with a whirr */
+function previewToy(hit) {
+  const svg = preview.querySelector("svg");
+  if (!svg) return;
+  if (hit.classList.contains("hoodHit")) {
+    lifeStats.hood++;
+    restartAnim(svg, "hoodOpen");
+    clearTimeout(hoodT); hoodT = setTimeout(() => svg.classList.remove("hoodOpen"), 1250);
+    sfx.clank();
+    tone("triangle", 1800, 2700, 0.14, 0.08, 0.45);   /* the sparkle */
+    setTimeout(() => sfx.clank(), 850);               /* the flap shuts */
+  } else {
+    const rot = svg.querySelectorAll(".wheelrot")[+hit.dataset.i];
+    if (!rot) return;
+    lifeStats.spin++;
+    restartAnim(rot, "spinTap");
+    tone("sine", 240, 1500, 0.32, 0.1); tone("sine", 1500, 320, 0.42, 0.08, 0.3);
+    noiseBurst(0.3, 2600, 0.05);
+  }
+}
 
 /* ============ 15. SCENE SWITCHING ============ */
 const garageScene = document.getElementById("garage");
@@ -5382,7 +5509,7 @@ function vehicleRearSVG(st) {
   const hasBuddy = !!(st.buddy && progress.owned.buddy.includes(st.buddy));
   const bk = N.buddy[3] ?? 1.2;   /* buddy sprite scale (4th anchor slot) */
   let over = "";
-  if (hasBuddy) over += at(N.buddy, `<g transform="translate(-32,-6)"><g class="buddyBob">${BUDDY_SVG[st.buddy]}</g></g>`, bk);
+  if (hasBuddy) over += at(N.buddy, `<g class="buddyRe"><g transform="translate(-32,-6)"><g class="buddyBob">${BUDDY_SVG[st.buddy]}</g></g></g>`, bk);
   const ex = st.extras;
   /* horn: tube on the roof inboard of the anchor, bell overhanging the roof edge on that side */
   if (ex.horn) over += at(N.horn, `<g transform="translate(${N.horn[0] < 0 ? 16 : -16},-16) scale(${N.horn[0] < 0 ? -1 : 1},1)"><path d="M4 14 Q4 4 16 4 L30 -4 L30 24 L16 16 Q4 16 4 14Z" fill="#ffd60a" stroke="#023047" stroke-width="3"/></g>`, 1.2);
@@ -7120,6 +7247,7 @@ const PROP_HIT = {
       const nw = performance.now();
       starCombo = nw - lastStarT < 1500 ? Math.min(starCombo + 1, 8) : 0;
       lastStarT = nw;
+      if (starCombo >= 2) buddyReact("cheer");   /* third star of a streak and on: the buddy bounces */
       const f = starChimeFreq(starCombo);   /* per-world scale (WORLD AUDIO block) */
       tone("sine", f, f, 0.15, 0.22); tone("sine", f * 1.5, f * 1.5, 0.25, 0.18, 0.08);
       runStars++; renderHudStars(true);
@@ -7234,6 +7362,7 @@ function applyDamage(n) {
   runDamage += soaked;
   save();
   sfx.crunch();
+  buddyReact("duck");
   updateDamageVisuals();
   renderHudDamage(true);
   renderHudUpkeep(true);
@@ -7475,6 +7604,21 @@ carWrap.addEventListener("pointerdown", () => {
   if (state.buddy) setTimeout(() => sfx.squeak(), 160);
   eventHonk();   /* SURPRISE EVENTS: a honk wakes the sleeping dino */
 });
+
+/* ---- BUDDY REACTIONS (T17.5): the chase-cam buddy cheers on a star streak, ducks behind the body on a hard hit,
+   waves at the finish. One-shot classes on the .buddyRe group; the hooks are one-line calls at the three sites. ---- */
+let lastCheerT = 0;
+function buddyReact(kind) {
+  const b = carWrap.querySelector(".buddyRe");
+  if (!b) return;
+  restartAnim(b, kind, "cheer", "duck", "wave");
+  const now = performance.now();
+  if (kind === "cheer" && now - lastCheerT > 900) {
+    lastCheerT = now;
+    tone("triangle", 1046, 1568, 0.16, 0.12); tone("triangle", 1568, 2093, 0.2, 0.1, 0.12);
+  }
+  if (kind === "wave") { tone("sine", 1200, 1700, 0.1, 0.1, 0.2); tone("sine", 1700, 1200, 0.12, 0.1, 0.34); }
+}
 
 /* ============ 26. WORLD AUDIO + SKY EVENTS ============ */
 /* Everything here is additive: a per-world start jingle, a whisper-quiet looping ambience bed,
@@ -7956,6 +8100,7 @@ function flyStar(fromEl, toEl) {
 
 function finishLevel() {
   sfx.tada();
+  buddyReact("wave");
   confettiBurst(roadScene, 90);
   roadScene.classList.add("celebrating");   /* run HUD steps aside: one star number at a time */
 

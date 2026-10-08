@@ -11,7 +11,7 @@ Chromium. They are the gate for every change: CI runs them on each push and pull
 python3 -m http.server 4173 &          # from the repo root
 cd tests
 export VROOM_URL=http://localhost:4173/index.html?garage   # ?garage boots past the title scene (title-check strips it itself)
-for f in verify polish-check damage-check free-check feel-check worlds-check album-check profile-check washdecals-check parade-check update-check world-check-audio-events fairness-check paint-check shop-check garage-check upkeep-check number-check title-check ghost-check events-check; do node $f.cjs; done
+for f in verify polish-check damage-check free-check feel-check worlds-check album-check profile-check washdecals-check parade-check update-check world-check-audio-events fairness-check paint-check shop-check garage-check upkeep-check number-check title-check ghost-check events-check life-check; do node $f.cjs; done
 ```
 
 The game boots into a title scene (v12.5) unless the URL carries `?garage` or
@@ -48,6 +48,7 @@ built-in one, e.g. `python3 -m http.server 4173` then
 - `ghost-check.cjs` — ghost race: a first run stores a sampled trace, a replay spawns the translucent twin that follows it through the projector (lane and depth match the recording at a known time), slower runs keep the old ghost and faster ones replace it with the new-best flourish, the signed gap chip (hidden with no ghost), the twin fades after its own finish, ghosts survive a reload, stay out of the full save code and malformed ones are dropped (16; honours `VROOM_URL`)
 - `upkeep-check.cjs` — fuel + tires + shine: full gauges on a fresh save, the combined HUD chip that splits into red singles when a gauge is low, burn per unit of road (tread at half rate), no burn in free drive or the parade, dry-tank crawl speeds, bald-tire lane lag, hit scuffs tread, shine bonus (+50%) and its sticker, muddy = no shine, workbench fill-up / tire tiles with per-unit prices, partial fills, deny shakes, v3 save-code tail + tail-less decode, reload + pre-12.2 save defaults, the dice/map/GO column geometry (21; honours `VROOM_URL`)
 - `events-check.cjs`: surprise events on the map: a frozen calendar (`window.__today`) gives the same three picks across reloads and other dates move them; the sleeping dino sits on an unlocked, non-frontier level, naps mid-lane on that road (not hard, not soft), wakes on a bump or a honk with no damage and drops 5 bonus stars outside the level total; rainbow day only after level 30, finishing the marked level awards `p:rainbowshine` once (second finish no duplicate), the paint renders in both views, grows a 24th strip tile, rides the v3 save code and a reload; weather day forces the borrowed particles on every level of the badged world and nowhere else; the today chip shows the day number; no date = no events (23; honours `VROOM_URL`)
+- `life-check.cjs` — garage life + buddy reactions: the idle putter node (52 Hz square, 2 Hz LFO) runs only while the garage is active and follows quiet mode, buddy blink / yawn hooks on all 10 buddies, beacon / flag / booster / hover idle animations, wheel settle wobble on a new body or wheels, hood tap (opens, clank via a `tone` spy, closes, buddy hops, no honk), wheel tap spin, body tap still honks, >= 64px hit regions, chase-cam buddy cheer / duck / wave from the star-streak, `applyDamage` and `finishLevel` hooks, no-buddy no-ops, `prefers-reduced-motion` stops every idle animation (17; honours `VROOM_URL`)
 
 ```bash
 cd tests && CHROMIUM=... VROOM_URL=http://localhost:4173/index.html node shop-check.cjs
@@ -80,6 +81,7 @@ click stability check.
 | `ghost-check.cjs` | 16 | ghost race: trace recording, replay sprite follows the trace, slower keeps / faster replaces, gap chip, fade at the line, reload, save-code exclusion, malformed ghost dropped |
 | `upkeep-check.cjs` | 21 | fuel and tire wear, the combined HUD chip and its low-gauge split, dry-tank crawl, bald-tire grip, shine bonus, workbench fill-up and tire tiles, save-code tail, legacy defaults, garage column geometry |
 | `events-check.cjs` | 23 | surprise events: date-seeded picks, sleeping dino marker + road prop (wake, 5 bonus stars, no damage), rainbow day + the secret rainbow-shine paint (once, both views, save code, reload), weather day particles, today chip, no-date fallback |
+| `life-check.cjs` | 17 | garage life: idle putter lifecycle and quiet mode, buddy blink / yawn, animated extras, wheel settle, hood and wheel tap toys, road buddy cheer / duck / wave hooks, reduced motion |
 | `fairness-check.cjs` | 9 | two headless bots drive all 120 levels through the real collision code: "smart" must finish every level with ≥45% of the stars and ≤4 hard hits; "lazy toddler" (centre lane, gas only) must finish every level and find ≥15% of the stars on levels 1-20; world 1 stays gentle. `--table` prints per-level results, `--hits` each hard hit |
 
 Not a suite: `level-report.cjs` builds every level and prints its beat sequence and prop
