@@ -40,13 +40,13 @@ const EXE = process.env.CHROMIUM || pw.chromium.executablePath();
   await road(36, 'rain.png', 0, 2200);
   /* the wild courses (v12.9): parked at a set spot, so the frame is the same every run */
   const spot = async (file, fn) => {
-    await page.evaluate(() => { showGarage(); });
+    await page.evaluate(() => { showGarage(); progress.damage = 0; progress.muddy = false; });   /* a spotless car: earlier drives may have dinged it */
     await page.waitForTimeout(300);
     await page.evaluate(fn);
     await page.waitForTimeout(1100);   /* the scene iris has opened */
     await page.screenshot({ path: OUT + file });
   };
-  await spot('corkscrew.png', () => { drive(7); const t = TWISTS[0]; pos = t.x0 + (t.x1 - t.x0) * 0.4 - CAR_SCREEN_X + CAR_HIT_Z; v = 0; });
+  await spot('corkscrew.png', () => { drive(9); const t = TWISTS[0]; pos = t.x0 + (t.x1 - t.x0) * 0.4 - CAR_SCREEN_X + CAR_HIT_Z; v = 0; });
   await spot('hardturn.png', () => { drive(56); const c = COURSE.find(c => c.hard); pos = c.x0 - CAR_SCREEN_X - 420; v = 0; });
   await spot('megaramp.png', () => {
     let n = 0; for (let k = 6; k <= 40 && !n; k++) { buildLevel(k); if (RAMPS.some(r => r.kick === 1.1)) n = k; }

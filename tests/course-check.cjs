@@ -46,20 +46,21 @@ function check(name, ok, detail) {
       const kinds = RAMPS.map(r => r.kick === 1.1 ? 'mega' : r.kick === 0.55 ? 'hop' : 'std');
       const landClear = RAMPS.every(r => !props.some(p => BLOCKER_T(p.type) && p.x > r.x - 200 && p.x < r.x + r.w + (r.tail || 420)));
       const sorted = RAMPS.slice().sort((p, q) => p.x - q.x);
+      const lastLand = RAMPS.length ? Math.max(...RAMPS.map(rp => rp.x + rp.w + (rp.tail || 420))) : 0;
       const rampsApart = sorted.every((p, i) => !i || p.x >= sorted[i - 1].x + sorted[i - 1].w + (sorted[i - 1].tail || 420));
       const rampInTwist = RAMPS.some(rp => TWISTS.some(t => rp.x - 250 < t.x1 + 150 && rp.x + rp.w + (rp.tail || 420) > t.x0 - 150));
       const flightFits = RAMPS.filter(r => r.kick).every(r => rampFlight(r, worldOf(n)) <= r.w + r.tail);
       out.push({ n, shape: (WORLD_ROAD[worldOf(n)] || WORLD_ROAD[8]).order[(n - 1) % 10], tw, hard: hard.length, chevOutside, chev: chev.length,
-        bigHills: HILLS.filter(h => Math.abs(h.amp) >= 110).length, kinds, landClear, flightFits, rampInTwist, rampsApart, beats: lastBeats.slice(),
+        bigHills: HILLS.filter(h => Math.abs(h.amp) >= 110).length, kinds, landClear, flightFits, rampInTwist, rampsApart, lastLand, len: LEVEL_LEN, beats: lastBeats.slice(),
         archInTwist: scenery.some(p => !p.chevron && p.lx === 0 && inTwist(p.x, 300)) });
     }
     return out;
   });
   const by = n => scan[n - 1];
   const twistLvls = scan.filter(r => r.tw.length);
-  check('corkscrews: every world has a corkscrew level, finales from world 2 carry one, level 7 is the first',
+  check('corkscrews: every world has a corkscrew level, finales from world 2 carry one, level 9 is the first',
     [...Array(12)].every((_, w) => scan.slice(w * 10, w * 10 + 10).some(r => r.shape === 'corkscrew' && r.tw.length)) &&
-      [...Array(11)].every((_, w) => by((w + 2) * 10).tw.length >= 1) && twistLvls[0].n === 7 && !by(10).tw.length,
+      [...Array(11)].every((_, w) => by((w + 2) * 10).tw.length >= 1) && twistLvls[0].n === 9 && !by(10).tw.length,
     'levels with twists: ' + twistLvls.map(r => r.n).join(','));
   check('corkscrews: two opposite twists on corkscrew levels from world 3', scan.filter(r => r.shape === 'corkscrew' && r.n > 20).every(r => r.tw.length === 2 && r.tw[0].dir === -r.tw[1].dir),
     scan.filter(r => r.shape === 'corkscrew').map(r => r.n + ':' + r.tw.length).join(' '));
@@ -84,12 +85,14 @@ function check(name, ok, detail) {
   check('jumps: every level keeps at least one jump, and no ramp (run-up to touchdown) crosses a corkscrew',
     scan.every(r => r.kinds.length >= 1 && !r.rampInTwist), scan.filter(r => !r.kinds.length || r.rampInTwist).map(r => 'L' + r.n).join(','));
   check('jumps: no ramp starts inside another ramp\'s deck or flight (decks never stack)', scan.every(r => r.rampsApart), scan.filter(r => !r.rampsApart).map(r => 'L' + r.n).join(','));
+  check('jumps: every ramp (deck and flight) is behind the car before the last 600 units: no ramp past the flags, no finish on a slope or in the air',
+    scan.every(r => r.lastLand <= r.len - 600), scan.filter(r => r.lastLand > r.len - 600).map(r => `L${r.n}:${r.lastLand}/${r.len}`).join(' '));
   check('jumps: every landing zone is clear of blockers and every special flight fits its tail',
     scan.every(r => r.landClear && r.flightFits), scan.filter(r => !r.landClear || !r.flightFits).map(r => 'L' + r.n).join(','));
 
   /* ---- 2. the roll math and the one launch rule ---- */
   const math = await page.evaluate(() => {
-    buildLevel(7);
+    buildLevel(9);
     const t = TWISTS[0], mid = (t.x0 + t.x1) / 2;
     const megaFast = rampLaunch({ x: 0, ...RAMP_KIND.mega }, 940), stdFast = rampLaunch({ x: 0, w: 250, h: 95 }, 940);
     const ramp = rampLaunch({ x: 0, w: 250, h: 95 }, 700), mega = rampLaunch({ x: 0, ...RAMP_KIND.mega }, 700), hop = rampLaunch({ x: 0, ...RAMP_KIND.hop }, 700), none = rampLaunch(null, 700);
@@ -107,7 +110,7 @@ function check(name, ok, detail) {
   /* ---- 3. driving through a corkscrew ---- */
   const roll = await page.evaluate(async () => {
     window.__cork = 0; const o = sfx.corkscrew; sfx.corkscrew = () => { window.__cork++; o(); };
-    drive(7);
+    drive(9);
     const t = TWISTS[0];
     pos = t.x0 - CAR_SCREEN_X - 400; v = 0;
     await new Promise(r => setTimeout(r, 900));   /* let the scene iris finish before any screenshot */
@@ -201,7 +204,7 @@ function check(name, ok, detail) {
   /* ---- 7. reduced motion: hoops stay, the roll and the drum stop ---- */
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const rm = await page.evaluate(async () => {
-    state.body = 'mixer'; drive(7);
+    state.body = 'mixer'; drive(9);
     const t = TWISTS[0];
     pos = (t.x0 + t.x1) / 2 - CAR_SCREEN_X + CAR_HIT_Z; v = 0;
     await new Promise(r => setTimeout(r, 200));

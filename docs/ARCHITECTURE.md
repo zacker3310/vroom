@@ -154,7 +154,10 @@ and the world spins around it, upside down at the midpoint. `drawHoops()` rings 
 striped hoops every 150 units (only the arc above the deck). Twists carry stars only: the helix
 (three stars a lane, `[1, 2, 1, 0]`) is laid before any formation, `put` and `spotFor` refuse
 blockers within 150, overhead arches stay 700 away, and a ramp beat whose run-up-to-touchdown
-would cross one is taken back whole (`tryRamp`) and flown after it. Reduced motion keeps the
+would cross one is taken back whole (`tryRamp`) and flown after it. `tryRamp` also takes back any ramp beat
+that would touch down past `landLimit` (the last 600 before the flags, or a finale's star shower), retrying
+it as a plain ramp; when not even that fits, the rest of the road is star trails, never new hazards.
+World 1's corkscrew is level 9: a shorter road cannot hold a 2200 twist and a jump. Reduced motion keeps the
 hoops and drops the roll (`rollOK`).
 
 ### Hills
@@ -382,7 +385,7 @@ stray toddler tap does nothing. Only the style and script blocks are fingerprint
 
 ## Tests
 
-Twenty-three Playwright suites (392 checks) in `tests/`, driving the real page in headless
+Twenty-three Playwright suites (393 checks) in `tests/`, driving the real page in headless
 Chromium through `playwright-core`; `tests/run-all.cjs` is the runner behind `npm test` and
 `.github/workflows/test.yml` runs it in CI. See [tests/README.md](../tests/README.md) for the
 map of what each suite owns.

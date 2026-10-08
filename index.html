@@ -5125,7 +5125,7 @@ function addBend(x0, len, k) { COURSE.push({ x0, x1: x0 + len, k }); return x0 +
 const WORLD_ROAD = {
   /*  k: base curvature, hp: hairpin strength (0 = none in this world), len/gap: bend length and
       straight multipliers, order: the ten level shapes */
-  1: { k: CURVE.gentle * 0.8,  hp: 0,   len: 1.0, gap: 1.0, order: ["sweeper", "bookends", "esses", "twin", "roller", "wiggle", "corkscrew", "esses", "drag", "tour"] },      /* construction: wide and forgiving */
+  1: { k: CURVE.gentle * 0.8,  hp: 0,   len: 1.0, gap: 1.0, order: ["sweeper", "bookends", "esses", "twin", "roller", "wiggle", "drag", "esses", "corkscrew", "tour"] },   /* the corkscrew waits for level 9: shorter roads can't fit it and a jump */      /* construction: wide and forgiving */
   2: { k: CURVE.gentle * 1.3,  hp: 0,   len: 1.3, gap: 1.2, order: ["esses", "sweeper", "twin", "spiral", "bookends", "esses", "corkscrew", "roller", "wiggle", "tour"] },      /* farm: long lazy sweepers over hills */
   3: { k: CURVE.medium,        hp: 0.8, len: 0.8, gap: 0.8, order: ["chicanes", "esses", "hairpins", "zigzag", "twin", "switchback", "spiral", "corkscrew", "esses", "tour"] },    /* night: twisty mountain road */
   4: { k: CURVE.gentle * 1.15, hp: 0,   len: 1.7, gap: 1.6, order: ["drag", "bookends", "sweeper", "roller", "esses", "corkscrew", "sweeper", "bookends", "zigzag", "tour"] },       /* rain: highway, long straights, wide curves */
@@ -6159,21 +6159,28 @@ function buildLevel(n) {
     beats.push(bt.name); x = bt.fn(b, x) + gap + Math.floor(rng() * 120);
     for (const t of TWISTS) if (!t.seen && t.x0 < x) { t.seen = true; beats.push("corkscrew"); }   /* a long formation ran right through one */
   };
-  /* a ramp beat whose ramps (run-up to touchdown) would cross a corkscrew is taken back whole; returns the twist it hit */
+  /* a ramp beat is measured by what it actually placed: one whose ramps (run-up to touchdown) would cross a
+     corkscrew, or touch down past the end of the formation road, is taken back whole.
+     Returns null when it stays, else { twist } or { long: true } */
+  const lastIsRamp = () => (BEATS[beats[beats.length - 1]] || {}).kind === "ramp";
   const tryRamp = bt => {
-    const nR = RAMPS.length, nP = props.length, nB = beats.length, x0b = x, last0 = b.last;
+    const nR = RAMPS.length, nP = props.length, nB = beats.length, x0b = x, last0 = b.last, seen0 = TWISTS.map(t => t.seen);
     run(bt);
-    const hit = TWISTS.find(t => RAMPS.slice(nR).some(rp => rp.x - 250 < t.x1 + 150 && rp.x + rp.w + rp.tail > t.x0 - 150));
-    if (!hit) return null;
+    const mine = RAMPS.slice(nR);
+    const twist = TWISTS.find(t => mine.some(rp => rp.x - 250 < t.x1 + 150 && rp.x + rp.w + rp.tail > t.x0 - 150));
+    const long = mine.some(rp => rp.x + rp.w + rp.tail > landLimit);
+    if (!twist && !long) return null;
     RAMPS.length = nR;
     for (const p of props.splice(nP)) { p.wrap.remove(); if (p.type === "star") totalStars--; }
     beats.length = nB; x = x0b; b.last = last0;
-    for (const t of TWISTS) if (t.x0 >= x0b) t.seen = false;
-    return hit;
+    TWISTS.forEach((t, i) => { t.seen = seen0[i]; });
+    return twist ? { twist } : { long: true };
   };
+  let noRoom = false;   /* a standard ramp no longer fits before the flags: the fallback below has the last word */
   if (rhythm[0].kind !== "star") run(BEATS.trailStraight);   /* every road opens with stars, never a wall */
   /* a finale keeps its last 560 units for the star shower; ramps must have landed by then */
   const showerX = finale ? endX - 560 : Infinity, loopEnd = finale ? showerX - 200 : endX - 350;
+  const landLimit = finale ? showerX : endX;   /* every ramp touches down by here: never past the flags, never into a finale's shower */
   /* a corkscrew is its own beat: a helix of stars that rolls around with the road, laid first so no
      formation (or a ramp flying over it) can crowd it out */
   for (const t of TWISTS) for (let sx = t.x0 + 60, j = 0; sx < t.x1 - 60; sx += 125, j++) b.star(sx, [1, 2, 1, 0][Math.floor(j / 3) % 4]);   /* three stars a lane: small hands keep up */
@@ -6182,24 +6189,34 @@ function buildLevel(n) {
     const tw = TWISTS.find(t => !t.seen && t.x1 > x && t.x0 < x + 700);
     if (tw) { tw.seen = true; beats.push("corkscrew"); x = Math.max(x, tw.x1 + 200); continue; }
     const lastChance = x + 200 + flightLen(w) + 700 > loopEnd;   /* one more formation and the ramp wouldn't fit */
-    if (ri < nRamps && (x >= rampXs[ri] - 450 || lastChance)) {   /* a different ramp beat from the last one */
+    if (ri < nRamps && !noRoom && (x >= rampXs[ri] - 450 || lastChance)) {   /* a different ramp beat from the last one */
       let rb = pick(rampPool); if (rampPool.length > 1 && beats[beats.length - 1] === rb.name) rb = rampPool[(rampPool.indexOf(rb) + 1) % rampPool.length];
-      const clash = tryRamp(rb);
-      if (clash) { x = Math.max(x, clash.x1 + 300); if (!clash.seen) { clash.seen = true; beats.push("corkscrew"); } continue; }   /* never a jump inside a corkscrew: fly after it */
+      let res = tryRamp(rb);
+      if (res && res.long && rb !== BEATS.ramp) res = tryRamp(BEATS.ramp);   /* a mega ramp or a hop chain too long for what's left: a plain ramp */
+      if (res && res.long) { noRoom = true; continue; }
+      if (res) {   /* never a jump inside a corkscrew: fly after it */
+        const tw = res.twist;
+        x = Math.max(x, tw.x1 + 300); if (!tw.seen) { tw.seen = true; beats.push("corkscrew"); }
+        continue;
+      }
       ri++; continue;
     }
-    run(rhythm[bi++ % rhythm.length]);
+    run(noRoom ? BEATS.trailStraight : rhythm[bi++ % rhythm.length]);   /* no jump fits any more: the run home is stars, not new hazards */
   }
   /* never a level without its jump — but land well before the flags, so the gantry never
      looks planted on the ramp lip and the car is on its wheels at the finish */
   /* a forced ramp never lands on another ramp's run-up or flight */
   const rampClash = rx => RAMPS.some(rp => rx - 250 < rp.x + rp.w + (rp.tail || 420) && rx + 250 + rampTail(w) > rp.x - 250);
   while (ri < nRamps) {
-    x = Math.min(x, loopEnd - 200 - flightLen(w));
-    if (RAMPS.length && rampClash(x + 200)) break;                        /* enough jumps already: skip the one that won't fit */
+    x = Math.min(x, loopEnd - 200 - flightLen(w) - (lastIsRamp() ? 350 : 0));   /* run() adds a 350 run-up after a ramp */
+    if (RAMPS.length && rampClash(x + (lastIsRamp() ? 350 : 0) + 200)) break;   /* enough jumps already: skip the one that won't fit */
     const c = tryRamp(BEATS.ramp);
     if (c && RAMPS.length) break;
-    if (c) { x = Math.max(1000, c.x0 - 450 - flightLen(w)); run(BEATS.ramp); }   /* the only jump: put it before the corkscrew */
+    if (c && c.twist) {   /* the only jump: before the corkscrew if it fits there, else after it */
+      const before = c.twist.x0 - 450 - flightLen(w);
+      x = before >= 1000 ? before : Math.min(c.twist.x1 + 300, loopEnd - 200 - flightLen(w));
+      run(BEATS.ramp);
+    }
     ri++;
   }
   if (finale) { x = Math.max(x, showerX); run(BEATS.starShower); }   /* grand finale: a star shower right before the flags */
@@ -6214,11 +6231,11 @@ function buildLevel(n) {
       const sx = 1100 + Math.floor(rng() * (endX - 1100)), lane = want == null ? Math.floor(rng() * 3) : want;
       if (inRampZone(sx) || !laneFree(sx, lane, 130) || (t !== "star" && inTwist(sx, 150))) continue;
       if (props.some(p => BLOCKER_T(p.type) && Math.abs(p.x - sx) < 110)) continue;
-      if (HARD_T(t) && tries < 120 && RAMPS.some(rp => rp.x > sx && rp.x < sx + 700)) continue;   /* the run-up to a ramp stays clean */
+      if (HARD_T(t) && RAMPS.some(rp => rp.x > sx && rp.x < sx + (tries < 120 ? 700 : 300))) continue;   /* the run-up to a ramp stays clean (its last 300 always) */
       /* a stray barrel inside a star trail is a trap: the first 80 tries stay clear of any star */
       /* a stray barrel inside a star trail is a trap: stay clear of stars, and when the road is
          too busy for that, at least never in the lane a trail is running through */
-      if (HARD_T(t) && props.some(p => p.type === "star" && Math.abs(p.x - sx) < (tries < 100 ? 260 : 0) || (p.type === "star" && p.lane === lane && Math.abs(p.x - sx) < 220))) continue;
+      if (HARD_T(t) && props.some(p => p.type === "star" && Math.abs(p.x - sx) < (tries < 100 ? 260 : 0) || (p.type === "star" && p.lane === lane && p.x - sx > -220 && p.x - sx < 300))) continue;   /* a star just ahead in its lane is a lure: 300 clear before it */
       if (HARD_T(t)) { const s = hardLanesNear(sx); s.add(lane); if (s.size >= 3) continue; }
       addItem(t, sx, lane); return true;
     }
