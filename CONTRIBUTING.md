@@ -180,4 +180,4 @@ to extend.
 - Run `npm test` locally. Mention the table's bottom line in the PR.
 - Numerals are allowed on screen, words are not. If you need to explain something to the
   kid, draw it.
-- Screenshots in `docs/` are curated by hand; do not regenerate them in a content PR.
+- Screenshots in `docs/` come from `npm run shots` (`scripts/doc-shots.cjs`, needs a server on 4173 and `CHROMIUM`); regenerate them only in a PR that changes what they show.
