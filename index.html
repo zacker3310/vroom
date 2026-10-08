@@ -429,7 +429,8 @@
   #hudFuel.low, #hudTires.low { border-color: #e63946; color: #e63946; }
   /* GHOST RACE (T17.3): the medal-chase chip sits under the level chip; signed seconds to the ghost,
      green when the kid is ahead, putty when behind; only shown while a stored ghost is on the road */
-  #hudGhost { left: 136px; top: 132px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; display: none; gap: 4px; font-size: 32px; }
+  #hudGhost { left: 316px; top: 24px; width: 176px; justify-content: center; padding: 0; box-sizing: border-box; display: none; gap: 4px; font-size: 32px; }
+  #road.ghostOn #hudProgress { left: 508px; }   /* the bar steps aside for the ghost chip (13.0) */
   #hudGhost.on { display: flex; }
   #hudGhost.ahead { border-color: var(--v-green-line, #4e9a45); color: var(--v-green-line, #4e9a45); }
   #hudGhost.behind { border-color: var(--v-mute-line, #b1a082); color: var(--v-ink-soft, #8a7360); }
@@ -1707,7 +1708,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "12.10.0";
+const APP_VERSION = "13.0.0";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -1788,12 +1789,12 @@ const MAX_LEVEL = WORLD_COUNT * WORLD_SIZE;
    a world without a row gets the defaults. dark: headlights + pale sky ink; gravity: jump
    gravity (640 = floaty); hill: hill amplitude (0 = flat); tour: free-drive theme order. */
 const WORLD_META = {
-  1: { dark: false, gravity: 1500, hill: 0 },   2: { dark: false, gravity: 1500, hill: 70 },
-  3: { dark: true,  gravity: 1500, hill: 40 },  4: { dark: false, gravity: 1500, hill: 0 },
-  5: { dark: false, gravity: 1500, hill: 110 }, 6: { dark: false, gravity: 1500, hill: 80 },
-  7: { dark: false, gravity: 1500, hill: 0 },   8: { dark: true,  gravity: 640,  hill: 130 }
+  1: { dark: false, gravity: 1900, hill: 0 },   2: { dark: false, gravity: 1900, hill: 70 },
+  3: { dark: true,  gravity: 1900, hill: 40 },  4: { dark: false, gravity: 1900, hill: 0 },
+  5: { dark: false, gravity: 1900, hill: 110 }, 6: { dark: false, gravity: 1900, hill: 80 },
+  7: { dark: false, gravity: 1900, hill: 0 },   8: { dark: true,  gravity: 640,  hill: 130 }
 };
-function worldMeta(w) { return WORLD_META[w] || { dark: false, gravity: 1500, hill: 60 }; }
+function worldMeta(w) { return WORLD_META[w] || { dark: false, gravity: 1900, hill: 60 }; }
 /* world-specific hazards; the art + specs are filled in by the worlds pack below */
 const WORLD_ITEMS = { 5: ["ice", "snowman"], 6: ["cactus", "tumbleweed"], 7: ["sandcastle", "crab"], 8: ["crater", "alien"] };
 const EXTRA_PROPS = {};   /* type -> { svg, xOff, yOff, hard, mv } */
@@ -5099,9 +5100,11 @@ function elevAt(x) {
 function addHill(x0, len, amp) { HILLS.push({ x0, x1: x0 + len, amp }); return x0 + len; }
 /* ---- corkscrews: stretches where the road rolls a full turn around its own axis.
    rollAt(x) is the road's roll at x (0 before a twist, ±2π after it, eased between). The camera
-   rides the road, so on screen the road ahead turns by rollAt(x) - rollAt(car) around the view
-   axis (a screen rotation about the vanishing point) while the world off the road (ground, sky,
-   roadside) turns by -rollAt(car). The car stays upright; the world spins around it. ---- */
+   rides the road, so the road ahead is drawn turned by rollAt(x) - rollAt(car) about the hoop axis
+   (HOOP_C above the deck) in car space: it climbs one wall, goes over the top inside the hoops and
+   comes down the other side, a real ribbon in perspective. The ground, sky, hills and roadside never
+   move and the car stays flat on its own stretch (13.0: the earlier "world rolls" version tilted some
+   layers and not others, two horizons and a wall of road a car-length ahead). ---- */
 let TWISTS = [], rollCar = 0, twistLive = false;
 const TWIST_LEN = 2200;   /* long enough that the road a car-length ahead turns gently, not in a snap */
 function addTwist(x0, len, dir) { TWISTS.push({ x0, x1: x0 + len, dir }); return x0 + len; }
@@ -5895,9 +5898,10 @@ defBeat("breather", "rhythm", 1, (b, x) => {   /* empty road to breathe, maybe o
    later on earth and ~1480 on the moon (gravity 640), so the ground stays clear of items
    until rx + flightLen, and world 8 strings its high stars along the whole float. ---- */
 const FLIGHT_EARTH = 950, FLIGHT_MOON = 1850;
+const G_EARTH = 1900, G_MOON = 640;   /* 13.0: earth-type worlds pull harder (was 1500); the moon, the sea and the sky float */
 const flightLen = w => {   /* follows the world's gravity: earth 950, moon 1850, anything between interpolates */
   const g = worldMeta(w).gravity;
-  return g >= 1500 ? FLIGHT_EARTH : g <= 640 ? FLIGHT_MOON : Math.round(FLIGHT_EARTH + (FLIGHT_MOON - FLIGHT_EARTH) * (1500 - g) / (1500 - 640));
+  return g >= G_EARTH ? FLIGHT_EARTH : g <= G_MOON ? FLIGHT_MOON : Math.round(FLIGHT_EARTH + (FLIGHT_MOON - FLIGHT_EARTH) * (G_EARTH - g) / (G_EARTH - G_MOON));
 };
 const rampTail = w => flightLen(w) - 250;   /* beyond rp.x + rp.w: nothing on the ground where the car lands */
 /* star height that sits on the full-throttle flight path dx past the ramp start */
@@ -6794,11 +6798,12 @@ function placeSprite(p, carX) {
   let sx = 600 + (p.lx + offAt(z) - camX) * s;
   let sy = HORIZON + (CAM_H + camElev - elevAt(p.x) - p.h) * s;
   let rot = "";
-  if (twistLive) {   /* corkscrew: road things roll with the road, roadside things with the world */
-    const a = p.type === "scenery" ? -rollCar : rollAt(p.x) - rollCar;
+  if (twistLive && p.type !== "scenery") {   /* corkscrew: road things ride the ribbon; the roadside stays on the ground */
+    const a = (rollAt(p.x) - rollCar) * rollNear(z);
     if (Math.abs(a) > 0.001) {
-      const c = Math.cos(a), n = Math.sin(a), dx = sx - 600, dy = sy - HORIZON;
-      sx = 600 + dx * c - dy * n; sy = HORIZON + dx * n + dy * c;
+      const [lx, h] = rollPt(a, p.lx, p.h);
+      sx = 600 + (lx + offAt(z) - camX) * s;
+      sy = HORIZON + (CAM_H + camElev - elevAt(p.x) - h) * s;
       rot = ` rotate(${a.toFixed(3)}rad)`;
     }
   }
@@ -6814,14 +6819,21 @@ function placeSprite(p, carX) {
 /* ---- the ground plane: grass bands, road, rumble strips, lane dashes, ramps, finish ---- */
 const SEG = 160;
 let groundRoll = false;   /* drawRoad flips it while painting the ground, which rolls with the world, not the road */
+/* the deck stays flat under and just ahead of the car; the ribbon starts twisting 120 units out and is fully
+   in by 420, so the car never sits on a tilted slab and the road behind it never fans out */
+const rollNear = z => Math.min(1, Math.max(0, (Math.abs(z) - 120) / 300));
+/* a point on the road (lateral lx, height h) turned by a about the hoop axis, which runs down the road HOOP_C up */
+function rollPt(a, lx, h) {
+  const c = Math.cos(a), n = Math.sin(a), hy = (h || 0) - HOOP_C;
+  return [lx * c - hy * n, lx * n + hy * c + HOOP_C];
+}
 function proj(z, lx, h) {
   const s = CAM_D / (z + CAM_D);
-  let x = 600 + (lx + offAt(z) - camX) * s, y = HORIZON + (CAM_H + camElev - elevAt(curCarX + z) - (h || 0)) * s;
-  if (twistLive) {   /* a roll about the view axis is a screen rotation about the vanishing point */
-    const a = groundRoll ? -rollCar : rollAt(curCarX + z) - rollCar;
-    if (a) { const c = Math.cos(a), n = Math.sin(a), dx = x - 600, dy = y - HORIZON; x = 600 + dx * c - dy * n; y = HORIZON + dx * n + dy * c; }
+  if (twistLive && !groundRoll) {   /* the ribbon ahead twists in car space; the ground plane does not */
+    const a = (rollAt(curCarX + z) - rollCar) * rollNear(z);
+    if (Math.abs(a) > 0.001) [lx, h] = rollPt(a, lx, h);
   }
-  return [x, y, s];
+  return [600 + (lx + offAt(z) - camX) * s, HORIZON + (CAM_H + camElev - elevAt(curCarX + z) - (h || 0)) * s, s];
 }
 function quad(c, z0, z1, l0, l1, col, h0, h1) {
   const a = proj(z0, l0, h0), b = proj(z0, l1, h0), d = proj(z1, l1, h1), e = proj(z1, l0, h1);
@@ -6859,8 +6871,7 @@ function drawRoad(carX) {
   const c = rctx, P = roadPal;
   c.clearRect(0, 0, 1200, 700);
   c.fillStyle = P.ground;
-  if (twistLive && rollCar) { c.save(); c.translate(600, HORIZON); c.rotate(-rollCar); c.fillRect(-1600, 0, 3200, 1600); c.restore(); }
-  else c.fillRect(0, HORIZON, 1200, 700 - HORIZON);
+  c.fillRect(0, HORIZON, 1200, 700 - HORIZON);
   /* the ground plane itself follows the hills, so a rise lifts the whole landscape */
   groundRoll = true;
   for (let z = DRAW_FAR + 1200; z > DRAW_NEAR; z -= 400) quad(c, Math.max(DRAW_NEAR, z - 400), z, -7000, 7000, P.ground);
@@ -6909,13 +6920,10 @@ function drawRoad(carX) {
   }
   drawHoops(c, carX);
   /* horizon haze melts the far road into the sky */
-  const rolled = twistLive && rollCar;
-  if (rolled) { c.save(); c.translate(600, HORIZON); c.rotate(-rollCar); c.translate(-600, -HORIZON); }
   const g = c.createLinearGradient(0, HORIZON, 0, HORIZON + 46);
   g.addColorStop(0, P.haze); g.addColorStop(1, P.haze + "00");
   c.fillStyle = g;
-  c.fillRect(rolled ? -1000 : 0, HORIZON, rolled ? 3200 : 1200, 46);
-  if (rolled) c.restore();
+  c.fillRect(0, HORIZON, 1200, 46);
   /* the car's footprint shadow stays on the ground while it flies */
   const lx = (laneVis - 1) * LANE_W, sh = Math.max(0.3, 1 - jumpY / 320), w = (carHalf + 22) * sh;
   quad(c, 4, carLen * sh, lx - w, lx + w, `rgba(0,0,0,${(0.2 * sh).toFixed(3)})`);
@@ -6927,8 +6935,7 @@ function renderWorld() {
   /* corkscrew roll: only when a twist is in the draw window (and never for reduced motion: hoops only) */
   twistLive = rollOK && TWISTS.some(t => t.x1 > carX + DRAW_NEAR && t.x0 < carX + DRAW_FAR + 1200);
   rollCar = twistLive ? rollAt(carX) % (Math.PI * 2) : 0;
-  const envT = rollCar ? `rotate(${(-rollCar).toFixed(3)}rad)` : "";
-  if (envT !== envEl.style.transform) envEl.style.transform = envT;
+  if (envEl.style.transform) envEl.style.transform = "";   /* the sky never rolls (13.0) */
   buildOffsets(carX);
   drawRoad(carX);
   for (const p of props) placeSprite(p, carX);
@@ -6990,7 +6997,7 @@ function ghostTimeAt(x) {
 function ghostStart() {
   if (ghostSprite) { ghostSprite.wrap.remove(); ghostSprite = null; }
   ghostTrace = null; ghostRec = null; ghostT = 0; ghostGapIdx = 0; ghostGapShown = "";
-  hudGhost.classList.remove("on", "ahead", "behind");
+  hudGhost.classList.remove("on", "ahead", "behind"); roadScene.classList.remove("ghostOn");
   if (paradeMode || freeMode) return;
   ghostRec = [];
   ghostSample();
@@ -7005,7 +7012,7 @@ function ghostStart() {
   g.gop = "";
   ghostSprite = g;
   hudGhost.innerHTML = ghostIcon + `<span>0</span>`;
-  hudGhost.classList.add("on");
+  hudGhost.classList.add("on"); roadScene.classList.add("ghostOn");
 }
 /* per frame from tick: record this run, roll the ghost's clock, refresh the gap chip */
 function ghostTick(dt) {
@@ -8638,8 +8645,8 @@ function eventFinish(n) {
   const ash = "#6c6362", rock = "#2a2628", rock2 = "#3a3538", lava = "#ff6d00", lava2 = "#ffb703", bone = "#f1faee";
 
   /* ---- physics / identity ---- */
-  WORLD_META[9]  = { dark: false, gravity: 1500, hill: 120 };   /* big black-rock rises */
-  WORLD_META[10] = { dark: false, gravity: 1500, hill: 60 };    /* rolling gumdrop hills */
+  WORLD_META[9]  = { dark: false, gravity: 1900, hill: 120 };   /* big black-rock rises */
+  WORLD_META[10] = { dark: false, gravity: 1900, hill: 60 };    /* rolling gumdrop hills */
   WORLD_TINT.w9 = "#d62828"; WORLD_TINT.w10 = "#f06292";
   /* volcano with lava streaks and two smoke puffs */
   WORLD_ICONS.w9 = `<svg viewBox="0 0 100 100"><path d="M8 88 L36 32 H64 L92 88 Z" fill="#fff"/><path d="M36 32 Q50 46 64 32 L58 56 Q50 48 42 56 Z" fill="#ff9f1c"/><path d="M44 54 L38 76 M56 54 L62 76" stroke="#ff9f1c" stroke-width="5" stroke-linecap="round"/><circle cx="52" cy="20" r="9" fill="#fff" opacity=".85"/><circle cx="66" cy="13" r="7" fill="#fff" opacity=".65"/></svg>`;

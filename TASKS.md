@@ -128,6 +128,12 @@
 - [x] T22.1: Solid hills. Every far-hill tile (`WORLD_FAR` and the default) draws with a solid pre-blended fill instead of 0.7 to 0.95 opacity, so the sky no longer shows through and the 520px tiles no longer stack darker bands at their seams. World packs 9 to 12 stripped too.
 - [x] T22.2: Times to two decimals: the HUD run clock, the results card and the ghost gap chip (`+1.25` / `-0.40`); best times are stored to 0.01. HUD time slot widened with tabular numerals; ghost chip 176px at 32px type so `+12.34` fits beside the progress bar. verify.cjs checks the formats; its star-collect check now picks a star with no neighbour inside the collect window.
 
+## v13.0 (2026-10-08, user-directed: "ghost up top, corkscrew is buggy, more gravity")
+
+- [x] T23.1: Ghost chip in the top HUD row at 316 (after the level flag); `#road.ghostOn` moves the progress bar to 508 while a ghost rides.
+- [x] T23.2: Corkscrew rebuilt as a ribbon. `rollPt()` turns road points and road props about the hoop axis in car space (`proj`, `placeSprite`), `rollNear()` keeps the deck flat for the first 120 units ahead of the car; the ground, sky, hills and roadside never roll (the old world-roll tilted only some layers: two horizons, a seam, a wall of road ahead). course-check asserts the sky stays up and the sprites turn.
+- [x] T23.3: Gravity 1900 on earth-type worlds (1 to 7, 9, 10; was 1500); the moon 640, the deep sea 1100 and the sky kingdom 900 keep their float. `flightLen` interpolates from `G_EARTH`. Fairness bots green on all 120 levels.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

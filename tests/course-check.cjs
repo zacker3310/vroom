@@ -132,10 +132,10 @@ function check(name, ok, detail) {
     await page.evaluate(async f => { const t = TWISTS[0]; pos = t.x0 + (t.x1 - t.x0) * f - CAR_SCREEN_X + CAR_HIT_Z; await new Promise(r => setTimeout(r, 120)); }, f);
     await page.screenshot({ path: SHOT + `course-corkscrew-${Math.round(f * 100)}.png` });
   }
-  check('corkscrew: drawn ahead but not rolling before it, rolling mid-twist (roll ~pi, sky layers turned the other way, weather left outside so it stays over the road)',
-    roll.before.live && roll.before.env === '' && roll.live && roll.weatherOut && Math.abs(Math.abs(roll.roll) - Math.PI) < 0.05 && /rotate\(-?[\d.]+rad\)/.test(roll.env), JSON.stringify({ before: roll.before, weatherOut: roll.weatherOut, roll: roll.roll, env: roll.env }));
-  check('corkscrew: upside down the ground fills the top of the screen; road sprites ahead turn with the road; the car stays upright',
-    +roll.top >= 0.5 && /rotate\(/.test(roll.star || '') && !roll.carRot, JSON.stringify({ groundShareOfTopRow: roll.top, star: roll.star, car: roll.car }));
+  check('corkscrew: drawn ahead but not rolling before it, rolling mid-twist (roll ~pi); the sky never rolls, weather stays outside over the road',
+    roll.before.live && roll.before.env === '' && roll.live && roll.weatherOut && Math.abs(Math.abs(roll.roll) - Math.PI) < 0.05 && roll.env === '', JSON.stringify({ before: roll.before, weatherOut: roll.weatherOut, live: roll.live, roll: roll.roll, env: roll.env }));
+  check('corkscrew: the horizon stays put (sky at the top of the screen); road sprites ahead turn with the ribbon; the car stays upright',
+    +roll.top < 0.5 && /rotate\(/.test(roll.star || '') && !roll.carRot, JSON.stringify({ groundShareOfTopRow: roll.top, star: roll.star, car: roll.car }));
   const out = await page.evaluate(async () => {
     const t = TWISTS[0];
     pos = t.x1 + 3600 - CAR_SCREEN_X; await new Promise(r => setTimeout(r, 150));

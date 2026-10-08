@@ -146,11 +146,15 @@ every board stands nearest its own turn, and the tires squeal through it above 4
 ### Corkscrews
 
 `TWISTS` is a list of `{x0, x1, dir}` (`TWIST_LEN = 2200`); `rollAt(x)` is the road's roll,
-`dir·2π·smootherstep`. The camera rides the road, so a roll about the view axis is a screen
-rotation about the vanishing point: `proj()` and `placeSprite()` turn the road and everything on
-it by `rollAt(x) − rollAt(car)`, while the ground plane, the roadside scenery and the `#env`
-sky layers (sun, stars, clouds, skyline; weather stays outside so it still falls over the road) turn by `−rollAt(car)`. The car stays upright
-and the world spins around it, upside down at the midpoint. `drawHoops()` rings the twist with
+`dir·2π·smootherstep`. The camera rides the road, so the stretch ahead is drawn turned by
+`rollAt(x) − rollAt(car)` about the hoop axis (`HOOP_C` above the deck) in car space: `proj()`
+and `placeSprite()` run road points and road props through `rollPt()`, so the ribbon climbs one
+wall, goes over the top inside the hoops and comes down the other side, a real twist in
+perspective. The ground plane, the roadside scenery, the hills and the `#env` sky layers never
+move, and `rollNear()` holds the deck flat for the first 120 units ahead of the car (fully twisted
+by 420) so the car always sits on a level slab. The earlier version rolled the whole world about
+the vanishing point; it tilted some layers and not others (two horizons, a seam) and put a wall of
+road a car-length ahead. `drawHoops()` rings the twist with
 striped hoops every 150 units (only the arc above the deck). Twists carry stars only: the helix
 (three stars a lane, `[1, 2, 1, 0]`) is laid before any formation, `put` and `spotFor` refuse
 blockers within 150, overhead arches stay 700 away, and a ramp beat whose run-up-to-touchdown
@@ -190,7 +194,7 @@ A tank lasts about 24 levels, a set of tires about 48. Both gauges are 0-8 float
 the HUD; the wrench tab in the garage wears a pulsing dot while anything is low, dinged or
 muddy, and the workbench tab grows a fill-up tile (1 star a unit, partial fills allowed) and
 a tire tile (1 star a unit, the whole set). `finishLevel` adds the shine bonus, +50% of the
-collected stars rounded up, when the truck crosses the line with no mud and zero damage. Jumps use the world's gravity: 1500 on earth, 640 on the
+collected stars rounded up, when the truck crosses the line with no mud and zero damage. Jumps use the world's gravity: 1900 on earth (13.0, was 1500), 640 on the
 moon, 1100 in the deep sea, 900 in the sky kingdom; `flightLen(w)` interpolates ramp
 flight distance from gravity (950 units on earth, 1850 on the moon) so the level generator
 can keep landings clean. A ramp is `{x, w, h, tail}` plus an optional `kick`; `rampLaunch(rp, v)`

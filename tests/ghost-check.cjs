@@ -69,8 +69,8 @@ function check(name, ok, detail) {
   });
   check('replay: one ghost sprite in #world (not in props), the kid\'s car art with no mud / dings / hitbox, dashed ring, chip on',
     spawn.sprite && spawn.inDom && !spawn.inProps && spawn.chipOn && spawn.clean && spawn.ring && spawn.car && spawn.trace, JSON.stringify({ ...spawn, r: undefined, lv: undefined, pr: undefined }));
-  check('hud: the ghost chip sits under the level chip (left 136, top 132, 12px gap), >= 64px tall, clear of the progress bar',
-    Math.round(spawn.r.left) === 136 && Math.round(spawn.r.top) === 132 && Math.round(spawn.r.left) === Math.round(spawn.lv.left) && Math.round(spawn.r.top - spawn.lv.bottom) === 12 && spawn.r.height >= 64 && spawn.r.right <= spawn.pr.left,
+  check('hud: the ghost chip sits in the top row after the level chip (left 316, top 24, 16px gaps), >= 64px tall, the progress bar steps aside',
+    Math.round(spawn.r.left) === 316 && Math.round(spawn.r.top) === 24 && Math.round(spawn.r.top) === Math.round(spawn.lv.top) && Math.round(spawn.r.left - spawn.lv.right) === 16 && spawn.r.height >= 64 && Math.round(spawn.pr.left - spawn.r.right) === 16,
     JSON.stringify({ left: spawn.r.left, top: spawn.r.top, h: spawn.r.height, lvBottom: spawn.lv.bottom, prLeft: spawn.pr.left }));
   /* wait on the ghost's own clock (wall time drifts under load), then sample */
   await page.waitForFunction(() => ghostT >= 1.6, null, { timeout: 5000 });

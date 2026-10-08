@@ -157,7 +157,7 @@ the anchor is defined by then. A complete world provides:
 
 | Table | What |
 |---|---|
-| `WORLD_META[w]` | `{ dark, gravity, hill }`: headlights, jump gravity (1500 earth, 640 moon), hill amplitude |
+| `WORLD_META[w]` | `{ dark, gravity, hill }`: headlights, jump gravity (1900 earth, 640 moon, 900 to 1100 for the floaty sea and sky), hill amplitude |
 | `WORLD_TINT.w<w>`, `WORLD_ICONS.w<w>` | map tab colour and icon |
 | `ROAD_PAL[w]` | canvas ground palette: `ground`, `ground2`, `road`, `road2`, `dash`, `rumA`, `rumB`, `haze` |
 | a `<style>` injection | `#road.w<w>` sky, sun, clouds, weather and prop animations (flat SVG, ground at `y=0`, no gradients/filters/ids in scenery) |

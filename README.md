@@ -47,7 +47,7 @@
 
 | Wild roads | |
 |---|---|
-| ![A corkscrew: the world rolls around the car through a tunnel of red and yellow hoops](docs/corkscrew.png) | ![A desert switchback: red chevron boards on the outside of a hard turn](docs/hardturn.png) |
+| ![A corkscrew: the road twists like a ribbon through a tunnel of red and yellow hoops](docs/corkscrew.png) | ![A desert switchback: red chevron boards on the outside of a hard turn](docs/hardturn.png) |
 | ![The big red mega ramp dead ahead under the construction gantry](docs/megaramp.png) | |
 
 | Album | Results |
