@@ -87,12 +87,12 @@ function check(name, ok, detail) {
   const work = await page.evaluate(() => {
     progress.damage = 3; progress.muddy = true; save(); renderPreview(); renderUpkeep();
     return {
-      tiles: document.querySelectorAll('#strip .tile').length, repair: !!document.querySelector('#strip .tile[data-act="repair"]'),
+      tiles: document.querySelectorAll('#strip .tile').length, repair: !!document.querySelector('#strip .tile[data-act="repair"]'), washFirst: document.querySelector('#strip .tile').dataset.act === 'wash',
       wash: !!document.querySelector('#strip .tile[data-act="wash"]'), price: document.querySelector('#strip .tile[data-act="repair"] .upgPrice').textContent.trim(),
       dot: document.querySelector('.catTab[data-cat="work"]').classList.contains('needs'), arrowsOff: document.getElementById('stripNext').classList.contains('off')
     };
   });
-  check('workbench: repair (6) + wash tiles appear with damage + mud, wrench tab dot on, arrows hidden (all fits)', work.tiles === 7 && work.repair && work.wash && work.price === '6' && work.dot && work.arrowsOff, JSON.stringify(work));
+  check('workbench: wash leads, then repair (6), with damage + mud, wrench tab dot on, arrows hidden (all fits)', work.tiles === 7 && work.repair && work.wash && work.washFirst && work.price === '6' && work.dot && work.arrowsOff, JSON.stringify(work));
   await page.screenshot({ path: SHOT + 'garage-workbench-repair-wash.png' });
   await page.evaluate(() => { progress.damage = 0; progress.muddy = false; save(); renderPreview(); renderUpkeep(); });
 

@@ -1708,7 +1708,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.1.0";
+const APP_VERSION = "13.1.1";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -3932,9 +3932,9 @@ function stripItems(cat) {
     case "extras": return Object.keys(state.extras).map(id => ({ id, kind: "extras", pic: extraGlyph(id), label: id, cls: "wood" }));
     case "work": {
       const items = [];
-      /* upkeep first, in urgency order; each tile only exists while the truck needs it */
-      if (progress.damage > 0) items.push({ id: "repair", kind: "act", pic: WORK_ICON.repair, label: "fix the truck with stars", cls: "red" });
+      /* upkeep first; the wash always leads when the truck is muddy, then the rest in urgency order */
       if (progress.muddy) items.push({ id: "wash", kind: "act", pic: WORK_ICON.wash, label: "wash the muddy truck", cls: "blue" });
+      if (progress.damage > 0) items.push({ id: "repair", kind: "act", pic: WORK_ICON.repair, label: "fix the truck with stars", cls: "red" });
       if (fuelMissing() > 0) items.push({ id: "fuel", kind: "act", pic: WORK_ICON.fuel, label: "fill the tank with stars", cls: "yellow" });
       if (treadMissing() > 0) items.push({ id: "tires", kind: "act", pic: WORK_ICON.tires, label: "new tires with stars", cls: "ink" });
       for (const k of Object.keys(UPG)) items.push({ id: k, kind: "upg", pic: UPG_ICON[k], label: k + " upgrade", cls: "wood" });

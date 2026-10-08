@@ -132,6 +132,7 @@
 
 - [x] T23.1: Ghost chip in the top HUD row at 316 (after the level flag); `#road.ghostOn` moves the progress bar to 508 while a ghost rides.
 - [x] T23.2: Corkscrew rebuilt as a ribbon. `rollPt()` turns road points and road props about the hoop axis in car space (`proj`, `placeSprite`), `rollNear()` keeps the deck flat for the first 120 units ahead of the car; the ground, sky, hills and roadside never roll (the old world-roll tilted only some layers: two horizons, a seam, a wall of road ahead). course-check asserts the sky stays up and the sprites turn.
+- [x] T23.5: The wash tile always leads the workbench strip when the truck is muddy; repair, fuel and tires follow.
 - [x] T23.4: Lane perspective. `vehicleRearSVG(st, camOff)` composes the car for the camera's lateral offset (`vpOff` in `vp`: the rear-bumper plane stays put, farther parts drift toward the vanishing point, side faces and the inner tire wall show when the camera is outboard of them). `setCarView` keeps quarter-lane views cached per build and swaps them as `laneVis` slides, re-binding wheels, drum, mud, headlights and damage overlays.
 - [x] T23.3: Gravity 1900 on earth-type worlds (1 to 7, 9, 10; was 1500); the moon 640, the deep sea 1100 and the sky kingdom 900 keep their float. `flightLen` interpolates from `G_EARTH`. Fairness bots green on all 120 levels.
 
