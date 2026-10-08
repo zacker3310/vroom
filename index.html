@@ -1189,17 +1189,18 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 .photoCar { border-radius: 10px; }
 /* ============ GARAGE REDESIGN: one hierarchy — the car is the hero, GO is the one primary action ============
    stage coordinates: top bar 24-120 (profile 24 | album right 240 | wallet right 24)
-   hero: preview 506 wide, floor line y≈436; right column x-centre 1086, 16px rhythm: gift 192-280 (daily, contextual) and shuffle 296-384 on the wall,
-   map 400-488 resting on the bench rim, GO 504-684. Upkeep (repair, wash, fuel, tires) lives on the workbench tab only;
+   hero: preview 506 wide, floor line y≈436; right column x-centre 1086, 16px rhythm: gift 192-280 (daily, contextual) on the wall,
+   map 392-488 resting on the bench rim, GO 504-684. The shuffle leads the tab row at x 24-100 (12.8). Upkeep lives on the workbench tab only;
    the wrench tab wears a pulsing dot while the truck needs something. bench rim 432-440; tabs y 452-528 from x 120;
    strip row y 548-664: prev arrow 24-100 | strip 112-872 (7 tiles of 96 + 12 gaps, 8px side padding) | next 884-960 */
 #garageWall { background-image: radial-gradient(rgba(90, 70, 52, .032) 2.4px, transparent 2.6px); }
 #albumBtn { position: absolute; right: 240px; top: 24px; width: 96px; height: 96px; z-index: 20; }
-#diceBtn { position: absolute; right: 70px; top: 296px; width: 88px; height: 88px; z-index: 5; }
-#diceBtn svg { width: 56px; height: 56px; }
+/* the shuffle leads the tab row (12.8): same footprint as a tab, surface white, a breath of space before the tabs */
+#diceBtn { width: 76px; height: 76px; margin-right: 8px; border-radius: var(--v-r-md); flex: none; }
+#diceBtn svg { width: 50px; height: 50px; }
 
 /* --- category tabs: putty at rest, the chosen one lifts in blue with the map's yellow outline --- */
-#catTabs { position: absolute; left: 120px; top: 12px; display: flex; gap: 12px; }
+#catTabs { position: absolute; left: 24px; top: 12px; display: flex; gap: 12px; align-items: center; }
 .catTab {
   width: 76px; height: 76px; padding: 0; cursor: pointer; touch-action: none;
   display: flex; align-items: center; justify-content: center;
@@ -1291,11 +1292,22 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 .tile.deny { animation: denyShake .4s ease; }
 
 /* --- map above GO, right column, GO the biggest thing on screen --- */
-#goCol { position: absolute; right: 24px; top: -48px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
-#mapBtn { width: 88px; height: 88px; border-radius: 50%; }
-#mapBtn svg { width: 52px; height: 52px; }
-#goBtn { width: 180px; height: 180px; border-radius: 50%; border: 8px solid var(--v-green-line); }
-#goBtn svg { width: 92px; height: 92px; }
+/* --- production GO + map (12.8): a glossy dome with a double ring and a bevelled chevron; the map a blue card above it --- */
+#goCol { position: absolute; right: 24px; top: -56px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+#mapBtn {
+  width: 96px; height: 96px; border-radius: 28px;
+  background: radial-gradient(circle at 50% 24%, #9fdcf2 0, var(--v-accent-blue) 60%);
+  box-shadow: 0 7px 0 var(--v-blue-down), 0 12px 18px rgba(0, 0, 0, .14), inset 0 0 0 4px rgba(255, 255, 255, .28);
+}
+#mapBtn svg { width: 62px; height: 62px; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .18)); }
+#goBtn {
+  width: 180px; height: 180px; border-radius: 50%; border: 8px solid var(--v-green-line);
+  background: radial-gradient(circle at 50% 26%, #a6e49a 0, var(--v-accent-green) 58%, #66b558 100%);
+  box-shadow: 0 9px 0 var(--v-green-down), 0 16px 24px rgba(0, 0, 0, .18), inset 0 0 0 6px rgba(255, 255, 255, .32), inset 0 -10px 0 rgba(0, 0, 0, .08);
+}
+#goBtn svg { width: 104px; height: 104px; margin-left: 10px; }
+#goBtn:active { box-shadow: 0 3px 0 var(--v-green-down), 0 6px 10px rgba(0, 0, 0, .16), inset 0 0 0 6px rgba(255, 255, 255, .32); transform: translateY(5px); }
+#goBtn.locked { background: var(--v-mute); box-shadow: 0 9px 0 var(--v-mute-down), inset 0 0 0 6px rgba(255, 255, 255, .25); }
 
 /* --- grown-ups overlay: the quiet toggle (cream = sound on, putty = quiet) --- */
 #quietBtn { width: 96px; height: 96px; }
@@ -1428,10 +1440,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
       <svg viewBox="0 0 64 64"><rect x="12" y="28" width="40" height="30" rx="7" fill="#ffb703"/><path d="M20 28 V20 a12 12 0 0 1 24 0 V28" stroke="#ffb703" stroke-width="8" fill="none"/></svg>
     </div>
     <!-- right wall: the dice, in one 16px-rhythm column with map + GO; upkeep lives on the workbench tab -->
-    <button class="bigBtn" id="diceBtn" aria-label="shuffle: a surprise truck from the parts you own">
-      <svg viewBox="0 0 100 100"><path d="M12 30 H30 Q42 30 50 42 L58 58 Q66 70 78 70 H86" stroke="#e63946" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 70 H30 Q42 70 50 58 L58 42 Q66 30 78 30 H86" stroke="#4cc9f0" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M78 18 L92 30 L78 42 Z" fill="#4cc9f0"/><path d="M78 58 L92 70 L78 82 Z" fill="#e63946"/></svg>
-    </button>
-    <!-- daily gift: a capsule on the wall above the dice, once per calendar day (see section 30) -->
+    <!-- daily gift: a capsule on the right wall above the map, once per calendar day (see section 30) -->
     <button class="bigBtn" id="giftBtn" aria-label="today's gift"></button>
     <!-- extras glyph registry: the content packs append their .extraBtn pictograms here; the extras strip clones them -->
     <div id="extras" hidden aria-hidden="true">
@@ -1447,6 +1456,9 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     </div>
     <div id="controls">
       <div id="catTabs" role="tablist" aria-label="what to change">
+        <button class="bigBtn" id="diceBtn" aria-label="shuffle: a surprise truck from the parts you own">
+          <svg viewBox="0 0 100 100"><path d="M12 30 H30 Q42 30 50 42 L58 58 Q66 70 78 70 H86" stroke="#e63946" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 70 H30 Q42 70 50 58 L58 42 Q66 30 78 30 H86" stroke="#4cc9f0" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M78 18 L92 30 L78 42 Z" fill="#4cc9f0"/><path d="M78 58 L92 70 L78 82 Z" fill="#e63946"/></svg>
+        </button>
         <button class="catTab sel" data-cat="body" role="tab" aria-selected="true" aria-label="truck bodies">
         <svg viewBox="0 0 100 100"><path d="M10 62 L10 40 L48 40 L48 26 L74 26 L86 44 L90 62 Z" fill="#fff"/><circle cx="30" cy="66" r="12" fill="#023047" stroke="#fff" stroke-width="4"/><circle cx="72" cy="66" r="12" fill="#023047" stroke="#fff" stroke-width="4"/><path d="M40 18 L46 8 M50 18 L50 6 M60 18 L54 8" stroke="#ffb703" stroke-width="5" stroke-linecap="round"/></svg>
         </button>
@@ -1474,10 +1486,10 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
       </div>
       <div id="goCol">
       <button class="bigBtn" id="mapBtn" aria-label="pick a level">
-        <svg viewBox="0 0 100 100"><path d="M14 22 L38 14 L62 22 L86 14 V78 L62 86 L38 78 L14 86 Z" fill="#fff" stroke="#023047" stroke-width="5" stroke-linejoin="round"/><path d="M30 60 Q45 30 62 52 Q72 64 76 40" stroke="#e63946" stroke-width="6" fill="none" stroke-dasharray="2 10" stroke-linecap="round"/><circle cx="76" cy="36" r="9" fill="#e63946"/></svg>
+        <svg viewBox="0 0 100 100"><path d="M14 24 L38 16 L62 24 L86 16 V76 L62 84 L38 76 L14 84 Z" fill="#fff8ec" stroke="#1d3557" stroke-width="5" stroke-linejoin="round"/><path d="M38 16 V76 M62 24 V84" stroke="#1d3557" stroke-width="3" opacity=".35"/><path d="M26 64 Q40 36 56 54 Q66 66 72 44" stroke="#e63946" stroke-width="6" fill="none" stroke-dasharray="1 9" stroke-linecap="round"/><path d="M72 20 Q84 20 84 32 Q84 42 72 54 Q60 42 60 32 Q60 20 72 20 Z" fill="#e63946" stroke="#fff" stroke-width="3"/><circle cx="72" cy="32" r="5" fill="#fff"/></svg>
       </button>
       <button class="bigBtn" id="goBtn" aria-label="go drive">
-        <svg viewBox="0 0 100 100"><path d="M30 18 L82 50 L30 82 Z" fill="#fff"/></svg>
+        <svg viewBox="0 0 100 100"><path d="M30 22 L82 54 L30 86 Z" fill="#2f6b2a" opacity=".55"/><path d="M30 16 L82 48 L30 80 Z" fill="#fff"/><path d="M36 26 L60 41" stroke="#ffffffaa" stroke-width="6" stroke-linecap="round"/></svg>
       </button>
       </div>
     </div>
@@ -1691,7 +1703,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "12.7.0";
+const APP_VERSION = "12.8.0";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */

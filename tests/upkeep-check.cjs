@@ -227,15 +227,14 @@ function check(name, ok, detail) {
   const legacy = await page.evaluate(() => ({ fuel: progress.fuel, tread: progress.tread }));
   check('save: a pre-12.2 save without gauges loads with a full tank + fresh tires', legacy.fuel === 8 && legacy.tread === 8, JSON.stringify(legacy));
 
-  /* ---- 12. the right column: dice / map / GO share one x-centre with even 16px gaps ---- */
+  /* ---- 12. the shuffle leads the tab row; map and GO share one axis with a 16px gap ---- */
   const column = await page.evaluate(() => {
     const r = id => document.getElementById(id).getBoundingClientRect();
-    const d = r('diceBtn'), m = r('mapBtn'), g = r('goBtn');
+    const d = r('diceBtn'), m = r('mapBtn'), g = r('goBtn'), t = document.querySelector('.catTab:not(.sel)').getBoundingClientRect();   /* the selected tab lifts 4px */
     const cx = b => b.left + b.width / 2;
-    return { gapDM: Math.round(m.top - d.bottom), gapMG: Math.round(g.top - m.bottom), cx: [cx(d), cx(m), cx(g)].map(x => Math.round(x)),
-      bottom: Math.round(g.bottom), stage: document.getElementById('stage').getBoundingClientRect().bottom };
+    return { gapMG: Math.round(g.top - m.bottom), sameAxis: Math.abs(cx(m) - cx(g)) < 1, diceRow: Math.abs(d.top - t.top) < 1 && d.right < t.left, diceSize: Math.min(d.width, d.height) };
   });
-  check('garage column: dice, map, GO centred on one axis with equal gaps', column.gapDM === column.gapMG && column.gapDM > 0 && new Set(column.cx).size === 1, JSON.stringify(column));
+  check('garage: shuffle sits in the tab row ahead of the tabs (>= 64px); map and GO share one axis 16px apart', column.diceRow && column.diceSize >= 64 && column.sameAxis && column.gapMG === 16, JSON.stringify(column));
 
   check('no console errors', errors.length === 0, errors.join(' | ').slice(0, 300));
 

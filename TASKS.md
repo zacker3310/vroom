@@ -113,6 +113,10 @@
 
 - [x] T19.1: Ladders. Engine 60/150/350, armor 50/120/300, magnet 40/100/250 (were 20/40/80 and 15/30/60). Two new workbench upgrades: tank (+2 fuel units per pip via `fuelMax()`, filled on purchase) and springs (`springK()` scales launch speed and gravity together, so jumps go 18% higher per pip and land where the level designer cleared). Both pips ride a 4-bit v3 save-code tail (95 bytes). upkeep-check +3. 22 suites, 371/371.
 
+## v12.8 (2026-10-08, user-directed: "shuffle inline with the tabs, production GO and map")
+
+- [x] T20.1: The shuffle button leads the tab row (76px, x 24-100, same footprint as a tab); the right wall keeps only the daily gift. GO is a glossy green dome with a double ring, bevelled chevron and a press that sinks; the map is a 96px blue card with a folded map, route and pin. Column: gift 192-280, map 392-488, GO 504-684. Tests: upkeep-check column geometry, title-check gift placement.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
