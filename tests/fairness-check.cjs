@@ -70,7 +70,7 @@ function check(name, ok, detail) {
         } else {
           const wasOn = jumpY > 0, onRamp = rampElev(carX);
           jumpY = onRamp;
-          if (wasOn && onRamp === 0) { airborne = true; vy = v * 0.9; jumpY = 95; }
+          if (wasOn && onRamp === 0) { const L = rampLaunch(rampBehind(carX), v); airborne = true; vy = L.vy; jumpY = L.y; }   /* the game's own launch rule: mega ramps and kickers fly by their own numbers */
         }
         for (const p of props) {
           if (p.done) continue;

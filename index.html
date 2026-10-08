@@ -355,6 +355,8 @@
   .cloud::before { width: 55%; height: 160%; left: 12%; bottom: 25%; }
   .cloud::after { width: 45%; height: 130%; right: 12%; bottom: 30%; }
   #skyStars { display: none; position: absolute; inset: 0; }
+  #env { position: absolute; inset: 0; transform-origin: 600px 290px; pointer-events: none; }   /* the sky layers a corkscrew rolls */
+  .drum { transform-box: fill-box; transform-origin: center; }
   #road.night #skyStars { display: block; }
   #weather { position: absolute; inset: 0; pointer-events: none; z-index: 17; }
   /* snow world: mud reads wrong on white — puddles become blue-gray slush */
@@ -1529,13 +1531,15 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
   </div>
 
   <div id="road" class="scene">
+    <div id="env">
     <div id="sun"></div>
     <div id="skyStars"></div>
-    <div id="weather"></div>
     <div class="cloud" style="left:180px; top:70px; width:130px; height:44px;"></div>
     <div class="cloud" style="left:620px; top:120px; width:170px; height:52px;"></div>
     <div class="cloud" style="left:980px; top:55px; width:110px; height:38px;"></div>
     <div id="farLayer" class="layer"></div>
+    </div>
+    <div id="weather"></div>
     <canvas id="roadCanvas" width="2400" height="1400"></canvas>
     <div id="world"><div id="carWrap"></div></div>
     <div id="speedLines"><div></div><div></div><div></div><div></div><div></div><div></div></div>
@@ -1703,7 +1707,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "12.8.0";
+const APP_VERSION = "12.9.0";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -2007,6 +2011,7 @@ const sfx = {
   squeal() { tone("sawtooth", 1400, 900, 0.35, 0.08); noiseBurst(0.3, 2400, 0.1); },
   whoosh() { tone("sine", 300, 620, 0.14, 0.16); },
   whee()   { [523, 659, 784, 1047].forEach((f, i) => tone("sine", f, f, 0.14, 0.22, i * 0.07)); },
+  corkscrew() { tone("sine", 260, 1040, 1.1, 0.16); tone("triangle", 390, 1560, 1.1, 0.07, 0.06); noiseBurst(0.9, 1800, 0.07); },
   almost() { [660, 880, 1100].forEach((f, i) => tone("sine", f, f, 0.1, 0.15, i * 0.09)); },
   splash() { noiseBurst(0.35, 900, 0.35); },
   deny()   { tone("triangle", 220, 160, 0.18, 0.3); tone("triangle", 180, 120, 0.22, 0.3, 0.18); },
@@ -4992,6 +4997,8 @@ function renderMap() {
    World coords: x = distance along the road (unchanged from the side-scroller, so all the
    level/physics/collision logic still speaks x), lx = lateral offset, h = height. */
 const farLayer = document.getElementById("farLayer");
+const envEl = document.getElementById("env");
+let rollOK = true;   /* startDrive: false when the device asks for reduced motion (corkscrews keep their hoops, lose the roll) */
 const worldEl = document.getElementById("world");
 const roadCanvas = document.getElementById("roadCanvas");
 const rctx = roadCanvas.getContext("2d");
@@ -5026,7 +5033,8 @@ const laneX = l => (l - 1) * LANE_W;
    off(z) = ∬ k to the side; everything projected (asphalt, sprites, scenery) adds that. */
 let COURSE = [];
 const CURVE_EASE = 320;
-const CURVE = { gentle: 0.0001, medium: 0.00018, tight: 0.0003 };
+const CURVE = { gentle: 0.0001, medium: 0.00018, tight: 0.0003, hard: 0.00075 };
+const HARD_K = CURVE.hard * 0.7;   /* a stretch this sharp is a "hard turn": it gets chevron boards on its outside */
 function curvAt(x) {
   let k = 0;
   for (const c of COURSE) {
@@ -5089,6 +5097,24 @@ function elevAt(x) {
   return e;
 }
 function addHill(x0, len, amp) { HILLS.push({ x0, x1: x0 + len, amp }); return x0 + len; }
+/* ---- corkscrews: stretches where the road rolls a full turn around its own axis.
+   rollAt(x) is the road's roll at x (0 before a twist, ±2π after it, eased between). The camera
+   rides the road, so on screen the road ahead turns by rollAt(x) - rollAt(car) around the view
+   axis (a screen rotation about the vanishing point) while the world off the road (ground, sky,
+   roadside) turns by -rollAt(car). The car stays upright; the world spins around it. ---- */
+let TWISTS = [], rollCar = 0, twistLive = false;
+const TWIST_LEN = 2200;   /* long enough that the road a car-length ahead turns gently, not in a snap */
+function addTwist(x0, len, dir) { TWISTS.push({ x0, x1: x0 + len, dir }); return x0 + len; }
+function rollAt(x) {
+  let r = 0;
+  for (const t of TWISTS) {
+    if (x <= t.x0) continue;
+    const u = x >= t.x1 ? 1 : (x - t.x0) / (t.x1 - t.x0);
+    r += t.dir * Math.PI * 2 * u * u * u * (u * (u * 6 - 15) + 10);   /* smootherstep: no kick at either end */
+  }
+  return r;
+}
+const inTwist = (x, pad = 0) => TWISTS.some(t => x > t.x0 - pad && x < t.x1 + pad);
 /* course authoring: every world has a road character (how hard it bends, whether it has
    hairpins, how long its straights run) and every level in a world gets a different shape
    from a fixed, hand-ordered menu: a single giant sweeper, a chicane festival, a drag strip
@@ -5099,17 +5125,17 @@ function addBend(x0, len, k) { COURSE.push({ x0, x1: x0 + len, k }); return x0 +
 const WORLD_ROAD = {
   /*  k: base curvature, hp: hairpin strength (0 = none in this world), len/gap: bend length and
       straight multipliers, order: the ten level shapes */
-  1: { k: CURVE.gentle * 0.8,  hp: 0,   len: 1.0, gap: 1.0, order: ["sweeper", "bookends", "esses", "twin", "sweeper", "wiggle", "spiral", "esses", "drag", "tour"] },      /* construction: wide and forgiving */
-  2: { k: CURVE.gentle * 1.3,  hp: 0,   len: 1.3, gap: 1.2, order: ["esses", "sweeper", "twin", "spiral", "bookends", "esses", "drag", "sweeper", "wiggle", "tour"] },      /* farm: long lazy sweepers over hills */
-  3: { k: CURVE.medium,        hp: 0.8, len: 0.8, gap: 0.8, order: ["chicanes", "esses", "hairpins", "wiggle", "twin", "chicanes", "spiral", "drag", "esses", "tour"] },    /* night: twisty mountain road */
-  4: { k: CURVE.gentle * 1.15, hp: 0,   len: 1.7, gap: 1.6, order: ["drag", "bookends", "sweeper", "twin", "esses", "drag", "sweeper", "bookends", "twin", "tour"] },       /* rain: highway, long straights, wide curves */
-  5: { k: CURVE.medium * 1.1,  hp: 1.0, len: 0.9, gap: 0.9, order: ["hairpins", "wiggle", "chicanes", "spiral", "hairpins", "esses", "drag", "chicanes", "hairpins", "tour"] }, /* snow: the mountain pass, switchbacks */
-  6: { k: CURVE.medium * 0.9,  hp: 0.9, len: 1.4, gap: 1.5, order: ["drag", "sweeper", "bookends", "chicanes", "drag", "twin", "hairpins", "sweeper", "drag", "tour"] },    /* desert: drag strips and one giant sweeper */
-  7: { k: CURVE.medium,        hp: 0.7, len: 1.1, gap: 1.0, order: ["esses", "twin", "sweeper", "wiggle", "esses", "spiral", "hairpins", "esses", "twin", "tour"] },        /* beach: rhythmic coast road */
-  8: { k: CURVE.tight * 0.9,   hp: 1.1, len: 0.8, gap: 0.7, order: ["chicanes", "wiggle", "hairpins", "spiral", "chicanes", "drag", "wiggle", "hairpins", "chicanes", "tour"] } /* moon: wild */
+  1: { k: CURVE.gentle * 0.8,  hp: 0,   len: 1.0, gap: 1.0, order: ["sweeper", "bookends", "esses", "twin", "roller", "wiggle", "corkscrew", "esses", "drag", "tour"] },      /* construction: wide and forgiving */
+  2: { k: CURVE.gentle * 1.3,  hp: 0,   len: 1.3, gap: 1.2, order: ["esses", "sweeper", "twin", "spiral", "bookends", "esses", "corkscrew", "roller", "wiggle", "tour"] },      /* farm: long lazy sweepers over hills */
+  3: { k: CURVE.medium,        hp: 0.8, len: 0.8, gap: 0.8, order: ["chicanes", "esses", "hairpins", "zigzag", "twin", "switchback", "spiral", "corkscrew", "esses", "tour"] },    /* night: twisty mountain road */
+  4: { k: CURVE.gentle * 1.15, hp: 0,   len: 1.7, gap: 1.6, order: ["drag", "bookends", "sweeper", "roller", "esses", "corkscrew", "sweeper", "bookends", "zigzag", "tour"] },       /* rain: highway, long straights, wide curves */
+  5: { k: CURVE.medium * 1.1,  hp: 1.0, len: 0.9, gap: 0.9, order: ["hairpins", "zigzag", "chicanes", "spiral", "switchback", "esses", "drag", "corkscrew", "hairpins", "tour"] }, /* snow: the mountain pass, switchbacks */
+  6: { k: CURVE.medium * 0.9,  hp: 0.9, len: 1.4, gap: 1.5, order: ["drag", "sweeper", "bookends", "chicanes", "roller", "switchback", "hairpins", "sweeper", "corkscrew", "tour"] },    /* desert: drag strips and one giant sweeper */
+  7: { k: CURVE.medium,        hp: 0.7, len: 1.1, gap: 1.0, order: ["esses", "twin", "sweeper", "zigzag", "corkscrew", "spiral", "hairpins", "roller", "twin", "tour"] },        /* beach: rhythmic coast road */
+  8: { k: CURVE.tight * 0.9,   hp: 1.1, len: 0.8, gap: 0.7, order: ["chicanes", "wiggle", "hairpins", "roller", "chicanes", "corkscrew", "zigzag", "hairpins", "chicanes", "tour"] } /* moon: wild */
 };
 function buildCourse(n, rng, len) {
-  COURSE = [];
+  COURSE = []; TWISTS = [];
   const w = worldOf(n), i = (n - 1) % WORLD_SIZE, P = WORLD_ROAD[w] || WORLD_ROAD[8];
   const k = P.k * (0.85 + 0.3 * i / 9);                      /* later levels in a world bend a little harder */
   const hk = P.hp ? CURVE.tight * 1.15 * P.hp : k * 1.7;     /* no hairpins in this world: a firm sweep instead */
@@ -5122,6 +5148,11 @@ function buildCourse(n, rng, len) {
   const hairpin = (x, d) => bend(x, Lm(560), d * hk);
   const chicane = (x, d) => { let e = bend(x, Lm(260), d * k * 1.4); e = bend(e + 60, Lm(260), -d * k * 1.4); return bend(e + 60, Lm(260), d * k * 1.4); };
   const span = x1 - x0;
+  /* the wild stuff: hard turns (chevron boards, tire squeal), corkscrews, a roller-coaster hill train */
+  const kh = CURVE.hard * (0.85 + 0.3 * i / 9);
+  const hardTurn = (x, d) => bend(x, Lm(300), d * kh);
+  const twist = (x, d) => x + TWIST_LEN > x1 ? x : addTwist(x, TWIST_LEN, d);
+  let roller = false;
   const T = {
     sweeper() { sweep(x0 + span * 0.12, span * 0.76, dir); },                                  /* one giant bend */
     esses() { for (let x = x0; x < x1 - 400; dir = -dir) x = sweep(x, Lm(900), dir) + Gm(240); },  /* alternating sweepers */
@@ -5132,20 +5163,37 @@ function buildCourse(n, rng, len) {
     spiral() { let x = x0 + Gm(200); for (let j = 0; j < 3 && x < x1 - 400; j++) x = bend(x, Lm(700), dir * k * (0.7 + 0.3 * j)) + Gm(260); }, /* same way, tightening */
     chicanes() { for (let x = x0 + Gm(150), j = 0; x < x1 - 500 && j < 5; dir = -dir, j++) x = chicane(x, dir) + Gm(420); },   /* chicane festival */
     hairpins() { const x = hairpin(x0 + span * 0.15, dir); hairpin(Math.max(x + Gm(900), x1 - span * 0.15 - Lm(560)), -dir); }, /* two hairpins, straight between */
-    tour() {   /* the finale: a sweeper, a chicane, a hairpin and esses, back to back */
+    tour() {   /* the finale: a sweeper, a chicane, a hairpin, a corkscrew (world 2 on) and esses, back to back */
       let x = sweep(x0, Lm(900), dir) + Gm(200);
       x = chicane(x, -dir) + Gm(200);
       x = hairpin(x, dir) + Gm(260);
+      if (w >= 2) x = twist(x, dir) + Gm(300);
       for (; x < x1 - 400; dir = -dir) x = sweep(x, Lm(700), -dir) + Gm(180);
+    },
+    switchback() { for (let x = x0 + Gm(250), j = 0; x < x1 - 400 && j < 5; dir = -dir, j++) x = hardTurn(x, dir) + Gm(520); },   /* hard left, hard right, all the way up */
+    zigzag() { for (let x = x0 + Gm(200), j = 0; x < x1 - 300 && j < 8; dir = -dir, j++) x = bend(x, Math.max(220, Lm(220)), dir * kh * 0.9) + Gm(380); },   /* sharp kinks on a straight road (never shorter than a bend can be) */
+    corkscrew() {   /* a sweeper into one corkscrew (two from world 3, rolling opposite ways), esses after */
+      let x = span > 4000 ? sweep(x0, Lm(600), dir) + Gm(300) : x0 + 200;   /* a short level goes straight into it */
+      x = twist(x, dir) + Gm(400);
+      if (w >= 3) x = twist(x, -dir) + Gm(400);
+      for (; x < x1 - 400; dir = -dir) x = sweep(x, Lm(650), dir) + Gm(220);
+    },
+    roller() {   /* a roller coaster: a train of big short hills, a few flicks between them */
+      roller = true;
+      for (let x = x0 + Gm(400), j = 0; x < x1 - 400 && j < 4; dir = -dir, j++) x = bend(x, Lm(320), dir * k * 1.3) + Gm(900);
     }
   };
   T[P.order[i]]();
   COURSE = COURSE.filter(c => c.x1 > c.x0 + 80);
+  for (const c of COURSE) c.hard = Math.abs(c.k) >= HARD_K;
   /* hills by world: flat construction/rain/beach, rolling farmland and dunes, big snowy
      rises, lumpy moon; later levels in a world roll harder */
   HILLS = [];
   const hillAmp = worldMeta(w).hill * (0.7 + 0.3 * ((n - 1) % 10) / 9);
-  if (hillAmp) {
+  if (roller) {   /* whatever the world's own hills: big, short, back to back, the last one a monster */
+    let hx = 700 + rng() * 300, j = 0;
+    while (hx < len - 1600) { const big = hx > len - 3200; hx = addHill(hx, big ? 1100 : 760 + rng() * 240, (big ? 260 : 170 + rng() * 50) * (j++ % 3 === 2 ? -0.7 : 1)) + 60 + rng() * 140; }
+  } else if (hillAmp) {
     let hx = 600 + rng() * 600;
     while (hx < len - 1400) {
       const L = 1100 + rng() * 1300;
@@ -5276,7 +5324,7 @@ const CAR3D = {
       box(-16, 16, 54, 92, 0, 20, VM),
       cbox(90, 36, 64, 20, 330, VD),
       cyl(140, 78, 20, 162, 58, 300, VP, { deco: (F, C) => C(0, 140, 40, "#00000022") +
-        `<g transform="translate(${fx(vp(0, 140, 20)[0])},${fx(vp(0, 140, 20)[1])}) scale(${fx(VS(20))})"><g class="spinner" style="animation-duration:2.2s"><path d="M0 -36 Q30 -28 24 0 Q18 26 -8 24 Q-26 18 -22 -2" stroke="#ffffffbb" stroke-width="9" fill="none" stroke-linecap="round"/></g></g>` }),
+        `<g transform="translate(${fx(vp(0, 140, 20)[0])},${fx(vp(0, 140, 20)[1])}) scale(${fx(VS(20))})"><g class="drum"><path d="M0 -36 Q30 -28 24 0 Q18 26 -8 24 Q-26 18 -22 -2" stroke="#ffffffbb" stroke-width="9" fill="none" stroke-linecap="round"/></g></g>` }),
       cbox(94, 40, 160, 330, 430, VP, { deco: F => F(-62, 106, 62, 142, VG) }),
       cbox(88, 40, 110, 430, 470, VP),
       box(74, 86, 160, 200, 322, 330, VM, { late: true })
@@ -5632,13 +5680,20 @@ function paradeUnlocked() {
 let LEVEL_LEN = 5200, RAMPS = [], props = [], scenery = [], totalStars = 0, runStars = 0, runDamage = 0, runTime = 0;
 let freeSpawnX = 0, freeThemeIdx = 0, freeSceneryX = 0, freeCourseX = 0;
 
-function rampElev(x) {
-  for (const rp of RAMPS) {
-    const d = x - rp.x;
-    if (d >= 0 && d <= rp.w) return (d / rp.w) * rp.h;
-  }
-  return 0;
+/* a ramp is {x, w, h, tail} plus optional kick (launch speed share, default 0.9) and deck colors */
+function rampOn(x) {
+  for (const rp of RAMPS) { const d = x - rp.x; if (d >= 0 && d <= rp.w) return rp; }
+  return null;
 }
+function rampElev(x) { const rp = rampOn(x); return rp ? (x - rp.x) / rp.w * rp.h : 0; }
+/* the ramp whose lip the car just left (the one launch rule reads it) */
+function rampBehind(x) {
+  let best = null;
+  for (const rp of RAMPS) if (rp.x + rp.w <= x && (!best || rp.x > best.x)) best = rp;
+  return best;
+}
+/* the one launch rule: leave the lip at the deck's height, rising at a share of the speed */
+function rampLaunch(rp, speed) { return { y: rp ? rp.h : 95, vy: Math.min(speed, rp && rp.cap || Infinity) * (rp && rp.kick || 0.9) }; }
 
 /* a sprite: an outer .sprite wrapper the projector moves/scales (anchor = its 0,0),
    holding the .prop element whose own transforms/animations stay free for gags */
@@ -5663,7 +5718,7 @@ function addProp(type, x, lane, h, svg, xOff, yOff) {
 function clearWorld() {
   for (const p of props) p.wrap.remove();
   for (const p of scenery) p.wrap.remove();
-  props = []; scenery = []; RAMPS = []; totalStars = 0;
+  props = []; scenery = []; RAMPS = []; TWISTS = []; totalStars = 0;
 }
 
 /* ---- BEAT SEQUENCER: a level is a seeded sequence of formations ----
@@ -5858,6 +5913,27 @@ function rampAt(b, x, lane) {
   b.last = lane;
   return { rx, lane };
 }
+/* special ramps fly by their own numbers: the clear zone past the lip comes from the physics
+   (full-throttle flight on this world's gravity, plus a margin), not the standard ramp's table */
+const RAMP_KIND = {
+  mega: { w: 340, h: 150, kick: 1.1, cap: 740, edge: "#9d0208", deck: "#e63946", chev: "#f1faee" },   /* the big red one; a souped-up engine can't fling the car off the top of the screen */
+  hop:  { w: 150, h: 45, kick: 0.55, edge: "#2d6a4f", deck: "#74c69d", chev: "#f1faee" }     /* a little green kicker */
+};
+function rampFlight(kind, w, speed = VMAX) {   /* units from the ramp's start to touchdown */
+  const g = worldMeta(w).gravity, vy = speed * kind.kick;
+  return kind.w + speed * (vy + Math.sqrt(vy * vy + 2 * g * kind.h)) / g;
+}
+function kindTail(kind, w) { return Math.ceil(rampFlight(kind, w) * 1.1 + 60 - kind.w); }   /* stock engine plus a margin, like the standard ramp's table */
+/* star height on a special ramp's flight path dx past its start (same 650 cruise as flightH) */
+function arcH(kind, w, dx) {
+  const t = Math.max(0, dx - kind.w) / 650, g = worldMeta(w).gravity;
+  return Math.max(LOW_STAR_H, Math.round(kind.h + 650 * kind.kick * t - 0.5 * g * t * t + LOW_STAR_H));
+}
+function specialRamp(b, rx, kind) {
+  const rp = { x: rx, ...kind, tail: kindTail(kind, b.w) };
+  RAMPS.push(rp);
+  return rx + rp.w + rp.tail;   /* where the ground is safe again */
+}
 /* the moon float: a lazy arc of stars the whole way down */
 function moonArc(b, r) {
   if (worldMeta(b.w).gravity >= 1500) return;   /* any floaty world: stars as far as its flight reaches */
@@ -5884,6 +5960,23 @@ defBeat("rampShower", "ramp", 10, (b, x) => {   /* land into a burst of stars */
   const sx = r.rx + flightLen(b.w) + 20;
   for (let c = 0; c < 2; c++) for (let l = 0; l < 3; l++) b.star(sx + c * 120 + (l === 1 ? 60 : 0), l);
   return sx + 300;
+});
+defBeat("megaRamp", "ramp", 6, (b, x) => {   /* the big one: a tall red kicker, a long flight along a rainbow of stars */
+  const lane = b.pickLane(x), K = RAMP_KIND.mega, rx = x + 200;
+  b.star(x + 20, lane); b.star(x + 140, lane);
+  const end = specialRamp(b, rx, K), fly = end - rx - 150;
+  for (const f of [0.38, 0.52, 0.66, 0.8]) b.high(rx + K.w + (fly - K.w) * f, lane, arcH(K, b.w, K.w + (fly - K.w) * f));
+  return end;
+});
+defBeat("hopChain", "ramp", 3, (b, x) => {   /* three little kickers in a row: hop, hop, hop, a star over each */
+  const lane = b.pickLane(x), K = RAMP_KIND.hop;
+  let rx = x + 200;
+  for (let i = 0; i < 3; i++) {
+    const end = specialRamp(b, rx, K), apex = K.w + 650 * K.kick / worldMeta(b.w).gravity * 650;
+    b.high(rx + apex, lane, arcH(K, b.w, apex));
+    rx = end + 60;
+  }
+  return rx - 60;
 });
 
 /* ---- world beats (worlds 5-8 bring their own cast) ---- */
@@ -5999,7 +6092,7 @@ function buildLevel(n) {
     /* a ground item; refuses ramp zones, 3-lane walls and stacking on another prop */
     put(t, x, lane) {
       x = Math.round(x); lane = Math.max(0, Math.min(2, lane));
-      if (x < 300 || x > endX || inRampZone(x) || !laneFree(x, lane, 100)) return false;
+      if (x < 300 || x > endX || inRampZone(x) || inTwist(x, 150) || !laneFree(x, lane, 100)) return false;   /* a corkscrew carries stars only */
       if (HARD_T(t)) { const s = hardLanesNear(x); s.add(lane); if (s.size >= 3) return false; }
       addItem(t, x, lane); return true;
     },
@@ -6062,34 +6155,64 @@ function buildLevel(n) {
   const gap = finale ? 100 : 150;   /* finales pack their beats tighter */
   const run = bt => {
     /* straight off a landing into a wall of barrels is a trap: obstacle formations get a run-up after a ramp */
-    if (beats.length && BEATS[beats[beats.length - 1]].kind === "ramp" && bt.kind !== "star" && bt.kind !== "rhythm") x += 350;
+    if (beats.length && (BEATS[beats[beats.length - 1]] || {}).kind === "ramp" && bt.kind !== "star" && bt.kind !== "rhythm") x += 350;
     beats.push(bt.name); x = bt.fn(b, x) + gap + Math.floor(rng() * 120);
+    for (const t of TWISTS) if (!t.seen && t.x0 < x) { t.seen = true; beats.push("corkscrew"); }   /* a long formation ran right through one */
+  };
+  /* a ramp beat whose ramps (run-up to touchdown) would cross a corkscrew is taken back whole; returns the twist it hit */
+  const tryRamp = bt => {
+    const nR = RAMPS.length, nP = props.length, nB = beats.length, x0b = x, last0 = b.last;
+    run(bt);
+    const hit = TWISTS.find(t => RAMPS.slice(nR).some(rp => rp.x - 250 < t.x1 + 150 && rp.x + rp.w + rp.tail > t.x0 - 150));
+    if (!hit) return null;
+    RAMPS.length = nR;
+    for (const p of props.splice(nP)) { p.wrap.remove(); if (p.type === "star") totalStars--; }
+    beats.length = nB; x = x0b; b.last = last0;
+    for (const t of TWISTS) if (t.x0 >= x0b) t.seen = false;
+    return hit;
   };
   if (rhythm[0].kind !== "star") run(BEATS.trailStraight);   /* every road opens with stars, never a wall */
   /* a finale keeps its last 560 units for the star shower; ramps must have landed by then */
   const showerX = finale ? endX - 560 : Infinity, loopEnd = finale ? showerX - 200 : endX - 350;
+  /* a corkscrew is its own beat: a helix of stars that rolls around with the road, laid first so no
+     formation (or a ramp flying over it) can crowd it out */
+  for (const t of TWISTS) for (let sx = t.x0 + 60, j = 0; sx < t.x1 - 60; sx += 125, j++) b.star(sx, [1, 2, 1, 0][Math.floor(j / 3) % 4]);   /* three stars a lane: small hands keep up */
   while (x < loopEnd && guard++ < 60) {
+    /* a formation that would start within 700 of a corkscrew waits until after it (the gap is the run-up) */
+    const tw = TWISTS.find(t => !t.seen && t.x1 > x && t.x0 < x + 700);
+    if (tw) { tw.seen = true; beats.push("corkscrew"); x = Math.max(x, tw.x1 + 200); continue; }
     const lastChance = x + 200 + flightLen(w) + 700 > loopEnd;   /* one more formation and the ramp wouldn't fit */
     if (ri < nRamps && (x >= rampXs[ri] - 450 || lastChance)) {   /* a different ramp beat from the last one */
       let rb = pick(rampPool); if (rampPool.length > 1 && beats[beats.length - 1] === rb.name) rb = rampPool[(rampPool.indexOf(rb) + 1) % rampPool.length];
-      run(rb); ri++; continue;
+      const clash = tryRamp(rb);
+      if (clash) { x = Math.max(x, clash.x1 + 300); if (!clash.seen) { clash.seen = true; beats.push("corkscrew"); } continue; }   /* never a jump inside a corkscrew: fly after it */
+      ri++; continue;
     }
     run(rhythm[bi++ % rhythm.length]);
   }
   /* never a level without its jump — but land well before the flags, so the gantry never
      looks planted on the ramp lip and the car is on its wheels at the finish */
-  while (ri < nRamps) { x = Math.min(x, loopEnd - 200 - flightLen(w)); run(BEATS.ramp); ri++; }
+  /* a forced ramp never lands on another ramp's run-up or flight */
+  const rampClash = rx => RAMPS.some(rp => rx - 250 < rp.x + rp.w + (rp.tail || 420) && rx + 250 + rampTail(w) > rp.x - 250);
+  while (ri < nRamps) {
+    x = Math.min(x, loopEnd - 200 - flightLen(w));
+    if (RAMPS.length && rampClash(x + 200)) break;                        /* enough jumps already: skip the one that won't fit */
+    const c = tryRamp(BEATS.ramp);
+    if (c && RAMPS.length) break;
+    if (c) { x = Math.max(1000, c.x0 - 450 - flightLen(w)); run(BEATS.ramp); }   /* the only jump: put it before the corkscrew */
+    ri++;
+  }
   if (finale) { x = Math.max(x, showerX); run(BEATS.starShower); }   /* grand finale: a star shower right before the flags */
 
   /* ---- guarantees: ingredients, budgets, and nothing where the car flies ---- */
   const removeProp = p => { p.wrap.remove(); props.splice(props.indexOf(p), 1); if (p.type === "star") totalStars--; };
-  for (const p of props.slice()) if (BLOCKER_T(p.type) && inRampZone(p.x)) removeProp(p);
+  for (const p of props.slice()) if (BLOCKER_T(p.type) && (inRampZone(p.x) || inTwist(p.x, 150))) removeProp(p);
   const count = f => props.filter(f).length;
   /* drop one item into a free pocket: clear lane, no other ground item right beside it */
   const spotFor = (t, want) => {
     for (let tries = 0; tries < 160; tries++) {
       const sx = 1100 + Math.floor(rng() * (endX - 1100)), lane = want == null ? Math.floor(rng() * 3) : want;
-      if (inRampZone(sx) || !laneFree(sx, lane, 130)) continue;
+      if (inRampZone(sx) || !laneFree(sx, lane, 130) || (t !== "star" && inTwist(sx, 150))) continue;
       if (props.some(p => BLOCKER_T(p.type) && Math.abs(p.x - sx) < 110)) continue;
       if (HARD_T(t) && tries < 120 && RAMPS.some(rp => rp.x > sx && rp.x < sx + 700)) continue;   /* the run-up to a ramp stays clean */
       /* a stray barrel inside a star trail is a trap: the first 80 tries stay clear of any star */
@@ -6559,7 +6682,25 @@ const WORLD_LANDMARK = {
 const SCENERY_STEP = 450;
 /* a ramp lip hides the ground ~900 units behind it from the low chase cam, so an arch
    just past a ramp looks like it grows out of the deck: keep them well clear */
-const inArchZone = x => RAMPS.some(rp => x > rp.x - 300 && x < rp.x + rp.w + Math.max(1000, rp.tail || 0));
+const inArchZone = x => RAMPS.some(rp => x > rp.x - 300 && x < rp.x + rp.w + Math.max(1000, rp.tail || 0)) || inTwist(x, 700);
+/* hard-turn boards: red with white chevrons pointing the way the road goes, on the outside of the turn */
+const chevronSVG = right => `<svg width="96" height="150" viewBox="0 0 96 150"><rect x="42" y="70" width="12" height="80" rx="4" fill="#6c757d"/>` +
+  `<rect x="4" y="4" width="88" height="76" rx="12" fill="#e63946" stroke="#f1faee" stroke-width="6"/>` +
+  `<g transform="${right ? "" : "translate(96,0) scale(-1,1)"}"><path d="M22 20 L44 42 L22 64 M48 20 L70 42 L48 64" stroke="#f1faee" stroke-width="11" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`;
+function addChevrons() {
+  const hard = COURSE.filter(c => c.hard).sort((a, b) => a.x0 - b.x0);
+  hard.forEach((c, i) => {
+    const right = c.k > 0, side = right ? -1 : 1;   /* a right-hander's outside is the left verge */
+    /* kinks close together split the road between them at the midpoint, so every board stands nearest its own turn */
+    const lo = i ? Math.max(c.x0 - 260, (hard[i - 1].x1 + c.x0) / 2 + 1) : c.x0 - 260;
+    const hi = i < hard.length - 1 ? Math.min(c.x1 + 40, (c.x1 + hard[i + 1].x0) / 2 - 1) : c.x1 + 40;
+    for (let x = lo; x <= hi; x += 150) {
+      const p = makeSprite("scenery", x, side * (ROAD_HALF + 70), 0, chevronSVG(right), side < 0 ? -96 : 0, -150, 1.1);
+      p.chevron = true;
+      scenery.push(p);
+    }
+  });
+}
 let scPool = null, scArch = null, scLast = [-1, -1], freeArchX = 0;
 function addScenery(x, side, r = Math.random) {
   const pool = scPool || WORLD_SET.w1, si = side < 0 ? 0 : 1;
@@ -6611,6 +6752,7 @@ function buildScenery(len, world = 1, seed = 0) {
     }
   }
   freeSceneryX = x; freeArchX = x;
+  addChevrons();
   /* night sky pinpricks, built once */
   const sky = document.getElementById("skyStars");
   if (!sky.childElementCount) {
@@ -6632,9 +6774,18 @@ function placeSprite(p, carX) {
   }
   if (!p.vis) { p.wrap.style.display = "block"; p.vis = true; }
   const s = CAM_D / (z + CAM_D);
-  const sx = 600 + (p.lx + offAt(z) - camX) * s;
-  const sy = HORIZON + (CAM_H + camElev - elevAt(p.x) - p.h) * s;
-  p.wrap.style.transform = `translate(${sx.toFixed(1)}px,${sy.toFixed(1)}px) scale(${(s * p.k).toFixed(4)})`;
+  let sx = 600 + (p.lx + offAt(z) - camX) * s;
+  let sy = HORIZON + (CAM_H + camElev - elevAt(p.x) - p.h) * s;
+  let rot = "";
+  if (twistLive) {   /* corkscrew: road things roll with the road, roadside things with the world */
+    const a = p.type === "scenery" ? -rollCar : rollAt(p.x) - rollCar;
+    if (Math.abs(a) > 0.001) {
+      const c = Math.cos(a), n = Math.sin(a), dx = sx - 600, dy = sy - HORIZON;
+      sx = 600 + dx * c - dy * n; sy = HORIZON + dx * n + dy * c;
+      rot = ` rotate(${a.toFixed(3)}rad)`;
+    }
+  }
+  p.wrap.style.transform = `translate(${sx.toFixed(1)}px,${sy.toFixed(1)}px)${rot} scale(${(s * p.k).toFixed(4)})`;
   /* nearer = higher; the car sits at depth 10. Something the car just hit or grabbed
      pops out over it (it happens up by the hood, which the body otherwise hides) */
   const zi = (p.done && !FLAT_PROPS.has(p.type) ? 25000 : 20000) - Math.round(z);
@@ -6645,22 +6796,58 @@ function placeSprite(p, carX) {
 
 /* ---- the ground plane: grass bands, road, rumble strips, lane dashes, ramps, finish ---- */
 const SEG = 160;
+let groundRoll = false;   /* drawRoad flips it while painting the ground, which rolls with the world, not the road */
 function proj(z, lx, h) {
   const s = CAM_D / (z + CAM_D);
-  return [600 + (lx + offAt(z) - camX) * s, HORIZON + (CAM_H + camElev - elevAt(curCarX + z) - (h || 0)) * s, s];
+  let x = 600 + (lx + offAt(z) - camX) * s, y = HORIZON + (CAM_H + camElev - elevAt(curCarX + z) - (h || 0)) * s;
+  if (twistLive) {   /* a roll about the view axis is a screen rotation about the vanishing point */
+    const a = groundRoll ? -rollCar : rollAt(curCarX + z) - rollCar;
+    if (a) { const c = Math.cos(a), n = Math.sin(a), dx = x - 600, dy = y - HORIZON; x = 600 + dx * c - dy * n; y = HORIZON + dx * n + dy * c; }
+  }
+  return [x, y, s];
 }
 function quad(c, z0, z1, l0, l1, col, h0, h1) {
   const a = proj(z0, l0, h0), b = proj(z0, l1, h0), d = proj(z1, l1, h1), e = proj(z1, l0, h1);
   c.fillStyle = col;
   c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(d[0], d[1]); c.lineTo(e[0], e[1]); c.closePath(); c.fill();
 }
+/* corkscrew hoops: a ring around the road every 150 units of a twist, striped so you can watch
+   it roll. Only the arc above the deck is drawn, so the road never looks cut by a hoop. */
+const HOOP_C = 330, HOOP_R = ROAD_HALF + 60, HOOP_A = Math.asin(HOOP_C / HOOP_R);
+function drawHoops(c, carX) {
+  for (const t of TWISTS) {
+    if (t.x1 - carX < 140 || t.x0 - carX > DRAW_FAR) continue;
+    for (let x = t.x1; x >= t.x0; x -= 150) {
+      const z = x - carX;
+      if (z < 140 || z > DRAW_FAR) continue;
+      const s = CAM_D / (z + CAM_D), fade = z > DRAW_FAR - FADE ? (DRAW_FAR - z) / FADE : 1;
+      c.globalAlpha = fade;
+      c.lineWidth = Math.max(1.5, 30 * s);
+      const SEGS = 8, a0 = -HOOP_A, a1 = Math.PI + HOOP_A;
+      for (let j = 0; j < SEGS; j++) {
+        c.strokeStyle = j % 2 ? "#ffd60a" : roadPal.rumA;
+        c.beginPath();
+        for (let q = 0; q <= 4; q++) {
+          const f = a0 + (a1 - a0) * (j + q / 4) / SEGS;
+          const pt = proj(z, Math.cos(f) * HOOP_R, HOOP_C + Math.sin(f) * HOOP_R);
+          q ? c.lineTo(pt[0], pt[1]) : c.moveTo(pt[0], pt[1]);
+        }
+        c.stroke();
+      }
+    }
+  }
+  c.globalAlpha = 1;
+}
 function drawRoad(carX) {
   const c = rctx, P = roadPal;
   c.clearRect(0, 0, 1200, 700);
   c.fillStyle = P.ground;
-  c.fillRect(0, HORIZON, 1200, 700 - HORIZON);
+  if (twistLive && rollCar) { c.save(); c.translate(600, HORIZON); c.rotate(-rollCar); c.fillRect(-1600, 0, 3200, 1600); c.restore(); }
+  else c.fillRect(0, HORIZON, 1200, 700 - HORIZON);
   /* the ground plane itself follows the hills, so a rise lifts the whole landscape */
+  groundRoll = true;
   for (let z = DRAW_FAR + 1200; z > DRAW_NEAR; z -= 400) quad(c, Math.max(DRAW_NEAR, z - 400), z, -7000, 7000, P.ground);
+  groundRoll = false;
   /* the far road: coarse bands out past the fade, so a bend keeps curving to the haze */
   for (let z = DRAW_FAR + 1200; z >= 2400; z -= 400) quad(c, z - 400, z, -ROAD_HALF, ROAD_HALF, P.road);
   /* banded near road: alternating stripes sell the speed */
@@ -6668,7 +6855,7 @@ function drawRoad(carX) {
   for (let k = Math.floor((carX + 2400) / SEG); k >= first; k--) {
     const z0 = Math.max(DRAW_NEAR, k * SEG - carX), z1 = (k + 1) * SEG - carX;
     const odd = k & 1;
-    if (odd) quad(c, z0, z1, -4000, 4000, P.ground2);
+    if (odd) { groundRoll = true; quad(c, z0, z1, -4000, 4000, P.ground2); groundRoll = false; }
     quad(c, z0, z1, -ROAD_HALF, ROAD_HALF, P.bands ? P.bands[((k % 6) + 6) % 6] : odd ? P.road2 : P.road);
     quad(c, z0, z1, -ROAD_HALF - 26, -ROAD_HALF, odd ? P.rumA : P.rumB);
     quad(c, z0, z1, ROAD_HALF, ROAD_HALF + 26, odd ? P.rumA : P.rumB);
@@ -6695,19 +6882,23 @@ function drawRoad(carX) {
     const z0 = rp.x - carX, z1 = z0 + rp.w;
     if (z1 < DRAW_NEAR || z0 > DRAW_FAR) continue;
     const zz0 = Math.max(DRAW_NEAR, z0), hh0 = (zz0 - z0) / rp.w * rp.h;
-    quad(c, zz0, z1, -ROAD_HALF, ROAD_HALF, "#b08968", hh0, rp.h);
-    quad(c, zz0, z1, -ROAD_HALF + 10, ROAD_HALF - 10, "#e9c46a", hh0, rp.h);
+    quad(c, zz0, z1, -ROAD_HALF, ROAD_HALF, rp.edge || "#b08968", hh0, rp.h);
+    quad(c, zz0, z1, -ROAD_HALF + 10, ROAD_HALF - 10, rp.deck || "#e9c46a", hh0, rp.h);
     for (const f of [0.3, 0.6, 0.9]) {
       const za = z0 + rp.w * f - 14, zb = za + 14;
       if (za < zz0) continue;
-      quad(c, za, zb, -ROAD_HALF + 30, ROAD_HALF - 30, "#e76f51", rp.h * (za - z0) / rp.w, rp.h * (zb - z0) / rp.w);
+      quad(c, za, zb, -ROAD_HALF + 30, ROAD_HALF - 30, rp.chev || "#e76f51", rp.h * (za - z0) / rp.w, rp.h * (zb - z0) / rp.w);
     }
   }
+  drawHoops(c, carX);
   /* horizon haze melts the far road into the sky */
+  const rolled = twistLive && rollCar;
+  if (rolled) { c.save(); c.translate(600, HORIZON); c.rotate(-rollCar); c.translate(-600, -HORIZON); }
   const g = c.createLinearGradient(0, HORIZON, 0, HORIZON + 46);
   g.addColorStop(0, P.haze); g.addColorStop(1, P.haze + "00");
   c.fillStyle = g;
-  c.fillRect(0, HORIZON, 1200, 46);
+  c.fillRect(rolled ? -1000 : 0, HORIZON, rolled ? 3200 : 1200, 46);
+  if (rolled) c.restore();
   /* the car's footprint shadow stays on the ground while it flies */
   const lx = (laneVis - 1) * LANE_W, sh = Math.max(0.3, 1 - jumpY / 320), w = (carHalf + 22) * sh;
   quad(c, 4, carLen * sh, lx - w, lx + w, `rgba(0,0,0,${(0.2 * sh).toFixed(3)})`);
@@ -6716,6 +6907,11 @@ function renderWorld() {
   const carX = pos + CAR_SCREEN_X - CAR_HIT_Z;   /* z=0 is the car's rear bumper */
   camX = (laneVis - 1) * LANE_W * CAM_FOLLOW;
   curCarX = carX; camElev = elevAt(carX);
+  /* corkscrew roll: only when a twist is in the draw window (and never for reduced motion: hoops only) */
+  twistLive = rollOK && TWISTS.some(t => t.x1 > carX + DRAW_NEAR && t.x0 < carX + DRAW_FAR + 1200);
+  rollCar = twistLive ? rollAt(carX) % (Math.PI * 2) : 0;
+  const envT = rollCar ? `rotate(${(-rollCar).toFixed(3)}rad)` : "";
+  if (envT !== envEl.style.transform) envEl.style.transform = envT;
   buildOffsets(carX);
   drawRoad(carX);
   for (const p of props) placeSprite(p, carX);
@@ -6733,7 +6929,7 @@ let pos = 0, v = 0, jumpY = 0, vy = 0, airborne = false, finished = false;
 let rafId = null, lastT = 0, wheelAngle = 0;
 let targetLane = 1, laneVis = 1, idleT = 0, nearFinish = false;
 let bodyTilt = 0, prevV = 0, freezeUntil = 0, starCombo = 0, lastStarT = 0, lastShownTime = -1;
-let wheelEls = [], mudEl = null;
+let wheelEls = [], drumEls = [], drumAngle = 0, inTwistNow = false, mudEl = null;
 let celebrateTimer = null, tallyTimer = null, rateTimers = [];
 const roadPointers = new Map();   /* pointerId -> last x (for swipe lane changes) */
 const gasPointers = new Set(), brakePointers = new Set();
@@ -6885,6 +7081,7 @@ function setHeadlights(on) {
 function mountCar() {
   carWrap.innerHTML = vehicleRearSVG(state);
   wheelEls = carWrap.querySelectorAll(".treadRoll");
+  drumEls = carWrap.querySelectorAll(".drum");
   mudEl = carWrap.querySelector(".mudSpots");
   setHeadlights(worldMeta(curWorld()).dark);
 }
@@ -6894,6 +7091,7 @@ function startDrive() {
   gasKey = false; brakeKey = false;
   targetLane = 1; laneVis = 1; runStars = 0; runDamage = 0; runTime = 0; idleT = 0; nearFinish = false;
   bodyTilt = 0; prevV = 0; freezeUntil = 0; starCombo = 0; lastStarT = 0; lastShownTime = -1;
+  rollOK = !reducedMotion(); inTwistNow = false; drumAngle = 0;
   laneShown = -1; tickLane(); showSwipeHint(!freeMode && !paradeMode);
   speedLines.style.opacity = 0;
   roadPointers.clear(); gasPointers.clear(); brakePointers.clear();
@@ -7506,7 +7704,8 @@ function tick(now) {
     const onRamp = rampElev(carX);
     jumpY = onRamp;
     if (wasOn && onRamp === 0) {
-      airborne = true; vy = v * 0.9 * springK(); jumpY = 95;
+      const L = rampLaunch(rampBehind(carX), v);   /* each ramp kind kicks by its own numbers */
+      airborne = true; vy = L.vy * springK(); jumpY = L.y;
       sfx.whee();                                   /* every launch gets its whee */
       award("jump");
     }
@@ -7521,6 +7720,16 @@ function tick(now) {
   /* wheels */
   wheelAngle = (wheelAngle + v * dt * 0.045) % 7;   /* tread bands are 7 apart */
   wheelEls.forEach(w => w.style.transform = `translateY(${wheelAngle.toFixed(1)}px)`);
+  /* the mixer drum churns with the road speed: a lazy turn when parked, a blur flat out */
+  if (drumEls.length && rollOK) {
+    drumAngle = (drumAngle + dt * (40 + v * 0.95)) % 360;
+    drumEls.forEach(d => d.style.transform = `rotate(${drumAngle.toFixed(1)}deg)`);
+  }
+  /* into a corkscrew: a rising swirl; through a hard turn at speed: the tires howl */
+  const twNow = inTwist(carX);
+  if (twNow && !inTwistNow) sfx.corkscrew();
+  inTwistNow = twNow;
+  if (!airborne && v > 450 && Math.abs(curvAt(carX)) >= HARD_K) sfxSquealThrottle();
 
   /* body dynamics: lean back on the gas, dive on the brake, bank through lane changes */
   const accel = dt > 0 ? (v - prevV) / dt : 0;
@@ -8621,8 +8830,8 @@ function eventFinish(n) {
   PROP_HIT.rollingDonut = softBonk;
 
   /* ---- roads: drag strips into tight hairpins / swoopy esses ---- */
-  WORLD_ROAD[9]  = { k: CURVE.tight * 0.95, hp: 1.2, len: 0.85, gap: 0.75, order: ["drag", "hairpins", "chicanes", "drag", "hairpins", "wiggle", "spiral", "drag", "hairpins", "tour"] };
-  WORLD_ROAD[10] = { k: CURVE.medium * 1.15, hp: 0.8, len: 1.2, gap: 1.0, order: ["esses", "wiggle", "esses", "twin", "spiral", "esses", "chicanes", "esses", "hairpins", "tour"] };
+  WORLD_ROAD[9]  = { k: CURVE.tight * 0.95, hp: 1.2, len: 0.85, gap: 0.75, order: ["drag", "hairpins", "chicanes", "switchback", "hairpins", "roller", "spiral", "corkscrew", "hairpins", "tour"] };
+  WORLD_ROAD[10] = { k: CURVE.medium * 1.15, hp: 0.8, len: 1.2, gap: 1.0, order: ["esses", "wiggle", "roller", "zigzag", "spiral", "corkscrew", "chicanes", "esses", "hairpins", "tour"] };
 
   /* ---- beats ---- */
   defBeat("lavaHop", "world9", 81, (b, x) => {   /* the cool ridge steps one lane at a time (stars mark it); lava domes fill the lanes it
@@ -8958,8 +9167,8 @@ function eventFinish(n) {
   };
 
   /* ---- courses ---- */
-  WORLD_ROAD[11] = { k: CURVE.gentle * 1.5, hp: 0.6, len: 1.5, gap: 1.1, order: ["esses", "sweeper", "twin", "esses", "spiral", "wiggle", "esses", "bookends", "hairpins", "tour"] };   /* deep sea: long lazy esses through the tunnel */
-  WORLD_ROAD[12] = { k: CURVE.medium * 1.1, hp: 1.1, len: 0.9, gap: 0.8, order: ["chicanes", "spiral", "hairpins", "wiggle", "chicanes", "esses", "spiral", "hairpins", "chicanes", "tour"] };   /* sky kingdom: everything, tight */
+  WORLD_ROAD[11] = { k: CURVE.gentle * 1.5, hp: 0.6, len: 1.5, gap: 1.1, order: ["esses", "sweeper", "twin", "corkscrew", "spiral", "zigzag", "roller", "bookends", "hairpins", "tour"] };   /* deep sea: long lazy esses through the tunnel */
+  WORLD_ROAD[12] = { k: CURVE.medium * 1.1, hp: 1.1, len: 0.9, gap: 0.8, order: ["chicanes", "spiral", "hairpins", "zigzag", "chicanes", "corkscrew", "spiral", "switchback", "chicanes", "tour"] };   /* sky kingdom: everything, tight */
 
   /* ---- world beats ---- */
   defBeat("jellyBloom", "world11", 101, (b, x) => {   /* jellies drift between lanes, stars on the clear sides */

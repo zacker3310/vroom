@@ -21,7 +21,7 @@ table of contents sits at the top of the script). No build, no dependencies, no 
 ```bash
 python3 -m http.server 4173              # serve; the page must be served, not opened from disk
 npm ci && npx playwright-core install chromium
-npm test                                 # 22 suites; serves on its own free port, appends ?garage
+npm test                                 # 23 suites; serves on its own free port, appends ?garage
 node tests/lint.cjs                      # ESLint over the inline script, must be 0 findings
 npm run shots                            # regenerate docs/*.png (needs the server + a Chromium)
 ```
