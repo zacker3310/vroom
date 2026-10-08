@@ -43,7 +43,12 @@
 | Worlds | |
 |---|---|
 | ![Deep Sea: a glass tunnel on the seabed under a whale-bone arch, dolphins overhead](docs/sea.png) | ![Sky Kingdom: the cloud causeway with floating castles under a rainbow](docs/sky.png) |
-| ![Rain world: a rainbow over the city after the lightning, driving under a sign gantry](docs/rain.png) | ![The world map with the day's surprises: a sleeping dino on one level, a rainbow, a weather badge on a world tab](docs/map.png) |
+| ![Rain world: a corkscrew of hoops waiting under a rainbow over the city](docs/rain.png) | ![The world map with the day's surprises: a sleeping dino on one level, a rainbow, a weather badge on a world tab](docs/map.png) |
+
+| Wild roads | |
+|---|---|
+| ![A corkscrew: the world rolls around the car through a tunnel of red and yellow hoops](docs/corkscrew.png) | ![A desert switchback: red chevron boards on the outside of a hard turn](docs/hardturn.png) |
+| ![The big red mega ramp dead ahead under the construction gantry](docs/megaramp.png) | |
 
 | Album | Results |
 |---|---|
