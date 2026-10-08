@@ -77,10 +77,10 @@ function check(name, ok, detail) {
     }), attr);
     await page.screenshot({ path: SHOT + 'garage-tab-' + cat + '.png' });
   }
-  const want = { body: 23, wheels: 14, color: 23, decal: 10, extras: 12, work: 3 };
+  const want = { body: 23, wheels: 14, color: 23, decal: 10, extras: 12, work: 5 };
   const typedWant = { ...want, decal: 9 };   /* the sticker tab leads with the race-number tile (data-act) */
   const badCounts = Object.keys(want).filter(c => counts[c].n !== want[c] || counts[c].typed !== typedWant[c] || counts[c].sel !== c);
-  check('tabs: body 23 / wheels 14 / paint 23 / number + 9 stickers / extras 12 / workbench 3', badCounts.length === 0, JSON.stringify(counts));
+  check('tabs: body 23 / wheels 14 / paint 23 / number + 9 stickers / extras 12 / workbench 5', badCounts.length === 0, JSON.stringify(counts));
   check('tabs: a tab switch pops its tiles in (popIn .enter stagger)', Object.values(counts).every(c => c.entered === c.n));
 
   /* workbench grows repair + wash tiles when the truck needs them */
@@ -92,7 +92,7 @@ function check(name, ok, detail) {
       dot: document.querySelector('.catTab[data-cat="work"]').classList.contains('needs'), arrowsOff: document.getElementById('stripNext').classList.contains('off')
     };
   });
-  check('workbench: repair (6) + wash tiles appear with damage + mud, wrench tab dot on, arrows hidden (all fits)', work.tiles === 5 && work.repair && work.wash && work.price === '6' && work.dot && work.arrowsOff, JSON.stringify(work));
+  check('workbench: repair (6) + wash tiles appear with damage + mud, wrench tab dot on, arrows hidden (all fits)', work.tiles === 7 && work.repair && work.wash && work.price === '6' && work.dot && work.arrowsOff, JSON.stringify(work));
   await page.screenshot({ path: SHOT + 'garage-workbench-repair-wash.png' });
   await page.evaluate(() => { progress.damage = 0; progress.muddy = false; save(); renderPreview(); renderUpkeep(); });
 

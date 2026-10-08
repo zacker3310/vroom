@@ -188,7 +188,7 @@ function check(name, ok, detail) {
     const after = vmaxEff();
     return { before, after, lvl: progress.upgrades.engine, wallet: progress.wallet };
   });
-  check('upgrade: engine L1 costs 20, vmax 700->780', upg.before === 700 && upg.after === 780 && upg.lvl === 1 && upg.wallet === 180, JSON.stringify(upg));
+  check('upgrade: engine L1 costs 60, vmax 700->780', upg.before === 700 && upg.after === 780 && upg.lvl === 1 && upg.wallet === 140, JSON.stringify(upg));
 
   const armor = await page.evaluate(async () => {
     (k => { openTab('work', false); const t = document.querySelector(`.tile[data-upg="${k}"]`); t.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 300, clientY: 600 })); t.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: 300, clientY: 600 })); })('armor');   /* tap the armor tile on the workbench tab */

@@ -58,7 +58,7 @@ unicorn 280, dragon 300, and from 12.5 the three aspirational accessories: `jetp
 `disco` wheels 220 and the `trophyrack` 260 that shows the kid's best five medals as cups),
 then the 400-star race number and the 1000-star hover ship as the long goals. Upkeep (fuel,
 tires, repairs) is priced per unit so a few stars always fix something. Every part in
-`PRICES` adds up to 6,715 stars (7,500 with the race number and the three upgrade ladders),
+`PRICES` adds up to 6,715 stars (about 9,500 with the race number and the five workbench ladders: engine 60/150/350, armor 50/120/300, magnet 40/100/250, tank 50/120/300, springs 50/120/300),
 and a level pays out its collected stars plus the finish and shine bonuses, so owning
 everything is roughly a tour of all twelve worlds.
 
@@ -309,11 +309,12 @@ MSB-first bit fields, in order:
 | 4 × levels | per level: rating (2 bits, 0 = unplayed) and medal rank (2 bits: C B A S) |
 | 4, 4 | tail (12.2): fuel and tread, whole units rounded up; a code that ends before it reads as full |
 | 7 | tail (12.3): race number + 1, 0 = none; absent on older codes |
+| 2, 2 | tail (12.7): tank and springs pips; absent on older codes |
 
 Because every list is count-prefixed, a pack may **append** to any catalog list and older
 codes still decode (shorter lists read fewer bits); reordering would silently swap parts.
-With today's catalog a code is exactly 94 bytes (the layout is fixed-size once the catalog
-is), 126 base64url characters after the prefix; the hosted URL plus the code is 174 bytes
+With today's catalog a code is exactly 95 bytes (the layout is fixed-size once the catalog
+is), 127 base64url characters after the prefix; the hosted URL plus the code is 175 bytes
 and lands in QR version 8 (49x49 modules).
 
 ### Versions 1 and 2 (read-only)

@@ -109,6 +109,10 @@
 - [x] T18.5: Glyphs. The engine upgrade is a speedometer with the needle pinned (the flame read as fire, not speed); the dice button is a pair of crossing shuffle arrows.
 - [x] T18.3: Swipe steering. The slider is gone; a swipe anywhere on the road changes lanes (70 px per lane, long swipes walk several). A lane-dot pill bottom-left shows the lane; two breathing chevrons beside the car hint the swipe on levels 1-2 until the first steer. verify.cjs covers a right swipe and a two-lane left swipe. 22 suites, 368/368.
 
+## v12.7 (2026-10-08, user-directed: "upgrades way more expensive, two more items")
+
+- [x] T19.1: Ladders. Engine 60/150/350, armor 50/120/300, magnet 40/100/250 (were 20/40/80 and 15/30/60). Two new workbench upgrades: tank (+2 fuel units per pip via `fuelMax()`, filled on purchase) and springs (`springK()` scales launch speed and gravity together, so jumps go 18% higher per pip and land where the level designer cleared). Both pips ride a 4-bit v3 save-code tail (95 bytes). upkeep-check +3. 22 suites, 371/371.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

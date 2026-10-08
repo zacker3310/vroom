@@ -33,7 +33,7 @@ function check(name, ok, detail) {
     return { fuel: progress.fuel, tread: progress.tread, max: [FUEL_MAX, TREAD_MAX], tiles: document.querySelectorAll('#strip .tile').length,
       dot: document.querySelector('.catTab[data-cat="work"]').classList.contains('needs') };
   });
-  check('fresh: full tank + fresh tires (8/8), workbench shows only the 3 upgrades, no wrench dot', fresh.fuel === 8 && fresh.tread === 8 && fresh.tiles === 3 && !fresh.dot, JSON.stringify(fresh));
+  check('fresh: full tank + fresh tires (8/8), workbench shows only the 5 upgrades, no wrench dot', fresh.fuel === 8 && fresh.tread === 8 && fresh.tiles === 5 && !fresh.dot, JSON.stringify(fresh));
 
   /* ---- 2. gauges on the HUD: one combined chip in the fuel slot while nothing is low, >= 64px, clear of the pedal ---- */
   const hud = await page.evaluate(() => {
@@ -162,7 +162,7 @@ function check(name, ok, detail) {
     const r2 = { dot: q('.catTab[data-cat="work"]').classList.contains('needs'), urgent: q('#strip .tile[data-act="fuel"]').classList.contains('urgent') };
     return { r1, r2 };
   });
-  check('bench: fuel (5) + tires (3) tiles ahead of the upgrades, no dot above the low line', bench.r1.tiles === 5 && bench.r1.fuelPrice === '5' && bench.r1.tirePrice === '3' && !bench.r1.dot && !bench.r1.urgent && bench.r1.order === 'fuel,tires,engine,armor,magnet', JSON.stringify(bench.r1));
+  check('bench: fuel (5) + tires (3) tiles ahead of the upgrades, no dot above the low line', bench.r1.tiles === 7 && bench.r1.fuelPrice === '5' && bench.r1.tirePrice === '3' && !bench.r1.dot && !bench.r1.urgent && bench.r1.order === 'fuel,tires,engine,armor,magnet,tank,springs', JSON.stringify(bench.r1));
   check('bench: low fuel lights the wrench dot and pulses the fuel tile', bench.r2.dot && bench.r2.urgent, JSON.stringify(bench.r2));
   await page.screenshot({ path: SHOT + 'uk-bench.png' });
 
@@ -188,14 +188,32 @@ function check(name, ok, detail) {
   check('buy: 2 stars buys 2 glugs (3 -> 5), broke = deny shake, nothing taken', buy.b.fuel === 5 && buy.b.wallet === 0 && buy.c.fuel === 5 && buy.c.wallet === 0 && buy.c.deny, JSON.stringify([buy.b, buy.c]));
   check('buy: tires are all-or-nothing: 2 stars denied, 3 stars -> fresh set, tile gone', buy.d.tread === 5 && buy.d.wallet === 2 && buy.e.tread === 8 && buy.e.wallet === 7 && !buy.e.tile, JSON.stringify([buy.d, buy.e]));
 
+  /* ---- 10b. the tank and springs ladders (12.7) ---- */
+  const ladders = await page.evaluate(() => {
+    progress.wallet = 1000; progress.fuel = 8; progress.upgrades.tank = 0; progress.upgrades.springs = 0; renderUpkeep(); openTab('work', false);
+    const prices = Object.fromEntries(Object.keys(UPG).map(k => [k, UPG[k].prices.join('/')]));
+    const max0 = fuelMax();
+    buyUpgrade('tank', document.querySelector('#strip .tile[data-upg="tank"]'));
+    const afterTank = { max: fuelMax(), fuel: progress.fuel, wallet: progress.wallet, missing: fuelMissing() };
+    const ks = [0, 1, 2, 3].map(n => { progress.upgrades.springs = n; return +springK().toFixed(2); });
+    progress.upgrades.springs = 2;
+    const code = packCompact(), out = unpackCompact(code.slice(7));
+    progress.upgrades.springs = 0;
+    return { prices, max0, afterTank, ks, code: { tank: out.upgrades.tank, springs: out.upgrades.springs } };
+  });
+  check('ladders: engine 60/150/350, armor 50/120/300, magnet 40/100/250, tank 50/120/300, springs 50/120/300', ladders.prices.engine === '60/150/350' && ladders.prices.armor === '50/120/300' && ladders.prices.magnet === '40/100/250' && ladders.prices.tank === '50/120/300' && ladders.prices.springs === '50/120/300', JSON.stringify(ladders.prices));
+  check('tank: pip one pays 50, tank 8 -> 10 and the new space comes filled (fuel 10, nothing missing)', ladders.max0 === 8 && ladders.afterTank.max === 10 && ladders.afterTank.fuel === 10 && ladders.afterTank.wallet === 950 && ladders.afterTank.missing === 0, JSON.stringify(ladders.afterTank));
+  check('springs: launch scale 1 / 1.18 / 1.36 / 1.54 by pip; tank + springs ride the v3 tail (1, 2)', ladders.ks.join(',') === '1,1.18,1.36,1.54' && ladders.code.tank === 1 && ladders.code.springs === 2, JSON.stringify([ladders.ks, ladders.code]));
+  await page.evaluate(() => { progress.upgrades.tank = 0; progress.fuel = Math.min(8, progress.fuel); renderUpkeep(); });
+
   /* ---- 11. persistence: localStorage + save code tail; older saves/codes read as full ---- */
   const persist = await page.evaluate(() => {
     progress.fuel = 3.4; progress.tread = 6; save();
     const code = packCompact();
     const out = unpackCompact(code.slice('VROOM1.'.length));
-    /* a pre-12.2 v3 code ends at the level run: drop the two-byte tail (fuel/tread + race number) */
+    /* a pre-12.2 v3 code ends at the level run: drop the three-byte tail (fuel/tread, race number, tank/springs) */
     const bytes = b64url.dec(code.slice('VROOM1.'.length));
-    const old = unpackCompact(b64url.enc(bytes.slice(0, bytes.length - 2)));
+    const old = unpackCompact(b64url.enc(bytes.slice(0, bytes.length - 3)));   /* the whole 12.2+ tail: fuel/tread, number, tank/springs */
     return { fuel: out && out.fuel, tread: out && out.tread, oldFuel: old && old.fuel, oldOk: !!old && old.wallet === progress.wallet };
   });
   check('save code: v3 tail carries fuel 4 (ceil 3.4) + tread 6; a tail-less older code still decodes with no gauges', persist.fuel === 4 && persist.tread === 6 && persist.oldFuel === undefined && persist.oldOk, JSON.stringify(persist));

@@ -1691,7 +1691,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "12.6.2";
+const APP_VERSION = "12.7.0";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -1746,11 +1746,17 @@ function isSecret(kind, id) { return !!(SECRET_PARTS[kind] && SECRET_PARTS[kind]
 function owns(kind, id) { return (priceOf(kind, id) === 0 && !isSecret(kind, id)) || progress.owned[kind].includes(id); }
 
 /* upgrade tracks: 3 levels each; repair costs 2 stars per damage point */
+/* workbench ladders (12.7): pip one is a few levels of saving, pip two a world, pip three competes with the
+   400-star number and the 1000-star hover ship */
 const UPG = {
-  engine: { prices: [20, 40, 80] },   /* +80 top speed per level */
-  armor:  { prices: [20, 40, 80] },   /* each pip raises the per-point block chance: 50 / 65 / 80% (ARMOR_BLOCK) */
-  magnet: { prices: [15, 30, 60] }    /* wider star pull per level */
+  engine:  { prices: [60, 150, 350] },   /* +80 top speed per level */
+  armor:   { prices: [50, 120, 300] },   /* each pip raises the per-point block chance: 50 / 65 / 80% (ARMOR_BLOCK) */
+  magnet:  { prices: [40, 100, 250] },   /* wider star pull per level */
+  tank:    { prices: [50, 120, 300] },   /* +2 units of fuel tank per level (fuelMax) */
+  springs: { prices: [50, 120, 300] }    /* higher jumps per level, same landing spot (springK) */
 };
+const fuelMax = () => FUEL_MAX + 2 * (progress.upgrades.tank || 0);
+const springK = () => 1 + 0.18 * (progress.upgrades.springs || 0);
 const MAX_DAMAGE = 9, REPAIR_RATE = 2;
 /* upkeep: one tank and one set of tires, 8 units each. A tank lasts about 24 levels (a unit per 3 levels of
    road), tires about 48 levels, and a hard hit scuffs 1/6 of a unit of tread. Running dry never strands the kid:
@@ -1840,7 +1846,7 @@ function numberSVG(n, cls = "") {
 }
 let progress = { wallet: 0, owned: { body: [], wheels: [], color: [], extras: [], buddy: [], decal: [] }, levels: {}, current: 1,
                  muddy: false, fuel: FUEL_MAX, tread: TREAD_MAX,
-                 damage: 0, upgrades: { engine: 0, armor: 0, magnet: 0 }, quiet: false,
+                 damage: 0, upgrades: { engine: 0, armor: 0, magnet: 0, tank: 0, springs: 0 }, quiet: false,
                  badges: [], photos: [], lastGift: "" };   /* lastGift: local date of the last daily gift (localStorage only) */
 
 /* ---- profiles: up to 3 kids, identified by a buddy-face avatar, no reading ---- */
@@ -1913,11 +1919,12 @@ function loadState() {
       p && p.b && p.b.extras && BODY_ORDER.includes(p.b.body) && WHEEL_ORDER.includes(p.b.wheels) && COLORS.includes(p.b.color));
   }
   if (Number.isFinite(saved.damage)) progress.damage = Math.min(MAX_DAMAGE, Math.max(0, Math.floor(saved.damage)));
-  progress.fuel = Number.isFinite(saved.fuel) ? Math.min(FUEL_MAX, Math.max(0, saved.fuel)) : FUEL_MAX;      /* older saves: full tank */
+  progress.fuel = Number.isFinite(saved.fuel) ? Math.min(FUEL_MAX + 6, Math.max(0, saved.fuel)) : FUEL_MAX;   /* clamped to fuelMax() below, once the tank pips are in */      /* older saves: full tank */
   progress.tread = Number.isFinite(saved.tread) ? Math.min(TREAD_MAX, Math.max(0, saved.tread)) : TREAD_MAX;
-  if (saved.upgrades) for (const k of ["engine", "armor", "magnet"]) {
+  if (saved.upgrades) for (const k of Object.keys(UPG)) {
     if (Number.isFinite(saved.upgrades[k])) progress.upgrades[k] = Math.min(3, Math.max(0, Math.floor(saved.upgrades[k])));
   }
+  progress.fuel = Math.min(fuelMax(), progress.fuel);
   progress.lastGift = typeof saved.lastGift === "string" ? saved.lastGift : "";
   /* if the saved build uses a part that is no longer owned somehow, fall back */
   if (!owns("body", state.body)) state.body = "dump";
@@ -3848,6 +3855,8 @@ let curCat = "body", stripColor = null, tabFadeT = null;
 const TILE_SND = { body: () => sfx.pop(), wheels: () => sfx.clank(), color: () => sfx.splat(), decal: () => sfx.splat() };
 
 const UPG_ICON = {
+  tank:    `<svg class="glyph" viewBox="0 0 64 64"><rect x="10" y="16" width="34" height="42" rx="7" fill="#e63946" stroke="#9b2226" stroke-width="3"/><rect x="18" y="10" width="14" height="8" rx="3" fill="#9b2226"/><path d="M44 26 h5 a4 4 0 0 1 4 4 v16 a3 3 0 0 0 6 0 V32 l-4 -4" stroke="#6c757d" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M27 28 V46 M18 37 H36" stroke="#fff" stroke-width="6" stroke-linecap="round"/></svg>`,
+  springs: `<svg class="glyph" viewBox="0 0 64 64"><rect x="14" y="6" width="36" height="8" rx="4" fill="#adb5bd"/><rect x="14" y="50" width="36" height="8" rx="4" fill="#adb5bd"/><path d="M20 14 L44 20 L20 26 L44 32 L20 38 L44 44 L20 50" stroke="#ffd60a" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 30 L2 24 M8 30 L2 36 M56 30 L62 24 M56 30 L62 36" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg>`,
   engine: `<svg class="glyph" viewBox="0 0 64 64"><path d="M8 44 A24 24 0 1 1 56 44" stroke="#fff" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M38 44 A24 24 0 0 1 56 44" stroke="#ff9f1c" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M32 46 L47 24" stroke="#ffd60a" stroke-width="6" stroke-linecap="round"/><circle cx="32" cy="46" r="6" fill="#ffd60a" stroke="#fff" stroke-width="3"/></svg>`,
   armor:  `<svg class="glyph" viewBox="0 0 64 64"><path d="M32 4 L56 14 V32 Q56 52 32 60 Q8 52 8 32 V14 Z" fill="#bde0fe" stroke="#1d3557" stroke-width="4"/><path d="M22 32 L30 40 L44 24" stroke="#1d3557" stroke-width="6" fill="none" stroke-linecap="round"/></svg>`,
   magnet: `<svg class="glyph" viewBox="0 0 64 64"><path d="M14 8 H28 V30 Q28 38 32 38 Q36 38 36 30 V8 H50 V30 Q50 52 32 52 Q14 52 14 30 Z" fill="#e63946"/><rect x="14" y="8" width="14" height="10" fill="#f1faee"/><rect x="36" y="8" width="14" height="10" fill="#f1faee"/><path d="M50 56 L54 60 M32 56 V62 M14 56 L10 60" stroke="#ffd60a" stroke-width="4" stroke-linecap="round"/></svg>`
@@ -4114,7 +4123,8 @@ function buyUpgrade(k, tile) {
   if (progress.wallet >= price) {
     progress.wallet -= price;
     progress.upgrades[k]++;
-    save(); renderWallets(true); renderUpgrades(); renderShop();
+    if (k === "tank") progress.fuel = Math.min(fuelMax(), progress.fuel + 2);   /* the new tank space comes filled */
+    save(); renderWallets(true); renderUpgrades(); renderShop(); renderUpkeep();
     sfx.buy(); confettiBurst(garageScene, 24);
   } else {
     walletDeny();
@@ -4123,7 +4133,7 @@ function buyUpgrade(k, tile) {
 }
 /* the wrench tab wears a pulsing dot while anything on the bench needs doing */
 const workTab = document.querySelector('.catTab[data-cat="work"]');
-const fuelMissing = () => Math.ceil(FUEL_MAX - progress.fuel - 1e-9);
+const fuelMissing = () => Math.ceil(fuelMax() - progress.fuel - 1e-9);
 const treadMissing = () => Math.ceil(TREAD_MAX - progress.tread - 1e-9);
 const ACT_COST = { repair: () => progress.damage * REPAIR_RATE, fuel: () => fuelMissing() * FUEL_RATE, tires: () => treadMissing() * TIRE_RATE, number: () => NUMBER_PRICE };
 function needsWork() { return progress.damage > 0 || progress.muddy || progress.fuel <= FUEL_LOW || progress.tread <= TREAD_LOW; }
@@ -4150,8 +4160,8 @@ function doRefuel(tile) {
   const units = Math.min(fuelMissing(), Math.floor(progress.wallet / FUEL_RATE));
   if (units <= 0) { denyTile(tile); return; }
   progress.wallet -= units * FUEL_RATE;
-  progress.fuel = Math.min(FUEL_MAX, progress.fuel + units);
-  if (fuelMissing() <= 0) progress.fuel = FUEL_MAX;
+  progress.fuel = Math.min(fuelMax(), progress.fuel + units);
+  if (fuelMissing() <= 0) progress.fuel = fuelMax();
   for (let i = 0; i < Math.min(units, 6); i++) tone("sine", 220 + i * 40, 320 + i * 40, 0.12, 0.16, i * 0.09);   /* glug glug */
   save(); renderWallets(true); renderUpkeep();
   if (fuelMissing() <= 0) { sfx.fixed(); confettiBurst(garageScene, 16); }
@@ -4537,6 +4547,7 @@ function packCompact() {
   /* v3 tail (appended 12.2): whole units of fuel + tread; a code without the tail reads as full */
   pushBits(Math.ceil(progress.fuel), 4); pushBits(Math.ceil(progress.tread), 4);
   pushBits(state.number ? parseInt(state.number, 10) + 1 : 0, 7);   /* 12.3: race number, 0 = none */
+  pushBits(progress.upgrades.tank, 2); pushBits(progress.upgrades.springs, 2);   /* 12.7: the two newer ladders */
   const bytes = new Uint8Array(Math.ceil(bits.length / 8));
   bits.forEach((b, i) => { if (b) bytes[i >> 3] |= 128 >> (i & 7); });
   return "VROOM1." + b64url.enc(bytes);
@@ -4581,8 +4592,9 @@ function unpackCompact(code) {
       if (rating && n <= MAX_LEVEL) out.levels[n] = { best: 0, rating, tier: TIER_OF[tr] };
     }
     if (pos > bytes.length * 8) return null;
-    if (pos + 8 <= bytes.length * 8) { out.fuel = Math.min(FUEL_MAX, read(4)); out.tread = Math.min(TREAD_MAX, read(4)); }
+    if (pos + 8 <= bytes.length * 8) { out.fuel = Math.min(FUEL_MAX + 6, read(4)); out.tread = Math.min(TREAD_MAX, read(4)); }
     if (pos + 7 <= bytes.length * 8) { const n = read(7); if (n) out.build.number = String(Math.min(99, n - 1)); }
+    if (pos + 4 <= bytes.length * 8) { out.upgrades.tank = read(2); out.upgrades.springs = read(2); }   /* 12.7 tail */
     return out;
   }
   const buddyIdx = read(3);
@@ -7468,7 +7480,7 @@ function tick(now) {
 
   /* ramp + jump */
   if (airborne) {
-    vy -= gravityNow() * dt;   /* space world: floaty low-gravity jumps */
+    vy -= gravityNow() * springK() * dt;   /* space world: floaty low-gravity jumps; springs scale both ways so airtime and landing stay put */
     jumpY += vy * dt;
     if (jumpY <= 0) {
       jumpY = 0; airborne = false; sfx.clank();
@@ -7482,7 +7494,7 @@ function tick(now) {
     const onRamp = rampElev(carX);
     jumpY = onRamp;
     if (wasOn && onRamp === 0) {
-      airborne = true; vy = v * 0.9; jumpY = 95;
+      airborne = true; vy = v * 0.9 * springK(); jumpY = 95;
       sfx.whee();                                   /* every launch gets its whee */
       award("jump");
     }

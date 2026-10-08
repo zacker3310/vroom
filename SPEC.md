@@ -113,7 +113,8 @@ stripe) is painted on a canvas each frame; roadside set pieces rush past on both
   the eighth album sticker. Puddles and bonks during the run cost it, so garage care pays
   out on the road.
 - **Garage upgrades** (star-paid, 3 pips each): engine (+80 top speed/level),
-  shield (each pip raises the chance a point of damage bounces off: 50 / 65 / 80%, never perfect; a held hit pings with a blue flash), star magnet (wider pull/level).
+  tank (+2 units of fuel per pip, the new space comes filled), springs (jumps 18% higher per pip, same
+  landing spot), shield (each pip raises the chance a point of damage bounces off: 50 / 65 / 80%, never perfect; a held hit pings with a blue flash), star magnet (wider pull/level).
 - **Keyboard**: WASD or arrows steer (W/S = lanes), D/->/space = gas, A/<- = brake.
 - **Surprise capsules** (v4.3): wrapped gift boxes on the road (1-2 per level from level 2,
   common in free drive). Driving into one pops it: weighted prize roll of +3 stars, +8 stars,

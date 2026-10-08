@@ -121,7 +121,7 @@ function check(name, ok, detail) {
     const body = code.slice('VROOM1.'.length);
     const out = unpackCompact(body);
     const bytes = b64url.dec(body);
-    const old = unpackCompact(b64url.enc(bytes.slice(0, bytes.length - 1)));   /* a 12.2 code: fuel/tread tail, no number */
+    const old = unpackCompact(b64url.enc(bytes.slice(0, bytes.length - 2)));   /* a 12.2 code: fuel/tread tail only (the number + ladder bytes cut) */
     return { number: state.number, code: out.build.number, oldNumber: old && old.build.number, oldFuel: old && old.fuel, bytes: bytes.length };
   });
   check('save: 42 survives reload and rides the v3 tail; a 12.2 code decodes with no number', persist.number === '42' && persist.code === '42' && persist.oldNumber === '' && persist.oldFuel === 8, JSON.stringify(persist));

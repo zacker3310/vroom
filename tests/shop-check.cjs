@@ -230,7 +230,7 @@ function check(name, ok, detail) {
       ownExtras: out.owned.extras.join(','), ownBuddy: out.owned.buddy.join(','), ownDecal: out.owned.decal.includes('flower'),
       bytes: Math.floor((code.length - 'VROOM1.'.length) * 6 / 8), chars: code.length - 'VROOM1.'.length, url: (SAVE_URL_PREFIX + code).length };
   });
-  check('code v3: hover + crystal + spoiler/bubbles/jetpack + frog + flower round-trip (disco + trophy rack owned), 94 bytes', rt.prefix === 'VROOM1.' && rt.body === 'hover' && rt.wheels === 'crystal' && rt.buddy === 'frog' && rt.decal === 'flower' && rt.extras === 'spoiler,bubbles,jetpack' && rt.ownBody && rt.ownWheel && rt.ownDisco && rt.ownExtras === 'spoiler,bubbles,jetpack,trophyrack' && rt.ownBuddy === 'frog' && rt.ownDecal && rt.bytes === 94, JSON.stringify(rt));
+  check('code v3: hover + crystal + spoiler/bubbles/jetpack + frog + flower round-trip (disco + trophy rack owned), 95 bytes', rt.prefix === 'VROOM1.' && rt.body === 'hover' && rt.wheels === 'crystal' && rt.buddy === 'frog' && rt.decal === 'flower' && rt.extras === 'spoiler,bubbles,jetpack' && rt.ownBody && rt.ownWheel && rt.ownDisco && rt.ownExtras === 'spoiler,bubbles,jetpack,trophyrack' && rt.ownBuddy === 'frog' && rt.ownDecal && rt.bytes === 95, JSON.stringify(rt));
   /* reload applies it: the equipped hover build survives through loadState's catalog validation */
   await page.reload(); await page.waitForTimeout(500);
   const persisted = await page.evaluate(() => ({ body: state.body, wheels: state.wheels, buddy: state.buddy, decal: state.decal, bubbles: state.extras.bubbles, spoiler: state.extras.spoiler }));
