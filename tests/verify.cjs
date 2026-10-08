@@ -160,20 +160,25 @@ function check(name, ok, detail) {
   check('drive: gas pedal accelerates', moving.v > 300 && moving.pos > 100, JSON.stringify(moving));
   await page.mouse.up();
 
-  const sliderBox = await page.locator('#steerSlider').boundingBox();
-  await page.mouse.click(sliderBox.x + sliderBox.width * 0.85, sliderBox.y + sliderBox.height / 2);
-  await page.waitForTimeout(350);
-  let lane = await page.evaluate(() => ({ t: targetLane, vis: laneVis, knob: parseFloat(steerKnob.style.left), stop: [...steerStops].findIndex(s => s.classList.contains('on')) }));
-  check('drive: tapping the right end of the steering slider moves to the right lane, knob + stop follow', lane.t === 2 && Math.abs(lane.vis - 2) < 0.1 && lane.knob > 250 && lane.stop === 2, JSON.stringify(lane));
-  /* drag: a finger sliding left across the track walks the lanes back to 0 */
-  await page.mouse.move(sliderBox.x + sliderBox.width * 0.85, sliderBox.y + sliderBox.height / 2);
+  /* steering is a swipe on the road: 70 stage px of sideways drag per lane; the lane dots follow */
+  const stageBox = await page.locator('#stage').boundingBox();
+  const k = stageBox.width / 1200;
+  const roadPt = [stageBox.x + 600 * k, stageBox.y + 420 * k];
+  await page.mouse.move(roadPt[0], roadPt[1]);
   await page.mouse.down();
-  for (let i = 1; i <= 10; i++) await page.mouse.move(sliderBox.x + sliderBox.width * (0.85 - 0.07 * i), sliderBox.y + sliderBox.height / 2);
-  const mid = await page.evaluate(() => ({ t: targetLane, held: steerEl.classList.contains('held') }));
+  for (let i = 1; i <= 6; i++) await page.mouse.move(roadPt[0] + 20 * i * k, roadPt[1]);
   await page.mouse.up();
   await page.waitForTimeout(350);
-  const dragged = await page.evaluate(() => ({ t: targetLane, held: steerEl.classList.contains('held'), knob: parseFloat(steerKnob.style.left) }));
-  check('drive: dragging the slider left walks to the left lane; knob settles on it on release', mid.held && dragged.t === 0 && !dragged.held && dragged.knob < 80, JSON.stringify({ mid, dragged }));
+  let lane = await page.evaluate(() => ({ t: targetLane, vis: laneVis, dot: [...document.querySelectorAll('#laneDots i')].findIndex(d => d.classList.contains('on')), slider: !!document.getElementById('steerSlider'), hint: swipeHintEl.classList.contains('show') }));
+  check('drive: a 120px swipe right on the road moves to the right lane, lane dot follows, no slider, hint gone after the first steer', lane.t === 2 && Math.abs(lane.vis - 2) < 0.1 && lane.dot === 2 && !lane.slider && !lane.hint, JSON.stringify(lane));
+  /* one long swipe left walks two lanes */
+  await page.mouse.move(roadPt[0], roadPt[1]);
+  await page.mouse.down();
+  for (let i = 1; i <= 10; i++) await page.mouse.move(roadPt[0] - 16 * i * k, roadPt[1]);
+  await page.mouse.up();
+  await page.waitForTimeout(350);
+  const dragged = await page.evaluate(() => ({ t: targetLane, dot: [...document.querySelectorAll('#laneDots i')].findIndex(d => d.classList.contains('on')) }));
+  check('drive: a 160px swipe left walks two lanes back to the left lane', dragged.t === 0 && dragged.dot === 0, JSON.stringify(dragged));
   await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('ArrowLeft');
   await page.waitForTimeout(350);

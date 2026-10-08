@@ -453,7 +453,7 @@
   #hudProgress svg { width: 40px; height: 40px; }
   /* during the celebration the run HUD and controls step aside */
   #road.celebrating #hudStars, #road.celebrating #hudLevel, #road.celebrating #hudProgress,
-  #road.celebrating #hudDamage, #road.celebrating #hudFuel, #road.celebrating #hudTires, #road.celebrating #hudUpkeep, #road.celebrating .pedal, #road.celebrating #steerSlider,
+  #road.celebrating #hudDamage, #road.celebrating #hudFuel, #road.celebrating #hudTires, #road.celebrating #hudUpkeep, #road.celebrating .pedal, #road.celebrating #laneDots, #road.celebrating #swipeHint,
   #road.celebrating #homeBtn, #road.celebrating #hudGhost { display: none; }
   /* wallets are fixed width (fits 3 digits) so the row never shifts as stars pile up */
   #garageWallet, #albumWallet, #mapWallet, #celebrateWallet { width: 200px; justify-content: center; padding: 0; box-sizing: border-box; }
@@ -479,27 +479,21 @@
   #brakePedal { right: 196px; bottom: 24px; width: 182px; height: 150px; transform-origin: 50% 0; }
   #brakePedal.held { transform: perspective(500px) rotateX(-30deg) scale(.97); }
 
-  /* steering slider: a three-stop track, the knob sits on the lane you are in.
-     Touch anywhere on the track to pick that lane; drag and the knob follows the finger. */
-  #steerSlider {
-    position: absolute; left: 24px; bottom: 24px; width: 360px; height: 104px; padding: 0;
-    border: 6px solid var(--v-blue-line, #4a94b5); border-radius: 52px; background: var(--v-surface, #fdf6ea);
-    box-shadow: 0 7px 0 var(--v-blue-down, #3f83a2); z-index: 20; cursor: pointer; touch-action: none;
+  /* steering is a swipe anywhere on the road (v12.6); the lane dots bottom-left only show where you are */
+  #laneDots {
+    position: absolute; left: 24px; bottom: 24px; height: 64px; padding: 0 22px; border-radius: 32px; z-index: 20;
+    display: flex; align-items: center; gap: 18px; pointer-events: none;
+    background: rgba(253, 246, 234, .82); border: 5px solid var(--v-surface-line, #e2d2b4); box-shadow: 0 5px 0 rgba(74, 53, 35, .18);
   }
-  #steerSlider .stop {
-    position: absolute; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
-    background: var(--v-blue-line, #4a94b5); opacity: .35;
-  }
-  #steerSlider .stop.on { opacity: 1; background: var(--v-accent-yellow, #ffd60a); }
-  #steerSlider .rail { position: absolute; left: 60px; right: 60px; top: 50%; height: 12px; margin-top: -6px; border-radius: 6px; background: var(--v-blue-line, #4a94b5); opacity: .35; }
-  #steerKnob {
-    position: absolute; left: 0; top: 50%; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%;
-    background: var(--v-accent-blue, #6fc0df); border: 6px solid var(--v-blue-line, #4a94b5);
-    box-shadow: 0 5px 0 var(--v-blue-down, #3f83a2); will-change: transform; pointer-events: none;
-    display: flex; align-items: center; justify-content: center;
-  }
-  #steerKnob svg { width: 58px; height: 58px; }
-  #steerSlider.held #steerKnob { transform: scale(1.08); box-shadow: 0 2px 0 var(--v-blue-down, #3f83a2); }
+  #laneDots i { width: 18px; height: 18px; border-radius: 50%; background: var(--v-mute-line, #b1a082); opacity: .5; transition: transform .18s, background .18s, opacity .18s; }
+  #laneDots i.on { background: var(--v-accent-yellow, #ffd60a); opacity: 1; transform: scale(1.45); box-shadow: 0 0 0 4px rgba(255, 214, 10, .28); }
+  /* first-run swipe hint: two soft chevrons breathing either side of the car on the first levels, gone after the first lane change */
+  #swipeHint { position: absolute; left: 50%; top: 470px; width: 520px; height: 80px; margin-left: -260px; z-index: 18; pointer-events: none; display: none; }
+  #swipeHint.show { display: block; }
+  #swipeHint svg { width: 100%; height: 100%; overflow: visible; }
+  #swipeHint .chev { animation: chevBreathe 1.5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  #swipeHint .chev.r { animation-delay: .75s; }
+  @keyframes chevBreathe { 0%, 100% { opacity: .25; transform: translateX(0); } 50% { opacity: .95; transform: translateX(var(--d, -10px)); } }
   /* soft control gutter lifts the touch layer off the game world */
   #road::before {
     content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 190px; z-index: 15;
@@ -1545,12 +1539,10 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     <div class="chip" id="hudUpkeep" aria-label="fuel and tire tread left"></div>
     <div class="chip" id="hudFuel" aria-label="fuel left"></div>
     <div class="chip" id="hudTires" aria-label="tire tread left"></div>
-    <div id="steerSlider" role="slider" aria-label="steer: slide left or right to pick a lane" aria-valuemin="0" aria-valuemax="2" aria-valuenow="1">
-      <div class="rail"></div>
-      <i class="stop" style="left:60px"></i><i class="stop on" style="left:174px"></i><i class="stop" style="left:288px"></i>
-      <div id="steerKnob">
-        <svg viewBox="0 0 64 64"><path d="M26 18 L12 32 L26 46 M38 18 L52 32 L38 46" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 22 V42" stroke="#ffd60a" stroke-width="7" stroke-linecap="round"/></svg>
-      </div>
+    <div id="laneDots" aria-label="lane: swipe left or right on the road to change"><i></i><i class="on"></i><i></i></div>
+    <div id="swipeHint" aria-hidden="true">
+      <svg viewBox="0 0 520 80"><g class="chev" style="--d:-12px"><path d="M60 14 L28 40 L60 66" stroke="#fff" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g class="chev r" style="--d:12px"><path d="M460 14 L492 40 L460 66" stroke="#fff" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g></svg>
     </div>
     <button class="pedal" id="brakePedal" aria-label="brake">
       <svg viewBox="0 0 182 150"><rect x="78" y="0" width="26" height="40" rx="7" fill="#6c757d"/><rect x="8" y="34" width="168" height="112" rx="26" fill="var(--v-red-down, #a4161a)"/><rect x="6" y="28" width="168" height="108" rx="26" fill="var(--v-accent-red, #e63946)" stroke="var(--v-red-line, #a4161a)" stroke-width="6"/><rect x="26" y="48" width="128" height="9" rx="4.5" fill="#00000026"/><rect x="26" y="68" width="128" height="9" rx="4.5" fill="#00000026"/><rect x="26" y="88" width="128" height="9" rx="4.5" fill="#00000026"/><rect x="26" y="108" width="128" height="9" rx="4.5" fill="#00000026"/><path d="M30 38 H120" stroke="#ffffff66" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
@@ -1696,7 +1688,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "12.5.0";
+const APP_VERSION = "12.6.0";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -5417,23 +5409,29 @@ function partSVG(p, L) {
     const y0 = p.y0 + L, y1 = p.y1 + L, yf = p.y1f + L;
     let out = "";
     const sideAt = x => [vp(x, y0, p.z0), vp(x, y1, p.z0), vp(x, yf, p.z1), vp(x, y0, p.z1)];
-    if (p.x0 > 0) { const f = sideAt(p.x0); out += vpoly(f, p.fill) + vpoly(f, "#000", 'opacity=".2"'); }
-    if (p.x1 < 0) { const f = sideAt(p.x1); out += vpoly(f, p.fill) + vpoly(f, "#000", 'opacity=".2"'); }
+    /* lighting (v12.6): one key light high and behind the camera. Side faces fall off toward the ground,
+       top faces catch a sheen that fades toward the far edge, back faces take ambient occlusion at the
+       bottom and a bevel highlight along the top edge. Overlays, so pattern paints keep working. */
+    if (p.x0 > 0) { const f = sideAt(p.x0); out += vpoly(f, p.fill) + vpoly(f, "url(#v3dSide)"); }
+    if (p.x1 < 0) { const f = sideAt(p.x1); out += vpoly(f, p.fill) + vpoly(f, "url(#v3dSide)"); }
     if (Math.max(y1, yf) < CAM_H) {
       const t = [vp(p.x0, y1, p.z0), vp(p.x1, y1, p.z0), vp(p.x1, yf, p.z1), vp(p.x0, yf, p.z1)];
-      out += vpoly(t, p.fill) + vpoly(t, p.topDark ? "#000" : "#fff", `opacity="${p.topDark ? .28 : .2}"`);
+      out += vpoly(t, p.fill) + vpoly(t, p.topDark ? "#000" : "url(#v3dTop)", p.topDark ? 'opacity=".28"' : "");
     }
     const bk = [vp(p.x0, y0, p.z0), vp(p.x1, y0, p.z0), vp(p.x1, y1, p.z0), vp(p.x0, y1, p.z0)];
-    out += vpoly(bk, p.fill, 'stroke="#00000026" stroke-width="3"');
+    out += vpoly(bk, p.fill, 'stroke="#00000030" stroke-width="3"');
+    out += vpoly(bk, "url(#v3dAO)");
     if (p.shade) out += vpoly(bk, "#000", `opacity="${p.shade}"`);
     if (p.lite) out += vpoly(bk, "#fff", `opacity="${p.lite}"`);
+    /* bevel: a bright hairline along the top edge of the back face */
+    out += `<path d="M${fx(bk[3][0] + 2)} ${fx(bk[3][1] + 1.5)} L${fx(bk[2][0] - 2)} ${fx(bk[2][1] + 1.5)}" stroke="#ffffff66" stroke-width="2.5" stroke-linecap="round"/>`;
     return out + (p.deco ? p.deco(F, C, G) : "");
   }
   if (p.k === "cyl") {
     const back = ringZ(0, p.yb + L, p.rb, p.z0).map(q => vp(...q));
     const front = ringZ(0, p.yf + L, p.rf, p.z1).map(q => vp(...q));
     const h = hull2(back.concat(front));
-    return vpoly(h, p.fill) + vpoly(h, "#fff", 'opacity=".14"') + vpoly(back, p.fill, 'stroke="#00000026" stroke-width="3"') + (p.deco ? p.deco(F, C) : "");
+    return vpoly(h, p.fill) + vpoly(h, "url(#v3dTop)") + vpoly(back, p.fill, 'stroke="#00000030" stroke-width="3"') + vpoly(back, "url(#v3dAO)") + (p.deco ? p.deco(F, C) : "");
   }
   if (p.k === "poly3") {
     const pts = p.pts.map(q => vp(q[0], q[1] + L, q[2]));
@@ -5443,7 +5441,7 @@ function partSVG(p, L) {
   }
   if (p.k === "hull") {
     const pts = hull2(p.rings.flat().map(q => vp(q[0], q[1] + L, q[2])));
-    return vpoly(pts, p.fill, `stroke="${p.edge ? "#00000040" : "#00000026"}" stroke-width="3"`) + (p.shade ? vpoly(pts, "#000", `opacity="${p.shade}"`) : "") + (p.lite ? vpoly(pts, "#fff", `opacity="${p.lite}"`) : "");
+    return vpoly(pts, p.fill, `stroke="${p.edge ? "#00000040" : "#00000030"}" stroke-width="3"`) + vpoly(pts, "url(#v3dAO)") + (p.shade ? vpoly(pts, "#000", `opacity="${p.shade}"`) : "") + (p.lite ? vpoly(pts, "#fff", `opacity="${p.lite}"`) : "");
   }
   if (p.k === "spr") {
     if (p.raw) return p.raw(L);
@@ -5463,7 +5461,7 @@ function tire3D(t) {
   const a = vp(x0, h, z0), b = vp(x1, 0, z0);
   const x = a[0], y = a[1], tw = b[0] - a[0], th = b[1] - a[1], rr = Math.min(tw, th) * 0.3;
   const id = "tc" + t.uid + (t.cx < 0 ? "l" : "r") + (t.rear ? "b" : "f");
-  out += `<rect x="${fx(x)}" y="${fx(y)}" width="${fx(tw)}" height="${fx(th)}" rx="${fx(rr)}" fill="#2b2d31"/>`;
+  out += `<rect x="${fx(x)}" y="${fx(y)}" width="${fx(tw)}" height="${fx(th)}" rx="${fx(rr)}" fill="#2b2d31"/><rect x="${fx(x)}" y="${fx(y)}" width="${fx(tw)}" height="${fx(th)}" rx="${fx(rr)}" fill="url(#v3dTire)"/>`;
   if (t.rear) {
     let tread = "";
     for (let ty = y - 7; ty < y + th + 7; ty += 7) tread += `<rect x="${fx(x + 2)}" y="${fx(ty)}" width="${fx(tw - 4)}" height="2.5" rx="1" fill="#41444a"/>`;
@@ -5481,6 +5479,14 @@ function tire3D(t) {
   return out;
 }
 let carLen = 450, carHalf = 104;
+/* shared lighting ramps for the chase-cam cars (object-bounding-box gradients, one set per svg) */
+const V3D_DEFS = `<defs>
+  <linearGradient id="v3dAO" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient>
+  <linearGradient id="v3dTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#fff" stop-opacity=".42"/></linearGradient>
+  <linearGradient id="v3dSide" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".12"/><stop offset="1" stop-color="#000" stop-opacity=".34"/></linearGradient>
+  <linearGradient id="v3dTire" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient>
+  <filter id="v3dBlur" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="7"/></filter>
+</defs>`;
 function vehicleRearSVG(st) {
   const R = CAR3D[st.body] || CAR3D.dump;
   const uid = ++svgUid;
@@ -5500,7 +5506,10 @@ function vehicleRearSVG(st) {
   const normal = parts.filter(p => !p.late).sort((a, b) => (b.z0 - a.z0) || (a.y0 - b.y0));
   const late = parts.filter(p => p.late).sort((a, b) => (b.z0 - a.z0) || (a.y0 - b.y0));
   const bodyParts = normal.concat(late).map(p => p.k === "tire" ? partSVG(p, 0) : partSVG(p, L)).join("");
-  const body = R.hover ? `<g class="hoverBob">${bodyParts}</g>` : bodyParts;
+  /* contact shadow: the car's footprint on the road, blurred, so it sits on the tarmac instead of floating */
+  const sw = R.half + (R.noWheels ? 10 : tw), g = [vp(-sw, 0, -8), vp(sw, 0, -8), vp(sw * 0.9, 0, R.len + 10), vp(-sw * 0.9, 0, R.len + 10)];
+  const shadow = R.hover ? "" : `<polygon points="${ptStr(g)}" fill="#000" opacity=".34" filter="url(#v3dBlur)"/>`;
+  const body = shadow + (R.hover ? `<g class="hoverBob">${bodyParts}</g>` : bodyParts);
 
   /* overlay anchors: project a car-space point, return [x, y, scale] */
   const A = (q, dx = 0, dy = 0) => { const [x, y] = vp(q[0] + dx, q[1] + L + dy, q[2]); return [x, y, VS(q[2])]; };
@@ -5544,7 +5553,7 @@ function vehicleRearSVG(st) {
       <circle cx="${fx(sx + 8 * ss)}" cy="${fx(sy - 6 * ss)}" r="${fx(10 * ss)}" opacity=".7" style="animation-delay:.45s"/>
       <circle cx="${fx(sx - 7 * ss)}" cy="${fx(sy - 9 * ss)}" r="${fx(8 * ss)}" opacity=".6" style="animation-delay:.9s"/></g>`;
   return `<svg viewBox="-200 -460 400 500" style="--paint:${paint}">
-    ${defs}
+    ${defs}${V3D_DEFS}
     ${body}
     ${R.hover ? `<g class="hoverBob">${over}</g>` : over}
     <rect class="hitbox" x="${fx((-R.half - 40) * CAR_K)}" y="-150" width="${fx((2 * R.half + 80) * CAR_K)}" height="160" fill="transparent"/>
@@ -6793,6 +6802,7 @@ function setLane(t) {
   const clamped = Math.max(0, Math.min(2, t));
   if (clamped !== targetLane) {
     targetLane = clamped; sfx.whoosh();
+    if (!everSteered) { everSteered = true; showSwipeHint(false); }
     if (progress.tread <= TREAD_LOW && v > 120) noiseBurst(0.16, 2600, 0.12);   /* bald tires scrub on every lane change */
   }
 }
@@ -6857,7 +6867,7 @@ function startDrive() {
   gasKey = false; brakeKey = false;
   targetLane = 1; laneVis = 1; runStars = 0; runDamage = 0; runTime = 0; idleT = 0; nearFinish = false;
   bodyTilt = 0; prevV = 0; freezeUntil = 0; starCombo = 0; lastStarT = 0; lastShownTime = -1;
-  steerPointers.clear(); steerKnobF = 0.5; steerEl.classList.remove("held");
+  laneShown = -1; tickLane(); showSwipeHint(!freeMode && !paradeMode);
   speedLines.style.opacity = 0;
   roadPointers.clear(); gasPointers.clear(); brakePointers.clear();
   resetRoadOverlays();
@@ -7483,16 +7493,13 @@ function tick(now) {
   /* speed lines when flying along at (near) top speed */
   speedLines.style.opacity = v > 0.9 * vmaxEff() ? 1 : 0;
 
-  tickSteer(dt);
+  tickLane();
   /* world + car. From behind: bank into lane changes, squat on the gas, lift on the brake */
   renderWorld();
-  let bank = (targetLane - laneVis) * 7;
-  bank += curvAt(pos + CAR_SCREEN_X) * v * 60;   /* lean into the bend at speed */
-  if (airborne) bank += Math.sin(now / 90) * 2;
+  /* the car stays square to the road: no skew, no bank (v12.6); it squats on the gas, lifts on the brake */
   const squat = Math.max(-6, Math.min(6, bodyTilt * 0.7));
-  /* off-center lanes: lean the car's far end toward the vanishing point */
   const cdx = carScreenX() - 600;
-  carWrap.style.transform = `translate(${cdx.toFixed(1)}px,${(squat - jumpY).toFixed(1)}px) skewX(${Math.atan(cdx / CAM_H).toFixed(4)}rad) rotate(${bank.toFixed(2)}deg)`;
+  carWrap.style.transform = `translate(${cdx.toFixed(1)}px,${(squat - jumpY).toFixed(1)}px)`;
 
   rafId = requestAnimationFrame(tick);
 }
@@ -7525,58 +7532,28 @@ roadScene.addEventListener("pointermove", e => {
   if (!roadPointers.has(e.pointerId)) return;
   const scale = stage.getBoundingClientRect().width / 1200;
   const dx = (e.clientX - roadPointers.get(e.pointerId)) / scale;
-  /* 90px of sideways drag per lane change, so long swipes track the finger */
-  if (dx < -90) { setLane(targetLane - 1); roadPointers.set(e.pointerId, e.clientX); }
-  else if (dx > 90) { setLane(targetLane + 1); roadPointers.set(e.pointerId, e.clientX); }
+  /* 70px of sideways drag per lane change, so long swipes track the finger */
+  if (dx < -70) { setLane(targetLane - 1); roadPointers.set(e.pointerId, e.clientX); }
+  else if (dx > 70) { setLane(targetLane + 1); roadPointers.set(e.pointerId, e.clientX); }
 });
 function pointerEnd(e) {
   roadPointers.delete(e.pointerId);
-  if (steerPointers.delete(e.pointerId) && steerPointers.size === 0) steerEl.classList.remove("held");
   if (gasPointers.delete(e.pointerId) && gasPointers.size === 0) gasPedal.classList.remove("held");
   if (brakePointers.delete(e.pointerId) && brakePointers.size === 0) brakePedal.classList.remove("held");
 }
 addEventListener("pointerup", pointerEnd);
 addEventListener("pointercancel", pointerEnd);
 
-/* steering slider: the finger's x on the track IS the lane (left third, middle, right third).
-   A tap picks a lane; a drag keeps picking while the knob rides under the finger; on release the knob
-   settles on the lane the car is in. Swipes and keys move the knob too. */
-const steerEl = document.getElementById("steerSlider");
-const steerKnob = document.getElementById("steerKnob");
-const steerStops = steerEl.querySelectorAll(".stop");
-const STEER_INSET = 60, STEER_SPAN = 228;   /* stop centres at 60 / 174 / 288 inside the 348px inner track */
-const steerPointers = new Map();   /* pointerId -> last fraction (0..1) */
-let steerKnobF = 0.5;
-function steerFrac(e) {
-  const r = steerEl.getBoundingClientRect(), k = r.width / 360;   /* stage scale */
-  return Math.max(0, Math.min(1, (e.clientX - r.left - (STEER_INSET + 6) * k) / (STEER_SPAN * k)));
+/* steering (v12.6): swipe anywhere on the road, 70px of sideways drag per lane; the lane dots follow */
+const laneDotEls = document.querySelectorAll("#laneDots i");
+const swipeHintEl = document.getElementById("swipeHint");
+let laneShown = -1, everSteered = false;
+function tickLane() {
+  if (laneShown === targetLane) return;
+  laneShown = targetLane;
+  laneDotEls.forEach((d, i) => d.classList.toggle("on", i === targetLane));
 }
-function steerTo(f) {
-  const lane = Math.round(f * 2);
-  if (lane !== targetLane) setLane(lane);
-}
-steerEl.addEventListener("pointerdown", e => {
-  e.stopPropagation();
-  try { steerEl.setPointerCapture(e.pointerId); } catch (err) {}
-  const f = steerFrac(e);
-  steerPointers.set(e.pointerId, f);
-  steerEl.classList.add("held");
-  steerTo(f);
-});
-steerEl.addEventListener("pointermove", e => {
-  if (!steerPointers.has(e.pointerId)) return;
-  const f = steerFrac(e);
-  steerPointers.set(e.pointerId, f);
-  steerTo(f);
-});
-function tickSteer(dt) {
-  /* under a finger the knob tracks it; otherwise it eases onto the lane the car is sliding into */
-  const want = steerPointers.size ? [...steerPointers.values()].pop() : laneVis / 2;
-  steerKnobF += (want - steerKnobF) * Math.min(1, dt * (steerPointers.size ? 30 : 14));
-  steerKnob.style.left = (STEER_INSET + steerKnobF * STEER_SPAN).toFixed(1) + "px";
-  steerStops.forEach((st, i) => st.classList.toggle("on", i === targetLane));
-  steerEl.setAttribute("aria-valuenow", targetLane);
-}
+function showSwipeHint(on) { swipeHintEl.classList.toggle("show", on && !everSteered && level <= 2); }   /* the first two levels only */
 
 /* keyboard: A/D or ←/→ steer, W/↑/space is gas, S/↓ is brake (mouse can ride the pedals) */
 const keyOf = e => (e.key.length === 1 ? e.key.toLowerCase() : e.key);

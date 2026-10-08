@@ -25,7 +25,7 @@
 
 - **Build it, then drive it.** 23 bodies, 13 wheel sets, 23 paints, 8 flank decals, 10 bolt-on extras and 10 buddies, every one of them drawn in code. The exact car you build in the garage is the car you see from behind on the road, party hat and all.
 - **Twelve worlds, 120 levels.** Construction, sunset, night, rain, snow, desert, beach, space, volcano, candy land, deep sea and sky kingdom. Each is a place with its own roadside, weather, hazards, hills, jingle, ambience and star-chime scale.
-- **A road that bends and rolls.** An OutRun-style chase cam with eased curvature stretches and cosine hills, three lanes, a gas pedal, a brake pedal and a three-stop steering slider.
+- **A road that bends and rolls.** An OutRun-style chase cam with eased curvature stretches and cosine hills, three lanes, a gas pedal, a brake pedal, and steering by swiping the road.
 - **Levels with a signature.** Every level is sequenced from a library of 38 formations so level 7 feels like "the snake-trail level" and level 8 like "the barrel-bowling level". Two headless bots drive all of them in the test suite to prove each is fair.
 - **Nothing to read, nothing to lose.** Icons, pictures and numerals only. Stars only go up. Crashes are comedy.
 - **Grown-up friendly.** Three kid profiles, scan-to-open QR save codes, a quiet mode for the car, home-screen install, and a toddler-proof update badge.
@@ -61,7 +61,7 @@ scrollable strip of big picture tiles; tap a tile to equip it, swipe or use the 
 |---|---|---|
 | Drive | hold the green gas pedal, or anywhere on the road | W, up arrow, or space |
 | Brake | red brake pedal | S or down arrow |
-| Steer | tap or drag the steering slider (left / middle / right), or swipe left/right | A/D or left/right arrows |
+| Steer | swipe left or right anywhere on the road (70 px per lane); the lane dots bottom-left show where you are | A/D or left/right arrows |
 | Honk | tap your car | |
 
 ## For grown-ups
