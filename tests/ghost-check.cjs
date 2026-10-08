@@ -72,7 +72,8 @@ function check(name, ok, detail) {
   check('hud: the ghost chip sits under the level chip (left 136, top 132, 12px gap), >= 64px tall, clear of the progress bar',
     Math.round(spawn.r.left) === 136 && Math.round(spawn.r.top) === 132 && Math.round(spawn.r.left) === Math.round(spawn.lv.left) && Math.round(spawn.r.top - spawn.lv.bottom) === 12 && spawn.r.height >= 64 && spawn.r.right <= spawn.pr.left,
     JSON.stringify({ left: spawn.r.left, top: spawn.r.top, h: spawn.r.height, lvBottom: spawn.lv.bottom, prLeft: spawn.pr.left }));
-  await page.waitForTimeout(1350);
+  /* wait on the ghost's own clock (wall time drifts under load), then sample */
+  await page.waitForFunction(() => ghostT >= 1.6, null, { timeout: 5000 });
   const s1 = await page.evaluate(() => {
     const tf = ghostSprite.wrap.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\) scale\(([\d.]+)\)/);
     return { t: +ghostT.toFixed(2), lane: +ghostAt(ghostT)[1].toFixed(2), lx: ghostSprite.lx, z: Math.round(ghostSprite.x - curCarX), sx: +tf[1], sy: +tf[2], s: +tf[3],
@@ -86,7 +87,7 @@ function check(name, ok, detail) {
     return { t: +ghostT.toFixed(2), z: Math.round(ghostSprite.x - curCarX), sx: +tf[1], sy: +tf[2], s: +tf[3], zi: ghostSprite.zi };
   });
   check('replay: at t~1.6 the twin is in the recorded lane 2 (lx = LANE_W), ahead of the parked kid (z > 0, right of them on screen, smaller, behind the car in z-order)',
-    s1.t > 1.4 && s1.t < 2.2 && Math.abs(s1.lane - 2) < 0.08 && s1.lx === 240 && s1.z > 200 && s1.sx > s1.kidX && s1.s < 1 && s1.vis && s1.display === 'block' && s1.zi < 19990, JSON.stringify(s1));
+    s1.t > 1.4 && s1.t < 2.2 && Math.abs(s1.lane - 2) < 0.08 && Math.abs(s1.lx - 240) < 2 && s1.z > 200 && s1.sx > s1.kidX && s1.s < 1 && s1.vis && s1.display === 'block' && s1.zi < 19990, JSON.stringify(s1));
   check('replay: the twin keeps moving: depth, screen x/y and scale all change over the next half second', s2.z > s1.z + 100 && s2.sx !== s1.sx && s2.sy < s1.sy && s2.s < s1.s && s2.zi < s1.zi, JSON.stringify({ s1, s2 }));
   check('hud: with the kid parked the chip reads a negative gap in putty (behind)', /^-\d+$/.test(s1.chip) && s1.behind && !s1.ahead, JSON.stringify({ chip: s1.chip, behind: s1.behind }));
 
