@@ -32,7 +32,7 @@ fails. Useful flags:
 | `--only verify,shop-check` | run a subset |
 | `--port 4190` | pin the built-in server's port |
 | `CHROMIUM=/path/to/chrome` | use that browser instead of playwright-core's download |
-| `VROOM_URL=http://host:port/index.html` | test a server you already run (skips the built-in one) |
+| `VROOM_URL=http://host:port/index.html` | test a server you already run (skips the built-in one); the runner appends `?garage` so the suites boot past the title scene, add it yourself when running one suite by hand |
 
 Every suite can also run on its own: `cd tests && node shop-check.cjs`. Screenshots land in
 `tests/shots/` (gitignored). `tests/level-report.cjs` is not a suite; it prints every level's

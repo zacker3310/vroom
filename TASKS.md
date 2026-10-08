@@ -92,6 +92,10 @@
 
 - [x] T16.1: Album memories. Photos carry their world: backdrop from `ROAD_PAL` (sky / ground / road bands) and the world's map icon as a stamp on its tint; the parade gets a rainbow road and the champion cup. Tapping a photo opens the peek card (big car on its backdrop, level, stars collected, medal); tapping an earned sticker opens it big with confetti; unearned stickers still only wiggle. album-check 15 (+4). 18 suites, 294/294.
 
+## v12.5
+
+- [x] T17.2: Start screen with a hook. A wordless title scene on boot (`#title`: a star-over-road emblem, the kid's own car idling on a little road with the buddy bobbing, the avatar button, one 210 px green GO with pop-in choreography that `prefers-reduced-motion` skips; the engine putter starts on the first touch, tapping the car honks). A daily gift: once per local calendar day (`progress.lastGift`, localStorage only, never in a save code) a capsule pulses on the garage wall above the dice and pops open for 15..40 stars (weighted low) or, one time in six, a buddy the kid does not own, flying into the wallet chip / onto the car; the title GO wears a pulsing capsule badge while it is unclaimed. `?garage`, `localStorage["vroom.skipTitle"]` and a profile switch skip the title; `run-all.cjs` appends `?garage` for every suite. title-check 13 (new). 19 suites, 307/307.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

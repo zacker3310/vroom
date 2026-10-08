@@ -8,7 +8,8 @@
      --verbose   stream each suite's output live (default: only failing suites' output)
      --only      comma-separated suite names, e.g. --only verify,shop-check
      --port      pin the built-in server's port instead of picking a free one
-   Env: CHROMIUM=/path/to/chrome   VROOM_URL=http://host:port/index.html (skips the server) */
+   Env: CHROMIUM=/path/to/chrome   VROOM_URL=http://host:port/index.html (skips the server)
+   The URL handed to the suites carries `?garage` so the page boots past the title scene. */
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -96,6 +97,9 @@ function runSuite(name, env) {
     server = await serve(port);
     url = `http://127.0.0.1:${port}/index.html`;
   }
+  /* `?garage` boots straight into the garage, skipping the title scene every suite but
+     title-check expects to be past (title-check strips it again to test the title itself) */
+  if (!/[?&]garage\b/.test(url)) url += (url.includes('?') ? '&' : '?') + 'garage';
   console.log(`vroom tests  |  ${suites.length} suites  |  ${url}  |  ${chromium}\n`);
   const env = { ...process.env, CHROMIUM: chromium, VROOM_URL: url };
 

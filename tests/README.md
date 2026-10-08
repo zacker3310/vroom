@@ -1,6 +1,6 @@
 # Vroom test suites
 
-Fifteen Playwright regression suites (237 checks) that drive the real game in headless
+Nineteen Playwright regression suites (307 checks) that drive the real game in headless
 Chromium. They are the gate for every change: CI runs them on each push and pull request.
 
 ## Run everything
@@ -10,8 +10,15 @@ Chromium. They are the gate for every change: CI runs them on each push and pull
 # profile-check also wants jsqr (in tests/ or the repo root)
 python3 -m http.server 4173 &          # from the repo root
 cd tests
-for f in verify polish-check damage-check free-check feel-check worlds-check album-check profile-check washdecals-check parade-check update-check world-check-audio-events fairness-check paint-check shop-check garage-check upkeep-check number-check; do node $f.cjs; done
+export VROOM_URL=http://localhost:4173/index.html?garage   # ?garage boots past the title scene (title-check strips it itself)
+for f in verify polish-check damage-check free-check feel-check worlds-check album-check profile-check washdecals-check parade-check update-check world-check-audio-events fairness-check paint-check shop-check garage-check upkeep-check number-check title-check; do node $f.cjs; done
 ```
+
+The game boots into a title scene (v12.5) unless the URL carries `?garage` or
+`localStorage["vroom.skipTitle"]` is set. `run-all.cjs` appends `?garage` to the URL it hands
+every suite, so the suites land in the garage as they always did; `title-check.cjs` removes it
+again because the title is what it tests. When you run a suite by hand with `VROOM_URL`, add
+`?garage` yourself.
 
 `run-all.cjs` serves the repo root on a free port, runs every suite below in turn, prints a
 summary table and exits non-zero on any failure. Flags: `--verbose` (stream all output),
@@ -37,6 +44,7 @@ built-in one, e.g. `python3 -m http.server 4173` then
 - `garage-check.cjs` — redesigned garage: <=16 controls at rest, six category tabs with 23/13/23/1+9/10/3(+repair/wash/fuel/tires) tiles, selection ring follows state, locked tile -> tag -> buy -> equipped, arrows page the strip, a swipe scrolls instead of equipping, speaker toggle in the grown-ups overlay persists, >=64px targets, zero text (19; honours `VROOM_URL`)
 - `fairness-check.cjs` — two headless bots drive all 80 levels through the real collision code: a "smart" bot (one lane change per 350 units, toward stars, away from hard obstacles) must finish every level with ≥45% of the stars and ≤4 hard hits; a "lazy toddler" (middle lane, gas only) must finish every level and still find ≥15% of the stars on levels 1-20; world 1 stays gentle (9; `--table` prints the per-level table, `--hits` lists each hard hit; honours `VROOM_URL`)
 - `number-check.cjs` — race number: the number tile leads the sticker tab (400, greyed when poor), keypad rules (two digits, leading zeros trimmed, backspace, clear), OK pays 400 and draws the roundel on the flank, sticker + number share the panel at 80% scale, rear view, same-number and broke-wallet rules, free removal, reload + v3 tail + 12.2 code decode, photo, malformed stored value dropped, 64px keys, the race car's painted slot (13; honours `VROOM_URL`)
+- `title-check.cjs`: start screen + daily gift: title scene active on boot (GO >= 180 stage px, car + emblem, avatar, zero text), pulsing gift badge on GO while unclaimed, car honk, GO to the garage, the capsule on the wall above the dice (88px at x=1086 / top 180), opening pays 15..40 stars or an unowned buddy with confetti and stamps `progress.lastGift`, a second open gives nothing, reload keeps it claimed, lastGift = yesterday brings it back, `?garage` and `vroom.skipTitle` skip the title, lastGift never rides in a save code, reduced motion skips the pop-ins (13; honours `VROOM_URL`)
 - `upkeep-check.cjs` — fuel + tires + shine: full gauges on a fresh save, HUD gauge column, burn per unit of road (tread at half rate), no burn in free drive or the parade, dry-tank crawl speeds, bald-tire lane lag, hit scuffs tread, shine bonus (+50%) and its sticker, muddy = no shine, workbench fill-up / tire tiles with per-unit prices, partial fills, deny shakes, v3 save-code tail + tail-less decode, reload + pre-12.2 save defaults, the dice/map/GO column geometry (20; honours `VROOM_URL`)
 
 ```bash
@@ -66,6 +74,7 @@ click stability check.
 | `paint-check.cjs` | 22 | pattern paints: 11 swatches on the second tray page, defs in both views, buying, v3 save code round trip, v2 legacy decode, album re-render |
 | `shop-check.cjs` | 21 | shop pack: 23-body / 13-wheel / 9-entry decal catalog, tap-forward + hold-back cycling, hover body, every body x extras x buddy x decal in both views, two-page extras tray, v3 round trip, frozen-width v2 decode |
 | `number-check.cjs` | 13 | race number: sticker-tab tile, keypad rules, 400-star change / free removal, roundel in both views beside a sticker, save-code tail, photos |
+| `title-check.cjs` | 13 | start screen: title scene on boot, 180 px GO, gift badge, honk; daily gift: once-a-day capsule above the dice, 15..40 stars or an unowned buddy, claimed state across reloads, next-day return, the `?garage` / `vroom.skipTitle` skips, reduced motion |
 | `upkeep-check.cjs` | 20 | fuel and tire wear, dry-tank crawl, bald-tire grip, shine bonus, workbench fill-up and tire tiles, save-code tail, legacy defaults, garage column geometry |
 | `fairness-check.cjs` | 9 | two headless bots drive all 120 levels through the real collision code: "smart" must finish every level with ≥45% of the stars and ≤4 hard hits; "lazy toddler" (centre lane, gas only) must finish every level and find ≥15% of the stars on levels 1-20; world 1 stays gentle. `--table` prints per-level results, `--hits` each hard hit |
 

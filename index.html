@@ -1194,10 +1194,91 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #quietBtn { width: 96px; height: 96px; }
 #quietBtn svg { width: 60px; height: 60px; }
 #quietBtn.on { background: var(--v-mute); border-color: var(--v-mute-line); box-shadow: 0 6px 0 var(--v-mute-down); }
+
+/* ============ TITLE SCENE + DAILY GIFT (T17.2) ============ */
+/* three seconds of ceremony before the garage: a wordless emblem, the kid's own car idling on a
+   little road, one huge green GO. Pop-ins are skipped under prefers-reduced-motion. */
+#title { background: linear-gradient(#8ecae6 0%, #bde0fe 54%, #9bd27a 54%, #6fa85a 100%); }
+#titleRoad {
+  position: absolute; left: 0; right: 0; top: 508px; height: 150px;
+  background: #5b5651; border-top: 10px solid #efe6d6; border-bottom: 10px solid #efe6d6;
+}
+#titleRoad::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 60px; height: 12px;
+  background: repeating-linear-gradient(90deg, #ffd66e 0 70px, transparent 70px 140px);
+}
+#titleLogo { position: absolute; left: 50%; top: 22px; width: 300px; height: 220px; transform: translateX(-50%); pointer-events: none; }
+#titleLogo svg { width: 100%; height: 100%; overflow: visible; }
+#titleCar {
+  position: absolute; left: 330px; top: 236px; width: 560px; cursor: pointer; touch-action: none;
+}
+#titleCar svg { width: 100%; height: auto; overflow: visible; }
+#titleCar.idle svg { animation: titleIdle .24s ease-in-out infinite; }
+@keyframes titleIdle { 50% { transform: translateY(1.6px); } }
+#titleCar.bounce { animation: bounce .45s ease; }
+#titleCar.blink .vEye { animation: eyeBlink .5s ease; }
+#titleProfileBtn {
+  position: absolute; left: 24px; top: 24px; width: 96px; height: 96px; z-index: 20;
+  border-radius: 50%; background: var(--v-surface); border: 6px solid var(--v-surface-line); box-shadow: 0 6px 0 var(--v-surface-down);
+}
+#titleProfileBtn svg { width: 74px; height: 74px; }
+#titleGo {
+  position: absolute; left: 930px; top: 400px; width: 210px; height: 210px; border-radius: 50%;
+  background: var(--v-accent-green); border: 10px solid var(--v-green-line); box-shadow: 0 8px 0 var(--v-green-down); z-index: 10;
+}
+#titleGo svg { width: 108px; height: 108px; }
+#titleGo:active, #titleGo.pressed { box-shadow: 0 2px 0 var(--v-green-down); }
+/* the gift badge: a small capsule riding the GO button's shoulder while today's gift is unclaimed */
+#titleGift {
+  position: absolute; right: -10px; top: -10px; width: 64px; height: 64px; border-radius: 50%;
+  background: var(--v-surface); border: 5px solid var(--v-yellow-line); box-shadow: 0 4px 0 var(--v-yellow-down);
+  display: none; align-items: center; justify-content: center; animation: pulse 1.1s ease infinite;
+}
+#titleGift.show { display: flex; }
+#titleGift svg { width: 38px; height: 42px; }
+/* entrance choreography */
+#title.active #titleLogo { animation: popIn .5s cubic-bezier(.2, 1.6, .4, 1) backwards; }
+#title.active #titleCar { animation: popIn .5s cubic-bezier(.2, 1.6, .4, 1) .18s backwards; }
+#title.active #titleGo { animation: popIn .5s cubic-bezier(.2, 1.6, .4, 1) .5s backwards; }
+#title.active #titleCar.bounce { animation: bounce .45s ease; }
+@media (prefers-reduced-motion: reduce) {
+  #title.active #titleLogo, #title.active #titleCar, #title.active #titleGo, #titleCar.idle svg, #titleGift { animation: none; }
+}
+
+/* the daily gift capsule on the garage's right wall, above the dice; pulses until opened */
+#giftBtn {
+  position: absolute; left: 1042px; top: 180px; width: 88px; height: 88px; z-index: 5; display: none;
+  border-radius: 50%; background: var(--v-surface); border: 6px solid var(--v-yellow-line); box-shadow: 0 6px 0 var(--v-yellow-down);
+  animation: pulse 1.1s ease infinite;
+}
+#giftBtn.show { display: flex; }
+#giftBtn svg { width: 54px; height: 58px; }
+#giftBtn.opening { animation: chipPop .35s ease; }
+@media (prefers-reduced-motion: reduce) { #giftBtn { animation: none; } }
 </style>
 </head>
 <body>
 <div id="stage">
+
+  <!-- title: the boot ceremony. Emblem (a star over a road, no words), the kid's car idling, one huge GO -->
+  <div id="title" class="scene">
+    <div id="titleRoad"></div>
+    <div id="titleLogo" aria-hidden="true">
+      <svg viewBox="0 0 300 220">
+        <rect x="10" y="18" width="280" height="194" rx="44" fill="#9a7250"/>
+        <rect x="10" y="10" width="280" height="194" rx="44" fill="#f7ede2" stroke="#d9b98a" stroke-width="6"/>
+        <path d="M60 184 L120 96 L180 96 L240 184 Z" fill="#5b5651"/>
+        <path d="M150 104 V124 M150 136 V156 M150 166 V182" stroke="#ffd66e" stroke-width="7" stroke-linecap="round"/>
+        <path d="M150 28 L166 70 L212 74 L177 104 L188 150 L150 126 L112 150 L123 104 L88 74 L134 70 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="7" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <button class="bigBtn" id="titleProfileBtn" aria-label="who is playing"></button>
+    <div id="titleCar" aria-label="your car: tap to honk"></div>
+    <button class="bigBtn" id="titleGo" aria-label="start: to the garage">
+      <svg viewBox="0 0 100 100"><path d="M30 18 L82 50 L30 82 Z" fill="#fff"/></svg>
+      <span id="titleGift" aria-label="a gift is waiting"></span>
+    </button>
+  </div>
 
   <div id="garage" class="scene active">
     <div id="garageWall"></div>
@@ -1229,6 +1310,8 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     <button class="bigBtn" id="diceBtn" aria-label="surprise me: random truck">
       <svg viewBox="0 0 100 100"><rect x="12" y="12" width="76" height="76" rx="18" fill="#fff" stroke="#023047" stroke-width="5"/><circle cx="32" cy="32" r="9" fill="#e63946"/><circle cx="68" cy="32" r="9" fill="#ff9f1c"/><circle cx="50" cy="50" r="9" fill="#ffd60a"/><circle cx="32" cy="68" r="9" fill="#74c69d"/><circle cx="68" cy="68" r="9" fill="#4cc9f0"/></svg>
     </button>
+    <!-- daily gift: a capsule on the wall above the dice, once per calendar day (see section 30) -->
+    <button class="bigBtn" id="giftBtn" aria-label="today's gift"></button>
     <!-- extras glyph registry: the content packs append their .extraBtn pictograms here; the extras strip clones them -->
     <div id="extras" hidden aria-hidden="true">
       <button class="bigBtn extraBtn" data-extra="horn" aria-label="horn">
@@ -1471,7 +1554,8 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     27. FINISH + CELEBRATION      confetti, flyStar, finishLevel + the tally card
     28. WORLD PACK: 9 + 10        volcano and candy land, registered into the tables above
     29. WORLD PACK: 11 + 12       deep sea and sky kingdom
-    30. BOOT: NEW VERSION GATE    code fingerprint, hold-to-update button
+    30. SCENE: TITLE + DAILY GIFT the boot ceremony (logo, idling car, big GO) and the once-a-day capsule
+    31. BOOT: NEW VERSION GATE    code fingerprint, hold-to-update button
 
    Order matters in three places: the content packs (9-11) register parts before LOAD SAVE (12)
    validates the saved build against the full catalog; the garage (14) renders at load, so it
@@ -1627,7 +1711,7 @@ function numberSVG(n, cls = "") {
 let progress = { wallet: 0, owned: { body: [], wheels: [], color: [], extras: [], buddy: [], decal: [] }, levels: {}, current: 1,
                  muddy: false, fuel: FUEL_MAX, tread: TREAD_MAX,
                  damage: 0, upgrades: { engine: 0, armor: 0, magnet: 0 }, quiet: false,
-                 badges: [], photos: [] };
+                 badges: [], photos: [], lastGift: "" };   /* lastGift: local date of the last daily gift (localStorage only) */
 
 /* ---- profiles: up to 3 kids, identified by a buddy-face avatar, no reading ---- */
 const MAX_PROFILES = 3;
@@ -1656,6 +1740,7 @@ function switchProfile(i) {
   save();                 /* current kid's progress is already on its own key; just flip */
   meta.active = i;
   saveMeta();
+  try { sessionStorage.setItem("vroom.toGarage", "1"); } catch (e) {}   /* skip the title on the way back in */
   location.reload();      /* cleanest possible state swap for a single-file game */
 }
 
@@ -1702,6 +1787,7 @@ function loadState() {
   if (saved.upgrades) for (const k of ["engine", "armor", "magnet"]) {
     if (Number.isFinite(saved.upgrades[k])) progress.upgrades[k] = Math.min(3, Math.max(0, Math.floor(saved.upgrades[k])));
   }
+  progress.lastGift = typeof saved.lastGift === "string" ? saved.lastGift : "";
   /* if the saved build uses a part that is no longer owned somehow, fall back */
   if (!owns("body", state.body)) state.body = "dump";
   if (!owns("wheels", state.wheels)) state.wheels = "normal";
@@ -4004,7 +4090,7 @@ function resetRoadOverlays() {
   roadScene.classList.remove("celebrating");
   document.querySelectorAll(".confetti, .flyStar, .gagWrap, .dust, .firework").forEach(c => c.remove());
 }
-function showGarage() { bankFreeRun(); showScene(garageScene); renderPreview(); renderWallets(false); renderUpgrades(); renderUpkeep(); syncStrip(); }
+function showGarage() { bankFreeRun(); showScene(garageScene); renderPreview(); renderWallets(false); renderUpgrades(); renderUpkeep(); renderGift(); syncStrip(); }
 function showMap() { selectedWorld = worldOf(progress.current); showScene(mapScene); renderMap(); renderWallets(false); }
 const albumScene = document.getElementById("album");
 function showAlbum() { showScene(albumScene); renderAlbum(); renderWallets(false); }
@@ -4234,7 +4320,7 @@ function unpackCompact(code) {
 }
 /* full text code: the entire save, gzip-compressed where the browser can */
 async function exportFullCode() {
-  const json = JSON.stringify({ build: state, ...progress });
+  const json = JSON.stringify({ build: state, ...progress, lastGift: undefined });   /* the daily gift stays on this device */
   if (typeof CompressionStream !== "undefined") {
     const stream = new Blob([json]).stream().pipeThrough(new CompressionStream("gzip"));
     const buf = await new Response(stream).arrayBuffer();
@@ -8366,7 +8452,132 @@ function finishLevel() {
   };
 })();
 
-/* ============ 30. BOOT: NEW VERSION GATE ============ */
+/* ============ 30. SCENE: TITLE + DAILY GIFT ============ */
+/* The boot ceremony: the kid's own car idles under a wordless emblem, the buddy bobs, one huge
+   green GO leads to the garage. The engine putter can only start after the first touch (audio
+   unlock), so the first tap anywhere on the title starts it. The page skips the title when it is
+   opened with `?garage` in the URL or `localStorage["vroom.skipTitle"]` is set (the test suites
+   use `?garage`), and once after a profile switch (sessionStorage "vroom.toGarage"). */
+const titleScene = document.getElementById("title");
+const titleCar = document.getElementById("titleCar");
+const titleGo = document.getElementById("titleGo");
+const titleGift = document.getElementById("titleGift");
+const titleProfileBtn = document.getElementById("titleProfileBtn");
+const giftBtn = document.getElementById("giftBtn");
+
+/* ---- the daily gift: once per local calendar day, stored on this device only ---- */
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function giftReady() { return progress.lastGift !== todayStr(); }
+const GIFT_STARS_MIN = 15, GIFT_STARS_MAX = 40, GIFT_BUDDY_ODDS = 1 / 6;
+function renderGift() {
+  const ready = giftReady();
+  giftBtn.classList.toggle("show", ready);
+  if (ready && !giftBtn.classList.contains("opening")) giftBtn.innerHTML = capsuleSVG;
+  titleGift.classList.toggle("show", ready);
+  if (ready) titleGift.innerHTML = capsuleSVG;
+}
+/* a star (or a buddy face) sails from one element to another inside a scene, same move as flyStar on the road */
+function flyIcon(sceneEl, fromEl, toEl, html) {
+  const sr = sceneEl.getBoundingClientRect(), s = sr.width / 1200 || 1;
+  const a = fromEl.getBoundingClientRect(), b = toEl.getBoundingClientRect();
+  const d = document.createElement("div");
+  d.className = "flyStar"; d.innerHTML = html;
+  d.style.left = ((a.left + a.width / 2 - sr.left) / s - 22) + "px";
+  d.style.top = ((a.top + a.height / 2 - sr.top) / s - 22) + "px";
+  sceneEl.appendChild(d);
+  requestAnimationFrame(() => {
+    d.style.transform = `translate(${(b.left - a.left + (b.width - a.width) / 2) / s}px, ${(b.top - a.top + (b.height - a.height) / 2) / s}px) scale(.45)`;
+    d.style.opacity = ".2";
+  });
+  setTimeout(() => d.remove(), 700);
+}
+function openGift() {
+  if (!giftReady() || giftBtn.classList.contains("opening")) return;
+  progress.lastGift = todayStr();
+  giftBtn.classList.add("opening");
+  giftBtn.innerHTML = capsulePopSVG;
+  sfx.capsuleOpen(); confettiBurst(garageScene, 70);
+  setTimeout(() => sfx.tada(), 320);
+  const unfound = BUDDY_ORDER.filter(id => !progress.owned.buddy.includes(id));
+  if (unfound.length && Math.random() < GIFT_BUDDY_ODDS) {
+    /* a new friend: its face flies to the car and hops straight on */
+    const nb = unfound[Math.floor(Math.random() * unfound.length)];
+    progress.owned.buddy.push(nb);
+    state.buddy = nb;
+    save();
+    flyIcon(garageScene, giftBtn, preview, `<svg viewBox="-4 -56 72 68">${BUDDY_SVG[nb]}</svg>`);
+    setTimeout(() => { renderPreview(); sfx.squeak(); }, 620);
+  } else {
+    /* stars, weighted toward the low end: 15 is common, 40 is a lucky day */
+    const amount = GIFT_STARS_MIN + Math.floor(Math.random() * Math.random() * (GIFT_STARS_MAX - GIFT_STARS_MIN + 1));
+    progress.wallet += amount;
+    save();
+    for (let i = 0; i < 6; i++) setTimeout(() => { flyIcon(garageScene, giftBtn, garageWallet, starIcon); sfx.tick(i + 2); }, 120 + i * 110);
+    setTimeout(() => renderWallets(true), 900);
+  }
+  setTimeout(() => { giftBtn.classList.remove("opening"); renderGift(); }, 1500);
+}
+giftBtn.addEventListener("pointerdown", e => { e.stopPropagation(); openGift(); });
+
+/* ---- the idle putter: the road engine held at a low chug, with a slow wobble on its gain ---- */
+let titleIdle = null;
+function titleIdleStart() {
+  if (!actx || engine || titleIdle || !titleScene.classList.contains("active")) return;
+  engineStart();
+  if (!engine) return;
+  const t = actx.currentTime;
+  engine.o.frequency.setTargetAtTime(40, t, 0.2); engine.o2.frequency.setTargetAtTime(40, t, 0.2);
+  engine.f.frequency.setTargetAtTime(300, t, 0.2);
+  engine.g.gain.setTargetAtTime(0.03 * volScale(), t, 0.4);
+  const lfo = actx.createOscillator(), lg = actx.createGain();
+  lfo.type = "sine"; lfo.frequency.value = 6.5; lg.gain.value = 0.018 * volScale();
+  lfo.connect(lg).connect(engine.g.gain); lfo.start();
+  titleIdle = { lfo, lg };
+}
+function titleIdleStop() {
+  if (titleIdle) { try { titleIdle.lfo.stop(); } catch (e) {} titleIdle = null; }
+  engineStop();
+}
+
+function renderTitle() {
+  titleCar.innerHTML = vehicleSVG(state);
+  titleCar.classList.add("idle");
+  const avatar = meta.avatars[meta.active] || "pup";
+  titleProfileBtn.innerHTML = `<svg viewBox="-6 -58 76 72">${BUDDY_SVG[avatar]}</svg>`;
+  renderGift();
+}
+function showTitle() { renderTitle(); showScene(titleScene); }
+function skipTitle() {
+  if (/[?&]garage\b/.test(location.search)) return true;
+  try {
+    if (localStorage.getItem("vroom.skipTitle")) return true;
+    if (sessionStorage.getItem("vroom.toGarage")) { sessionStorage.removeItem("vroom.toGarage"); return true; }
+  } catch (e) {}
+  return false;
+}
+titleScene.addEventListener("pointerdown", () => titleIdleStart());   /* after unlockAudio (capture) */
+titleCar.addEventListener("pointerdown", e => {
+  e.stopPropagation(); titleIdleStart();
+  sfx.honk(state.body);
+  restartAnim(titleCar, "bounce"); restartAnim(titleCar, "blink");
+  if (state.buddy) setTimeout(() => sfx.squeak(), 160);
+});
+titleGo.addEventListener("pointerdown", e => {
+  e.stopPropagation();
+  sfx.pop(); titleIdleStop(); showGarage();
+});
+titleProfileBtn.addEventListener("pointerdown", e => {
+  e.stopPropagation(); sfx.pop();
+  renderProfiles(); renderQR();
+  profileOverlay.classList.add("show");
+});
+renderGift();
+if (!skipTitle()) showTitle();
+
+/* ============ 31. BOOT: NEW VERSION GATE ============ */
 /* No service worker here: a stale game is Safari's cache or a home-screen app left running.
    Fingerprint the code this page booted with, and quietly compare it against a fresh copy
    from the server on boot, whenever the app comes back to the foreground, and every 10 min. */
