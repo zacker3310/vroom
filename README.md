@@ -25,7 +25,7 @@
 
 - **Build it, then drive it.** 23 bodies, 14 wheel sets, 24 paints (one of them a secret), 8 flank decals, 12 bolt-on extras, a race number you type on a keypad, and 10 buddies, every one of them drawn in code. The exact car you build in the garage is the car you see from behind on the road, party hat and all.
 - **Twelve worlds, 120 levels.** Construction, sunset, night, rain, snow, desert, beach, space, volcano, candy land, deep sea and sky kingdom. Each is a place with its own roadside, weather, hazards, hills, jingle, ambience and star-chime scale.
-- **A road that bends and rolls.** An OutRun-style chase cam with eased curvature stretches and cosine hills, three lanes, a gas pedal, a brake pedal, and steering by swiping the road. The camera swings through lane changes, widens with speed and shakes on a hit; the car turns its nose into the lane it heads for; every prop stands on its own shadow and fades into the haze; corkscrews send the car barrel-rolling through a tunnel of striped hoops, hard turns come with red chevron boards and howling tires, roller levels stack big hills back to back, and the jumps run from little green hop kickers to a big red mega ramp.
+- **A road that bends and rolls.** An OutRun-style chase cam with eased curvature stretches and cosine hills, three lanes, a gas pedal, a brake pedal, and steering by swiping the road. The camera swings through lane changes, widens with speed and shakes on a hit; the car turns its nose into the lane it heads for; every prop stands on its own shadow and fades into the haze; corkscrews twist the road itself a full turn through a tunnel of striped hoops while the whole world rolls around the car, hard turns come with red chevron boards and howling tires, roller levels stack big hills back to back, and the jumps run from little green hop kickers to a big red mega ramp.
 - **Levels with a signature.** Every level is sequenced from a library of 40 formations so level 7 feels like "the snake-trail level" and level 8 like "the barrel-bowling level". Two headless bots drive all of them in the test suite to prove each is fair.
 - **Race yourself.** Your fastest run on every level rides along as a translucent ghost next time, with a gap chip and a bigger medal when you beat it.
 - **Something new every day.** A gift capsule in the garage once a day, and three surprises on the map seeded from the date: a sleeping dino to honk awake, a rainbow day with a secret paint, a weather day. The garage car idles, blinks and yawns; tap the hood or a wheel.
@@ -47,7 +47,7 @@
 
 | Wild roads | |
 |---|---|
-| ![A corkscrew: the car barrel-rolls through a tunnel of red and yellow hoops](docs/corkscrew.png) | ![A desert switchback: red chevron boards on the outside of a hard turn](docs/hardturn.png) |
+| ![A corkscrew: the road twists a full turn through a tunnel of red and yellow hoops, the world upside down around the car](docs/corkscrew.png) | ![A desert switchback: red chevron boards on the outside of a hard turn](docs/hardturn.png) |
 | ![The big red mega ramp dead ahead under the construction gantry](docs/megaramp.png) | |
 
 | Album | Results |

@@ -1,6 +1,6 @@
 /* course-check: the wild courses (v12.9, T21) and the speed-linked mixer drum (T2.3).
-   Corkscrews barrel-roll the car a full turn through a tunnel of hoops (13.2: the road, ground, sky and sprites
-   never move) and carry stars only; hard turns get chevron boards on their
+   Corkscrews twist the road itself a full turn through a tunnel of hoops and roll the whole view around an
+   upright car (13.4) and carry stars only; hard turns get chevron boards on their
    outside; roller levels run a train of big hills; mega ramps and hop chains launch by their own numbers
    through the one launch rule the fairness bots share; the chase-cam mixer drum turns with the road speed.
    Reduced motion keeps the hoops and drops the roll. */
@@ -135,35 +135,40 @@ function check(name, ok, detail) {
     pos = t.x0 - CAR_SCREEN_X - 400; v = 0;
     await new Promise(r => setTimeout(r, 900));   /* let the scene iris finish before any screenshot */
     const env = document.getElementById('env');
-    const before = { live: twistLive, env: env.style.transform, carRot: /rotate/.test(carWrap.style.transform) };
+    const before = { live: twistLive, env: env.style.transform, view: viewEl.style.transform, carRot: /rotate/.test(carWrap.style.transform) };
     pos = (t.x0 + t.x1) / 2 - CAR_SCREEN_X + CAR_HIT_Z; v = 0;
     await new Promise(r => setTimeout(r, 200));
     const star = props.find(p => p.type === 'star' && !p.done && p.x > t.x0 + (t.x1 - t.x0) * 0.75 && p.x < t.x1);
     /* the top row of the stage (y 20): sky at rest, mostly ground when upside down (hoops and road cross it too) */
-    const row = roadCanvas.getContext('2d').getImageData(0, 40, 2400, 1).data, hexAt = i => '#' + [row[i], row[i + 1], row[i + 2]].map(c => c.toString(16).padStart(2, '0')).join('');
+    /* the canvas is painted unrolled (and oversized while the view rolls): the screen's top row y = 40 is, after
+       the ~pi view roll about (600, HORIZON), the canvas row 2 * HORIZON - 40, offset by the overscan */
+    const bk = roadCanvas.width / canvasW;   /* backing scale: 1x while rolling */
+    const rowY = Math.round((2 * HORIZON - 40 + canvasOY) * bk);
+    const row = roadCanvas.getContext('2d').getImageData(0, rowY, roadCanvas.width, 1).data, hexAt = i => '#' + [row[i], row[i + 1], row[i + 2]].map(c => c.toString(16).padStart(2, '0')).join('');
     let groundPx = 0, n = 0;
-    for (let x = 20; x < 2400; x += 40, n++) if (hexAt(x * 4) === roadPal.ground || hexAt(x * 4) === roadPal.ground2) groundPx++;
+    for (let x = 20; x < 1200; x += 20, n++) { const cx = Math.round((x + canvasOX) * bk); if (hexAt(cx * 4) === roadPal.ground || hexAt(cx * 4) === roadPal.ground2) groundPx++; }
     const hex = (groundPx / n).toFixed(2);
     const weatherOut = document.getElementById('weather').parentElement.id === 'road';
     const car = carWrap.style.transform, m = /rotate\((-?[\d.]+)rad\)/.exec(car);
-    return { before, weatherOut, live: twistLive, roll: rollCar, env: env.style.transform, star: star && star.wrap.style.transform, top: hex, ground: roadPal.ground, ground2: roadPal.ground2, cork: window.__cork,
-      car, carRot: !!m, carAngle: m ? +m[1] : 0, origin: carWrap.style.transformOrigin };
+    const vm = /rotate\((-?[\d.]+)rad\)/.exec(viewEl.style.transform);
+    return { before, weatherOut, live: twistLive, roll: rollCar, env: env.style.transform, view: viewEl.style.transform, viewAngle: vm ? +vm[1] : 0, star: star && star.wrap.style.transform, top: hex, ground: roadPal.ground, ground2: roadPal.ground2, cork: window.__cork,
+      car, carRot: !!m, carAngle: m ? +m[1] : 0, overscan: roadCanvas.width };
   });
   await page.screenshot({ path: SHOT + 'course-corkscrew.png' });
   for (const f of [-0.25, 0.25, 0.75]) {
     await page.evaluate(async f => { const t = TWISTS[0]; pos = t.x0 + (t.x1 - t.x0) * f - CAR_SCREEN_X + CAR_HIT_Z; await new Promise(r => setTimeout(r, 120)); }, f);
     await page.screenshot({ path: SHOT + `course-corkscrew-${Math.round(f * 100)}.png` });
   }
-  check('corkscrew: level before it, rolling mid-twist (roll ~pi); the sky never rolls, weather stays outside over the road',
-    !roll.before.live && !roll.before.carRot && roll.before.env === '' && roll.live && roll.weatherOut && Math.abs(Math.abs(roll.roll) - Math.PI) < 0.05 && roll.env === '', JSON.stringify({ before: roll.before, weatherOut: roll.weatherOut, live: roll.live, roll: roll.roll, env: roll.env }));
-  check('corkscrew: the world stays flat (sky at the top, no sprite turns); the car itself is upside down mid-twist',
-    +roll.top < 0.5 && !/rotate\(/.test(roll.star || '') && roll.carRot && Math.abs(Math.abs(roll.carAngle) - Math.PI) < 0.05 && roll.origin === '50% 80%', JSON.stringify({ groundShareOfTopRow: roll.top, star: roll.star, car: roll.car, origin: roll.origin }));
+  check('corkscrew: level before it (no view roll), rolling mid-twist (roll ~pi): the whole view is turned ~pi about the vanishing point, weather stays outside over the road',
+    !roll.before.live && !roll.before.carRot && roll.before.view === '' && roll.live && roll.weatherOut && Math.abs(Math.abs(roll.roll) - Math.PI) < 0.05 && Math.abs(Math.abs(roll.viewAngle) - Math.PI) < 0.05 && roll.overscan === 1500, JSON.stringify({ before: roll.before, weatherOut: roll.weatherOut, live: roll.live, roll: roll.roll, view: roll.view, overscan: roll.overscan }));
+  check('corkscrew: upside down the ground fills the top of the screen, the road ahead rides the ribbon (its stars turn with it) and the car is counter-rolled so it stays upright',
+    +roll.top > 0.3 && /rotate\(/.test(roll.star || '') && roll.carRot && Math.abs(Math.abs(roll.carAngle) - Math.PI) < 0.05, JSON.stringify({ groundShareOfTopRow: roll.top, star: roll.star, car: roll.car }));
   const out = await page.evaluate(async () => {
     const t = TWISTS[0];
     pos = t.x1 + 3600 - CAR_SCREEN_X; await new Promise(r => setTimeout(r, 150));
-    return { live: twistLive, env: document.getElementById('env').style.transform, cork: window.__cork, carRot: /rotate/.test(carWrap.style.transform), origin: carWrap.style.transformOrigin };
+    return { live: twistLive, view: viewEl.style.transform, cork: window.__cork, carRot: /rotate/.test(carWrap.style.transform), overscan: roadCanvas.width };
   });
-  check('corkscrew: a whoosh on the way in, the car lands level after', roll.cork >= 1 && !out.live && out.env === '' && !out.carRot && out.origin === '50% 92%', JSON.stringify({ cork: roll.cork, out }));
+  check('corkscrew: a whoosh on the way in, the view squares up and the canvas shrinks back after', roll.cork >= 1 && !out.live && out.view === '' && !out.carRot && out.overscan === 2400, JSON.stringify({ cork: roll.cork, out }));
 
   /* ---- 4. hard turn: squeal at speed ---- */
   const hardTurn = await page.evaluate(async () => {
@@ -231,7 +236,7 @@ function check(name, ok, detail) {
     pos = (t.x0 + t.x1) / 2 - CAR_SCREEN_X + CAR_HIT_Z; v = 0;
     await new Promise(r => setTimeout(r, 200));
     const a = drumEls[0] && drumEls[0].style.transform;
-    return { live: twistLive, env: document.getElementById('env').style.transform, drum: a || '', carRot: /rotate/.test(carWrap.style.transform) };
+    return { live: twistLive, env: viewEl.style.transform, drum: a || '', carRot: /rotate/.test(carWrap.style.transform) };
   });
   await page.screenshot({ path: SHOT + 'course-corkscrew-reduced.png' });
   await page.emulateMedia({ reducedMotion: null });

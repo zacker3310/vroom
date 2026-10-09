@@ -154,6 +154,10 @@
 - [x] T25.5: Audio. `ENGINE_VOICES` by body family with virtual gears, throttle and clunks; `sfx.passby` doppler on passing props; `MUSIC[w]` adaptive beds per world (bass always, arp and percussion with speed, riser in the air and in corkscrews, ducked at the finish, silent in quiet mode) with a documented `MIX`. world-check-audio-events 26.
 - Five worktree agents, squash-merged; 23 suites, 421/421, lint 0.
 
+## v13.4.0 (2026-10-09, user-directed: "I want the actual track to be the corkscrew")
+
+- [x] T26.1: The road is the corkscrew. Road-space points go through `rollPt(rollAt(x))` about the hoop axis (a real twisted ribbon inside the tunnel); the camera rides the car around the tube (`camWX`, `camWY`) and its roll is one rotation of `#view` about the vanishing point, with the car counter-rolled upright. Ground, fields, hoops and roadside stay in flat world space (`groundSpace`). While a twist is live: 1500 px square canvas at 1x backing (`setOverscan`), near plane at -80, occlusion off. Twist frames render faster than the straight road. course-check reworked (23). 23 suites, 421/421.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
