@@ -1,10 +1,12 @@
 /* world audio + live events: jingles/ambience beds never throw (audio locked or unlocked),
    events are scheduled per level and fire as the car passes them, star scales cover 8 worlds,
-   quiet mode scales the ambience bed. */
+   quiet mode scales the ambience bed. v13: the engine's gear bands and body voices, the per-world
+   music bed (scheduler, intensity, riser, finish duck, teardown, quiet) and the pass-by whoosh. */
 const pw = require('playwright-core');
 const os = require('os');
 const EXE = process.env.CHROMIUM || os.homedir() + '/Library/Caches/ms-playwright/chromium-1117/chrome-mac/Chromium.app/Contents/MacOS/Chromium';
 const URL = process.env.VROOM_URL || 'http://localhost:4173/index.html';
+const ENGINE_TRUCK_BASE = 34;   /* ENGINE_VOICES.truck.base: the race voice must idle above it */
 
 const results = [];
 function check(name, ok, detail) {
@@ -137,6 +139,91 @@ function check(name, ok, detail) {
   check('parade bed + free-drive bed switches with the world', au.parade && au.freeSwitch);
   check('quiet mode scales ambience gain (0.22x)', au.levelQuiet > 0 && Math.abs(au.levelQuiet / au.levelLoud - 0.22) < 1e-6 && au.quietTick, au.levelLoud + ' -> ' + au.levelQuiet);
   check('audio unlocked: no exceptions while driving', errors.length === unlockedBefore, errors.slice(unlockedBefore).join('|').slice(0, 300));
+
+  /* ---- engine, music bed, pass-by (audio graph checks: Playwright can't hear) ---- */
+  const tabs = await page.evaluate(() => {
+    const worlds = [1,2,3,4,5,6,7,8,9,10,11,12,'parade'];
+    const ok = worlds.every(w => MUSIC[w] && MUSIC[w].bpm > 40 && MUSIC[w].bass.length >= 32 && MUSIC[w].arp.length >= 8 && MUSIC[w].perc.length >= 6
+      && [...MUSIC[w].bass + MUSIC[w].arp].every(c => c === '.' || NOTE_CH.includes(c)) && [...MUSIC[w].perc].every(c => '.kshK'.includes(c)));
+    const fams = new Set(BODY_ORDER.map(b => ENGINE_FAMILY[b] || 'default'));
+    const bases = new Set([...fams].map(f => ENGINE_VOICES[f].base));
+    return { ok, fams: [...fams], bases: bases.size, gears: [...fams].map(f => ENGINE_VOICES[f].gears), whine: ENGINE_VOICES.whine.kind === 'whine' && ENGINE_VOICES.whine.gears === 1 };
+  });
+  check('music table: a valid loop for all 12 worlds + parade (bass sets the length, arp/perc repeat)', tabs.ok);
+  check('engine voices: 4+ body families with distinct idle pitch, a gearless whine for rocket/ufo', tabs.fams.length >= 4 && tabs.bases >= 4 && tabs.whine, JSON.stringify(tabs));
+
+  const eng = await page.evaluate(async () => {
+    const out = { sched: [], loops: [], amb: [] };
+    for (let w = 1; w <= 12; w++) {
+      drive(w * 10 - 3);
+      await new Promise(r => setTimeout(r, 40));
+      out.sched.push(!!(music && music.key === w && music.timer && music.nextT > actx.currentTime && music.loopDur > 5 && music.loopDur < 60));
+      out.loops.push(music ? +music.loopDur.toFixed(2) : 0);
+      out.amb.push(ambTargetLevel());
+      stopDrive();
+    }
+    out.ambBare = ambTargetLevel();
+    /* gears on the default dump truck (3 bands) */
+    drive(5); await new Promise(r => setTimeout(r, 30));
+    const g = [];
+    const seq = []; for (let s = 0; s <= 700; s += 25) { engineSet(s, true, false); seq.push(engine.gear); }
+    out.monotone = seq.every((x, i) => !i || x >= seq[i - 1]); out.top = seq[seq.length - 1]; out.bands = engine.voice.gears;
+    for (let i = 0; i < 4; i++) engineSet(0, false, false);   /* one gear per call on the way down: settle to 0 */
+    g.push(engine.gear);                                    /* 0 */
+    engineSet(250, true, false); g.push(engine.gear);       /* u .357: still gear 0 (edge .333 + hysteresis .035) */
+    engineSet(275, true, false); g.push(engine.gear);       /* u .393: gear 1 */
+    engineSet(225, false, true); g.push(engine.gear);       /* u .321: holds gear 1 (hysteresis) */
+    engineSet(200, false, true); g.push(engine.gear);       /* u .286: down to 0 */
+    out.g = g; out.shifts = engine.shifts;
+    /* race body: 4 bands, high pitch */
+    const body = state.body; engineStop(); state.body = 'race'; engineStart();
+    for (let s = 0; s <= 700; s += 25) engineSet(s, true, false);
+    out.race = { gears: engine.voice.gears, gear: engine.gear, base: engine.voice.base };
+    engineStop(); state.body = body;
+    stopDrive();
+    return out;
+  });
+  check('after drive(n): music scheduler running per world (timer, next note ahead of the clock, loop length)', eng.sched.every(Boolean), eng.loops.join(','));
+  check('ambience bed sits lower under the music (x0.7), back to full after stopDrive', eng.amb.every(a => Math.abs(a / eng.ambBare - 0.7) < 1e-6), eng.amb[0] + ' vs ' + eng.ambBare);
+  check('engine gear rises with v, shifts at band edges with hysteresis, downshifts on braking', eng.monotone && eng.top === eng.bands - 1 && eng.g.join('') === '00110' && eng.shifts >= 3, JSON.stringify({ g: eng.g, top: eng.top, bands: eng.bands, shifts: eng.shifts }));
+  check('race body: 4 gear bands, higher idle than the truck', eng.race.gears === 4 && eng.race.gear === 3 && eng.race.base > ENGINE_TRUCK_BASE, JSON.stringify(eng.race));
+
+  const pb = await page.evaluate(async () => {
+    const out = {};
+    drive(25); await new Promise(r => setTimeout(r, 40));
+    window.__pb = []; const o = sfx.passby; sfx.passby = (k, pan) => { window.__pb.push([k, pan]); o(k, pan); };
+    const pick = props.find(q => (q.type === 'cone' || q.type === 'barrel') && q.lane !== 1 && q.x > 1500);
+    out.prop = pick && [pick.type, pick.lane];
+    v = 500; pos = pick.x - CAR_SCREEN_X - 60;
+    await new Promise(r => setTimeout(r, 180));
+    out.fast = window.__pb.length; out.count = passByCount; out.args = window.__pb[0];
+    /* below the speed floor: teleport past another prop, nothing plays */
+    const slow = props.find(q => (q.type === 'cone' || q.type === 'barrel') && q.lane !== 1 && q !== pick) || pick;
+    v = 100; pos = slow.x - CAR_SCREEN_X - 20; await new Promise(r => setTimeout(r, 180));
+    out.slowAdded = window.__pb.length - out.fast;
+    /* rate limit: two crossings in the same tick play once */
+    v = 500; passByLast = performance.now(); passBy(props[0]); passBy(props[1]);
+    out.limited = window.__pb.length === out.fast;
+    /* intensity + riser + finish duck + teardown */
+    v = 100; await new Promise(r => setTimeout(r, 160)); out.hiSlow = music.hi;
+    v = 650; await new Promise(r => setTimeout(r, 160)); out.hiFast = music.hi;
+    airborne = true; jumpY = 120; vy = 400; await new Promise(r => setTimeout(r, 60)); out.riser = !!music.riser;   /* a real jump, not one the next tick lands */
+    airborne = false; jumpY = 0; vy = 0; await new Promise(r => setTimeout(r, 60)); out.riserOff = !music.riser;
+    v = 0; finished = true; await new Promise(r => setTimeout(r, 160));
+    out.ducked = music.ducked && Math.abs(musicTarget() - MUSIC_LEVEL * MUSIC_DUCK) < 1e-9;
+    stopDrive();
+    out.stopped = music === null && musicLive() === 0 && engine === null;
+    sfx.passby = o;
+    /* quiet mode: the bed is silent */
+    progress.quiet = true; drive(12); await new Promise(r => setTimeout(r, 160));
+    out.quiet = musicTarget() === 0 && music.master.gain.value <= 0.0001;
+    stopDrive(); progress.quiet = false;
+    return out;
+  });
+  check('pass-by at speed plays through sfx.passby (louder with speed, panned), silent below 250, rate-limited', pb.fast >= 1 && pb.count >= 1 && pb.args && pb.args[0] > 0.5 && Math.abs(pb.args[1]) > 0 && pb.slowAdded === 0 && pb.limited, JSON.stringify(pb));
+  check('music intensity follows speed (arp/perc off when slow, on above 60%), riser while airborne', pb.hiSlow === 0 && pb.hiFast === 1 && pb.riser && pb.riserOff, JSON.stringify([pb.hiSlow, pb.hiFast, pb.riser, pb.riserOff]));
+  check('finish ducks the music target; stopDrive stops the scheduler with no live music or engine nodes', pb.ducked && pb.stopped, JSON.stringify([pb.ducked, pb.stopped]));
+  check('quiet mode: music gain never above 0', pb.quiet);
 
   /* ---- perf: level 80 frame time median with everything on ---- */
   const perf = await page.evaluate(async () => {

@@ -2019,6 +2019,23 @@ const sfx = {
   thud()   { tone("square", 130, 55, 0.3, 0.35); noiseBurst(0.15, 700, 0.3); },
   squeal() { tone("sawtooth", 1400, 900, 0.35, 0.08); noiseBurst(0.3, 2400, 0.1); },
   whoosh() { tone("sine", 300, 620, 0.14, 0.16); },
+  passby(k, pan) {   /* doppler swish as a prop slides past: a falling bandpass hiss + a falling sine, panned to the prop's side */
+    if (!actx) return;
+    const t = actx.currentTime, vol = 0.2 * k * volScale();
+    const out = actx.createStereoPanner ? actx.createStereoPanner() : actx.createGain();
+    if (out.pan) out.pan.value = Math.max(-1, Math.min(1, pan || 0));
+    out.connect(masterBus);
+    const src = actx.createBufferSource(); src.buffer = noiseBuffer();
+    const f = actx.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 1.2;
+    f.frequency.setValueAtTime(2600, t); f.frequency.exponentialRampToValueAtTime(500, t + 0.24);
+    const g = actx.createGain();
+    g.gain.setValueAtTime(0.001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.05); g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+    src.connect(f).connect(g).connect(out); src.start(t); src.stop(t + 0.3);
+    const o = actx.createOscillator(), og = actx.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(640, t); o.frequency.exponentialRampToValueAtTime(300, t + 0.22);
+    og.gain.setValueAtTime(vol * 0.3, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    o.connect(og).connect(out); o.start(t); o.stop(t + 0.24);
+  },
   whee()   { [523, 659, 784, 1047].forEach((f, i) => tone("sine", f, f, 0.14, 0.22, i * 0.07)); },
   corkscrew() { tone("sine", 260, 1040, 1.1, 0.16); tone("triangle", 390, 1560, 1.1, 0.07, 0.06); noiseBurst(0.9, 1800, 0.07); },
   almost() { [660, 880, 1100].forEach((f, i) => tone("sine", f, f, 0.1, 0.15, i * 0.09)); },
@@ -2080,49 +2097,129 @@ const HONKS = {
   }
 };
 
+/* ---- MIX: gain stages (peak levels into the master compressor; tuned on an iPad speaker at 1024x768) ----
+   one-shot SFX   tone()/noiseBurst() vol 0.2-0.35, straight to masterBus          reference (0 dB)
+   engine         ENGINE_LEVEL 0.05 on engine.g, layers summed below 1.0 inside     about -14 dB
+   music          MUSIC_LEVEL 0.08 on music.master, layer buses 0..1 inside          about -10 dB
+   ambience       AMB_LEVEL 0.04, x AMB_UNDER_MUSIC (0.7) while the music plays      about -18 to -20 dB
+   quiet mode     volScale() 0.22 on every stage above; the music bed goes to 0 (parents' car-friendly toggle)
+   pass-by        sfx.passby: 0.2 x speed factor, panned by the prop's lane */
+const ENGINE_LEVEL = 0.05;
+
+/* ---- ENGINE VOICES: one small parameter table, one family per body ----
+   kind   "piston" (sub + resonant saw growl + a high harmonic) or "whine" (sine hum + a soft saw, no gears)
+   base   fundamental at idle (Hz)      rise   pitch climb across one gear band (x base)
+   gears  virtual gear bands over the speed range (1 = continuous)
+   flo/fhi growl lowpass floor and ceiling (Hz)   q growl resonance   harm high-layer harmonic (x fundamental)
+   chug   exhaust-pulse LFO on the growl (0 = none; tractor = lumpy), clunk = shift noise centre (Hz, 0 = none) */
+const ENGINE_VOICES = {
+  default: { kind: "piston", base: 46, rise: 1.3, gears: 3, flo: 240, fhi: 1500, q: 5,  harm: 3, chug: 0,   clunk: 600, sub: 0.55, growl: 0.5, high: 0.12 },
+  truck:   { kind: "piston", base: 34, rise: 0.9, gears: 3, flo: 180, fhi: 900,  q: 6,  harm: 2, chug: 0,   clunk: 420, sub: 0.7,  growl: 0.55, high: 0.08 },
+  race:    { kind: "piston", base: 62, rise: 1.9, gears: 4, flo: 320, fhi: 2600, q: 4,  harm: 4, chug: 0,   clunk: 900, sub: 0.4,  growl: 0.5, high: 0.16 },
+  tractor: { kind: "piston", base: 28, rise: 0.7, gears: 3, flo: 150, fhi: 700,  q: 8,  harm: 2, chug: 0.7, clunk: 360, sub: 0.7,  growl: 0.6, high: 0.06 },
+  whine:   { kind: "whine",  base: 110, rise: 1.6, gears: 1, flo: 600, fhi: 3200, q: 2, harm: 2, chug: 0,   clunk: 0,   sub: 0.5,  growl: 0.25, high: 0.14 }
+};
+const ENGINE_FAMILY = {
+  dump: "truck", digger: "truck", mixer: "truck", bulldozer: "truck", schoolbus: "truck", train: "truck", fire: "truck",
+  race: "race", police: "race", ambulance: "race", limo: "race",
+  tractor: "tractor", monster: "tractor", dino: "tractor", pirate: "tractor",
+  rocket: "whine", ufo: "whine", hover: "whine", unicorn: "whine", dragon: "whine"
+};
+function engineVoice(body) { return ENGINE_VOICES[ENGINE_FAMILY[body] || "default"]; }
+const GEAR_HYST = 0.035;   /* fraction of the speed range a band edge is overshot before a shift (no hunting) */
+
 let engine = null;
 function engineStart() {
   if (!actx || engine) return;
-  /* two detuned saws through a speed-swept lowpass, plus a wind-noise layer at speed */
-  const o = actx.createOscillator(), o2 = actx.createOscillator();
-  const g = actx.createGain(), f = actx.createBiquadFilter();
-  o.type = "sawtooth"; o.frequency.value = 45;
-  o2.type = "sawtooth"; o2.frequency.value = 45; o2.detune.value = 9;
-  f.type = "lowpass"; f.frequency.value = 260;
-  g.gain.value = 0;
-  o.connect(f); o2.connect(f);
-  f.connect(g).connect(masterBus);
-  o.start(); o2.start();
-  const wlen = actx.sampleRate;
-  const wbuf = actx.createBuffer(1, wlen, actx.sampleRate);
-  const wd = wbuf.getChannelData(0);
-  for (let i = 0; i < wlen; i++) wd[i] = Math.random() * 2 - 1;
-  const wsrc = actx.createBufferSource(); wsrc.buffer = wbuf; wsrc.loop = true;
+  const voice = engineVoice(state.body);
+  /* three pitched layers and a wind layer into one engine master (engine.g), which is the only stage volScale touches:
+     sub:    sine fundamental                                   (2 nodes)
+     growl:  two detuned saws through a resonant lowpass          (4 nodes, +2 for the chug LFO)
+     high:   a harmonic (square for pistons, sine for a whine)   (2 nodes)
+     wind:   the shared noise buffer through a bandpass           (3 nodes), fades in over the top 40% of the range */
+  const g = actx.createGain(); g.gain.value = 0; g.connect(masterBus);
+  const sub = actx.createOscillator(), sg = actx.createGain();
+  sub.type = "sine"; sub.frequency.value = voice.base; sg.gain.value = voice.sub;
+  sub.connect(sg).connect(g);
+  const o = actx.createOscillator(), o2 = actx.createOscillator(), f = actx.createBiquadFilter(), gg = actx.createGain();
+  o.type = voice.kind === "whine" ? "triangle" : "sawtooth"; o2.type = "sawtooth";
+  o.frequency.value = voice.base; o2.frequency.value = voice.base; o2.detune.value = voice.kind === "whine" ? 4 : 9;
+  f.type = "lowpass"; f.frequency.value = voice.flo; f.Q.value = voice.q;
+  gg.gain.value = voice.growl * 0.5;
+  o.connect(f); o2.connect(f); f.connect(gg).connect(g);
+  const hi = actx.createOscillator(), hg = actx.createGain();
+  hi.type = voice.kind === "whine" ? "sine" : "square"; hi.frequency.value = voice.base * voice.harm; hg.gain.value = 0;
+  hi.connect(hg).connect(g);
+  let lfo = null, lg = null;
+  if (voice.chug) {   /* exhaust pulses: a slow sine wobbling the growl gain, rate rising with revs */
+    lfo = actx.createOscillator(); lg = actx.createGain();
+    lfo.type = "sine"; lfo.frequency.value = 6; lg.gain.value = voice.growl * 0.5 * voice.chug;
+    lfo.connect(lg).connect(gg.gain); lfo.start();
+  }
+  const wsrc = actx.createBufferSource(); wsrc.buffer = noiseBuffer(); wsrc.loop = true;
   const wf = actx.createBiquadFilter(); wf.type = "bandpass"; wf.frequency.value = 1100; wf.Q.value = 0.6;
   const wg = actx.createGain(); wg.gain.value = 0;
   wsrc.connect(wf).connect(wg).connect(masterBus);
-  wsrc.start();
-  engine = { o, o2, g, f, wsrc, wg };
+  o.start(); o2.start(); sub.start(); hi.start(); wsrc.start();
+  engine = { o, o2, f, g, sub, sg, gg, hi, hg, lfo, lg, wsrc, wg, voice, gear: 0, u: 0, lastShift: 0, shifts: 0 };
 }
-function engineSet(v) {
-  if (!engine) return;
-  /* smooth ramps instead of per-frame .value writes (audible zipper otherwise) */
+/* a soft shift clunk / exhaust pop: a few ms of the shared noise through a bandpass, plus a pop on the way up */
+function engineClunk(freq, vol, down) {
   const t = actx.currentTime;
-  const fr = 45 + (v / 700) * 100;
-  engine.o.frequency.setTargetAtTime(fr, t, 0.06);
-  engine.o2.frequency.setTargetAtTime(fr, t, 0.06);
-  engine.f.frequency.setTargetAtTime(260 + (v / 700) * 1100, t, 0.08);
-  engine.g.gain.setTargetAtTime((v > 5 ? 0.055 : 0) * volScale(), t, 0.06);
+  const src = actx.createBufferSource(); src.buffer = noiseBuffer();
+  const f = actx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = freq; f.Q.value = 1.4;
+  const g = actx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+  src.connect(f).connect(g).connect(masterBus); src.start(t); src.stop(t + 0.08);
+  if (!down) tone("square", 140, 60, 0.07, vol * 0.8);
+}
+/* gas / brake are the throttle state from the drive loop; both false = coasting (the engine settles to an idle burble) */
+function engineSet(v, gas, brake) {
+  if (!engine) return;
+  const e = engine, voice = e.voice, t = actx.currentTime;
+  const u = Math.max(0, Math.min(1, v / vmaxEff()));
+  e.u = u;
+  /* virtual gears: inside a band the pitch rises with speed; past the top edge (plus hysteresis) the next gear takes
+     over and the pitch drops back; braking below the bottom edge (minus hysteresis) shifts down */
+  const bands = voice.gears, bw = 1 / bands;
+  let gear = e.gear;
+  if (gear < bands - 1 && u > (gear + 1) * bw + GEAR_HYST) gear++;
+  else if (gear > 0 && u < gear * bw - GEAR_HYST) gear--;
+  if (gear !== e.gear) {
+    const down = gear < e.gear;
+    e.gear = gear; e.lastShift = t; e.shifts++;
+    /* throttle dip: the growl drops for 50 ms and swells back, with a clunk */
+    const cur = e.gg.gain.value;
+    e.gg.gain.cancelScheduledValues(t);
+    e.gg.gain.setValueAtTime(cur, t);
+    e.gg.gain.linearRampToValueAtTime(cur * 0.3, t + 0.05);
+    if (voice.clunk) engineClunk(voice.clunk, (down ? 0.05 : 0.07) * volScale(), down);
+  }
+  const frac = Math.max(0, Math.min(1.15, (u - gear * bw) / bw));   /* 0..1 through the band, a little over at the edge */
+  const fr = voice.base * (1 + gear * 0.1) * (1 + frac * voice.rise);
+  const open = gas ? 1 : brake ? 0.25 : 0.45;   /* throttle: filter and growl open on the gas, settle off it */
+  const t0 = e.lastShift && t - e.lastShift < 0.05 ? e.lastShift + 0.05 : t;
+  e.sub.frequency.setTargetAtTime(fr, t, 0.07);
+  e.o.frequency.setTargetAtTime(fr, t, 0.07);
+  e.o2.frequency.setTargetAtTime(fr, t, 0.07);
+  e.hi.frequency.setTargetAtTime(fr * voice.harm, t, 0.07);
+  e.f.frequency.setTargetAtTime(voice.flo + (voice.fhi - voice.flo) * (0.15 + 0.85 * frac) * open, t, 0.09);
+  e.gg.gain.setTargetAtTime(voice.growl * (0.35 + 0.65 * open) * (0.6 + 0.4 * frac), t0, 0.08);
+  e.hg.gain.setTargetAtTime(voice.high * frac * (0.3 + 0.7 * open), t, 0.1);
+  if (e.lfo) e.lfo.frequency.setTargetAtTime(5 + frac * 7 + gear * 2, t, 0.1);
+  e.g.gain.setTargetAtTime((v > 5 || gas ? ENGINE_LEVEL : ENGINE_LEVEL * 0.6) * volScale(), t, 0.06);
   /* wind fades in over the top 40% of the speed range */
-  const wind = Math.max(0, (v / vmaxEff()) - 0.6) * 0.11 * volScale();
-  engine.wg.gain.setTargetAtTime(wind, t, 0.12);
+  const wind = Math.max(0, u - 0.6) * 0.11 * volScale();
+  e.wg.gain.setTargetAtTime(wind, t, 0.12);
 }
 function engineStop() {
   if (!engine) return;
-  engine.g.gain.cancelScheduledValues(actx.currentTime);
-  engine.g.gain.value = 0; engine.o.stop(); engine.o2.stop();
-  engine.wg.gain.value = 0; engine.wsrc.stop();
-  engine = null;
+  const e = engine; engine = null;
+  try {
+    e.g.gain.cancelScheduledValues(actx.currentTime);
+    e.g.gain.value = 0; e.wg.gain.value = 0;
+    e.o.stop(); e.o2.stop(); e.sub.stop(); e.hi.stop(); e.wsrc.stop();
+    if (e.lfo) e.lfo.stop();
+  } catch (err) {}
 }
 
 /* ============ 6. ART: VEHICLES, SIDE VIEW ============ */
@@ -7810,7 +7907,7 @@ function tick(now) {
     pos += v * dt;
     burnUpkeep(v * dt, now);
   } else v = 0;
-  engineSet(v);
+  engineSet(v, gas, brake);
   worldTick(dt);   /* ambience level, bend scrub, live sky events */
 
   /* idle nudge: a parked car pulses the gas pedal for first-timers */
@@ -8072,7 +8169,7 @@ function playJingle() { if (!actx) return; (paradeMode ? JINGLES.parade : JINGLE
 
 /* ---- ambience beds: looping noise/osc nodes through one master gain (quiet-mode re-read live) ---- */
 const AMB_LEVEL = 0.04;
-function ambTargetLevel() { return AMB_LEVEL * volScale(); }
+function ambTargetLevel() { return AMB_LEVEL * volScale() * (music ? AMB_UNDER_MUSIC : 1); }   /* a notch lower under the music bed */
 let amb = null;              /* { master, nodes, timers, world } */
 let ambNoiseBuf = null;
 function noiseBuffer() {
@@ -8189,7 +8286,7 @@ function ambStop() {
     setTimeout(() => { try { a.master.disconnect(); } catch (e) {} }, 1500);
   } catch (e) {}
 }
-function ambSwitch(w) { if (amb && amb.world !== w) ambStart(); }   /* free drive: theme rolled over */
+function ambSwitch(w) { if (amb && amb.world !== w) { ambStart(); musicStart(); } }   /* free drive: theme rolled over */
 let ambTickT = 0;
 function ambTick(dt) {   /* re-read quiet mode every ~0.3s so a mid-drive toggle glides */
   if (!amb) return;
@@ -8197,6 +8294,190 @@ function ambTick(dt) {   /* re-read quiet mode every ~0.3s so a mid-drive toggle
   if (ambTickT < 0.3) return;
   ambTickT = 0;
   amb.master.gain.setTargetAtTime(ambTargetLevel(), actx.currentTime, 0.3);
+}
+
+/* ---- music beds: one short synthesized loop per world, scheduled ahead on the audio clock ----
+   Each MUSIC entry is a loop of 8th-note steps (one char per step, NOTE_CH = semitones above `root`, "." a rest):
+   `bass` sets the loop length, `arp` and `perc` repeat inside it ("k" kick, "s" snare, "h" hat, "K" kick+hat).
+   Three buses under one master: bass always plays (thinner when slow), arp + perc fade in above ~60% speed,
+   a riser swells through a corkscrew or a jump. The pump runs every MUSIC_PUMP_MS and books every note that
+   falls inside the next MUSIC_LOOKAHEAD seconds, so timing never depends on frames. Finish = duck to
+   MUSIC_DUCK; quiet mode = silent; stopDrive tears the whole thing down. The note vocab mirrors the jingles. */
+const MUSIC_LEVEL = 0.08, AMB_UNDER_MUSIC = 0.7, MUSIC_DUCK = 0.3;
+const MUSIC_LOOKAHEAD = 0.3, MUSIC_PUMP_MS = 80, MUSIC_LEAD = 1.3;   /* lead: the jingle plays first */
+const NOTE_CH = "0123456789abCDEFGHIJKLMNOPQRSTUV";   /* index = semitones above the root (C = an octave up) */
+const MUSIC = {
+  1: { bpm: 112, root: 98, bw: "square", aw: "triangle",   /* construction: a work-song stomp (G) */
+    bass: "0...0.7.0...0.5.0...0.7.5...7...0...0.7.0...0.5.0...0.7.5.7.9...",
+    arp:  "C.G.C.7.C.G.C.7.C.G.C.7.9.7.4.7.",
+    perc: "k.h.s.h.k.h.s.h.k.h.s.h.k.h.s.hh" },
+  2: { bpm: 122, root: 98, bw: "triangle", aw: "triangle",   /* sunset farm: jaunty country two-step (G) */
+    bass: "0.0.7.7.5.5.7.7.0.0.7.7.5.7.9.7.0.0.7.7.5.5.7.7.0.0.7.7.9.7.5.7.",
+    arp:  "4.7.C.7.4.9.C.9.4.7.C.7.G.C.9.7.",
+    perc: "k.hhs.h.k.hhs.hh" },
+  3: { bpm: 84, root: 131, bw: "sine", aw: "sine",   /* night: a music box (C) */
+    bass: "0.......7.......5.......7.......0.......7.......5.......9.......",
+    arp:  "C.G.J.O.J.G.J.O.C.G.J.O.J.G.J.O.9.E.J.O.J.E.J.O.C.G.J.O.J.G.J.O.",
+    perc: "h...h...h...h.h." },
+  4: { bpm: 80, root: 147, bw: "sine", aw: "sine",   /* rain: slow sus chimes (D) */
+    bass: "0.......0.......a.......a.......5.......5.......7.......7.......",
+    arp:  "C...J...E...J...C...J...E...J...a...H...E...H...C...J...E...J...",
+    perc: "h.......h...h..." },
+  5: { bpm: 126, root: 131, bw: "triangle", aw: "sine",   /* snow: sleigh bells trot (C) */
+    bass: "0.0.7.7.0.0.7.7.5.5.7.7.0.0.7.7.0.0.7.7.0.0.7.7.5.5.9.9.7.7.7.7.",
+    arp:  "O.J.G.J.O.J.G.J.L.J.G.J.O.J.G.J.",
+    perc: "hhhhhhhhhhhhhhhhhhhhhhhhhhhhsshh" },
+  6: { bpm: 100, root: 98, bw: "sawtooth", aw: "triangle",   /* desert: a blues shuffle (G) */
+    bass: "0..0..3.5..3..0.0..0..3.5..6..5.0..0..3.5..3..0.7..7..5.3..3..0.",
+    arp:  "C..C..E.G..E..C.",
+    perc: "k..h..s.k..h..s." },
+  7: { bpm: 108, root: 131, bw: "triangle", aw: "sine",   /* beach: calypso steel drums (C mixolydian) */
+    bass: "0..7.0..5..7.0..0..7.0..5..a.7..0..7.0..5..7.0..5..5.7..a..7.0..",
+    arp:  "C.G.J.G.C.G.J.M.C.G.J.G.a.E.J.G.",
+    perc: "k.h.s.hhk.h.s.h." },
+  8: { bpm: 132, root: 110, bw: "sine", aw: "square",   /* space: a whole-tone arpeggio (A) */
+    bass: "0.......0.......2.......2.......4.......4.......a.......8.......",
+    arp:  "C.E.G.I.K.M.K.I.C.E.G.I.K.M.K.I.E.G.I.K.M.O.M.K.C.E.G.I.K.M.K.I.",
+    perc: "h.h.h.h.s.h.h.h." },
+  parade: { bpm: 120, root: 131, bw: "square", aw: "sawtooth",   /* parade: a brass march (C) */
+    bass: "0.0.7.7.0.0.7.7.5.5.7.7.0.7.0.0.0.0.7.7.0.0.7.7.5.5.9.9.7.7.0.0.",
+    arp:  "C.C.G.J.C.C.G.J.C.C.E.G.J.G.E.C.",
+    perc: "k.h.s.h.k.h.s.hhk.h.s.h.K.s.K.s." }
+};
+let music = null;
+function musicTarget() { return progress.quiet ? 0 : MUSIC_LEVEL * (finished ? MUSIC_DUCK : 1); }
+function musicLive() { return music ? music.live.length : 0; }
+/* one note: osc -> gain envelope -> bus, tracked in music.live until it ends */
+function mNote(m, bus, type, f, t, dur, vol) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.value = f;
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(bus); o.start(t); o.stop(t + dur + 0.02);
+  mTrack(m, o);
+}
+function mTrack(m, src) {
+  m.live.push(src);
+  src.onended = () => { const i = m.live.indexOf(src); if (i >= 0) m.live.splice(i, 1); };
+}
+/* light percussion: kick = a dropping sine, snare / hat = the shared noise through a filter */
+function mHit(m, kind, t) {
+  if (kind === "k" || kind === "K") {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.1);
+    g.gain.setValueAtTime(0.6, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+    o.connect(g).connect(m.bus.perc); o.start(t); o.stop(t + 0.16); mTrack(m, o);
+  }
+  if (kind === "s" || kind === "h" || kind === "K") {
+    const hat = kind !== "s";
+    const src = actx.createBufferSource(); src.buffer = noiseBuffer();
+    const f = actx.createBiquadFilter(); f.type = hat ? "highpass" : "bandpass"; f.frequency.value = hat ? 6500 : 1800; f.Q.value = 0.7;
+    const g = actx.createGain(), dur = hat ? 0.04 : 0.09;
+    g.gain.setValueAtTime(hat ? 0.16 : 0.35, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f).connect(g).connect(m.bus.perc); src.start(t); src.stop(t + dur + 0.01); mTrack(m, src);
+  }
+}
+function musicStep(m, i, t) {
+  const d = m.def;
+  const b = NOTE_CH.indexOf(d.bass[i]);
+  if (b >= 0) mNote(m, m.bus.bass, d.bw, d.root * Math.pow(2, b / 12), t, m.stepDur * 1.5, 0.5);
+  const a = NOTE_CH.indexOf(d.arp[i % d.arp.length]);
+  if (a >= 0) mNote(m, m.bus.arp, d.aw, d.root * 2 * Math.pow(2, a / 12), t, m.stepDur * 1.1, 0.22);
+  const pc = d.perc[i % d.perc.length];
+  if (pc !== ".") mHit(m, pc, t);
+}
+function musicPump() {
+  const m = music;
+  if (!m) return;
+  const horizon = actx.currentTime + MUSIC_LOOKAHEAD;
+  while (m.nextT < horizon) {
+    musicStep(m, m.step, m.nextT);
+    m.step = (m.step + 1) % m.def.bass.length;
+    m.nextT += m.stepDur;
+  }
+}
+function musicStart() {
+  if (!actx) return;
+  musicStop();
+  const key = paradeMode ? "parade" : curWorld();
+  const def = MUSIC[key] || MUSIC[1];
+  const master = actx.createGain(); master.gain.value = 0; master.connect(masterBus);
+  const bus = { bass: actx.createGain(), arp: actx.createGain(), perc: actx.createGain() };
+  bus.bass.gain.value = 0.7; bus.arp.gain.value = 0; bus.perc.gain.value = 0;
+  for (const b of Object.values(bus)) b.connect(master);
+  const stepDur = 30 / def.bpm;   /* an 8th note */
+  music = { key, def, master, bus, stepDur, loopDur: stepDur * def.bass.length, step: 0, nextT: actx.currentTime + MUSIC_LEAD,
+            live: [], timer: null, riser: null, ducked: false, tickT: 0 };
+  master.gain.setTargetAtTime(musicTarget(), actx.currentTime + MUSIC_LEAD * 0.6, 0.6);
+  music.timer = setInterval(musicPump, MUSIC_PUMP_MS);
+  musicPump();
+}
+function musicStop() {
+  if (!music) return;
+  const m = music; music = null;
+  clearInterval(m.timer);
+  try {
+    const t = actx.currentTime;
+    m.master.gain.cancelScheduledValues(t);
+    m.master.gain.setTargetAtTime(0, t, 0.08);
+    for (const n of m.live) { try { n.onended = null; n.stop(t + 0.3); } catch (e) {} }
+    m.live.length = 0;
+    if (m.riser) { try { m.riser.o.stop(t + 0.3); } catch (e) {} m.riser = null; }
+    setTimeout(() => { try { m.master.disconnect(); } catch (e) {} }, 600);
+  } catch (e) {}
+}
+/* the riser: a sine sweeping up two octaves while the car is in a corkscrew or in the air */
+function musicRiser(m, on) {
+  const t = actx.currentTime;
+  if (on && !m.riser) {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(m.def.root * 2, t); o.frequency.exponentialRampToValueAtTime(m.def.root * 8, t + 1.6);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.3, t + 0.15);
+    o.connect(g).connect(m.master); o.start(t);
+    m.riser = { o, g };
+  } else if (!on && m.riser) {
+    const r = m.riser; m.riser = null;
+    r.g.gain.cancelScheduledValues(t); r.g.gain.setTargetAtTime(0.0001, t, 0.12);
+    r.o.stop(t + 0.5);
+  }
+}
+function musicTick(dt) {
+  const m = music;
+  if (!m) return;
+  musicRiser(m, airborne || inTwist(pos + CAR_SCREEN_X));
+  m.tickT += dt;
+  if (m.tickT < 0.1) return;
+  m.tickT = 0;
+  const t = actx.currentTime, u = v / vmaxEff();
+  const hi = Math.max(0, Math.min(1, (u - 0.55) / 0.15));   /* arp + percussion live above ~60% speed */
+  m.hi = hi;
+  m.bus.arp.gain.setTargetAtTime(hi, t, 0.4);
+  m.bus.perc.gain.setTargetAtTime(hi, t, 0.4);
+  m.bus.bass.gain.setTargetAtTime(0.7 + 0.3 * hi, t, 0.4);
+  m.ducked = !!finished;
+  m.master.gain.setTargetAtTime(musicTarget(), t, finished ? 0.15 : 0.5);
+}
+
+/* ---- pass-by: a panned doppler swish when a sizeable prop slides past the car at speed ---- */
+const PASSBY_MIN_V = 250, PASSBY_GAP = 250;   /* ms: at most ~4 a second */
+let passByLast = 0, passByCount = 0;
+const PASSBY_T = t => HARD_T(t) || SOFT_T(t) || t === "scenery" || t === "capsule";
+function passByTick() {
+  const carX = pos + CAR_SCREEN_X, fast = v >= PASSBY_MIN_V;
+  for (const list of [props, scenery]) for (const p of list) {
+    const z = p.x - carX, was = p.pz;
+    p.pz = z;
+    if (was === undefined || !(was > 0 && z <= 0)) continue;   /* only the frame it crosses the bumper */
+    if (!fast || p.done || !PASSBY_T(p.type) || Math.abs(p.lx) > ROAD_HALF + 260) continue;
+    passBy(p);
+  }
+}
+function passBy(p) {
+  const now = performance.now();
+  if (now - passByLast < PASSBY_GAP) return;
+  passByLast = now; passByCount++;
+  const k = Math.min(1, 0.35 + (v - PASSBY_MIN_V) / 400);           /* louder at speed */
+  const pan = (p.lx - (laneVis - 1) * LANE_W) / (LANE_W * 2.2);      /* the prop's side relative to the car */
+  sfx.passby(k, pan);
 }
 
 /* ---- star chimes: the combo ladder climbs a per-world scale ---- */
@@ -8448,14 +8729,15 @@ function injectEventCSS() {
 function worldAudioStart() {
   if (paradeMode) scheduleEvents(PARADE_LEVEL, 1);   /* the parade has its own fixed sky schedule */
   if (!actx) return;
-  try { playJingle(); ambStart(); scrubStart(); } catch (e) { /* audio hiccups never stop a level */ }
+  passByLast = 0;
+  try { playJingle(); ambStart(); scrubStart(); musicStart(); } catch (e) { /* audio hiccups never stop a level */ }
 }
 function worldAudioStop() {
   document.querySelectorAll(".liveEv").forEach(e => e.remove());   /* their removal timers die with gagTimers */
-  try { ambStop(); scrubStop(); } catch (e) {}
+  try { ambStop(); scrubStop(); musicStop(); } catch (e) {}
 }
 function worldTick(dt) {
-  if (actx) { ambTick(dt); scrubSet(); }
+  if (actx) { ambTick(dt); scrubSet(); musicTick(dt); passByTick(); }
   eventsTick();
 }
 
@@ -9066,6 +9348,14 @@ function eventFinish(n) {
     const wz = [1047, 1319, 1568, 1319, 1760, 1568];
     ambEvery(2600, 4800, () => wz.forEach((fr, i) => ambPing("sine", fr, fr, 0.22, 0.22, i * 0.2)));
   };
+  MUSIC[9] = { bpm: 118, root: 110, bw: "sawtooth", aw: "triangle",   /* volcano: tribal drums over a low minor riff (A) */
+    bass: "0...0.3.0...0.5.0...0.3.7.5.3...0...0.3.0...0.5.0...0.3.a.7.5.3.",
+    arp:  "C...E.G.C...E.J.",
+    perc: "kk.s.k.skk.s.kss" };
+  MUSIC[10] = { bpm: 138, root: 131, bw: "sine", aw: "sine",   /* candy: a music-box waltz in 3 (C) */
+    bass: "0..7..0..7..5..7..0..7..0..7..0..7..5..9..7..7..",
+    arp:  "C.G.J.C.G.J.C.G.J.C.G.J.9.E.J.9.E.J.C.G.J.C.G.J.",
+    perc: "k.h.h.k.h.h." };
   STAR_SCALES[9]  = [1, 6/5, 4/3, 3/2, 9/5, 2, 12/5, 8/3, 3]; STAR_BASE[9] = 440;     /* minor pentatonic, low */
   STAR_SCALES[10] = [1, 9/8, 5/4, 3/2, 5/3, 2, 9/4, 5/2, 3]; STAR_BASE[10] = 1319;    /* major pentatonic, high and bright */
 
@@ -9407,6 +9697,14 @@ function eventFinish(n) {
     ambNoise("lowpass", 400, 0.5, 0.25);
     ambEvery(1800, 4500, () => { const base = [1760, 1976, 2217, 2637, 2960][Math.floor(Math.random() * 5)]; ambPing("sine", base, base, 0.9, 0.3); ambPing("sine", base * 1.5, base * 1.5, 0.7, 0.18, 0.12); });
   };
+  MUSIC[11] = { bpm: 72, root: 98, bw: "sine", aw: "sine",   /* deep sea: a slow dorian swell (G) */
+    bass: "0...............a...............5...............7...............",
+    arp:  "C...E...J...E...C...E...L...J...",
+    perc: "h.......h......." };
+  MUSIC[12] = { bpm: 104, root: 131, bw: "triangle", aw: "triangle",   /* sky kingdom: airy lydian harp (C) */
+    bass: "0.......7.......6.......7.......0.......9.......7.......7.......",
+    arp:  "C.G.J.O.J.G.C.G.J.O.J.G.I.J.O.J.",
+    perc: "h.h.h.h.h.h.s.h." };
   STAR_SCALES[11] = [1, 9/8, 6/5, 4/3, 3/2, 5/3, 9/5, 2, 9/4];        /* dorian: watery */
   STAR_SCALES[12] = [1, 9/8, 5/4, 45/32, 3/2, 27/16, 15/8, 2, 9/4];   /* lydian: bright */
   STAR_BASE[11] = 784; STAR_BASE[12] = 1047;

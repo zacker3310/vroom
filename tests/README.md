@@ -1,6 +1,6 @@
 # Vroom test suites
 
-Twenty-three Playwright regression suites (398 checks) that drive the real game in headless
+Twenty-three Playwright regression suites (405 checks) that drive the real game in headless
 Chromium. They are the gate for every change: CI runs them on each push and pull request.
 
 ## Run everything
@@ -38,7 +38,7 @@ built-in one, e.g. `python3 -m http.server 4173` then
 - `washdecals-check.cjs` — wash mini-game and decal shop/persistence (11)
 - `parade-check.cjs` — victory parade: unlock, finale level, jackpot, champ badge (12)
 - `update-check.cjs` — new-version gate: detection, tap-proof hold-to-reload (5)
-- `world-check-audio-events.cjs` — per-world jingles/ambience beds, star scales, live sky events, quiet mode, level-80 frame time (16; honours `VROOM_URL`)
+- `world-check-audio-events.cjs` — per-world jingles/ambience beds, star scales, live sky events, quiet mode, engine gears + body voices, music beds (scheduler, intensity, duck, teardown), pass-by whoosh, level-80 frame time (26; honours `VROOM_URL`)
 - `paint-check.cjs` — pattern paint pack: 11 pattern tiles after the 12 colors in the one paint strip, arrows page to them, `<pattern>`/gradient defs in side + rear views, buying a pattern, v3 compact save code (count-prefixed colors + equipped paint) and legacy v2 decode, album photo re-render (22; honours `VROOM_URL`)
 - `shop-check.cjs` — shop pack: 23-body / 14-wheel / 9-decal catalog, 23-tile body strip (every tile equips), arrow paging by 7, hover (no wheels in either view, floats + bobs, glow + trail), every new body x extras x buddy x decal in both views, new wheels / decals / buddies, the 12.5 mid-tier items (jetpack 180 / disco 220 / trophy rack 260: both views on four bodies, medal cups, buddy and hat stacking, a 660 tag denied at 659 and bought at 700), 12-tile extras strip, hover at 999 denied / 1000 bought, v3 code round trip with new parts (94 bytes), frozen-width v2 legacy decode (23; honours `VROOM_URL`)
 - `garage-check.cjs` — redesigned garage: <=16 controls at rest, six category tabs with 23/14/23/1+9/12/3(+repair/wash/fuel/tires) tiles, selection ring follows state, locked tile -> tag -> buy -> equipped, arrows page the strip, a swipe scrolls instead of equipping, speaker toggle in the grown-ups overlay persists, >=64px targets, zero text (19; honours `VROOM_URL`)
@@ -74,7 +74,7 @@ click stability check.
 | `washdecals-check.cjs` | 11 | wash mini-game, decal shop and persistence |
 | `parade-check.cjs` | 12 | victory parade: unlock, finale level, jackpot, champion badge |
 | `update-check.cjs` | 5 | new-version gate: detection, tap-proof hold-to-reload |
-| `world-check-audio-events.cjs` | 16 | per-world jingles, ambience beds, star scales, live sky events, quiet mode, deep-level frame time |
+| `world-check-audio-events.cjs` | 26 | per-world jingles, ambience beds, star scales, live sky events, quiet mode, engine gears and voices, music beds, pass-by, deep-level frame time |
 | `paint-check.cjs` | 22 | pattern paints: 11 swatches on the second tray page, defs in both views, buying, v3 save code round trip, v2 legacy decode, album re-render |
 | `shop-check.cjs` | 23 | shop pack: 23-body / 14-wheel / 9-entry decal catalog, tap-forward + hold-back cycling, hover body, every body x extras x buddy x decal in both views, the mid-tier jetpack / disco / trophy rack, two-page extras tray, v3 round trip, frozen-width v2 decode |
 | `number-check.cjs` | 13 | race number: sticker-tab tile, keypad rules, 400-star change / free removal, roundel in both views beside a sticker, save-code tail, photos |
