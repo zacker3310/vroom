@@ -381,7 +381,9 @@
   .cone { transition: transform .5s ease; transform-origin: bottom center; }
   .cone.knocked { transform: rotate(78deg) translateX(26px); }
   .star { transition: transform .4s ease, opacity .4s ease; }
-  .star.collected { transform: scale(2.2); opacity: 0; }
+  /* collected: a 120 ms pop up to 1.5x, then it flares out and is gone (a keyframe so the magnet's inline drift cannot fight it) */
+  .star.collected { animation: starPop .3s ease-out forwards; }
+  @keyframes starPop { 0% { transform: scale(1); opacity: 1; } 40% { transform: scale(1.5); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
   .puddle .splash { opacity: 0; transition: opacity .15s; }
   .puddle.splashing .splash { opacity: 1; }
   /* a bonked barrel/rock hops off the road instead of sitting inside the car */
@@ -393,12 +395,29 @@
     30% { transform: translate(46px, -120px) rotate(140deg); opacity: 1; }
     100% { transform: translate(110px, 60px) rotate(330deg); opacity: 0; }
   }
+  /* the volcano's ground shiver (sky events) still rocks the whole scene for a beat */
   #road.quake { animation: quake .3s ease; }
   @keyframes quake {
     15% { transform: translate(5px, 7px); } 30% { transform: translate(-6px, -5px); }
     45% { transform: translate(4px, -3px); } 60% { transform: translate(-3px, 4px); }
     75% { transform: translate(2px, -2px); } 90% { transform: translate(-1px, 1px); }
   }
+  /* a hard hit's camera shake and the landing dip ride on the road world as one transform (camTick); the HUD never moves.
+     The zoom's origin is the stage centre so a jolt never shows the canvas edge. */
+  #roadCanvas, #world { transform-origin: 600px 350px; }
+  /* impact debris: flat chips thrown up and out of a hit, arcing down under gravity, fading */
+  .debris {
+    position: absolute; width: 14px; height: 14px; pointer-events: none; z-index: 17;
+    animation: debrisFly .35s cubic-bezier(.2,.6,.5,1) forwards;
+  }
+  @keyframes debrisFly {
+    0% { transform: translate(0,0) scale(1); opacity: 1; }
+    45% { transform: translate(calc(var(--dx) * .6), calc(var(--dy) * .9)) scale(1); opacity: 1; }
+    100% { transform: translate(var(--dx), calc(var(--dy) * -.4 + 70px)) scale(.6); opacity: 0; }
+  }
+  /* the wrench chip taking a knock: a short, hard pop (wins over .pop, which it is stacked on) */
+  .chip.bump { animation: chipBump .15s ease; }
+  @keyframes chipBump { 40% { transform: scale(1.25); } }
 
   /* 400x500 box; svg origin (the rear bumper's ground point) lands on stage 600,650 */
   #carWrap { position: absolute; left: 400px; top: 190px; width: 400px; will-change: transform; cursor: pointer; touch-action: none; transform-origin: 50% 92%; pointer-events: none; }
@@ -549,6 +568,7 @@
     transition: transform .55s cubic-bezier(.45,.1,.6,1), opacity .55s;
   }
   .flyStar svg { width: 100%; height: 100%; }
+  .flyStar.spark { width: 22px; height: 22px; transition-duration: .4s; }   /* the three little stars off a collected one */
   #tallyChip {
     position: static; height: 104px; border-radius: 30px; padding: 0 32px;
     font-size: 58px; gap: 14px; border-width: 7px;
@@ -4513,7 +4533,8 @@ function resetRoadOverlays() {
   document.getElementById("celebrate").classList.remove("active");
   document.getElementById("celebrateRow").classList.remove("ready");
   roadScene.classList.remove("celebrating");
-  document.querySelectorAll(".confetti, .flyStar, .gagWrap, .dust, .firework").forEach(c => c.remove());
+  document.querySelectorAll(".confetti, .flyStar, .gagWrap, .dust, .debris, .firework").forEach(c => c.remove());
+  debrisLive = 0;
 }
 function showGarage() { bankFreeRun(); showScene(garageScene); renderPreview(); renderWallets(false); renderUpgrades(); renderUpkeep(); renderGift(); syncStrip(); }
 function showMap() { selectedWorld = worldOf(progress.current); showScene(mapScene); renderMap(); renderWallets(false); }
@@ -5119,7 +5140,8 @@ const speedLines = document.getElementById("speedLines");
 
 const CAR_SCREEN_X = 300;         /* world x of the car = pos + 300 (kept from the side-scroller) */
 const HORIZON = 290;              /* vanishing line on the stage */
-const CAM_D = 520;                /* camera sits this far behind the car; scale 1 at the car */
+const CAM_D0 = 520;               /* camera sits this far behind the car; scale 1 at the car */
+let CAM_D = CAM_D0;               /* the effective distance: renderWorld pulls it in by fovK at speed (the FOV punch), then puts it back */
 const CAM_H = 360;                /* camera height: the car's ground line lands at y=650 */
 const LANE_W = 240;               /* lane spacing at the car's depth */
 const ROAD_HALF = LANE_W * 1.5;
@@ -5130,6 +5152,75 @@ const CAR_HIT_Z = 100;            /* collisions land this far up the car (mid-ho
 const LOW_STAR_H = 85, HIGH_STAR_H = 240;
 let camX = 0, camSkyX = 0;
 const laneX = l => (l - 1) * LANE_W;
+/* ---- camera dynamics (14.x juice): the chase cam is on springs, not bolted to the car ----
+   camX eases toward camXT (where it used to sit) on a near-critically-damped spring, so a lane change
+   or a bend swings the view and settles in ~350 ms. fovK is the throttle punch: the projection widens
+   (CAM_D pulled in) up to FOV_PUNCH at vmaxEff, easing in over ~400 ms and out over ~250 ms. camDipY is
+   the landing dip (an impulse into a spring, settles ~300 ms) and the shake is a decaying 2D jolt after
+   a hard hit; both are written as one translate on the road world (canvas + #world), never the HUD.
+   All of it is skipped under prefers-reduced-motion (rollOK false): the camera snaps and sits still. */
+const CAM_W = 18, CAM_Z = 0.8;            /* lateral spring: natural frequency (rad/s) and damping ratio (a hint of overshoot) */
+const FOV_PUNCH = 0.07, FOV_IN = 0.13, FOV_OUT = 0.08;   /* projection factor at full speed; ease time constants in / out (s) */
+const DIP_W = 20, DIP_Z = 0.75, DIP_VMAX = 800;          /* landing dip spring; the impulse is capped (~15 px peak) */
+const SHAKE_BASE = 0.12, SHAKE_PER = 0.03, SHAKE_AMP = 4; /* shake length (s) = base + per * (dmg - 1); amplitude = SHAKE_AMP * (1 + dmg) px */
+let camXT = 0, camXv = 0, fovK = 1, camDipY = 0, camDipV = 0;
+let shakeT = 0, shakeDur = 0, shakeAmp = 0, camFxX = 0, camFxY = 0, camFxShown = "";
+function camReset() {
+  camXT = camX = (laneVis - 1) * LANE_W * CAM_FOLLOW; camXv = 0; fovK = 1; CAM_D = CAM_D0;
+  camDipY = 0; camDipV = 0; shakeT = 0; shakeDur = 0; shakeAmp = 0;
+  applyCamFx(0, 0);
+}
+/* one frame of camera motion; called from tick before renderWorld */
+function camTick(dt) {
+  camXT = (laneVis - 1) * LANE_W * CAM_FOLLOW;
+  if (!rollOK) { camX = camXT; camXv = 0; fovK = 1; camDipY = 0; camDipV = 0; shakeDur = 0; applyCamFx(0, 0); return; }
+  /* lateral follow: semi-implicit Euler on a damped spring (dt is capped at 50 ms, well inside stability) */
+  camXv += (CAM_W * CAM_W * (camXT - camX) - 2 * CAM_Z * CAM_W * camXv) * dt;
+  camX += camXv * dt;
+  if (Math.abs(camXT - camX) < 0.05 && Math.abs(camXv) < 1) { camX = camXT; camXv = 0; }
+  /* throttle punch: wider at speed, quicker to relax than to build */
+  const fovT = 1 + FOV_PUNCH * Math.pow(Math.max(0, Math.min(1, v / vmaxEff())), 1.5);
+  fovK += (fovT - fovK) * Math.min(1, dt / (fovT > fovK ? FOV_IN : FOV_OUT));
+  if (Math.abs(fovK - 1) < 0.0005) fovK = 1;
+  /* landing dip: a spring kicked by the touchdown speed */
+  if (camDipY || camDipV) {
+    camDipV += (-DIP_W * DIP_W * camDipY - 2 * DIP_Z * DIP_W * camDipV) * dt;
+    camDipY += camDipV * dt;
+    if (Math.abs(camDipY) < 0.05 && Math.abs(camDipV) < 2) { camDipY = 0; camDipV = 0; }
+  }
+  /* impact shake: random jolts fading out linearly over shakeDur */
+  let sx = 0, sy = 0;
+  if (shakeDur > 0) {
+    shakeT += dt;
+    if (shakeT >= shakeDur) { shakeDur = 0; shakeAmp = 0; }
+    else {
+      const a = shakeAmp * (1 - shakeT / shakeDur);
+      sx = (Math.random() * 2 - 1) * a; sy = (Math.random() * 2 - 1) * a;
+    }
+  }
+  applyCamFx(sx, sy + camDipY);
+}
+/* the road world's offset: one translate (plus a hair of zoom while shaking, so the canvas edge never shows)
+   on the canvas and #world. Written only when it changes; "" at rest so a quiet frame costs nothing. */
+function applyCamFx(x, y) {
+  camFxX = x; camFxY = y;
+  const zoom = shakeDur > 0 ? 1 + 0.012 * (1 - shakeT / shakeDur) : 1;
+  const t = x || y || zoom !== 1 ? `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)${zoom !== 1 ? ` scale(${zoom.toFixed(4)})` : ""}` : "";
+  if (t === camFxShown) return;
+  camFxShown = t;
+  roadCanvas.style.transform = t; worldEl.style.transform = t;
+}
+/* a hard hit: hit-stop by damage (a big one lands harder), then the decaying shake. Never during the celebration. */
+function startShake(dmg) {
+  if (!rollOK || finished) return;
+  shakeDur = SHAKE_BASE + SHAKE_PER * Math.max(0, dmg - 1); shakeT = 0; shakeAmp = SHAKE_AMP * (1 + dmg);
+  applyCamFx(shakeAmp * 0.8, shakeAmp * 0.6);   /* the first jolt lands now, so the freeze shows it */
+}
+/* touchdown: kick the dip spring by the fall speed (px/s) */
+function landCam(fall) {
+  if (!rollOK) return;
+  camDipV += Math.min(DIP_VMAX, Math.max(0, fall)) * 0.9;
+}
 
 /* ---- the course: curvature along the road (OutRun style) ----
    COURSE is a list of stretches {x0, x1, k}: signed curvature (px of lateral drift per
@@ -5309,7 +5400,8 @@ function buildCourse(n, rng, len) {
   }
   return COURSE;
 }
-function carScreenX() { return 600 + (laneVis - 1) * LANE_W * (1 - CAM_FOLLOW); }
+/* where the car's rear bumper lands on stage: its lane minus the camera's slide (= 600 + lane * LANE_W * (1 - CAM_FOLLOW) once the camera has settled) */
+function carScreenX() { return 600 + (laneVis - 1) * LANE_W - camX; }
 
 function mulberry32(a) {
   return function () {
@@ -7138,8 +7230,8 @@ function drawRoad(carX) {
   quad(c, 4, carLen * sh, lx - w, lx + w, `rgba(0,0,0,${(0.2 * sh).toFixed(3)})`);
 }
 function renderWorld() {
-  const carX = pos + CAR_SCREEN_X - CAR_HIT_Z;   /* z=0 is the car's rear bumper */
-  camX = (laneVis - 1) * LANE_W * CAM_FOLLOW;
+  const carX = pos + CAR_SCREEN_X - CAR_HIT_Z;   /* z=0 is the car's rear bumper; camX was stepped by camTick */
+  CAM_D = CAM_D0 / fovK;   /* the throttle punch: a nearer camera is a wider lens; put back below so the car builder never sees it */
   curCarX = carX; camElev = elevAt(carX);
   /* corkscrew: the car's own roll, only while it is inside a twist (never for reduced motion: hoops only) */
   twistLive = rollOK && inTwist(carX);
@@ -7153,6 +7245,7 @@ function renderWorld() {
   /* the skyline slides as the road's heading swings through a bend (wraps every 1200) */
   camSkyX = ((-camX * 0.06 - headingAt(carX) * 0.9) % 1200 + 1200) % 1200;
   farLayer.style.transform = `translateX(${(camSkyX - 1200).toFixed(1)}px)`;
+  CAM_D = CAM_D0;
 }
 
 /* ============ 24. ROAD: DRIVE LOOP ============ */
@@ -7354,6 +7447,7 @@ function startDrive() {
   targetLane = 1; laneVis = 1; carYaw = 0; runStars = 0; runDamage = 0; runTime = 0; idleT = 0; nearFinish = false;
   bodyTilt = 0; prevV = 0; freezeUntil = 0; starCombo = 0; lastStarT = 0; lastShownTime = -1;
   rollOK = !reducedMotion(); inTwistNow = false; drumAngle = 0;
+  camReset();   /* camera springs at rest, no dip, no shake, lens at 1 */
   laneShown = -1; tickLane(); showSwipeHint(!freeMode && !paradeMode);
   speedLines.style.opacity = 0;
   roadPointers.clear(); gasPointers.clear(); brakePointers.clear();
@@ -7385,6 +7479,7 @@ function stopDrive() {
   clearInterval(tallyTimer); tallyTimer = null;
   rateTimers.forEach(clearTimeout); rateTimers = [];
   gagTimers.forEach(clearTimeout); gagTimers = [];
+  shakeDur = 0; applyCamFx(0, 0);   /* never leave the road world shoved over for the next scene */
   worldAudioStop();
   engineStop();
 }
@@ -7712,7 +7807,8 @@ const PROP_HIT = {
       p.el.style.top = "-92px";
       p.el.classList.add("hit");
       applyDamage(2);
-      shakeCar();
+      shakeCar(2);
+      spawnDebris(p, 8);
     }
   },
   oil(p, d) {
@@ -7739,7 +7835,8 @@ const PROP_HIT = {
     const dy = p.h - LOW_STAR_H - jumpY;   /* star height vs. car body center */
     if (near && Math.abs(d) < 75 + mag * 20 && Math.abs(dy) < 125 + mag * 15) {
       p.el.style.transform = "";
-      p.done = true; p.el.classList.add("collected");
+      p.done = true; p.el.classList.add("collected");   /* a quick pop (starPop keyframes), then it is gone */
+      starSparks(p.el);                                 /* three little stars streak off to the HUD chip */
       /* rising coin-combo pitch: streaks within 1.5s climb the ladder */
       const nw = performance.now();
       starCombo = nw - lastStarT < 1500 ? Math.min(starCombo + 1, 8) : 0;
@@ -7768,7 +7865,8 @@ function hardHit(p, d, dmg) {
     p.done = true; v = 0; sfx.thud();
     p.el.classList.add("hit");
     applyDamage(dmg);
-    shakeCar();
+    shakeCar(dmg);
+    spawnDebris(p, 5 + dmg);
   }
 }
 function gravityNow() {
@@ -7798,10 +7896,48 @@ PROP_HIT.alien = (p, d) => {
     tone("sine", 620, 980, 0.18, 0.22); tone("sine", 980, 500, 0.22, 0.2, 0.18);
   }
 };
-function shakeCar() {
-  freezeUntil = performance.now() + 90;   /* hit-stop: a comedy beat before the wobble */
+function shakeCar(dmg = 1) {
+  /* hit-stop: a comedy beat before the wobble, longer for a big hit; never while the celebration is on */
+  if (!finished) freezeUntil = performance.now() + (dmg >= 2 ? 110 : 70);
   restartAnim(carWrap, "wobble", "spin");   /* drop .spin too: its later rule would shadow .wobble */
-  restartAnim(roadScene, "quake");
+  startShake(dmg);                          /* the real 2D camera shake on the road world (not the HUD) */
+}
+/* ---- impact debris: a handful of flat Toybox chips in the prop's own colours, thrown from the hit point ---- */
+const DEBRIS_MAX = 24;
+let debrisLive = 0;
+function spawnDebris(p, n) {
+  if (!rollOK) return;   /* decorative: nothing flies under reduced motion */
+  const pal = [];
+  for (const el of p.el.querySelectorAll("[fill]")) {
+    const f = el.getAttribute("fill");
+    if (f && f[0] === "#" && !pal.includes(f)) pal.push(f);
+    if (pal.length >= 3) break;
+  }
+  if (!pal.length) pal.push("#8d99ae");
+  pal.push("#fff8ec");
+  /* the hit happens up by the hood: the prop's own screen spot, or the car's hood when it has none yet */
+  const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(p.wrap.style.transform);
+  const hx = m ? +m[1] : carScreenX(), hy = m ? Math.min(+m[2], 640) - 30 : 600;
+  for (let i = 0; i < n && debrisLive < DEBRIS_MAX; i++) {
+    const d = document.createElement("div");
+    d.className = "debris";
+    const a = Math.PI * (1.05 + Math.random() * 0.9), sp = 90 + Math.random() * 110;   /* up and out, mostly */
+    d.style.left = (hx - 7 + (Math.random() * 24 - 12)) + "px";
+    d.style.top = (hy - 7) + "px";
+    d.style.background = pal[i % pal.length];
+    d.style.borderRadius = i % 2 ? "50%" : "3px";
+    d.style.setProperty("--dx", (Math.cos(a) * sp).toFixed(0) + "px");
+    d.style.setProperty("--dy", (Math.sin(a) * sp).toFixed(0) + "px");
+    d.style.animationDuration = (0.3 + Math.random() * 0.1).toFixed(2) + "s";
+    roadScene.appendChild(d);
+    debrisLive++;
+    gagTimer(() => { d.remove(); debrisLive--; }, 420);
+  }
+}
+/* three small stars streak from the collected star to the HUD chip (flyStar at spark size, staggered) */
+function starSparks(fromEl) {
+  if (!rollOK) return;
+  for (let i = 0; i < 3; i++) gagTimer(() => { if (document.body.contains(fromEl)) flyStar(fromEl, hudStars, true); }, i * 45);
 }
 function spawnDust() {
   const cx = carScreenX();
@@ -7869,6 +8005,7 @@ function applyDamage(n) {
   buddyReact("duck");
   updateDamageVisuals();
   renderHudDamage(true);
+  restartAnim(hudDamage, "bump");   /* the wrench chip takes the knock: a 150 ms pop over the slower .pop */
   renderHudUpkeep(true);
 }
 function shieldFlash() {
@@ -7955,10 +8092,14 @@ function tick(now) {
     vy -= gravityNow() * springK() * dt;   /* space world: floaty low-gravity jumps; springs scale both ways so airtime and landing stay put */
     jumpY += vy * dt;
     if (jumpY <= 0) {
+      const fall = -vy;   /* touchdown speed, px/s */
       jumpY = 0; airborne = false; sfx.clank();
-      /* landing: suspension squash + a kick of dust */
+      /* landing: suspension squash + a kick of dust; the body squats by the fall (recovers through bodyTilt's ease, ~120 ms)
+         and the camera dips with it */
       const svg = carWrap.querySelector("svg");
       if (svg) { svg.classList.remove("land"); void carWrap.offsetWidth; svg.classList.add("land"); gagTimer(() => svg.classList.remove("land"), 450); }
+      bodyTilt += Math.min(8, fall * 0.012);
+      landCam(fall);
       spawnDust();
     }
   } else {
@@ -8003,6 +8144,7 @@ function tick(now) {
   speedLines.style.opacity = v > 0.9 * vmaxEff() ? 1 : 0;
 
   tickLane();
+  camTick(dt);   /* camera springs: lateral lag, throttle punch, landing dip, shake */
   /* world + car. From behind: bank into lane changes, squat on the gas, lift on the brake */
   renderWorld();
   /* the car stays square to the road: no skew, no bank (v12.6); it squats on the gas, lifts on the brake */
@@ -8760,14 +8902,15 @@ function confettiBurst(sceneEl, count) {
 }
 
 /* a star pops out of the tally and sails into the wallet chip */
-function flyStar(fromEl, toEl) {
+function flyStar(fromEl, toEl, spark) {
   const rd = roadScene.getBoundingClientRect();
   const s = rd.width / 1200;
   const a = fromEl.getBoundingClientRect(), b = toEl.getBoundingClientRect();
   const d = document.createElement("div");
-  d.className = "flyStar"; d.innerHTML = starIcon;
-  d.style.left = ((a.left + a.width / 2 - rd.left) / s - 22) + "px";
-  d.style.top = ((a.top + a.height / 2 - rd.top) / s - 22) + "px";
+  d.className = spark ? "flyStar spark" : "flyStar"; d.innerHTML = starIcon;
+  const half = spark ? 11 : 22, jx = spark ? Math.random() * 40 - 20 : 0, jy = spark ? Math.random() * 30 - 15 : 0;   /* sparks scatter a little */
+  d.style.left = ((a.left + a.width / 2 - rd.left) / s - half + jx) + "px";
+  d.style.top = ((a.top + a.height / 2 - rd.top) / s - half + jy) + "px";
   roadScene.appendChild(d);
   requestAnimationFrame(() => {
     d.style.transform = `translate(${(b.left - a.left + (b.width - a.width) / 2) / s}px, ${(b.top - a.top + (b.height - a.height) / 2) / s}px) scale(.45)`;

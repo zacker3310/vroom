@@ -106,6 +106,126 @@ function check(name, ok, detail) {
   });
   check('feel: speed lines fade in at vmax, out when slow', lines.on && lines.off, JSON.stringify(lines));
 
+  /* ---- camera dynamics (juice): the chase cam lags a lane change on a spring and settles ----
+     (the settle waits on the simulated state with a wall-clock cap: under load the loop's dt is capped at 50 ms,
+     so simulated time runs slower than the clock; `settleMs` is the wall time it took, informational) */
+  await page.evaluate(() => { window.__until = async (fn, cap) => { const t0 = performance.now(); while (!fn() && performance.now() - t0 < cap) await new Promise(r => setTimeout(r, 16)); return Math.round(performance.now() - t0); }; });
+  const camLag = await page.evaluate(async () => {
+    targetLane = laneVis = 1; camReset(); v = 0;
+    await __until(() => laneVis === 1 && camX === camXT, 1000);
+    setLane(2);
+    await __until(() => laneVis > 1.05, 1000);   /* the car has started across: the camera must be behind */
+    const early = { camX, camXT, carX: carScreenX() };
+    const settleMs = await __until(() => laneVis === 2 && Math.abs(camX - camXT) < 0.01 && camXv === 0, 3000);
+    const late = { camX, camXT, carX: carScreenX(), settleMs };
+    return { early, late, goal: LANE_W * CAM_FOLLOW, carSettled: 600 + LANE_W * (1 - CAM_FOLLOW) };
+  });
+  check('camera: a lane change leaves camX behind its target (spring lag), then it settles with the car where it always landed',
+    camLag.early.camXT - camLag.early.camX > 5 && camLag.early.camX < camLag.goal * 0.5
+      && Math.abs(camLag.late.camX - camLag.goal) < 0.5 && Math.abs(camLag.late.carX - camLag.carSettled) < 0.5 && camLag.late.settleMs < 3000, JSON.stringify(camLag));
+
+  /* ---- FOV punch: the lens widens at full speed (fovK > 1, CAM_D pulled in while rendering) and relaxes to 1 at rest ---- */
+  const fov = await page.evaluate(async () => {
+    v = 700; gasKey = true;
+    const inMs = await __until(() => fovK > 1.06, 3000);
+    const fast = fovK, camDRest = CAM_D;
+    gasKey = false; v = 0;
+    const outMs = await __until(() => fovK === 1, 3000);
+    return { fast, rest: fovK, camDRest, base: CAM_D0, inMs, outMs };
+  });
+  check('camera: FOV punch > 1 at vmax, back to 1 at rest, CAM_D restored after each frame',
+    fov.fast > 1.04 && fov.fast <= 1.08 && fov.rest < 1.003 && fov.camDRest === fov.base, JSON.stringify(fov));
+
+  /* ---- landing: the camera dips with the touchdown and the body squats; both settle ---- */
+  const dip = await page.evaluate(async () => {
+    v = 0; bodyTilt = 0; camDipY = 0; camDipV = 0;
+    jumpY = 40; airborne = true; vy = -600;
+    let peak = 0, squat = 0;
+    await __until(() => { peak = Math.max(peak, camDipY); squat = Math.max(squat, bodyTilt); return !airborne && peak > 0 && camDipY < peak; }, 2000);
+    const settleMs = await __until(() => camDipY === 0 && camDipV === 0, 3000);
+    return { peak, squat, after: camDipY, fx: camFxY, landed: !airborne, settleMs };
+  });
+  check('feel: landing dips the camera (3..16 px) and squats the body, then both settle',
+    dip.landed && dip.peak > 3 && dip.peak <= 16 && dip.squat > 2 && dip.after === 0 && dip.fx === 0, JSON.stringify(dip));
+
+  /* ---- impact: a hard hit shakes the road world (not the HUD), throws debris, bumps the wrench chip, then goes still ---- */
+  await page.evaluate(() => drive(5));   /* a fresh run: the checks above may have carried the car past a finish line */
+  await page.waitForTimeout(200);
+  const impact = await page.evaluate(async () => {
+    const b = props.find(p => p.type === 'barrel' || p.type === 'rock');
+    if (!b) return { skip: true };
+    targetLane = laneVis = b.lane; camReset();
+    pos = b.x - 300 - 100; v = 500;
+    const t0 = performance.now();
+    while (!b.done && performance.now() - t0 < 800) await new Promise(r => setTimeout(r, 8));
+    await new Promise(r => setTimeout(r, 30));
+    const live = { x: camFxX, y: camFxY, canvas: roadCanvas.style.transform, world: worldEl.style.transform, hud: getComputedStyle(hudStars).transform,
+      debris: document.querySelectorAll('.debris').length, bump: hudDamage.classList.contains('bump'), freeze: freezeUntil - t0 };
+    /* shake is over by ~300 ms and debris chips clear at 420 ms; wait on the state, not the clock */
+    const stillMs = await __until(() => shakeDur === 0 && document.querySelectorAll('.debris').length === 0, 3000);
+    const still = { x: camFxX, y: camFxY, canvas: roadCanvas.style.transform, debris: document.querySelectorAll('.debris').length, stillMs };
+    return { done: b.done, live, still };
+  });
+  check('feel: hard hit = shake offset within 50 ms on canvas + #world (HUD untouched), 5..8 debris chips, wrench bump; then still and clear',
+    impact.skip || (impact.done && (impact.live.x !== 0 || impact.live.y !== 0) && impact.live.canvas !== '' && impact.live.canvas === impact.live.world
+      && impact.live.hud === 'none' && impact.live.debris >= 5 && impact.live.debris <= 8 && impact.live.bump
+      && impact.still.x === 0 && impact.still.y === 0 && impact.still.canvas === '' && impact.still.debris === 0), JSON.stringify(impact));
+
+  /* ---- stars: the sprite pops (keyframe), three sparks streak to the chip, the chip pops ---- */
+  await page.evaluate(() => drive(1));
+  await page.waitForTimeout(200);
+  const starFx = await page.evaluate(async () => {
+    const s = props.find(p => p.type === 'star' && p.lane === 1 && p.h <= 90);
+    if (!s) return { skip: true };
+    pos = s.x - 300 - 40; v = 300;
+    await new Promise(r => setTimeout(r, 120));
+    await __until(() => s.done, 1500);
+    await __until(() => document.querySelectorAll('.flyStar.spark').length === 3, 500);
+    const anim = getComputedStyle(s.el).animationName;
+    const out = { done: s.done, anim, sparks: document.querySelectorAll('.flyStar.spark').length, chipPop: hudStars.classList.contains('pop') };
+    v = 0;
+    await __until(() => document.querySelectorAll('.flyStar.spark').length === 0, 2000);
+    out.sparksGone = document.querySelectorAll('.flyStar.spark').length;
+    return out;
+  });
+  check('feel: star collect pops the sprite (starPop), 3 sparks fly to the star chip, the chip pops, sparks clear',
+    starFx.skip || (starFx.done && starFx.anim === 'starPop' && starFx.sparks === 3 && starFx.chipPop && starFx.sparksGone === 0), JSON.stringify(starFx));
+
+  /* ---- reduced motion: the camera snaps and sits still, no debris, no sparks ---- */
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.evaluate(() => drive(1));
+  await page.waitForTimeout(200);
+  const rm = await page.evaluate(async () => {
+    const out = { rollOK };
+    setLane(2);
+    await new Promise(r => setTimeout(r, 80));
+    out.lagGap = Math.abs(camX - camXT);
+    const p0 = pos; v = 700; gasKey = true;
+    await __until(() => pos - p0 > 300, 2000);   /* a real stretch at full speed (simulated distance, not wall time) */
+    out.fov = fovK; gasKey = false; v = 0;
+    jumpY = 40; airborne = true; vy = -600;
+    await new Promise(r => setTimeout(r, 60));
+    out.dip = camDipY;
+    buildLevel(5); pos = 0;
+    const b = props.find(p => p.type === 'barrel' || p.type === 'rock');
+    targetLane = laneVis = b.lane; camReset(); pos = b.x - 300 - 100; v = 500;
+    const t0 = performance.now();
+    while (!b.done && performance.now() - t0 < 800) await new Promise(r => setTimeout(r, 8));
+    await new Promise(r => setTimeout(r, 30));
+    out.hit = b.done; out.fx = [camFxX, camFxY]; out.canvas = roadCanvas.style.transform; out.debris = document.querySelectorAll('.debris').length;
+    buildLevel(1); pos = 0; targetLane = laneVis = 1; camReset();
+    const s = props.find(p => p.type === 'star' && p.lane === 1 && p.h <= 90);
+    pos = s.x - 300 - 40; v = 300;
+    await new Promise(r => setTimeout(r, 120));
+    out.star = s.done; out.sparks = document.querySelectorAll('.flyStar.spark').length;
+    return out;
+  });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  check('reduced motion: camera snaps (no lag, FOV 1, no dip), a hit shakes nothing and throws no debris, a star sends no sparks',
+    !rm.rollOK && rm.lagGap < 0.01 && rm.fov === 1 && rm.dip === 0 && rm.hit && rm.fx[0] === 0 && rm.fx[1] === 0 && rm.canvas === '' && rm.debris === 0 && rm.star && rm.sparks === 0, JSON.stringify(rm));
+  await page.evaluate(() => drive(1));
+  await page.waitForTimeout(200);
+
   /* ---- celebration choreography: buttons wait for the payoff ---- */
   await page.evaluate(() => { runStars = 3; pos = LEVEL_LEN - 350; gasKey = true; });
   await page.waitForTimeout(1200);
