@@ -173,6 +173,10 @@
 - [x] T28.3: Premium tier x1.5: pirate 270, dino 330, limo 375, unicorn 420, dragon 450, train 525, royal 600, crystal 180, disco 330, jetpack 270, trophy rack 390. World-1 pricing untouched. Fuel 4 a unit, tires 2 a unit (a fill-up is about 3% of a tour's income).
 - Tests: damage-check (half-rate replay), ghost-check 17 (the x1.5 bank), upkeep-check and shop-check renumbered. 23 suites, 424/424.
 
+## v13.6.1 (2026-10-09, user-directed: "the hills should not be see-through at all")
+
+- [x] T28.4: Solid horizon. The canvas painted a 46 px full-strength haze band under the horizon line; against the far hills (which end exactly on that line) it read as a bright gap under their feet, as if the hills were translucent at the base. The band is now 26 px at half strength, so the hills meet the ground. Checked on rain, farm and night worlds at 2x.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

@@ -1749,7 +1749,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.6.0";
+const APP_VERSION = "13.6.1";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -7395,11 +7395,12 @@ function drawRoad(carX) {
     });
   }
   drawHoops(c, carX);
-  /* horizon haze melts the far road into the sky */
-  const g = c.createLinearGradient(0, HORIZON, 0, HORIZON + 46);
-  g.addColorStop(0, P.haze); g.addColorStop(1, P.haze + "00");
+  /* horizon haze melts the far road into the sky: a thin, half-strength veil (13.6.1: the old 46 px band at full
+     strength read as a bright gap under the far hills, as if you could see through their feet) */
+  const g = c.createLinearGradient(0, HORIZON, 0, HORIZON + 26);
+  g.addColorStop(0, P.haze + "8c"); g.addColorStop(1, P.haze + "00");
   c.fillStyle = g;
-  c.fillRect(0, HORIZON, 1200, 46);
+  c.fillRect(-canvasOX, HORIZON, canvasW, 26);
   /* the car's footprint shadow stays on the ground while it flies */
   const lx = (laneVis - 1) * LANE_W, sh = Math.max(0.3, 1 - jumpY / 320), w = (carHalf + 22) * sh;
   quad(c, 4, carLen * sh, lx - w, lx + w, `rgba(0,0,0,${(0.2 * sh).toFixed(3)})`);
