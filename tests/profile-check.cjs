@@ -167,6 +167,31 @@ function check(name, ok, detail) {
   });
   check('import: garbage + truncated codes rejected, no overlay', !garbage.ok && !garbage.ok2 && !garbage.ok3 && !garbage.confirm, JSON.stringify(garbage));
 
+  /* ---- the export button (13.4.1): on a touch device or a home-screen app the code goes out through the share
+     sheet, elsewhere through the clipboard, both asked for synchronously inside the tap (iOS drops a clipboard or
+     share call made after an await); the button shows its check either way; a wrapped code pastes back ---- */
+  const exp = await page.evaluate(async () => {
+    const btn = document.getElementById('copyCodeBtn');
+    const calls = { share: [], clip: [] };
+    Object.defineProperty(navigator, 'standalone', { value: true, configurable: true });   /* a home-screen app */
+    navigator.share = d => { calls.share.push(d); return Promise.resolve(); };
+    const w = navigator.clipboard.writeText;
+    navigator.clipboard.writeText = t => { calls.clip.push(t); return Promise.resolve(); };
+    cachedCode = '';   /* nothing pre-built: the sync code must serve */
+    const t1 = await sendSaveCode();
+    const sent1 = btn.classList.contains('sent');
+    navigator.share = () => Promise.reject(Object.assign(new Error('x'), { name: 'AbortError' }));
+    const t2 = await sendSaveCode();   /* the sheet dismissed: no clipboard fallback, no deny */
+    delete navigator.share;
+    Object.defineProperty(navigator, 'standalone', { value: undefined, configurable: true });
+    const t3 = await sendSaveCode();   /* a desktop: the clipboard */
+    navigator.clipboard.writeText = w;
+    const wrapped = await decodeSaveCode('look at my car!! ' + calls.share[0].text + ' (sent from Vroom)');
+    return { t1, t2, t3, shared: calls.share.length, sharedPrefix: (calls.share[0].text || '').slice(0, 7), sent1, clip: calls.clip.length, clipPrefix: (calls.clip[0] || '').slice(0, 7), wrapped: !!(wrapped && wrapped.owned), synced: exportCodeSync().startsWith('VROOM3.') };
+  });
+  check('export: share sheet on a home-screen app (code built in the tap), a dismissed sheet is not a failure, clipboard on a desktop, the check shows, a code pasted back inside other text still decodes',
+    exp.t1 === 'share' && exp.t2 === 'cancel' && exp.t3 === 'clipboard' && exp.shared === 1 && exp.sharedPrefix === 'VROOM3.' && exp.sent1 && exp.clip === 1 && exp.clipPrefix === 'VROOM3.' && exp.wrapped && exp.synced, JSON.stringify(exp));
+
   /* ---- hash import: scanning a QR that opened the hosted game ---- */
   const hashCode = await page.evaluate(() => packCompact());
   await page.goto('about:blank');   /* a scanned QR opens a fresh page, not a same-document hash hop */

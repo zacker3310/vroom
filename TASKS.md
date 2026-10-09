@@ -158,6 +158,10 @@
 
 - [x] T26.1: The road is the corkscrew. Road-space points go through `rollPt(rollAt(x))` about the hoop axis (a real twisted ribbon inside the tunnel); the camera rides the car around the tube (`camWX`, `camWY`) and its roll is one rotation of `#view` about the vanishing point, with the car counter-rolled upright. Ground, fields, hoops and roadside stay in flat world space (`groundSpace`). While a twist is live: 1500 px square canvas at 1x backing (`setOverscan`), near plane at -80, occlusion off. Twist frames render faster than the straight road. course-check reworked (23). 23 suites, 421/421.
 
+## v13.4.1 (2026-10-09, user-directed: "the export progress button is not working in the home-screen app")
+
+- [x] T26.2: Export that works on iOS. The copy button awaited a gzip stream before touching the clipboard, and WebKit only grants the clipboard and the share sheet inside the tap itself, so in the home-screen app it always failed (deny sound, nothing copied). Now: the full code is pre-built when the overlay opens (`cachedCode`) with a synchronous plain code as the fallback (`exportCodeSync`), the button listens on click, a touch device or a standalone app goes through the share sheet (`sendSaveCode`, `preferShare`), a desktop through the clipboard, a dismissed sheet is not a failure, and a green check rides over the button when the code went. `decodeSaveCode` picks the `VROOM` token out of pasted text so a code sent inside a message pastes back. profile-check 15. 23 suites, 422/422.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

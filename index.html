@@ -136,6 +136,11 @@
   #qrBox canvas { image-rendering: pixelated; }
   #copyCodeBtn, #pasteCodeBtn { width: 96px; height: 96px; border-radius: 26px; background: #219ebc; border: 6px solid #bde0fe; }
   #copyCodeBtn svg, #pasteCodeBtn svg { width: 58px; height: 58px; }
+  /* the code went out: a green check rides over the copy icon for a beat */
+  #copyCodeBtn { position: relative; }
+  #copyCodeBtn::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--v-green, #2a9d5c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M24 52 L42 70 L76 32' fill='none' stroke='%23fff' stroke-width='12' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 60% no-repeat; opacity: 0; pointer-events: none; }
+  #copyCodeBtn.sent::after { animation: codeSent 1.4s ease-out forwards; }
+  @keyframes codeSent { 0% { opacity: 0; transform: scale(.6); } 15% { opacity: 1; transform: scale(1.08); } 25% { transform: scale(1); } 80% { opacity: 1; } 100% { opacity: 0; } }
   #importConfirm {
     position: absolute; inset: 0; z-index: 90; display: none;
     background: rgba(2,48,71,.7); align-items: center; justify-content: center; gap: 40px;
@@ -1738,7 +1743,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.4.0";
+const APP_VERSION = "13.4.1";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -4769,11 +4774,17 @@ function unpackCompact(code) {
   return out;
 }
 /* full text code: the entire save, gzip-compressed where the browser can */
-async function exportFullCode() {
+function exportJSON() {
   /* ghost traces (GHOST RACE) and the daily gift stamp are local keepsakes: they never ride in a save code */
   const levels = {};
   for (const n in progress.levels) { const { ghost, ...rest } = progress.levels[n]; void ghost; levels[n] = rest; }
-  const json = JSON.stringify({ build: state, ...progress, levels, lastGift: undefined });
+  return JSON.stringify({ build: state, ...progress, levels, lastGift: undefined });
+}
+/* the plain (uncompressed) full code, built synchronously: the share sheet and the clipboard must be asked
+   for inside the tap itself on iOS, so the copy button can never wait on a stream first */
+function exportCodeSync() { return "VROOM3." + b64url.enc(new TextEncoder().encode(exportJSON())); }
+async function exportFullCode() {
+  const json = exportJSON();
   if (typeof CompressionStream !== "undefined") {
     const stream = new Blob([json]).stream().pipeThrough(new CompressionStream("gzip"));
     const buf = await new Response(stream).arrayBuffer();
@@ -4782,7 +4793,9 @@ async function exportFullCode() {
   return "VROOM3." + b64url.enc(new TextEncoder().encode(json));
 }
 async function decodeSaveCode(code) {
-  code = (code || "").trim();
+  /* a code pasted back from a message or a note comes wrapped in whatever text rode along with it: pick the token out */
+  const m = /VROOM[123]\.[A-Za-z0-9_-]+/.exec(code || "");
+  code = m ? m[0] : (code || "").trim();
   if (code.startsWith("VROOM1.")) return unpackCompact(code.slice(7));
   if (code.startsWith("VROOM2.")) {
     const stream = new Blob([b64url.dec(code.slice(7))]).stream().pipeThrough(new DecompressionStream("gzip"));
@@ -4983,10 +4996,13 @@ function renderProfiles() {
     slots.appendChild(slot);
   }
 }
+let cachedCode = "";   /* the gzip full code, built when the overlay opens so a tap on copy can hand it over at once */
 document.getElementById("profileBtn").addEventListener("pointerdown", () => {
   sfx.pop();
   renderProfiles();
   renderQR();
+  cachedCode = "";
+  exportFullCode().then(c => { cachedCode = c; });
   profileOverlay.classList.add("show");
 });
 profileOverlay.addEventListener("pointerdown", e => {
@@ -4997,14 +5013,31 @@ function renderProfileBtn() {
   document.getElementById("profileBtn").innerHTML = `<svg viewBox="-6 -58 76 72">${BUDDY_SVG[avatar]}</svg>`;
 }
 renderProfileBtn();
-document.getElementById("copyCodeBtn").addEventListener("pointerdown", async () => {
-  try {
-    const code = await exportFullCode();
-    await navigator.clipboard.writeText(code);
-    sfx.buy();
-  } catch (e) { sfx.deny(); }
-});
-document.getElementById("pasteCodeBtn").addEventListener("pointerdown", async () => {
+/* ---- export: the save code leaves through the share sheet on a touch device or a home-screen app (iOS
+   only grants the clipboard and the share sheet inside the tap, so the code is already built and both are
+   asked for synchronously), through the clipboard elsewhere; the button shows a check when it went ---- */
+const copyCodeBtn = document.getElementById("copyCodeBtn");
+const preferShare = () => !!navigator.share && (navigator.standalone === true || matchMedia("(display-mode: standalone)").matches || matchMedia("(pointer: coarse)").matches);
+function codeSent() {
+  sfx.buy();
+  copyCodeBtn.classList.remove("sent"); void copyCodeBtn.offsetWidth; copyCodeBtn.classList.add("sent");
+}
+function sendSaveCode() {
+  const code = cachedCode || exportCodeSync();
+  if (preferShare()) {
+    return navigator.share({ title: "Vroom", text: code }).then(() => { codeSent(); return "share"; }, err => {
+      if (err && err.name === "AbortError") return "cancel";   /* the sheet was dismissed: no deny for that */
+      return copyToClipboard(code);
+    });
+  }
+  return copyToClipboard(code);
+}
+function copyToClipboard(code) {
+  const p = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(code) : Promise.reject(new Error("no clipboard"));
+  return p.then(() => { codeSent(); return "clipboard"; }, () => { sfx.deny(); return "fail"; });
+}
+copyCodeBtn.addEventListener("click", sendSaveCode);
+document.getElementById("pasteCodeBtn").addEventListener("click", async () => {
   try {
     const code = await navigator.clipboard.readText();
     profileOverlay.classList.remove("show");
