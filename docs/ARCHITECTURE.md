@@ -53,14 +53,25 @@ wheels, 23 paints (12 colours + 11 patterns), 9 stickers plus the race number, 1
 free, 9 paid) and 10 capsule buddies, and `PRICES` is the one table of what costs what. Prices
 form three bands so the garage always holds something just out of reach: everyday parts at
 20-120 stars (horn-grade extras, the first wheels and paints, most bodies up to the ambulance
-at 110), a mid tier at 150-300 (submarine 150, pirate 180, ufo 200, dino 220, limo 250,
-unicorn 280, dragon 300, and from 12.5 the three aspirational accessories: `jetpack` 180,
-`disco` wheels 220 and the `trophyrack` 260 that shows the kid's best five medals as cups),
-then the 400-star race number and the 1000-star hover ship as the long goals. Upkeep (fuel,
-tires, repairs) is priced per unit so a few stars always fix something. Every part in
-`PRICES` adds up to 6,715 stars (about 9,500 with the race number and the five workbench ladders: engine 60/150/350, armor 50/120/300, magnet 40/100/250, tank 50/120/300, springs 50/120/300),
-and a level pays out its collected stars plus the finish and shine bonuses, so owning
-everything is roughly a tour of all twelve worlds.
+at 110), a mid tier at 150-200 (submarine 150, ufo 200) and, after the 13.6 audit lifted the premium
+tier by half, pirate 270, dino 330, limo 375, unicorn 420, dragon 450, train 525, royal 600,
+with the three aspirational accessories at `jetpack` 270, `disco` wheels 330 and the
+`trophyrack` 390 that shows the kid's best five medals as cups, then the 400-star race number
+and the 1000-star hover ship as the long goals. Upkeep is priced per unit (fuel 4 a unit, a
+tire set 2 a unit, repairs 2 a point): a fill-up every twenty levels or so is about 3% of a
+tour's income, a choice at the workbench rather than a formality. Every part in `PRICES` adds
+up to about 7,900 stars (about 10,700 with the race number and the five workbench ladders:
+engine 60/150/350, armor 50/120/300, magnet 40/100/250, tank 50/120/300, springs 50/120/300).
+
+The payout rule (`finishLevel`, 13.6): a first clear or a run that sets a new star best for the
+level pays every star collected, plus 3 for finishing, 2 for a run with no new dings, 25 the
+first time a world's last level falls, and the shine bonus (+50% of the paid stars when the
+truck crosses the line washed and undamaged). Beating the level's ghost pays the stars at
+`GHOST_MULT` 1.5 with the same bonuses. A plain replay (no new best, ghost not beaten) pays
+the stars at `REPEAT_MULT` 0.5 and skips the finish and clean bonuses, so a favourite level is
+a treat but not a farm. The fairness bots measure 6,270 first-clear stars over all 120
+levels for a good player (3,170 for the gas-only toddler), so owning everything takes the
+whole tour plus ghost wins, free drive and the daily gift. Nothing ever takes stars away.
 
 Free drive (the map's green button) is capped at `FREE_CAP = 100` stars per local day, counted across
 runs in `progress.freeDay` / `progress.freeUsed` (localStorage only, never in a save code, like

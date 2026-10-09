@@ -279,7 +279,7 @@ function check(name, ok, detail) {
   check('drive: wrong-lane star does NOT collect', !wrongLane.collected);
 
   /* ---- 9. finish -> celebrate -> bank -> next ---- */
-  await page.evaluate(() => { runStars = 4; renderHudStars(false); pos = LEVEL_LEN - 350; v = 0; gasKey = true; });
+  await page.evaluate(() => { delete progress.levels[1]; runStars = 4; renderHudStars(false); pos = LEVEL_LEN - 350; v = 0; gasKey = true; });   /* a first clear: the full payout (13.6: a replay below the best pays half) */
   await page.waitForTimeout(1600);
   await page.evaluate(() => { gasKey = false; });
   const fin = await page.evaluate(() => ({

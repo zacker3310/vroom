@@ -141,14 +141,15 @@ function check(name, ok, detail) {
   await page.waitForTimeout(250);
   const muddyRun = await page.evaluate(async () => {
     progress.muddy = true;
+    for (const n in progress.levels) delete progress.levels[n].ghost;   /* no ghost to beat: the x1.5 would mask the shine */
     const w0 = progress.wallet;
-    runStars = 7; runDamage = 0; renderHudStars(false);
+    runStars = 8; runDamage = 0; renderHudStars(false);   /* 8 > the best of 7: a new star best, so the stars pay in full */
     pos = LEVEL_LEN - 350; gasKey = true;
     await new Promise(r => setTimeout(r, 1400));
     gasKey = false;
     return { banked: progress.wallet - w0, shown: document.getElementById('celebrateShine').style.display !== 'none' };
   });
-  check('shine: a muddy truck gets no shine (7+3+2 = 12), chip hidden', muddyRun.banked === 12 && !muddyRun.shown, JSON.stringify(muddyRun));
+  check('shine: a muddy truck gets no shine (8+3+2 = 13), chip hidden', muddyRun.banked === 13 && !muddyRun.shown, JSON.stringify(muddyRun));
 
   /* ---- 9. workbench: fuel + tire tiles appear when a unit is missing, priced per unit, dot + pulse when low ---- */
   const bench = await page.evaluate(() => {
@@ -162,7 +163,7 @@ function check(name, ok, detail) {
     const r2 = { dot: q('.catTab[data-cat="work"]').classList.contains('needs'), urgent: q('#strip .tile[data-act="fuel"]').classList.contains('urgent') };
     return { r1, r2 };
   });
-  check('bench: fuel (5) + tires (3) tiles ahead of the upgrades, no dot above the low line', bench.r1.tiles === 7 && bench.r1.fuelPrice === '5' && bench.r1.tirePrice === '3' && !bench.r1.dot && !bench.r1.urgent && bench.r1.order === 'fuel,tires,engine,armor,magnet,tank,springs', JSON.stringify(bench.r1));
+  check('bench: fuel (5 units x4 = 20) + tires (3 units x2 = 6) tiles ahead of the upgrades, no dot above the low line', bench.r1.tiles === 7 && bench.r1.fuelPrice === '20' && bench.r1.tirePrice === '6' && !bench.r1.dot && !bench.r1.urgent && bench.r1.order === 'fuel,tires,engine,armor,magnet,tank,springs', JSON.stringify(bench.r1));
   check('bench: low fuel lights the wrench dot and pulses the fuel tile', bench.r2.dot && bench.r2.urgent, JSON.stringify(bench.r2));
   await page.screenshot({ path: SHOT + 'uk-bench.png' });
 
@@ -171,22 +172,22 @@ function check(name, ok, detail) {
     progress.fuel = 3; progress.wallet = 100; renderUpkeep();
     doRefuel(document.querySelector('#strip .tile[data-act="fuel"]'));
     const a = { fuel: progress.fuel, wallet: progress.wallet, tile: !!document.querySelector('#strip .tile[data-act="fuel"]') };
-    progress.fuel = 3; progress.wallet = 2; renderUpkeep();
+    progress.fuel = 3; progress.wallet = 8; renderUpkeep();
     doRefuel(document.querySelector('#strip .tile[data-act="fuel"]'));
     const b = { fuel: progress.fuel, wallet: progress.wallet };
     doRefuel(document.querySelector('#strip .tile[data-act="fuel"]'));
     const c = { fuel: progress.fuel, wallet: progress.wallet, deny: document.querySelector('#strip .tile[data-act="fuel"]').classList.contains('deny') };
-    progress.tread = 5; progress.wallet = 2; renderUpkeep();
+    progress.tread = 5; progress.wallet = 5; renderUpkeep();
     doTires(document.querySelector('#strip .tile[data-act="tires"]'));
     const d = { tread: progress.tread, wallet: progress.wallet };
-    progress.wallet = 10;
+    progress.wallet = 13;
     doTires(document.querySelector('#strip .tile[data-act="tires"]'));
     const e = { tread: progress.tread, wallet: progress.wallet, tile: !!document.querySelector('#strip .tile[data-act="tires"]') };
     return { a, b, c, d, e };
   });
-  check('buy: fill-up 5 stars -> tank 8, tile gone', buy.a.fuel === 8 && buy.a.wallet === 95 && !buy.a.tile, JSON.stringify(buy.a));
-  check('buy: 2 stars buys 2 glugs (3 -> 5), broke = deny shake, nothing taken', buy.b.fuel === 5 && buy.b.wallet === 0 && buy.c.fuel === 5 && buy.c.wallet === 0 && buy.c.deny, JSON.stringify([buy.b, buy.c]));
-  check('buy: tires are all-or-nothing: 2 stars denied, 3 stars -> fresh set, tile gone', buy.d.tread === 5 && buy.d.wallet === 2 && buy.e.tread === 8 && buy.e.wallet === 7 && !buy.e.tile, JSON.stringify([buy.d, buy.e]));
+  check('buy: fill-up 5 units at 4 a unit = 20 stars -> tank 8, tile gone', buy.a.fuel === 8 && buy.a.wallet === 80 && !buy.a.tile, JSON.stringify(buy.a));
+  check('buy: 8 stars buys 2 glugs (3 -> 5), broke = deny shake, nothing taken', buy.b.fuel === 5 && buy.b.wallet === 0 && buy.c.fuel === 5 && buy.c.wallet === 0 && buy.c.deny, JSON.stringify([buy.b, buy.c]));
+  check('buy: tires are all-or-nothing at 2 a unit: 5 stars denied for 3 units, 13 stars -> fresh set and 7 left, tile gone', buy.d.tread === 5 && buy.d.wallet === 5 && buy.e.tread === 8 && buy.e.wallet === 7 && !buy.e.tile, JSON.stringify([buy.d, buy.e]));
 
   /* ---- 10b. the tank and springs ladders (12.7) ---- */
   const ladders = await page.evaluate(() => {

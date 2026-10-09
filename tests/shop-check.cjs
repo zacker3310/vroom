@@ -200,20 +200,20 @@ function check(name, ok, detail) {
   const ex = await page.evaluate(() => ({ on: state.extras.spoiler, btn: document.querySelector('.tile[data-extra="spoiler"]').classList.contains('on'), tag: priceTag.textContent.trim(), locked: lockedParts().map(p => p[1]).join(',') }));
   check('shop: spoiler toggles on, prices as a locked 30-star extra', ex.on && ex.btn && ex.tag === '30' && ex.locked === 'spoiler', JSON.stringify(ex));
 
-  /* ---- 8b. mid-tier prices: 180 / 220 / 260 sit between the everyday parts and the 400 number; buying deducts ---- */
-  await page.evaluate(() => { state.extras.spoiler = false; progress.wallet = 659; save(); renderPreview(); renderWallets(false); });
+  /* ---- 8b. mid-tier prices (x1.5 in 13.6): 270 / 330 / 390 sit between the everyday parts and the 400 number; buying deducts ---- */
+  await page.evaluate(() => { state.extras.spoiler = false; progress.wallet = 989; save(); renderPreview(); renderWallets(false); });
   await tapTile('.tile[data-extra="jetpack"]'); await tapTile('.tile[data-extra="trophyrack"]');
   await tap('.catTab[data-cat="wheels"]'); await page.waitForTimeout(400);
   await tapTile('.tile[data-wheels="disco"]');
   const midTag = await page.evaluate(() => ({ tag: priceTag.textContent.trim(), afford: priceTag.classList.contains('afford'), locked: lockedParts().map(p => p[1]).sort().join(','),
     prices: [PRICES.extras.jetpack, PRICES.wheels.disco, PRICES.extras.trophyrack].join('/'), wallet: progress.wallet }));
-  await tap('#priceTag'); await page.waitForTimeout(300);   /* 659 < 660: nothing happens */
+  await tap('#priceTag'); await page.waitForTimeout(300);   /* 989 < 990: nothing happens */
   const midDeny = await page.evaluate(() => ({ wallet: progress.wallet, owned: progress.owned.extras.includes('jetpack') || progress.owned.wheels.includes('disco') }));
-  await page.evaluate(() => { progress.wallet = 700; renderWallets(false); renderShop(); });
+  await page.evaluate(() => { progress.wallet = 1030; renderWallets(false); renderShop(); });
   await tap('#priceTag'); await page.waitForTimeout(300);
   const midBuy = await page.evaluate(() => ({ wallet: progress.wallet, owned: ['jetpack', 'trophyrack'].every(k => progress.owned.extras.includes(k)) && progress.owned.wheels.includes('disco'),
     on: state.extras.jetpack && state.extras.trophyrack && state.wheels === 'disco', tag: priceTag.classList.contains('show') }));
-  check('mid-tier: jetpack 180 + disco 220 + trophy rack 260 tag as 660; 659 stars are denied, 700 buys all three (wallet 40), all stay equipped', midTag.prices === '180/220/260' && midTag.tag === '660' && !midTag.afford && midTag.locked === 'disco,jetpack,trophyrack' && midDeny.wallet === 659 && !midDeny.owned && midBuy.wallet === 40 && midBuy.owned && midBuy.on && !midBuy.tag, JSON.stringify([midTag, midDeny, midBuy]));
+  check('mid-tier: jetpack 270 + disco 330 + trophy rack 390 tag as 990; 989 stars are denied, 1030 buys all three (wallet 40), all stay equipped', midTag.prices === '270/330/390' && midTag.tag === '990' && !midTag.afford && midTag.locked === 'disco,jetpack,trophyrack' && midDeny.wallet === 989 && !midDeny.owned && midBuy.wallet === 40 && midBuy.owned && midBuy.on && !midBuy.tag, JSON.stringify([midTag, midDeny, midBuy]));
   await page.evaluate(() => { state.wheels = 'normal'; state.extras.jetpack = false; state.extras.trophyrack = false; state.extras.spoiler = true; save(); renderPreview(); });   /* back to the step-8 build */
   await tap('.catTab[data-cat="extras"]'); await page.waitForTimeout(400);
   await page.evaluate(() => { progress.wallet = 500; renderWallets(false); renderShop(); });

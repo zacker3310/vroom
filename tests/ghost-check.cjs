@@ -103,7 +103,7 @@ function check(name, ok, detail) {
 
   /* ---- 4. a faster run (engine 3, a bigger head start) replaces it: medal pop + ghost check; the chip read ahead; the twin fades past its line ---- */
   await page.waitForTimeout(600);
-  await page.evaluate(() => { progress.upgrades.engine = 3; document.getElementById('replayBtn').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 7 })); });
+  await page.evaluate(() => { progress.upgrades.engine = 3; window.__w0 = progress.wallet; document.getElementById('replayBtn').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 7 })); });
   await page.waitForTimeout(250);
   await page.evaluate(() => { pos = LEVEL_LEN - 1000; gasKey = true; });
   await page.waitForTimeout(1200);
@@ -114,9 +114,12 @@ function check(name, ok, detail) {
     gasKey = false;
     const g = progress.levels[1].ghost;
     return { t: g.t, run: +runTime.toFixed(2), n: g.p.length, newBest: document.getElementById('celebrateTime').classList.contains('newBest'),
-      win: !!document.querySelector('#celebrateTime .ghostWin'), medal: !!document.querySelector('#celebrateTime .medal svg'), rolling: ghostSprite.vis };
+      win: !!document.querySelector('#celebrateTime .ghostWin'), mult: (document.querySelector('#celebrateTime .ghostWin b') || {}).textContent, medal: !!document.querySelector('#celebrateTime .medal svg'), rolling: ghostSprite.vis,
+      /* the ghost multiplier (13.6): x1.5 on the stars, then the finish and clean bonuses and the shine on the paid stars */
+      banked: progress.wallet - window.__w0, paid: Math.round(runStars * 1.5), expect: (() => { const paid = Math.round(runStars * 1.5), shiny = !progress.muddy && progress.damage === 0; return paid + 3 + (runDamage === 0 ? 2 : 0) + (shiny ? Math.ceil(paid * 0.5) : 0); })() };
   });
-  check('faster run: the ghost is replaced by this run, the medal pops with a ghost + check beside it', faster.run < ghostA && Math.abs(faster.t - faster.run) < 0.05 && faster.newBest && faster.win && faster.medal, JSON.stringify({ ghostA, ...faster }));
+  check('ghost multiplier: beating the ghost banks x1.5 on the stars plus the bonuses', faster.banked === faster.expect && faster.banked >= faster.paid + 3, JSON.stringify({ banked: faster.banked, expect: faster.expect, paid: faster.paid }));
+  check('faster run: the ghost is replaced by this run, the medal pops with a ghost + check + x1.5 beside it', faster.run < ghostA && Math.abs(faster.t - faster.run) < 0.05 && faster.newBest && faster.win && faster.mult === '×1.5' && faster.medal, JSON.stringify({ ghostA, ...faster }));
   /* the old ghost was still 1200 units behind the camera when the kid crossed; its own clock keeps rolling, it drives through the frame, then fades */
   await page.waitForFunction(() => ghostT > 3.0, null, { timeout: 8000 });
   const rolling = await page.evaluate(() => ({ finished, vis: ghostSprite.vis, t: +ghostT.toFixed(2), z: Math.round(ghostSprite.x - curCarX), op: ghostSprite.el.style.opacity }));

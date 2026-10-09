@@ -476,6 +476,8 @@
   .prop.ghost svg { width: 400px; height: 500px; overflow: visible; }
   #celebrateTime .ghostWin { display: flex; align-items: center; gap: 2px; }
   #celebrateTime .ghostWin svg { width: 44px; height: 44px; animation: ghostWinPop .6s cubic-bezier(.2,2,.4,1) .9s backwards; }
+  #celebrateTime .ghostWin b { font-size: 26px; color: var(--v-green, #2a9d5c); margin-left: 4px; animation: ghostWinPop .6s cubic-bezier(.2,2,.4,1) 1.1s backwards; }
+  #tallyChip b.half { font-size: 30px; color: var(--v-ink-soft, #8a7360); margin-left: 6px; }
   #celebrateTime.newBest .medal svg { animation: medalBig .8s cubic-bezier(.2,1.8,.4,1) .4s backwards; }
   @keyframes medalBig { 0% { transform: scale(0) rotate(-180deg); } 60% { transform: scale(1.7) rotate(12deg); } 100% { transform: scale(1) rotate(0); } }
   @keyframes ghostWinPop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
@@ -1747,7 +1749,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.5.0";
+const APP_VERSION = "13.6.0";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -1817,10 +1819,11 @@ const MAX_DAMAGE = 9, REPAIR_RATE = 2;
 /* upkeep: one tank and one set of tires, 8 units each. A tank lasts about 24 levels (a unit per 3 levels of
    road), tires about 48 levels, and a hard hit scuffs 1/6 of a unit of tread. Running dry never strands the kid:
    the car sputters to a crawl and still finishes. Bald tires steer slower. Fill-ups and tires cost 1 star a unit. */
-const FUEL_MAX = 8, TREAD_MAX = 8, FUEL_PER_UNIT = 15600, TREAD_PER_UNIT = 31200, FUEL_RATE = 1, TIRE_RATE = 1;
+const FUEL_MAX = 8, TREAD_MAX = 8, FUEL_PER_UNIT = 15600, TREAD_PER_UNIT = 31200, FUEL_RATE = 4, TIRE_RATE = 2;   /* 13.6: a fill-up is about 3% of a tour's income, so the workbench is a choice, not a formality */
 const HIT_TREAD = 1 / 6;                /* tread lost per soaked hard hit */
 const FUEL_LOW = 2, TREAD_LOW = 2;      /* gauges turn red and the wrench tab pulses from here down */
-const SHINE_MULT = 0.5;                 /* shine bonus: a spotless, ding-free truck earns +50% on the stars it collected */
+const SHINE_MULT = 0.5;
+const GHOST_MULT = 1.5, REPEAT_MULT = 0.5;   /* 13.6: beat your ghost = x1.5 on the stars; a plain replay = half (finishLevel) */                 /* shine bonus: a spotless, ding-free truck earns +50% on the stars it collected */
 
 const WORLD_COUNT = 12, WORLD_SIZE = 10;
 const MAX_LEVEL = WORLD_COUNT * WORLD_SIZE;
@@ -3215,7 +3218,7 @@ BODY_ORDER.push("limo", "dragon", "train", "royal");
 Object.assign(WHEELS, PREMIUM_WHEELS);
 Object.assign(WHEEL_DECOR, PREMIUM_WHEEL_DECOR);
 Object.assign(HONKS, PREMIUM_HONKS);
-Object.assign(PRICES.body, { limo: 250, dragon: 300, train: 350, royal: 400 });
+Object.assign(PRICES.body, { limo: 375, dragon: 450, train: 525, royal: 600 });   /* premium tier x1.5 (13.6) */
 Object.assign(PRICES.wheels, { glow: 90, star: 120 });
 WHEEL_ORDER.push("glow", "star");
 PRICES.extras = NEW_EXTRAS_PRICES;
@@ -3616,7 +3619,7 @@ const SHOP_EXTRAS_REAR = {
   jetpack: (gap) => jetpackSVG(gap),
   trophyrack: () => trophyRackSVG()
 };
-const SHOP_EXTRAS_PRICES = { spoiler: 30, antenna: 20, surf: 40, bubbles: 45, jetpack: 180, trophyrack: 260 };
+const SHOP_EXTRAS_PRICES = { spoiler: 30, antenna: 20, surf: 40, bubbles: 45, jetpack: 270, trophyrack: 390 };   /* jetpack / trophy rack x1.5 (13.6) */
 /* equip voices for the mid-tier extras (the booster has its own in NEW_EXTRAS_SFX) */
 const SHOP_EXTRAS_SFX = {
   jetHiss() { noiseBurst(0.35, 1800, 0.16); tone("sine", 300, 900, 0.3, 0.12, 0.05); tone("sine", 900, 420, 0.25, 0.1, 0.3); },
@@ -3789,12 +3792,12 @@ const SHOP_BODY_IDS = ["bulldozer", "schoolbus", "ambulance", "submarine", "pira
 BODY_ORDER.push(...SHOP_BODY_IDS);
 /* CAR3D is a const defined later (ROAD ENGINE): SHOP_CAR3D is merged into it right after that table */
 Object.assign(HONKS, SHOP_HONKS);
-Object.assign(PRICES.body, { bulldozer: 75, schoolbus: 90, ambulance: 110, submarine: 150, pirate: 180, dino: 220, unicorn: 280, hover: 1000 });
+Object.assign(PRICES.body, { bulldozer: 75, schoolbus: 90, ambulance: 110, submarine: 150, pirate: 270, dino: 330, unicorn: 420, hover: 1000 });   /* pirate / dino / unicorn x1.5 (13.6) */
 Object.assign(WHEELS, SHOP_WHEELS);
 Object.assign(WHEEL_DECOR, SHOP_WHEEL_DECOR);
 const SHOP_WHEEL_IDS = ["donut", "cookie", "lava", "bubble", "crystal", "disco"];   /* append only: CODE_WHEELS spreads this */
 WHEEL_ORDER.push(...SHOP_WHEEL_IDS);
-Object.assign(PRICES.wheels, { donut: 50, cookie: 50, lava: 80, bubble: 85, crystal: 120, disco: 220 });
+Object.assign(PRICES.wheels, { donut: 50, cookie: 50, lava: 80, bubble: 85, crystal: 180, disco: 330 });   /* crystal / disco x1.5 (13.6) */
 Object.assign(PRICES.extras, SHOP_EXTRAS_PRICES);
 const SHOP_EXTRA_IDS = Object.keys(SHOP_EXTRAS_SVG);
 Object.assign(BUDDY_SVG, SHOP_BUDDY_SVG);
@@ -9169,6 +9172,20 @@ function finishLevel() {
   const clean = runDamage === 0;
   const isParade = paradeMode;
   const prev = isParade ? null : progress.levels[level];
+  /* ---- GHOST RACE (T17.3): a run that beat the stored ghost replaces it; losing to it changes nothing.
+     Decided up front because it sets the payout ---- */
+  let ghostBeaten = false, ghostHad = null;
+  if (!isParade && ghostRec) {
+    ghostHad = prev && ghostValid(prev.ghost) ? prev.ghost : null;
+    ghostBeaten = !!ghostHad && runTime < ghostHad.t;
+  }
+  /* ---- the payout rule (13.6): a first clear or a new star best pays every star; beating your ghost pays them
+     x1.5 (GHOST_MULT); a plain replay pays half and skips the finish and clean bonuses, so a favourite level is
+     still a treat but not a farm. Stars only ever go up: nothing here takes anything away. ---- */
+  const newBest = !isParade && (!prev || runStars > prev.best);
+  const repeat = !isParade && !newBest && !ghostBeaten;
+  const payMult = ghostBeaten ? GHOST_MULT : repeat ? REPEAT_MULT : 1;
+  const paid = isParade ? runStars : Math.round(runStars * payMult);
   /* first time beating a world's last level = big trophy bonus;
      finishing the parade = the champion jackpot (a warm 10 on replays) */
   const worldBonus = isParade
@@ -9177,9 +9194,9 @@ function finishLevel() {
   /* shine bonus: a truck that crosses the line spotless and ding-free earns +50% on the stars it collected.
      Puddles and hits during the run cost it, so upkeep in the garage pays out on the road. */
   const shiny = !isParade && !progress.muddy && progress.damage === 0;
-  const shine = shiny ? Math.ceil(runStars * SHINE_MULT) : 0;
-  const bonus = 3 + (clean ? 2 : 0) + worldBonus + shine;   /* clean-run bonus: no new dings this run */
-  const banked = runStars + bonus;
+  const shine = shiny ? Math.ceil(paid * SHINE_MULT) : 0;
+  const bonus = (repeat ? 0 : 3 + (clean ? 2 : 0)) + worldBonus + shine;   /* clean-run bonus: no new dings this run */
+  const banked = paid + bonus;
   const frac = totalStars ? runStars / totalStars : 1;
   const rating = isParade ? 3 : frac >= 0.65 ? 3 : frac >= 0.34 ? 2 : 1;
   if (worldBonus) { confettiBurst(roadScene, isParade ? 260 : 160); setTimeout(() => sfx.tada(), 600); }
@@ -9208,12 +9225,9 @@ function finishLevel() {
     };
     if (level < MAX_LEVEL) progress.current = Math.max(progress.current, level + 1);
   }
-  /* ---- GHOST RACE (T17.3): a run that beat the stored ghost replaces it; losing to it changes nothing ---- */
-  let ghostBeaten = false;
+  /* ---- GHOST RACE: store this run as the ghost when there was none or it was beaten ---- */
   if (!isParade && ghostRec) {
-    const had = prev && ghostValid(prev.ghost) ? prev.ghost : null;
-    ghostBeaten = !!had && runTime < had.t;
-    progress.levels[level].ghost = (!had || ghostBeaten) ? { t: Math.round(runTime * 100) / 100, p: ghostRec } : had;
+    progress.levels[level].ghost = (!ghostHad || ghostBeaten) ? { t: Math.round(runTime * 100) / 100, p: ghostRec } : ghostHad;
     ghostRec = null;
   }
   /* ---- end GHOST RACE ---- */
@@ -9222,14 +9236,15 @@ function finishLevel() {
 
   /* build the tally UI */
   const tally = document.getElementById("tallyChip");
-  tally.innerHTML = starIcon + `<span>0</span>`;
+  tally.innerHTML = starIcon + `<span>0</span>` + (repeat ? `<b class="half">½</b>` : "");   /* a replay's half rate, on the tally itself */
+  tally.classList.toggle("repeat", repeat);
   const cWallet = document.getElementById("celebrateWallet");
   cWallet.innerHTML = starIcon + `<span>${walletStart}</span>`;
   const cTime = document.getElementById("celebrateTime");
   cTime.innerHTML = isParade
     ? `<span class="medal">${BADGES.find(b => b.id === "champ").icon}</span>`
     : stopwatchIcon + `<span>${runTime.toFixed(2)}</span>` + `<span class="medal">${medalSVG(tier)}</span>`
-      + (ghostBeaten ? `<span class="ghostWin">${ghostIcon}${ghostCheckIcon}</span>` : "");   /* GHOST RACE: beat your ghost = ghost + check */
+      + (ghostBeaten ? `<span class="ghostWin">${ghostIcon}${ghostCheckIcon}<b>×1.5</b></span>` : "");   /* GHOST RACE: beat your ghost = ghost + check + the multiplier */
   cTime.classList.toggle("newBest", ghostBeaten);   /* GHOST RACE: the medal pops bigger on a new best */
   const cDamage = document.getElementById("celebrateDamage");
   cDamage.innerHTML = wrenchIcon + `<span>${progress.damage}</span>`;

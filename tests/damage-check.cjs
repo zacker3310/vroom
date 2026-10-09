@@ -143,13 +143,14 @@ function check(name, ok, detail) {
   await page.waitForTimeout(250);
   const dirty = await page.evaluate(async () => {
     const w0 = progress.wallet;
-    runStars = 4; runDamage = 2; progress.damage = 2; renderHudDamage(false);
+    delete progress.levels[1].ghost;   /* no ghost to beat: this is a plain replay (best stays 4) */
+    runStars = 3; runDamage = 2; progress.damage = 2; renderHudDamage(false);
     pos = LEVEL_LEN - 350; gasKey = true;
     await new Promise(r => setTimeout(r, 1400));
     gasKey = false;
     return { banked: progress.wallet - w0, chip: document.getElementById('celebrateDamage').querySelector('span').textContent.trim() };
   });
-  check('economy: dinged run banks 4+3, damage chip shows 2', dirty.banked === 7 && dirty.chip === '2', JSON.stringify(dirty));
+  check('economy: a dinged replay below the best banks half its stars (3 -> 2), no finish bonus, damage chip shows 2', dirty.banked === 2 && dirty.chip === '2', JSON.stringify(dirty));
 
   /* ---- damage persists across runs and reload ---- */
   await tap('#replayBtn');

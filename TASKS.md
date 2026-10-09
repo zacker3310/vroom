@@ -166,6 +166,13 @@
 
 - [x] T27.1: Free drive is a daily treat. `FREE_CAP` 100 stars per local day counted across runs (`progress.freeDay`, `progress.freeUsed`, localStorage only, excluded from save codes); the HUD bar is the day's star meter with the time slot counting the stars left; the cap ends the run with a flourish and sends the kid home with the stars (`finishFree`, `bankFreeRun`); the map button greys out with a moon badge (`renderFreeBtn`, `.spent`) and refuses with a deny shake until tomorrow. free-check 15. 23 suites, 423/423.
 
+## v13.6.0 (2026-10-09, user-directed: "audit the economy; implement all; ghost victory pays 1.5x")
+
+- [x] T28.1: Economy audit. The fairness bots' per-level take (good player 6,270 first-clear stars over 120 levels, toddler 3,170) against a 9,475-star catalog showed the first-clear economy well tuned and the leak in repeat income: replays paid full price every time (about 100 stars a minute on level 1, 75 per 20-second run by world 8). Upkeep was under 2% of income.
+- [x] T28.2: Payout rule in `finishLevel`: first clear or a new star best pays in full; beating the ghost pays the stars at `GHOST_MULT` 1.5 (the celebrate card shows ghost + check + ×1.5); a plain replay pays `REPEAT_MULT` 0.5 and skips the finish and clean bonuses (a ½ badge on the tally). Shine applies to the paid stars. Stars never go down.
+- [x] T28.3: Premium tier x1.5: pirate 270, dino 330, limo 375, unicorn 420, dragon 450, train 525, royal 600, crystal 180, disco 330, jetpack 270, trophy rack 390. World-1 pricing untouched. Fuel 4 a unit, tires 2 a unit (a fill-up is about 3% of a tour's income).
+- Tests: damage-check (half-rate replay), ghost-check 17 (the x1.5 bank), upkeep-check and shop-check renumbered. 23 suites, 424/424.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
