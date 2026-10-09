@@ -1,6 +1,6 @@
 # Vroom test suites
 
-Twenty-three Playwright regression suites (401 checks) that drive the real game in headless
+Twenty-three Playwright regression suites (399 checks) that drive the real game in headless
 Chromium. They are the gate for every change: CI runs them on each push and pull request.
 
 ## Run everything
@@ -31,8 +31,8 @@ built-in one, e.g. `python3 -m http.server 4173` then
 - `polish-check.cjs` — kid-UX round: locks, tags, magnet, headlights, celebrate, `prefers-reduced-motion` (decorative keyframes off, no confetti pieces, short iris) (16)
 - `damage-check.cjs` — damage/repair/upgrades/keyboard (20)
 - `free-check.cjs` — capsules, free drive, time tiers (14)
-- `feel-check.cjs` — game feel: dynamics, hit-stop, choreography, iPad shell, camera juice (spring follow, FOV punch, landing dip, impact shake + debris, star sparks, reduced motion) (18)
-- `worlds-check.cjs` — 12 worlds, movers, gravity, world map, premium content (21)
+- `feel-check.cjs` — game feel: dynamics, hit-stop, choreography, iPad shell (12)
+- `worlds-check.cjs` — 12 worlds, movers, gravity, world map, premium content, the 13.3 ground painter (shoulder + field tones, road crown on all 12 worlds, ramp side walls, quad budget) (25)
 - `album-check.cjs` — sticker album: buddies, badges, photos with world backdrops + stamps, the peek card for photos and stickers, muddy flag (15)
 - `profile-check.cjs` — 3 kid profiles, save codes, QR round-trip via jsQR (14)
 - `washdecals-check.cjs` — wash mini-game and decal shop/persistence (11)
@@ -67,8 +67,8 @@ click stability check.
 | `polish-check.cjs` | 16 | kid-UX round: locks, price tags, magnet, headlights, celebrate choreography |
 | `damage-check.cjs` | 20 | damage tiers, repair, upgrades, keyboard controls |
 | `free-check.cjs` | 14 | capsules and prizes, free drive, time-medal tiers |
-| `feel-check.cjs` | 18 | game feel: body dynamics, hit-stop, celebrate pacing, iPad shell metas, camera dynamics (lane-change lag, throttle FOV punch, landing dip), impact shake + debris + wrench bump, star pop + sparks, all off under reduced motion |
-| `worlds-check.cjs` | 21 | 12 worlds: level invariants, world hazards, movers, gravity, map, unlock chain, world bonus, golden capsule, premium shop, free-drive tour |
+| `feel-check.cjs` | 12 | game feel: body dynamics, hit-stop, celebrate pacing, iPad shell metas |
+| `worlds-check.cjs` | 25 | 12 worlds: level invariants, world hazards, movers, gravity, map, unlock chain, world bonus, golden capsule, premium shop, free-drive tour, ground painter (shoulder and field tones, crowned road on every world, ramp side walls, quad budget) |
 | `album-check.cjs` | 15 | sticker album: buddies, badges, world-backdrop photos, peek card, muddy flag |
 | `profile-check.cjs` | 14 | 3 kid profiles, save codes, scan-to-open QR decoded byte-exact with jsQR across version boundaries |
 | `washdecals-check.cjs` | 11 | wash mini-game, decal shop and persistence |

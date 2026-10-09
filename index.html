@@ -6591,14 +6591,27 @@ function addWorldProp(t, x, lane) {
   if (ep.mv) { p.mv = { ...ep.mv }; p.baseX = x; p.xOff = ep.xOff; p.yOff = ep.yOff; }
   return p;
 }
-/* ground-plane palettes, one per world (the canvas can't read CSS) */
+/* ground-plane palettes, one per world (the canvas can't read CSS).
+   Besides the six base tones a world may carry the 13.3 ground keys; drawRoad derives a default for
+   any it leaves out (see groundTones), so a pack can add a world with the six alone and still get
+   a shoulder, fields and a crowned road:
+     shoulder   the dirt / gravel verge just outside each rumble strip (default: ground darkened 22%)
+     field      the second field tone laid in lateral strips beside the road (default: ground darkened 9%)
+     fields     [[l0, l1], ...] the strips' lateral extents in road units, mirrored on both sides
+                (default FIELDS_DEFAULT, three broad bands; a world can lay crop rows, dune ridges, cracks)
+     crown / crown2   the lighter crown band down the road's centre (default: road / road2 lightened 7%)
+     wear / wear2     tire-track darkening in the outer lanes (default: road / road2 darkened 9%) */
 const ROAD_PAL = {
-  1: { ground: "#8fd694", ground2: "#80cb86", road: "#5b6168", road2: "#555b62", dash: "#ffd60a", rumA: "#e63946", rumB: "#f1faee", haze: "#caf0f8" },
-  2: { ground: "#b7a35c", ground2: "#ab9752", road: "#4f4a52", road2: "#49444c", dash: "#ffd60a", rumA: "#e76f51", rumB: "#fff3e0", haze: "#ffe3bd" },
+  1: { ground: "#8fd694", ground2: "#80cb86", road: "#5b6168", road2: "#555b62", dash: "#ffd60a", rumA: "#e63946", rumB: "#f1faee", haze: "#caf0f8",
+       shoulder: "#c9a86a", field: "#7ec987" },                                                                 /* construction: a sandy verge, mown stripes */
+  2: { ground: "#b7a35c", ground2: "#ab9752", road: "#4f4a52", road2: "#49444c", dash: "#ffd60a", rumA: "#e76f51", rumB: "#fff3e0", haze: "#ffe3bd",
+       shoulder: "#8e6b3e", field: "#9a8a46", fields: [[470, 640], [760, 930], [1050, 1220], [1340, 1510], [1700, 1900], [2200, 2500], [3000, 3400]] },   /* farm: crop rows */
   3: { ground: "#2f4a3a", ground2: "#2a4234", road: "#2b2f36", road2: "#272a31", dash: "#ffd60a", rumA: "#9d0208", rumB: "#adb5bd", haze: "#33415c" },
   4: { ground: "#617d70", ground2: "#58726a", road: "#3d434b", road2: "#383e46", dash: "#ffd60a", rumA: "#e63946", rumB: "#ced4da", haze: "#a9b4c2" },
-  5: { ground: "#f1f5f9", ground2: "#e3eaf1", road: "#cfd8e0", road2: "#c6d0d9", dash: "#457b9d", rumA: "#457b9d", rumB: "#ffffff", haze: "#e9f2f9" },
-  6: { ground: "#e9c46a", ground2: "#dfb85e", road: "#5b6168", road2: "#555b62", dash: "#ffd60a", rumA: "#e76f51", rumB: "#fff3e0", haze: "#ffe8c2" },
+  5: { ground: "#f1f5f9", ground2: "#e3eaf1", road: "#cfd8e0", road2: "#c6d0d9", dash: "#457b9d", rumA: "#457b9d", rumB: "#ffffff", haze: "#e9f2f9",
+       shoulder: "#c4ccd6", field: "#dde6ef", fields: [[520, 760], [1000, 1500], [1800, 2200], [2600, 3400]] },  /* snow: ploughed slush verge, drifts */
+  6: { ground: "#e9c46a", ground2: "#dfb85e", road: "#5b6168", road2: "#555b62", dash: "#ffd60a", rumA: "#e76f51", rumB: "#fff3e0", haze: "#ffe8c2",
+       shoulder: "#c89a4e", field: "#d9ad55", fields: [[480, 560], [700, 780], [980, 1060], [1400, 1480], [1900, 2000], [2600, 2740]] },   /* desert: dune ridges */
   7: { ground: "#f4d58d", ground2: "#eccb80", road: "#5b6168", road2: "#555b62", dash: "#ffd60a", rumA: "#00b4d8", rumB: "#ffffff", haze: "#ade8f4" },
   8: { ground: "#6c757d", ground2: "#646c74", road: "#343a40", road2: "#2f353b", dash: "#adb5bd", rumA: "#4cc9f0", rumB: "#343a40", haze: "#003566" },
   parade: { ground: "#b5e48c", ground2: "#a8da7d", road: "#ef7d6d", road2: "#ef7d6d", dash: "#ffffffcc", rumA: "#ffffff", rumB: "#ffd60a", haze: "#fff3d0",
@@ -7134,10 +7147,68 @@ function proj(z, lx, h) {
   const s = CAM_D / (z + CAM_D);
   return [600 + (lx + offAt(z) - camX) * s, HORIZON + (CAM_H + camElev - elevAt(curCarX + z) - (h || 0)) * s, s];
 }
-function quad(c, z0, z1, l0, l1, col, h0, h1) {
+/* one ground quad as a subpath: same-colour quads share a beginPath / fill (13.3: the shoulders, the
+   two rumbles, the four wheel tracks and the lane dashes each go down as one fill). roadQuadN counts
+   subpaths per frame so the suite can watch the ground painter's budget. */
+let roadQuadN = 0;
+function qpath(c, z0, z1, l0, l1, h0, h1) {
   const a = proj(z0, l0, h0), b = proj(z0, l1, h0), d = proj(z1, l1, h1), e = proj(z1, l0, h1);
+  c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(d[0], d[1]); c.lineTo(e[0], e[1]); c.closePath();
+  roadQuadN++;
+}
+function quad(c, z0, z1, l0, l1, col, h0, h1) {
   c.fillStyle = col;
-  c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(d[0], d[1]); c.lineTo(e[0], e[1]); c.closePath(); c.fill();
+  c.beginPath(); qpath(c, z0, z1, l0, l1, h0, h1); c.fill();
+}
+/* a side face along the road: the ground line at lateral lb from z0 to z1 up to a deck edge at lateral
+   lt rising h0 to h1 (lb a little outside lt gives the wedge a batter, so the face shows from the road too) */
+function wallPath(c, z0, z1, lb, lt, h0, h1) {
+  const a = proj(z0, lb, 0), b = proj(z1, lb, 0), d = proj(z1, lt, h1), e = proj(z0, lt, h0);
+  c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(d[0], d[1]); c.lineTo(e[0], e[1]); c.closePath();
+  roadQuadN++;
+}
+/* the same strip on both sides of the road, one fill */
+function quadPair(c, z0, z1, l0, l1, col) {
+  c.fillStyle = col;
+  c.beginPath(); qpath(c, z0, z1, l0, l1); qpath(c, z0, z1, -l1, -l0); c.fill();
+}
+/* a #rrggbb tone pushed toward white (k > 0) or black (k < 0); memoised, a dozen tones a world */
+const SHADE_MEMO = new Map();
+function shade(hex, k) {
+  const key = hex + k;
+  let out = SHADE_MEMO.get(key);
+  if (out) return out;
+  const n = parseInt(hex.slice(1, 7), 16), to = k > 0 ? 255 : 0, f = Math.abs(k);
+  const ch = v => Math.round(v + (to - v) * f).toString(16).padStart(2, "0");
+  out = "#" + ch(n >> 16) + ch((n >> 8) & 255) + ch(n & 255);
+  SHADE_MEMO.set(key, out);
+  return out;
+}
+/* ---- 13.3 ground tones: the palette's shoulder / field / crown / wear keys with defaults derived
+   from its own ground and road, resolved once per palette object and cached on it ---- */
+const FIELDS_DEFAULT = [[520, 820], [1150, 1550], [2100, 2800]];
+const SHOULDER_W = 84;          /* the dirt verge outside the rumble strip, road units */
+const CROWN_HALF = 100;         /* the lighter crown band down the centre lane */
+const WEAR = [[LANE_W - 66, LANE_W - 50], [LANE_W + 50, LANE_W + 66]];   /* the outer lanes' wheel tracks */
+function groundTones(P) {
+  if (P._tones) return P._tones;
+  const T = {
+    shoulder: P.shoulder || shade(P.ground, -0.22),
+    field: P.field || shade(P.ground, -0.09),
+    fields: P.fields || FIELDS_DEFAULT,
+    /* a rainbow road (the parade's bands) keeps its stripes plain */
+    crown: P.bands ? null : [P.crown || shade(P.road, 0.07), P.crown2 || shade(P.road2, 0.07)],
+    wear: P.bands ? null : [P.wear || shade(P.road, -0.09), P.wear2 || shade(P.road2, -0.09)]
+  };
+  P._tones = T;
+  return T;
+}
+/* the field strips of one depth band: every strip on both sides, one fill */
+function fieldStrips(c, z0, z1, T) {
+  c.fillStyle = T.field;
+  c.beginPath();
+  for (const f of T.fields) { qpath(c, z0, z1, f[0], f[1]); qpath(c, z0, z1, -f[1], -f[0]); }
+  c.fill();
 }
 /* corkscrew hoops: a ring around the road every 150 units of a twist, striped so you can watch
    it roll. Only the arc above the deck is drawn, so the road never looks cut by a hoop. */
@@ -7169,48 +7240,83 @@ function drawHoops(c, carX) {
   c.globalAlpha = 1;
 }
 function drawRoad(carX) {
-  const c = rctx, P = roadPal;
+  const c = rctx, P = roadPal, T = groundTones(P);
+  roadQuadN = 0;
   c.clearRect(0, 0, 1200, 700);
   c.fillStyle = P.ground;
   c.fillRect(0, HORIZON, 1200, 700 - HORIZON);
-  /* the ground plane itself follows the hills, so a rise lifts the whole landscape */
-  for (let z = DRAW_FAR + 1200; z > DRAW_NEAR; z -= 400) quad(c, Math.max(DRAW_NEAR, z - 400), z, -7000, 7000, P.ground);
-  /* the far road: coarse bands out past the fade, so a bend keeps curving to the haze */
-  for (let z = DRAW_FAR + 1200; z >= 2400; z -= 400) quad(c, z - 400, z, -ROAD_HALF, ROAD_HALF, P.road);
-  /* banded near road: alternating stripes sell the speed */
+  /* the ground plane itself follows the hills, so a rise lifts the whole landscape; past the banded
+     stretch the same pass lays the far fields, shoulders, road and crown in coarse 400-unit bands,
+     so a bend keeps curving to the haze and no strip ends at the fade */
+  for (let z = DRAW_FAR + 1200; z > DRAW_NEAR; z -= 400) {
+    const z0 = Math.max(DRAW_NEAR, z - 400);
+    quad(c, z0, z, -7000, 7000, P.ground);
+    if (z < 2400) continue;
+    fieldStrips(c, z0, z, T);
+    quadPair(c, z0, z, ROAD_HALF + 26, ROAD_HALF + 26 + SHOULDER_W, T.shoulder);
+    quad(c, z0, z, -ROAD_HALF, ROAD_HALF, P.road);
+    if (T.crown) quad(c, z0, z, -CROWN_HALF, CROWN_HALF, T.crown[0]);
+  }
+  /* banded near ground and road: alternating stripes sell the speed; each band lays, back to front,
+     the mown stripe, the field strips, the dirt shoulders, the tarmac with its crown and wheel tracks,
+     and the rumble strips */
   const first = Math.floor((carX + DRAW_NEAR) / SEG);
   for (let k = Math.floor((carX + 2400) / SEG); k >= first; k--) {
     const z0 = Math.max(DRAW_NEAR, k * SEG - carX), z1 = (k + 1) * SEG - carX;
     const odd = k & 1;
     if (odd) quad(c, z0, z1, -4000, 4000, P.ground2);
+    fieldStrips(c, z0, z1, T);
+    quadPair(c, z0, z1, ROAD_HALF + 26, ROAD_HALF + 26 + SHOULDER_W, T.shoulder);
     quad(c, z0, z1, -ROAD_HALF, ROAD_HALF, P.bands ? P.bands[((k % 6) + 6) % 6] : odd ? P.road2 : P.road);
-    quad(c, z0, z1, -ROAD_HALF - 26, -ROAD_HALF, odd ? P.rumA : P.rumB);
-    quad(c, z0, z1, ROAD_HALF, ROAD_HALF + 26, odd ? P.rumA : P.rumB);
+    if (T.crown) {
+      quad(c, z0, z1, -CROWN_HALF, CROWN_HALF, T.crown[odd]);
+      c.fillStyle = T.wear[odd];
+      c.beginPath();
+      for (const t of WEAR) { qpath(c, z0, z1, t[0], t[1]); qpath(c, z0, z1, -t[1], -t[0]); }
+      c.fill();
+    }
+    quadPair(c, z0, z1, ROAD_HALF, ROAD_HALF + 26, odd ? P.rumA : P.rumB);
   }
-  /* lane dashes: 60 on, 60 off */
+  /* lane dashes: 60 on, 60 off, every dash in one fill */
+  c.fillStyle = P.dash;
+  c.beginPath();
   for (let d = Math.floor((carX + DRAW_NEAR) / 120) * 120; d < carX + 2400; d += 120) {
     const z0 = Math.max(DRAW_NEAR, d - carX), z1 = d + 60 - carX;
     if (z1 <= z0) continue;
-    quad(c, z0, z1, -LANE_W / 2 - 6, -LANE_W / 2 + 6, P.dash);
-    quad(c, z0, z1, LANE_W / 2 - 6, LANE_W / 2 + 6, P.dash);
+    qpath(c, z0, z1, -LANE_W / 2 - 6, -LANE_W / 2 + 6);
+    qpath(c, z0, z1, LANE_W / 2 - 6, LANE_W / 2 + 6);
   }
-  /* finish line: a checkered band across the road */
+  c.fill();
+  /* finish line: a checkered band across the road, a dark edge on its near side so it sits on the tarmac */
   if (!freeMode) {
     const zf = LEVEL_LEN - carX;
     if (zf > DRAW_NEAR && zf < DRAW_FAR) occClip(c, zf, () => {
+      if (zf - 10 > DRAW_NEAR) quad(c, zf - 10, zf, -ROAD_HALF, ROAD_HALF, "rgba(0,0,0,0.3)");
       for (let r = 0; r < 2; r++) for (let col = 0; col < 12; col++) {
         const l0 = -ROAD_HALF + col * (ROAD_HALF / 6);
         quad(c, Math.max(DRAW_NEAR, zf + r * 30), zf + r * 30 + 30, l0, l0 + ROAD_HALF / 6, (r + col) % 2 ? "#fff" : "#212529");
       }
     });
   }
-  /* ramps: a sloped deck up to the lip, chevrons painted on */
+  /* ramps: a solid wedge. The shadow the lip throws on the road past it goes down first, then both
+     side walls (the ground line at the rumble strip's outer edge up to the deck edge along the ramp's
+     length, a slight batter so the near face shows as a dark taper even from the road; the deck
+     covers most of whichever wall faces away, so once the road is offset the face toward the
+     camera is the one that shows), then the sloped deck up to the lip with its chevrons. All of it
+     is clipped to the crest in front. */
   for (const rp of RAMPS) {
     const z0 = rp.x - carX, z1 = z0 + rp.w;
     if (z1 < DRAW_NEAR || z0 > DRAW_FAR) continue;
-    const zz0 = Math.max(DRAW_NEAR, z0), hh0 = (zz0 - z0) / rp.w * rp.h;
+    const zz0 = Math.max(DRAW_NEAR, z0), hh0 = (zz0 - z0) / rp.w * rp.h, edge = rp.edge || "#b08968";
     occClip(c, zz0, () => {
-      quad(c, zz0, z1, -ROAD_HALF, ROAD_HALF, rp.edge || "#b08968", hh0, rp.h);
+      /* the lip hides the road for h * (z1 + CAM_D) / CAM_H past it; the shadow reaches a little beyond that */
+      quad(c, z1, z1 + rp.h * (z1 + CAM_D) / CAM_H + rp.h * 0.5 + 30, -ROAD_HALF, ROAD_HALF, "rgba(0,0,0,0.26)");
+      c.fillStyle = shade(edge, -0.32);
+      c.beginPath();
+      wallPath(c, zz0, z1, -ROAD_HALF - 26, -ROAD_HALF, hh0, rp.h);
+      wallPath(c, zz0, z1, ROAD_HALF + 26, ROAD_HALF, hh0, rp.h);
+      c.fill();
+      quad(c, zz0, z1, -ROAD_HALF, ROAD_HALF, edge, hh0, rp.h);
       quad(c, zz0, z1, -ROAD_HALF + 10, ROAD_HALF - 10, rp.deck || "#e9c46a", hh0, rp.h);
       for (const f of [0.3, 0.6, 0.9]) {
         const za = z0 + rp.w * f - 14, zb = za + 14;
@@ -9278,8 +9384,10 @@ function eventFinish(n) {
   `);
 
   /* ---- ground palettes: black basalt with ember cracks; licorice with candy-cane strips ---- */
-  ROAD_PAL[9]  = { ground: "#2a2628", ground2: "#332a2b", road: "#17161a", road2: "#1e1b1f", dash: "#ff7b00", rumA: "#ff4d00", rumB: "#3a3538", haze: "#ff8c42" };
-  ROAD_PAL[10] = { ground: "#ffd1e8", ground2: "#ffc3e0", road: "#2a2129", road2: "#312733", dash: "#ffe66d", rumA: "#e63946", rumB: "#ffffff", haze: "#ffe5f1" };
+  ROAD_PAL[9]  = { ground: "#2a2628", ground2: "#332a2b", road: "#17161a", road2: "#1e1b1f", dash: "#ff7b00", rumA: "#ff4d00", rumB: "#3a3538", haze: "#ff8c42",
+                   shoulder: "#1c1819", field: "#6b2a1c", fields: [[500, 530], [820, 850], [1250, 1290], [1900, 1950], [2700, 2770]] };   /* volcano: ember cracks in the ash */
+  ROAD_PAL[10] = { ground: "#ffd1e8", ground2: "#ffc3e0", road: "#2a2129", road2: "#312733", dash: "#ffe66d", rumA: "#e63946", rumB: "#ffffff", haze: "#ffe5f1",
+                   shoulder: "#f6a9d3", field: "#ffe0ef", fields: [[480, 700], [900, 1100], [1350, 1600], [2000, 2300], [2900, 3300]] };   /* candy: icing swirls */
 
   /* ---- weather: drifting ash puffs / falling sprinkles ---- */
   WORLD_WEATHER.w9 = {

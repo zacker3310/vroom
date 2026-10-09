@@ -82,6 +82,58 @@ function check(name, ok, detail) {
   check('worlds: rain + snow weather particles, none in desert', themes.w4.weather > 10 && themes.w5.weather > 10 && themes.w6.weather === 0, JSON.stringify({ w4: themes.w4.weather, w5: themes.w5.weather, w6: themes.w6.weather }));
   check('worlds: deep sea + sky kingdom theme classes and weather', themes.w11.cls && themes.w12.cls && themes.w11.weather > 0 && themes.w12.weather > 0, JSON.stringify({ w11: themes.w11, w12: themes.w12 }));
 
+  /* ---- 13.3 ground painter: shoulders, field strips, crowned tarmac, ramp side walls, quad budget ---- */
+  const ground = await page.evaluate(async () => {
+    const px = (x, y) => { const d = rctx.getImageData(Math.round(x * 2), Math.round(y * 2), 1, 1).data; return [d[0], d[1], d[2]]; };
+    const lum = c => c[0] * 0.299 + c[1] * 0.587 + c[2] * 0.114;
+    const hex = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
+    const out = { worlds: {}, errors: [] };
+    /* park the car on a stretch with no ramp in the sampled window and paint one frame */
+    const park = (n) => {
+      drive(n); v = 0; gasKey = false; targetLane = laneVis = 1;
+      let at = 0;
+      while (RAMPS.some(r => r.x + r.w > at + 400 && r.x < at + 1300) && at < LEVEL_LEN - 2000) at += 200;
+      pos = at; renderWorld(); stopDrive();
+      return pos + CAR_SCREEN_X - CAR_HIT_Z;
+    };
+    /* (a) farm, mid-depth: the ground left of the road holds the shoulder, the crop rows and the grass */
+    park(13);
+    const T = groundTones(roadPal), z = 800, edge = proj(z, -ROAD_HALF - 26, 0), y = edge[1];
+    const seen = new Set();
+    for (let x = 2; x < edge[0] - 2; x += 1) seen.add(hex(px(x, y)));
+    out.farm = { distinct: seen.size, shoulder: hex(px(proj(z, -ROAD_HALF - 26 - 30, 0)[0], y)), want: T.shoulder, field: seen.has(T.field) };
+    /* (b) every world: a clean frame, and the road's centre is lighter than the outer lane */
+    for (let w = 1; w <= WORLD_COUNT; w++) {
+      try {
+        park(w * 10 - 5);
+        const zc = 700, cen = px(...proj(zc, 0, 0)), lane = px(...proj(zc, LANE_W, 0));
+        out.worlds[w] = { crownLighter: lum(cen) > lum(lane) + 2, quads: roadQuadN, centre: hex(cen), lane: hex(lane) };
+      } catch (e) { out.errors.push(w + ': ' + e.message); }
+    }
+    /* (c) a standard ramp 420 ahead: the centre of its left side face carries the wall tone */
+    drive(1); v = 0; gasKey = false; targetLane = laneVis = 1;
+    const rp = RAMPS[0];
+    pos = rp.x - 420 - CAR_SCREEN_X + CAR_HIT_Z; renderWorld(); stopDrive();
+    const z0 = 420, z1 = z0 + rp.w, corners = [proj(z0, -ROAD_HALF - 26, 0), proj(z1, -ROAD_HALF - 26, 0), proj(z1, -ROAD_HALF, rp.h), proj(z0, -ROAD_HALF, 0)];
+    /* from inside the road the face projects as a bow-tie: its base line (a-b) crosses the deck edge (e-d) at X and
+       the deck covers the far half, so the visible wall is the near triangle a-e-X; sample its centroid */
+    const [a, b, d, e] = corners;
+    const den = (b[0] - a[0]) * (e[1] - d[1]) - (b[1] - a[1]) * (e[0] - d[0]);
+    const t = den ? ((d[0] - a[0]) * (e[1] - d[1]) - (d[1] - a[1]) * (e[0] - d[0])) / den : 2;
+    const X = t > 0 && t < 1 ? [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t] : b;
+    const cx = (a[0] + e[0] + X[0]) / 3, cy = (a[1] + e[1] + X[1]) / 3;
+    out.ramp = { got: hex(px(cx, cy)), want: shade(rp.edge || '#b08968', -0.32), deck: hex(px(...proj(z0 + rp.w / 2, 0, rp.h / 2))), quads: roadQuadN, corners: corners.map(p => p.slice(0, 2).map(Math.round)) };
+    return out;
+  });
+  check('ground: farm mid-depth row holds >= 3 tones left of the road, the dirt shoulder sits outside the rumble strip, the crop-row tone is present',
+    ground.farm.distinct >= 3 && ground.farm.shoulder === ground.farm.want && ground.farm.field, JSON.stringify(ground.farm));
+  const crownBad = Object.keys(ground.worlds).filter(w => !ground.worlds[w].crownLighter);
+  check('ground: all 12 worlds paint a clean frame with the road crown lighter than the outer lane',
+    ground.errors.length === 0 && Object.keys(ground.worlds).length === 12 && crownBad.length === 0, JSON.stringify({ errors: ground.errors, crownBad, w1: ground.worlds[1] }));
+  check('ground: a ramp in view paints its side-wall tone below the deck edge', ground.ramp.got === ground.ramp.want, JSON.stringify(ground.ramp));
+  const quadMax = Math.max(ground.ramp.quads, ...Object.values(ground.worlds).map(w => w.quads));
+  check('ground: the painter stays under 700 quads a frame on every world, ramp in view included', quadMax <= 700, 'max ' + quadMax);
+
   /* ---- movers ---- */
   const movers = await page.evaluate(async () => {
     /* find a level with a tumbleweed */
