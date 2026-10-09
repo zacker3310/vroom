@@ -142,6 +142,10 @@
 
 - [x] T24.2: Hills hide what stands behind them. `buildOcc` keeps a per-frame running minimum of the ground's screen y by depth; `placeSprite` clips sprites (props, scenery, the ghost) at the crest line in front of them, `occClip` does the same for ramps, the finish stripe and the hoops. Houses, silos, stars and ramps no longer float over the face of a hill. course-check 23. 23 suites, 395/395.
 
+## v13.2.2 (2026-10-09, user-directed: "make this AAA worthy", round 1 of 5)
+
+- [x] T25.4: Blob shadows under every prop (`div.shd` in the sprite wrapper: radial gradient, footprint from `SHADOW_W` or the art width, fainter and smaller with height, none for flat props, arches or the ghost) and atmospheric haze on far sprites (`div.hz` masked by the sprite's own SVG via one shared stylesheet rule per art string, stepping to 0.45 of the world haze colour at the fade band). Both ride the crest clip-path. polish-check 19. 23 suites, 398/398.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
