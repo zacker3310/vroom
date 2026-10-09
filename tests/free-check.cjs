@@ -80,9 +80,9 @@ function check(name, ok, detail) {
   await page.waitForTimeout(250);
   const entered = await page.evaluate(() => ({
     road: roadScene.classList.contains('active'), free: freeMode,
-    progHidden: getComputedStyle(document.getElementById('hudProgress')).display === 'none'
+    meter: getComputedStyle(document.getElementById('hudProgress')).display !== 'none', left: hudTime.textContent, cap: FREE_CAP, spentBefore: document.getElementById('freeBtn').classList.contains('spent')
   }));
-  check('free: enters endless road, progress bar hidden', entered.road && entered.free && entered.progHidden, JSON.stringify(entered));
+  check('free: enters endless road; the progress bar is the day\'s star meter, counting down from the 100-star cap', entered.road && entered.free && entered.meter && entered.left === '100' && entered.cap === 100 && !entered.spentBefore, JSON.stringify(entered));
 
   /* ---- free drive: world extends and prunes ---- */
   await page.evaluate(() => { gasKey = true; });
@@ -118,6 +118,42 @@ function check(name, ok, detail) {
     return { gain: progress.wallet - w0, garage: garageScene.classList.contains('active') };
   });
   check('free: exiting banks collected stars', banked.gain === 6 && banked.garage, JSON.stringify(banked));
+
+  /* ---- free drive is a daily treat (13.5): the 6 stars count toward today's cap, a second run starts at 94 left,
+     reaching the cap ends the run with a flourish and banks, the map button greys out until tomorrow ---- */
+  const cap = await page.evaluate(async () => {
+    const out = { used6: progress.freeUsed === 6 && progress.freeDay === todayStr(), ready: freeReady() };
+    showMap(); await new Promise(r => setTimeout(r, 100));
+    out.btnReady = !document.getElementById('freeBtn').classList.contains('spent');
+    driveFree(); await new Promise(r => setTimeout(r, 300));
+    out.left0 = hudTime.textContent;   /* 94 */
+    const w0 = progress.wallet;
+    runStars = 93; renderHudStars(false);
+    await new Promise(r => setTimeout(r, 120));
+    out.left1 = hudTime.textContent;   /* 1 */
+    out.notDone = !finished;
+    runStars = 94;
+    await new Promise(r => setTimeout(r, 120));
+    out.finished = finished; out.left2 = hudTime.textContent;
+    out.dot = progDot.style.left;
+    await new Promise(r => setTimeout(r, 2100));
+    out.garage = garageScene.classList.contains('active');
+    out.gain = progress.wallet - w0; out.used = progress.freeUsed; out.free = freeMode;
+    showMap(); await new Promise(r => setTimeout(r, 100));
+    out.spent = document.getElementById('freeBtn').classList.contains('spent');
+    const scene = () => document.querySelector('.scene.active').id;
+    driveFree(); await new Promise(r => setTimeout(r, 200));
+    out.stayed = scene() === 'map';
+    /* tomorrow: a fresh 100 */
+    progress.freeDay = '2000-01-01'; save(); renderFreeBtn();
+    out.tomorrow = freeReady() && freeLeft() === 100 && !document.getElementById('freeBtn').classList.contains('spent');
+    /* the day's count is a local keepsake: never in a save code */
+    const code = exportCodeSync(); const d = await decodeSaveCode(code);
+    out.notExported = d.freeUsed === undefined && d.freeDay === undefined;
+    return out;
+  });
+  check('free: 100 stars a day across runs: 6 banked leaves 94, the cap ends the run (flourish, bank, home), the map button is spent until tomorrow, the count never rides in a save code',
+    cap.used6 && cap.ready && cap.btnReady && cap.left0 === '94' && cap.left1 === '1' && cap.notDone && cap.finished && cap.left2 === '0' && cap.dot === '100%' && cap.garage && cap.gain === 94 && cap.used === 100 && !cap.free && cap.spent && cap.stayed && cap.tomorrow && cap.notExported, JSON.stringify(cap));
 
   /* ---- regular levels unaffected: finish still celebrates ---- */
   await page.evaluate(() => drive(1));

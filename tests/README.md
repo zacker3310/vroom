@@ -1,6 +1,6 @@
 # Vroom test suites
 
-Twenty-three Playwright regression suites (422 checks) that drive the real game in headless
+Twenty-three Playwright regression suites (423 checks) that drive the real game in headless
 Chromium. They are the gate for every change: CI runs them on each push and pull request.
 
 ## Run everything
@@ -30,7 +30,7 @@ built-in one, e.g. `python3 -m http.server 4173` then
 - `verify.cjs` — garage/shop/economy/levels/map/persistence core loop, steering yaw (40)
 - `polish-check.cjs` — kid-UX round: locks, tags, magnet, headlights, celebrate, `prefers-reduced-motion` (decorative keyframes off, no confetti pieces, short iris) (19)
 - `damage-check.cjs` — damage/repair/upgrades/keyboard (20)
-- `free-check.cjs` — capsules, free drive, time tiers (14)
+- `free-check.cjs` — capsules, free drive (the daily 100-star cap, the star meter, the spent map button), time tiers (15)
 - `feel-check.cjs` — game feel: dynamics, hit-stop, choreography, iPad shell (18)
 - `worlds-check.cjs` — 12 worlds, movers, gravity, world map, premium content, the 13.3 ground painter (shoulder + field tones, road crown on all 12 worlds, ramp side walls, quad budget) (25)
 - `album-check.cjs` — sticker album: buddies, badges, photos with world backdrops + stamps, the peek card for photos and stickers, muddy flag (15)
@@ -67,7 +67,7 @@ click stability check.
 | `garage-check.cjs` | 19 | redesigned garage: control budget, category tabs and the shuffle at the tab row end, workbench strip order (wash first), GO and map, gift on the rhythm |
 | `polish-check.cjs` | 19 | kid-UX round: locks, price tags, magnet, headlights, celebrate choreography |
 | `damage-check.cjs` | 20 | damage tiers, repair, upgrades, keyboard controls |
-| `free-check.cjs` | 14 | capsules and prizes, free drive, time-medal tiers |
+| `free-check.cjs` | 15 | capsules and prizes, free drive, time-medal tiers |
 | `feel-check.cjs` | 18 | game feel: body dynamics, hit-stop, celebrate pacing, iPad shell metas |
 | `worlds-check.cjs` | 25 | 12 worlds: level invariants, world hazards, movers, gravity, map, unlock chain, world bonus, golden capsule, premium shop, free-drive tour, ground painter (shoulder and field tones, crowned road on every world, ramp side walls, quad budget) |
 | `album-check.cjs` | 15 | sticker album: buddies, badges, world-backdrop photos, peek card, muddy flag |

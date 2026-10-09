@@ -62,6 +62,12 @@ tires, repairs) is priced per unit so a few stars always fix something. Every pa
 and a level pays out its collected stars plus the finish and shine bonuses, so owning
 everything is roughly a tour of all twelve worlds.
 
+Free drive (the map's green button) is capped at `FREE_CAP = 100` stars per local day, counted across
+runs in `progress.freeDay` / `progress.freeUsed` (localStorage only, never in a save code, like
+`lastGift`). The HUD progress bar doubles as the day's star meter and the time slot counts the stars
+left; reaching the cap ends the run (`finishFree`: flourish, then home, where `bankFreeRun` banks and
+counts the stars) and `renderFreeBtn` greys the button with a moon badge until tomorrow.
+
 ## Vehicles: two views, one build
 
 **Side view** (`vehicleSVG`, viewBox `0 0 320 230`, ground `y=200`, car faces right) is used

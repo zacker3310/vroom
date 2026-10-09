@@ -297,6 +297,10 @@
     border-radius: 50%; background: #38b000; border: 6px solid #d8f3dc; z-index: 6;
   }
   #freeBtn svg { width: 84px; height: 84px; }
+  /* the day's free drive is spent: grey, with a little moon until tomorrow */
+  #freeBtn.spent { background: #adb5bd; border-color: #dee2e6; }
+  #freeBtn.spent svg { opacity: .55; }
+  #freeBtn.spent::after { content: ""; position: absolute; right: -6px; top: -6px; width: 44px; height: 44px; border-radius: 50%; background: #fff8ec url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M40 10 A22 22 0 1 0 54 44 A18 18 0 0 1 40 10 Z' fill='%23ffb703'/%3E%3C/svg%3E") center / 60% no-repeat; border: 4px solid #dee2e6; box-sizing: border-box; }
   #worldTabs {
     position: absolute; left: 50%; top: 136px; transform: translateX(-50%);   /* 16px below the 24-120 top row */
     display: flex; gap: 8px; z-index: 5;
@@ -1743,7 +1747,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.4.1";
+const APP_VERSION = "13.5.0";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -1899,7 +1903,7 @@ function numberSVG(n, cls = "") {
 let progress = { wallet: 0, owned: { body: [], wheels: [], color: [], extras: [], buddy: [], decal: [] }, levels: {}, current: 1,
                  muddy: false, fuel: FUEL_MAX, tread: TREAD_MAX,
                  damage: 0, upgrades: { engine: 0, armor: 0, magnet: 0, tank: 0, springs: 0 }, quiet: false,
-                 badges: [], photos: [], lastGift: "" };   /* lastGift: local date of the last daily gift (localStorage only) */
+                 badges: [], photos: [], lastGift: "", freeDay: "", freeUsed: 0 };   /* lastGift / freeDay / freeUsed: local dates and the day's free-drive stars (localStorage only) */
 
 /* ---- profiles: up to 3 kids, identified by a buddy-face avatar, no reading ---- */
 const MAX_PROFILES = 3;
@@ -1978,6 +1982,8 @@ function loadState() {
   }
   progress.fuel = Math.min(fuelMax(), progress.fuel);
   progress.lastGift = typeof saved.lastGift === "string" ? saved.lastGift : "";
+  progress.freeDay = typeof saved.freeDay === "string" ? saved.freeDay : "";
+  progress.freeUsed = Number.isFinite(saved.freeUsed) ? Math.max(0, Math.floor(saved.freeUsed)) : 0;
   /* if the saved build uses a part that is no longer owned somehow, fall back */
   if (!owns("body", state.body)) state.body = "dump";
   if (!owns("wheels", state.wheels)) state.wheels = "normal";
@@ -4544,7 +4550,7 @@ function resetRoadOverlays() {
   debrisLive = 0;
 }
 function showGarage() { bankFreeRun(); showScene(garageScene); renderPreview(); renderWallets(false); renderUpgrades(); renderUpkeep(); renderGift(); syncStrip(); }
-function showMap() { selectedWorld = worldOf(progress.current); showScene(mapScene); renderMap(); renderWallets(false); }
+function showMap() { selectedWorld = worldOf(progress.current); showScene(mapScene); renderMap(); renderFreeBtn(); renderWallets(false); }
 const albumScene = document.getElementById("album");
 function showAlbum() { showScene(albumScene); renderAlbum(); renderWallets(false); }
 
@@ -4778,7 +4784,7 @@ function exportJSON() {
   /* ghost traces (GHOST RACE) and the daily gift stamp are local keepsakes: they never ride in a save code */
   const levels = {};
   for (const n in progress.levels) { const { ghost, ...rest } = progress.levels[n]; void ghost; levels[n] = rest; }
-  return JSON.stringify({ build: state, ...progress, levels, lastGift: undefined });
+  return JSON.stringify({ build: state, ...progress, levels, lastGift: undefined, freeDay: undefined, freeUsed: undefined });
 }
 /* the plain (uncompressed) full code, built synchronously: the share sheet and the clipboard must be asked
    for inside the tap itself on iOS, so the copy button can never wait on a stream first */
@@ -7575,18 +7581,45 @@ function driveParade() {
   showScene(roadScene);
   startDrive();
 }
+/* ---- free drive is a treat, not a farm (13.5): FREE_CAP stars a local day, counted across runs. The map
+   button greys out once the day's stars are spent and comes back tomorrow; the run itself ends with a
+   flourish the moment the cap is reached. Stars collected on the way always bank, even on an early exit ---- */
+const FREE_CAP = 100;
+function freeUsedToday() { return progress.freeDay === todayStr() ? progress.freeUsed : 0; }
+function freeLeft() { return Math.max(0, FREE_CAP - freeUsedToday()); }
+function freeReady() { return freeLeft() > 0; }
+function renderFreeBtn() {
+  const b = document.getElementById("freeBtn"), ready = freeReady();
+  b.classList.toggle("spent", !ready);
+  b.setAttribute("aria-label", ready ? "free drive, no finish line" : "free drive, come back tomorrow");
+}
 function driveFree() {
   if (!shopGateOpen()) return;
+  if (!freeReady()) { walletDeny(); return; }
   paradeMode = false;
   freeMode = true;
   level = 0;
   showScene(roadScene);
   startDrive();
 }
-/* endless-cruise stars bank when the kid heads home — nothing is ever lost */
+/* endless-cruise stars bank when the kid heads home, nothing is ever lost; they also count toward the day's cap */
 function bankFreeRun() {
-  if (freeMode && runStars > 0) { progress.wallet += runStars; save(); }
+  if (freeMode && runStars > 0) {
+    progress.wallet += runStars;
+    if (progress.freeDay !== todayStr()) { progress.freeDay = todayStr(); progress.freeUsed = 0; }
+    progress.freeUsed += runStars;
+    save();
+  }
   freeMode = false;
+}
+/* the day's cap reached mid-cruise: a flourish, then home with the stars (bankFreeRun runs in showGarage) */
+function finishFree() {
+  finished = true;
+  sfx.tada();
+  buddyReact("wave");
+  confettiBurst(roadScene, 120);
+  renderHudStars(true);
+  setTimeout(() => { if (freeMode) showGarage(); }, 1800);
 }
 const BEAMS_SVG = `<g class="beams"><path d="M-80 -80 L80 -80 L42 -300 L-42 -300 Z" fill="#ffd60a" opacity=".2"/>
        <path d="M-46 -86 L46 -86 L24 -250 L-24 -250 Z" fill="#fff9c4" opacity=".18"/>
@@ -7658,7 +7691,8 @@ function startDrive() {
     : freeMode
     ? `<svg viewBox="0 0 64 64"><path d="M6 50 Q22 18 32 34 Q42 50 58 14" stroke="#023047" stroke-width="8" fill="none" stroke-linecap="round"/></svg>`
     : `<svg viewBox="0 0 64 64"><path d="M14 58 V8" stroke="#023047" stroke-width="7" stroke-linecap="round"/><path d="M18 10 L54 16 L18 30 Z" fill="#e63946"/></svg><span>${level}</span>`;
-  document.getElementById("hudProgress").style.display = freeMode ? "none" : "";
+  document.getElementById("hudProgress").style.display = "";   /* in free drive the bar is the day's star meter, the time slot counts the stars left */
+  if (freeMode) { progDot.style.left = (100 * freeUsedToday() / FREE_CAP) + "%"; hudTime.textContent = String(freeLeft()); }
   renderHudStars(false);
   renderHudDamage(false);
   renderHudUpkeep(false);
@@ -8262,6 +8296,12 @@ function tick(now) {
   }
   if (freeMode) {
     tickFree();
+    /* the day's star meter: what was spent earlier today plus this run; the cap ends the run */
+    const used = Math.min(FREE_CAP, freeUsedToday() + runStars);
+    progDot.style.left = (100 * used / FREE_CAP) + "%";
+    const left = String(FREE_CAP - used);
+    if (left !== lastShownTime) { lastShownTime = left; hudTime.textContent = left; }
+    if (!finished && used >= FREE_CAP) finishFree();
   } else {
     if (!finished) {
       runTime += dt;

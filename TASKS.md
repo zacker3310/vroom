@@ -162,6 +162,10 @@
 
 - [x] T26.2: Export that works on iOS. The copy button awaited a gzip stream before touching the clipboard, and WebKit only grants the clipboard and the share sheet inside the tap itself, so in the home-screen app it always failed (deny sound, nothing copied). Now: the full code is pre-built when the overlay opens (`cachedCode`) with a synchronous plain code as the fallback (`exportCodeSync`), the button listens on click, a touch device or a standalone app goes through the share sheet (`sendSaveCode`, `preferShare`), a desktop through the clipboard, a dismissed sheet is not a failure, and a green check rides over the button when the code went. `decodeSaveCode` picks the `VROOM` token out of pasted text so a code sent inside a message pastes back. profile-check 15. 23 suites, 422/422.
 
+## v13.5.0 (2026-10-09, user-directed: "free drive should only be playable every so often, end it at 100 stars")
+
+- [x] T27.1: Free drive is a daily treat. `FREE_CAP` 100 stars per local day counted across runs (`progress.freeDay`, `progress.freeUsed`, localStorage only, excluded from save codes); the HUD bar is the day's star meter with the time slot counting the stars left; the cap ends the run with a flourish and sends the kid home with the stars (`finishFree`, `bankFreeRun`); the map button greys out with a moon badge (`renderFreeBtn`, `.spent`) and refuses with a deny shake until tomorrow. free-check 15. 23 suites, 423/423.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
