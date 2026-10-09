@@ -5238,7 +5238,16 @@ const VS = z => CAM_D / (z * CAR_K + CAM_D) * CAR_K;   /* px per car-space unit 
    lane the camera sits inboard of the car, so the inner flank shows and the far end drifts toward the
    vanishing point; the rear-bumper plane is anchored so the sprite's screen position does not move. */
 let vpOff = 0;
-const vp = (x, y, z) => { const s = CAM_D / (z * CAR_K + CAM_D); return [(x + vpOff) * CAR_K * s - vpOff * CAR_K, (CAM_H - y * CAR_K) * s - CAM_H]; };
+/* vpYaw (13.3): the car's heading while a view is composed, a rotation of car-space x/z about the vertical axis
+   through the rear axle (vpYawZ) before the perspective; + = nose to the right. A lane change yaws the car toward
+   its target lane, so the flank on the inside of the turn and the front corner show, then it squares up again. */
+let vpYaw = 0, vpYawZ = 0, vpCos = 1, vpSin = 0;
+const vrot = (x, z) => vpSin ? [x * vpCos + (z - vpYawZ) * vpSin, vpYawZ + (z - vpYawZ) * vpCos - x * vpSin] : [x, z];
+const vp = (x, y, z) => { [x, z] = vrot(x, z); const s = CAM_D / (z * CAR_K + CAM_D); return [(x + vpOff) * CAR_K * s - vpOff * CAR_K, (CAM_H - y * CAR_K) * s - CAM_H]; };
+const vsAt = (x, z) => VS(vrot(x, z)[1]);   /* px per car unit at a point's real depth, heading included */
+/* a vertical face through (x, z) with outward normal (nx, nz) shows when the camera (x = -vpOff, far behind the
+   bumper) sits on its outer side; the normal turns with the heading like the point does */
+const faceVis = (x, z, nx, nz = 0) => { const [px, pz] = vrot(x, z); return (-vpOff - px) * (nx * vpCos + nz * vpSin) + (-CAM_D / CAR_K - pz) * (nz * vpCos - nx * vpSin) > 0; };
 const fx = n => n.toFixed(1);
 const ptStr = a => a.map(p => fx(p[0]) + "," + fx(p[1])).join(" ");
 const vpoly = (pts, fill, extra = "") => `<polygon points="${ptStr(pts)}" fill="${fill}" stroke-linejoin="round" ${extra}/>`;
@@ -5490,9 +5499,9 @@ function partSVG(p, L) {
     const a = vp(x0, y0 + L, p.z0), b = vp(x1, y1 + L, p.z0);
     return `<rect x="${fx(Math.min(a[0], b[0]))}" y="${fx(Math.min(a[1], b[1]))}" width="${fx(Math.abs(b[0] - a[0]))}" height="${fx(Math.abs(b[1] - a[1]))}" rx="${fx(Math.min(6, Math.abs(b[1] - a[1]) / 2))}" fill="${fill}" ${extra}/>`;
   };
-  const C = (x, y, r, fill, extra = "") => { const c = vp(x, y + L, p.z0); return `<circle cx="${fx(c[0])}" cy="${fx(c[1])}" r="${fx(r * VS(p.z0))}" fill="${fill}" ${extra}/>`; };
-  /* raw art authored in back-face coords (x right, -y up from the ground) */
-  const G = inner => { const s0 = CAM_D / (p.z0 * CAR_K + CAM_D); return `<g transform="translate(0,${fx((CAM_H - L * CAR_K) * s0 - CAM_H)}) scale(${VS(p.z0).toFixed(4)})">${inner}</g>`; };
+  const C = (x, y, r, fill, extra = "") => { const c = vp(x, y + L, p.z0); return `<circle cx="${fx(c[0])}" cy="${fx(c[1])}" r="${fx(r * vsAt(x, p.z0))}" fill="${fill}" ${extra}/>`; };
+  /* raw art authored in back-face coords (x right, -y up from the ground), pinned to the face's projected origin */
+  const G = inner => { const o = vp(0, L, p.z0); return `<g transform="translate(${fx(o[0])},${fx(o[1])}) scale(${vsAt(0, p.z0).toFixed(4)})">${inner}</g>`; };
   if (p.k === "box") {
     const y0 = p.y0 + L, y1 = p.y1 + L, yf = p.y1f + L;
     let out = "";
@@ -5500,8 +5509,9 @@ function partSVG(p, L) {
     /* lighting (v12.6): one key light high and behind the camera. Side faces fall off toward the ground,
        top faces catch a sheen that fades toward the far edge, back faces take ambient occlusion at the
        bottom and a bevel highlight along the top edge. Overlays, so pattern paints keep working. */
-    if (p.x0 + vpOff > 0) { const f = sideAt(p.x0); out += vpoly(f, p.fill) + vpoly(f, "url(#v3dSide)"); }   /* a face shows when the camera is outboard of it */
-    if (p.x1 + vpOff < 0) { const f = sideAt(p.x1); out += vpoly(f, p.fill) + vpoly(f, "url(#v3dSide)"); }
+    const zm = (p.z0 + p.z1) / 2;
+    if (faceVis(p.x0, zm, -1)) { const f = sideAt(p.x0); out += vpoly(f, p.fill) + vpoly(f, "url(#v3dSide)"); }   /* a face shows when the camera is outboard of it */
+    if (faceVis(p.x1, zm, 1)) { const f = sideAt(p.x1); out += vpoly(f, p.fill) + vpoly(f, "url(#v3dSide)"); }
     if (Math.max(y1, yf) < CAM_H) {
       const t = [vp(p.x0, y1, p.z0), vp(p.x1, y1, p.z0), vp(p.x1, yf, p.z1), vp(p.x0, yf, p.z1)];
       out += vpoly(t, p.fill) + vpoly(t, p.topDark ? "#000" : "url(#v3dTop)", p.topDark ? 'opacity=".28"' : "");
@@ -5534,22 +5544,29 @@ function partSVG(p, L) {
   if (p.k === "spr") {
     if (p.raw) return p.raw(L);
     const [px, py] = vp(p.x, p.y + L, p.z);
-    return `<g transform="translate(${fx(px)},${fx(py)}) scale(${(VS(p.z) * p.sc).toFixed(3)})">${p.svg}</g>`;
+    return `<g transform="translate(${fx(px)},${fx(py)}) scale(${(vsAt(p.x, p.z) * p.sc).toFixed(3)})">${p.svg}</g>`;
   }
   if (p.k === "tire") return tire3D(p);
   return "";
 }
-/* tires: dark blocks; rear ones show scrolling tread + the style accent on their back face */
+/* tires: dark blocks; rear ones show scrolling tread + the style accent on their back face. Front tires carry
+   `steer` (radians, 13.3): their own turn about the axle point, on top of the body's heading */
 function tire3D(t) {
   const x0 = t.cx - t.tw / 2, x1 = t.cx + t.tw / 2, h = t.r * 1.84, z0 = t.zc - t.r * 0.8, z1 = t.zc + t.r * 0.8;
+  const st = t.steer || 0, sc = Math.cos(st), ss = Math.sin(st);
+  const P = st ? (x, y, z) => { const dx = x - t.cx, dz = z - t.zc; return vp(t.cx + dx * sc + dz * ss, y, t.zc + dz * sc - dx * ss); } : vp;
+  const sideVis = (x, nx) => st ? faceVis(t.cx + (x - t.cx) * sc, t.zc - (x - t.cx) * ss, nx * sc, -nx * ss) : faceVis(x, t.zc, nx);
   let out = "";
-  const inner = t.cx + vpOff > 0 ? x0 : x1;
-  out += vpoly([vp(inner, 0, z0), vp(inner, h, z0), vp(inner, h, z1), vp(inner, 0, z1)], "#1d1f23");
-  out += vpoly([vp(x0, h, z0), vp(x1, h, z0), vp(x1, h, z1), vp(x0, h, z1)], "#3a3d43", 'stroke="#3a3d43" stroke-width="6"');
-  const a = vp(x0, h, z0), b = vp(x1, 0, z0);
+  const inner = sideVis(x0, -1) ? x0 : sideVis(x1, 1) ? x1 : null;
+  if (inner !== null) out += vpoly([P(inner, 0, z0), P(inner, h, z0), P(inner, h, z1), P(inner, 0, z1)], "#1d1f23");
+  out += vpoly([P(x0, h, z0), P(x1, h, z0), P(x1, h, z1), P(x0, h, z1)], "#3a3d43", 'stroke="#3a3d43" stroke-width="6"');
+  const a = P(x0, h, z0), b = P(x1, 0, z0);
   const x = a[0], y = a[1], tw = b[0] - a[0], th = b[1] - a[1], rr = Math.min(tw, th) * 0.3;
   const id = "tc" + t.uid + (t.cx < 0 ? "l" : "r") + (t.rear ? "b" : "f");
-  out += `<rect x="${fx(x)}" y="${fx(y)}" width="${fx(tw)}" height="${fx(th)}" rx="${fx(rr)}" fill="#2b2d31"/><rect x="${fx(x)}" y="${fx(y)}" width="${fx(tw)}" height="${fx(th)}" rx="${fx(rr)}" fill="url(#v3dTire)"/>`;
+  if (st) {   /* a steered tire's back face is a turned quad, not an upright rect */
+    const q = [P(x0, 0, z0), P(x1, 0, z0), P(x1, h, z0), P(x0, h, z0)];
+    out += vpoly(q, "#2b2d31", 'stroke="#2b2d31" stroke-width="5"') + vpoly(q, "url(#v3dTire)");
+  } else out += `<rect x="${fx(x)}" y="${fx(y)}" width="${fx(tw)}" height="${fx(th)}" rx="${fx(rr)}" fill="#2b2d31"/><rect x="${fx(x)}" y="${fx(y)}" width="${fx(tw)}" height="${fx(th)}" rx="${fx(rr)}" fill="url(#v3dTire)"/>`;
   if (t.rear) {
     let tread = "";
     for (let ty = y - 7; ty < y + th + 7; ty += 7) tread += `<rect x="${fx(x + 2)}" y="${fx(ty)}" width="${fx(tw - 4)}" height="2.5" rx="1" fill="#41444a"/>`;
@@ -5575,12 +5592,15 @@ const V3D_DEFS = `<defs>
   <linearGradient id="v3dTire" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient>
   <filter id="v3dBlur" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="7"/></filter>
 </defs>`;
-function vehicleRearSVG(st, camOff = 0) {
-  vpOff = camOff;
-  try { return vehicleRearBuild(st); } finally { vpOff = 0; }
+/* camOff: the camera's lateral offset in car units (see vpOff); yaw: the car's heading in radians (see vpYaw) */
+function vehicleRearSVG(st, camOff = 0, yaw = 0) {
+  vpOff = camOff; vpYaw = yaw; vpCos = Math.cos(yaw); vpSin = Math.sin(yaw);
+  try { return vehicleRearBuild(st); } finally { vpOff = 0; vpYaw = 0; vpCos = 1; vpSin = 0; vpYawZ = 0; }
 }
+const STEER_K = 2;   /* front wheels turn this much harder than the body yaws */
 function vehicleRearBuild(st) {
   const R = CAR3D[st.body] || CAR3D.dump;
+  vpYawZ = R.axles[0];   /* the heading pivots on the rear axle: the tail holds its lane, the nose swings */
   const uid = ++svgUid;
   const r = WHEELS[st.wheels].r;
   /* ride height: big wheels jack the body up; wheel-less bodies sit on their tracks or hover */
@@ -5592,7 +5612,7 @@ function vehicleRearBuild(st) {
   const [wsR, wsF] = R.wheelScale || [1, 1];
   const tires = [];
   if (!R.noWheels) [[R.axles[0], wsR, true], [R.axles[1], wsF, false]].forEach(([zc, ws, rear]) => {
-    for (const side of [-1, 1]) tires.push({ k: "tire", type: st.wheels, uid, rear, cx: side * (R.half + tw / 2 - 6), tw: tw * Math.min(1.3, ws), r: r * ws, zc, z0: zc - r * ws * 0.8, y0: 0 });
+    for (const side of [-1, 1]) tires.push({ k: "tire", type: st.wheels, uid, rear, cx: side * (R.half + tw / 2 - 6), tw: tw * Math.min(1.3, ws), r: r * ws, zc, z0: zc - r * ws * 0.8, y0: 0, steer: rear ? 0 : vpYaw * STEER_K });
   });
   const parts = R.parts().concat(tires);
   const normal = parts.filter(p => !p.late).sort((a, b) => (b.z0 - a.z0) || (a.y0 - b.y0));
@@ -5604,7 +5624,7 @@ function vehicleRearBuild(st) {
   const body = shadow + (R.hover ? `<g class="hoverBob">${bodyParts}</g>` : bodyParts);
 
   /* overlay anchors: project a car-space point, return [x, y, scale] */
-  const A = (q, dx = 0, dy = 0) => { const [x, y] = vp(q[0] + dx, q[1] + L + dy, q[2]); return [x, y, VS(q[2])]; };
+  const A = (q, dx = 0, dy = 0) => { const [x, y] = vp(q[0] + dx, q[1] + L + dy, q[2]); return [x, y, vsAt(q[0] + dx, q[2])]; };
   const at = (q, inner, k = 1, mirror = false) => { const [x, y, s] = A(q); return `<g transform="translate(${fx(x)},${fx(y)}) scale(${mirror ? "-" : ""}${(s * k).toFixed(3)},${(s * k).toFixed(3)})">${inner}</g>`; };
   const N = R.anchors;
   const hasBuddy = !!(st.buddy && progress.owned.buddy.includes(st.buddy));
@@ -7195,21 +7215,33 @@ function setHeadlights(on) {
 }
 /* (re)build the chase-cam car from the current build and re-bind the parts the loop animates */
 /* lane perspective (13.1): the car is composed for the camera's real lateral offset, quantised to quarter
-   lanes and cached per build, and swapped as laneVis slides so a side lane shows the inner flank */
-const LANE_VIEW_STEPS = 4, laneViews = new Map();
-let laneViewKey = null, laneViewBuild = "";
+   lanes and cached per build, and swapped as laneVis slides so a side lane shows the inner flank.
+   Steering yaw (13.3): while laneVis glides toward targetLane the car heads toward that lane (carYaw, up to
+   YAW_MAX rad, eased in and out), quantised to YAW_STEPS steps a side. Views are cached on the small grid
+   of quarter-lane offset x yaw step (9 x 5 at most per build), built lazily on first use. */
+const LANE_VIEW_STEPS = 4, YAW_MAX = 0.18, YAW_STEPS = 2, laneViews = new Map();
+let laneViewKey = null, laneViewBuild = "", laneViewYaw = 0, carYaw = 0;
 function laneViewOff(q) { return q * LANE_W * (1 - CAM_FOLLOW) / CAR_K; }   /* car units: +96 world px a lane */
+function laneViewQ() { return Math.round((laneVis - 1) * LANE_VIEW_STEPS) / LANE_VIEW_STEPS; }
+function yawStep() { return Math.max(-YAW_STEPS, Math.min(YAW_STEPS, Math.round(carYaw / YAW_MAX * YAW_STEPS))); }
+function viewKey(q, ys) { return q + "|" + ys; }
+function tickYaw(dt) {
+  const to = laneVis === targetLane ? 0 : YAW_MAX * Math.max(-1, Math.min(1, (targetLane - laneVis) / 0.5));
+  carYaw += (to - carYaw) * Math.min(1, dt * 20);
+  if (!to && Math.abs(carYaw) < 0.004) carYaw = 0;
+}
 function mountCar() {
   const buildKey = JSON.stringify(state) + "|" + progress.damage;
   if (buildKey !== laneViewBuild) { laneViews.clear(); laneViewBuild = buildKey; }
   laneViewKey = null;
-  setCarView(Math.round((laneVis - 1) * LANE_VIEW_STEPS) / LANE_VIEW_STEPS);
+  setCarView(laneViewQ(), yawStep());
 }
-function setCarView(q) {
-  if (q === laneViewKey) return;
-  laneViewKey = q;
-  let svg = laneViews.get(q);
-  if (!svg) { svg = vehicleRearSVG(state, laneViewOff(q)); laneViews.set(q, svg); }
+function setCarView(q, ys = 0) {
+  const key = viewKey(q, ys);
+  if (key === laneViewKey) return;
+  laneViewKey = key; laneViewYaw = ys;
+  let svg = laneViews.get(key);
+  if (!svg) { svg = vehicleRearSVG(state, laneViewOff(q), ys * YAW_MAX / YAW_STEPS); laneViews.set(key, svg); }
   carWrap.innerHTML = svg;
   wheelEls = carWrap.querySelectorAll(".treadRoll");
   drumEls = carWrap.querySelectorAll(".drum");
@@ -7222,7 +7254,7 @@ function startDrive() {
   stopDrive();
   pos = 0; v = 0; jumpY = 0; vy = 0; airborne = false; finished = false;
   gasKey = false; brakeKey = false;
-  targetLane = 1; laneVis = 1; runStars = 0; runDamage = 0; runTime = 0; idleT = 0; nearFinish = false;
+  targetLane = 1; laneVis = 1; carYaw = 0; runStars = 0; runDamage = 0; runTime = 0; idleT = 0; nearFinish = false;
   bodyTilt = 0; prevV = 0; freezeUntil = 0; starCombo = 0; lastStarT = 0; lastShownTime = -1;
   rollOK = !reducedMotion(); inTwistNow = false; drumAngle = 0;
   laneShown = -1; tickLane(); showSwipeHint(!freeMode && !paradeMode);
@@ -7878,7 +7910,8 @@ function tick(now) {
   renderWorld();
   /* the car stays square to the road: no skew, no bank (v12.6); it squats on the gas, lifts on the brake */
   const squat = Math.max(-6, Math.min(6, bodyTilt * 0.7));
-  setCarView(Math.round((laneVis - 1) * LANE_VIEW_STEPS) / LANE_VIEW_STEPS);   /* inner flank in a side lane */
+  tickYaw(dt);
+  setCarView(laneViewQ(), yawStep());   /* inner flank in a side lane; nose toward the lane it is heading for */
   const cdx = carScreenX() - 600;
   /* corkscrew: the car barrel-rolls about its own axis and rises a little through the top of the turn */
   const carRoll = twistLive && Math.abs(rollCar) > 0.002 ? rollCar : 0;
