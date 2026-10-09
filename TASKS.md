@@ -146,6 +146,14 @@
 
 - [x] T25.4: Blob shadows under every prop (`div.shd` in the sprite wrapper: radial gradient, footprint from `SHADOW_W` or the art width, fainter and smaller with height, none for flat props, arches or the ghost) and atmospheric haze on far sprites (`div.hz` masked by the sprite's own SVG via one shared stylesheet rule per art string, stepping to 0.45 of the world haze colour at the fade band). Both ride the crest clip-path. polish-check 19. 23 suites, 398/398.
 
+## v13.3.0 (2026-10-09, user-directed: "implement all" of the AAA list, rounds 2 to 5)
+
+- [x] T25.1: Camera dynamics and impact juice. Damped lateral follow (`CAM_W`, `CAM_Z`), lens widening with speed (`fovK`, `CAM_D = CAM_D0 / fovK` per frame), landing dip, decaying 2D hit shake on the road layers only (`startShake`, `applyCamFx`), hit-stop scaled by damage (70 / 110 ms), debris chips in the prop's colours, wrench-chip bump, landing squat and dust, star pop with three sparks to the star chip. All off under reduced motion. feel-check 18.
+- [x] T25.2: Steering yaw. `vp` rotates car space about the rear axle by `carYaw` (`vrot`, `faceVis`), front tires steer, `tickYaw` eases toward `YAW_MAX` 0.18 while `laneVis` glides, views cached per quarter-lane x yaw step. No tilt, skew or roll. verify 40.
+- [x] T25.3: Ground texture and ramp wedges. Shoulders, field strips (`fields`), crown and wheel wear on every world via `groundTones` defaults with hand tuning for construction, farm, snow, desert, volcano and candy; ramps get a side wall and lip shadow, the finish stripe a near edge; quads batched per tone (`roadQuadN` <= 700). worlds-check 25.
+- [x] T25.5: Audio. `ENGINE_VOICES` by body family with virtual gears, throttle and clunks; `sfx.passby` doppler on passing props; `MUSIC[w]` adaptive beds per world (bass always, arp and percussion with speed, riser in the air and in corkscrews, ducked at the finish, silent in quiet mode) with a documented `MIX`. world-check-audio-events 26.
+- Five worktree agents, squash-merged; 23 suites, 421/421, lint 0.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

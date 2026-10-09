@@ -97,7 +97,7 @@ head-on in v10, so the level generator, physics and collision code never changed
 | Constant | Value | Meaning |
 |---|---|---|
 | `HORIZON` | 290 | vanishing line on the stage |
-| `CAM_D` | 520 | camera distance behind the car; scale 1 at the car |
+| `CAM_D` | 520 (`CAM_D0`) | camera distance behind the car; scale 1 at the car. Per frame `renderWorld` sets `CAM_D = CAM_D0 / fovK` (the lens widens up to 7% at full speed, 13.3) and restores it |
 | `CAM_H` | 360 | camera height; the car's ground line lands at y=650 |
 | `LANE_W` | 240 | lane spacing at the car's depth |
 | `CAM_FOLLOW` | 0.6 | how far the camera slides with a lane change (the car moves the other 40%) |
@@ -113,7 +113,22 @@ sy = HORIZON + (CAM_H + camElev − elevAt(carX + z) − h) · s
 
 (`proj()` for the canvas ground plane, the same math inline for sprites). Sprites get
 `translate(sx, sy) scale(s·k)`, a z-index of `20000 − z` (hit things pop over the car at
-25000), and opacity fading over the last `FADE` units.
+25000), and opacity fading over the last `FADE` units. Each sprite wrapper also holds a blob
+shadow (`div.shd`, radial gradient sized from `SHADOW_W` or the art width, smaller and fainter
+with `h`, none for `NO_SHADOW` types) and a haze overlay (`div.hz`, the world's haze colour
+masked by the sprite's own SVG through one shared stylesheet rule per art string, stepping from
+35% of `DRAW_FAR` to 0.45 at the fade band); both ride the transform and the crest clip.
+
+Camera dynamics (13.3): `camX` follows the lane target through a damped spring (`CAM_W`,
+`CAM_Z`, settles in about 350 ms, so the car visibly swings ahead of the view), `fovK` eases
+toward `1 + FOV_PUNCH` with speed, a landing dips the view (`DIP_*`, scaled by fall speed) and a
+hit runs a decaying 2D shake (`startShake(dmg)`, applied by `applyCamFx` as one transform on
+`#roadCanvas` and `#world`, never the HUD). `camTick(dt)` runs all of it before `renderWorld`;
+under reduced motion it snaps the follow and zeroes the rest. The car itself yaws toward the
+lane it heads for while `laneVis` glides (`tickYaw`, `carYaw` up to `YAW_MAX = 0.18`): `vp`
+rotates car-space x/z about the rear axle (`vrot`) before the perspective, `faceVis` picks the
+visible side faces from the real camera position, and the front tires steer with it;
+`setCarView(q, ys)` caches views on a quarter-lane x yaw-step grid. No tilt, skew or roll.
 
 ### Curves
 
@@ -177,9 +192,15 @@ the sky and a dip hides it. World amplitudes: 0 for construction, rain and beach
 ### The ground plane
 
 `drawRoad(carX)` repaints `#roadCanvas` (2x backing store) every frame: sky haze at the
-horizon, grass bands alternating every `SEG = 160` units, asphalt, rumble strips, lane
-dashes, sloped ramps, the checkered finish stripe and the ground shadow under a jumping car,
-all as `quad()`s of four `proj()`ed corners with the world's `ROAD_PAL[w]` palette. The road paints back to
+horizon, grass bands alternating every `SEG = 160` units, lateral field strips in two extra
+tones (`fields` extents mirrored both sides: crop rows on the farm, dune ridges, drifts, lava
+cracks), a dirt shoulder outside each rumble strip, asphalt with a crown highlight down the
+centre and faint wheel-track wear in the outer lanes, lane dashes, sloped ramps with a
+camera-facing side wall and a lip shadow, the checkered finish stripe with a near edge, and the
+ground shadow under a jumping car, all as `quad()`s (batched into one fill per tone where they
+share a colour; `roadQuadN` counts subpaths, budget 700) of four `proj()`ed corners with the
+world's `ROAD_PAL[w]` palette. `groundTones(P)` derives the new keys (`shoulder`, `field`,
+`fields`, `crown`, `wear`) from the base palette once per world when a pack does not set them. The road paints back to
 front, so a crest hides the road behind it on its own; everything else is clipped against `OCC`, a per-frame
 running minimum of the ground's screen y by depth (`buildOcc`, `occAt(z)`): `placeSprite` cuts a sprite at the
 crest line with a `clip-path` in its own pre-transform pixels, and ramps, the finish stripe and the hoops draw
@@ -299,10 +320,22 @@ workhorse (an oscillator with a frequency glide and an exponential decay); `nois
 filtered noise. `sfx.*` are the UI/world sounds, `HONKS[body]` the per-body horn voices.
 Quiet mode multiplies every voice by `volScale() = 0.22`.
 
-The engine (`engineStart`/`engineSet`) is two sawtooth oscillators detuned 9 cents through a
-low-pass swept from 260 Hz to 1360 Hz with speed, plus a looping noise buffer through a
-band-pass at 1100 Hz that fades in over the top 40% of the speed range as wind; all
+The engine (`engineStart`/`engineSet(v, gas, brake)`) is a voice from `ENGINE_VOICES` picked
+by body family (`ENGINE_FAMILY`: trucks, race cars, tractors, whining rockets and UFOs, a
+default): a sine sub, two detuned saws through a resonant low-pass (the growl, with a chug LFO
+for tractors), a high harmonic and wind from the shared noise buffer. Speed runs through 3-4
+virtual gears with hysteresis (`GEAR_HYST`): a shift drops the pitch back with a throttle dip
+and a clunk, braking shifts down, the gas opens the filter. `sfx.passby` plays a panned falling
+whoosh when a sizeable prop passes the bumper at speed (`passByTick`, rate-limited). All
 parameters move with `setTargetAtTime` to avoid zipper noise.
+
+Music: `MUSIC[w]` is a per-world bed (bpm, root, bass / arp / percussion step strings in the
+jingle's note vocabulary) scheduled with lookahead on the audio clock (`musicPump` every
+`MUSIC_PUMP_MS`, `MUSIC_LOOKAHEAD` ahead, first note after the jingle). The bass always plays;
+the arp and percussion fade in above about 60% speed; a riser sweeps while airborne or in a
+corkscrew; the bed ducks to `MUSIC_DUCK` at the finish, stops in `worldAudioStop`, and is silent
+in quiet mode. Ambience beds drop to `AMB_UNDER_MUSIC` while it plays. The `MIX` comment in the
+audio section documents every gain stage.
 
 Per world: `JINGLES[w]` (a start sting), `AMBIENCE[w]` (a looping bed built from `ambNoise`,
 `ambLFO`, `ambEvery`, `ambPing`), `STAR_SCALES[w]` + `STAR_BASE[w]` (the ratio ladder each
