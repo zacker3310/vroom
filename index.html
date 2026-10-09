@@ -370,6 +370,12 @@
   #roadCanvas { position: absolute; left: 0; top: 0; width: 1200px; height: 700px; }
   #world { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
   .sprite { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; display: none; }
+  /* blob shadow: a soft ellipse under the sprite's ground point (13.3). A gradient, no filter, so it costs one
+     paint; it rides the wrapper's transform and clip-path, so a crest cuts it with the sprite */
+  .sprite .shd { position: absolute; pointer-events: none; background: radial-gradient(closest-side, rgba(0,0,0,.3) 50%, rgba(0,0,0,0) 100%); }
+  /* atmospheric haze: a haze-coloured copy of the sprite's own silhouette (its SVG as a mask) laid over the art,
+     faded in with distance. Masking keeps the tint on the drawn pixels only; opacity is the one thing that moves */
+  .prop .hz { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-size: 100% auto; mask-size: 100% auto; }
 
   .prop { position: absolute; }
   .cone { transition: transform .5s ease; transform-origin: bottom center; }
@@ -5708,17 +5714,73 @@ function rampLaunch(rp, speed) { return { y: rp ? rp.h : 95, vy: Math.min(speed,
 
 /* a sprite: an outer .sprite wrapper the projector moves/scales (anchor = its 0,0),
    holding the .prop element whose own transforms/animations stay free for gags */
-function makeSprite(type, x, lx, h, svg, xOff, yOff, k) {
+function makeSprite(type, x, lx, h, svg, xOff, yOff, k, fw) {
   const wrap = document.createElement("div");
   wrap.className = "sprite";
   const el = document.createElement("div");
   el.className = "prop " + type;
   el.innerHTML = svg;
   el.style.cssText = `left:${xOff}px; top:${yOff}px;`;
+  const p = { type, x, lx, h, el, wrap, k: k || 1, done: false, vis: false, zi: 0, shd: null, hz: null, hzs: 0 };
+  /* ---- blob shadow (13.3): props used to float a pixel off the ground; the car alone had a footprint.
+     Width comes from the per-type table, else the art's own footprint (centred art hangs at xOff = -w/2),
+     else what the caller passed (scenery pieces know their width). Straight down, no sun offset, like the car's. */
+  const w0 = fw !== undefined ? fw : SHADOW_W[type] !== undefined ? SHADOW_W[type] : xOff < 0 ? -2 * xOff : 0;
+  if (w0 > 0 && !NO_SHADOW.has(type)) {
+    /* something in the air throws a smaller, fainter blob; flyers barely mark the ground */
+    const sh = FLY_PROPS.has(type) ? 0.35 : Math.max(0.3, 1 - h / 400);
+    const W = w0 * 1.1 * (0.55 + 0.45 * sh), H = W * 0.36;
+    const s = document.createElement("div");
+    s.className = "shd";
+    /* the wrapper's 0,0 is the sprite's own point, h above the ground: the blob sits at local y = h, nudged back so
+       more of it reads as behind the base than in front */
+    s.style.cssText = `left:${(xOff + w0 / 2 - W / 2).toFixed(1)}px; top:${(h - H * 0.6).toFixed(1)}px; width:${W.toFixed(1)}px; height:${H.toFixed(1)}px; opacity:${(0.26 * sh).toFixed(2)};`;
+    wrap.appendChild(s);
+    p.shd = s;
+  }
   wrap.appendChild(el);
+  /* ---- atmospheric haze (13.3): a haze-coloured silhouette over the art, see placeSprite for the fade ---- */
+  if (type !== "ghost") {
+    const z = document.createElement("div");
+    z.className = "hz " + hazeMaskClass(svg);
+    el.appendChild(z);
+    p.hz = z;
+  }
   worldEl.appendChild(wrap);
-  return { type, x, lx, h, el, wrap, k: k || 1, done: false, vis: false, zi: 0 };
+  return p;
 }
+/* shadow footprint widths in the art's own px; anything missing uses its centred art width (see makeSprite) */
+const SHADOW_W = { cone: 46, barrel: 60, rock: 80, tnt: 62, capsule: 60, star: 40, napdino: 180 };
+const NO_SHADOW = new Set(["puddle", "oil", "ice", "finish", "fan", "trophy", "ghost"]);
+const FLY_PROPS = new Set(["kite", "thundercloud", "jellyfish"]);
+/* HAZE METHOD. Three ways were weighed to tint only a sprite's drawn pixels toward the horizon colour:
+   (1) a CSS filter per sprite (feFlood + feComposite): tints correctly, but it is a filter pass re-run on
+       every repaint of every far sprite, and the task rules out per-frame filter work;
+   (2) a haze-coloured overlay with mix-blend-mode: no masking, so it tints the whole bounding box (wrong);
+   (3) a haze-coloured div masked by the sprite's own SVG (chosen): the mask is the same SVG string as the art,
+       served as a data: URL from a stylesheet class shared by every sprite with that art, so Chromium decodes
+       it once per distinct piece and rasterizes it with the sprite's layer. Nothing is recomputed per frame:
+       the only per-frame write is the overlay's opacity, and only when the quantized step changes (HAZE_STEPS
+       steps between 35% of DRAW_FAR and DRAW_FAR), the same discipline as p.op. Cost, measured on level 80
+       with Chromium's frame-rate limit off: the unthrottled median moved by under 1 ms against the build
+       without it, inside the run-to-run noise; the suite's 17 ms level-80 median check is unaffected.
+   What it does not do: an SVG gag that animates inside the art (a bobbing jellyfish, a swooping kite) is
+   tinted by its resting pose, since the mask is the static string; at 0.45 max opacity it does not read. */
+const hazeMasks = new Map();
+let hazeStyle = null;
+function hazeMaskClass(svg) {
+  let cls = hazeMasks.get(svg);
+  if (cls) return cls;
+  cls = "hzm" + hazeMasks.size;
+  hazeMasks.set(svg, cls);
+  if (!hazeStyle) { hazeStyle = document.createElement("style"); document.head.appendChild(hazeStyle); }
+  /* inline SVG needs no namespace; an SVG image does */
+  const src = svg.replace(/<svg(?![^>]*xmlns=)/, '<svg xmlns="http://www.w3.org/2000/svg"');
+  const url = `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(src)}")`;
+  hazeStyle.sheet.insertRule(`.hz.${cls} { -webkit-mask-image: ${url}; mask-image: ${url}; }`, hazeStyle.sheet.cssRules.length);
+  return cls;
+}
+const HAZE_START = 0.35, HAZE_MAX = 0.45, HAZE_STEPS = 9;   /* fade-in from 35% of DRAW_FAR to 0.45 at DRAW_FAR, in 0.05 steps */
 function addProp(type, x, lane, h, svg, xOff, yOff) {
   const p = makeSprite(type, x, laneX(lane), h, svg, xOff, yOff);
   p.lane = lane;
@@ -6724,7 +6786,7 @@ function addChevrons() {
     const lo = i ? Math.max(c.x0 - 260, (hard[i - 1].x1 + c.x0) / 2 + 1) : c.x0 - 260;
     const hi = i < hard.length - 1 ? Math.min(c.x1 + 40, (c.x1 + hard[i + 1].x0) / 2 - 1) : c.x1 + 40;
     for (let x = lo; x <= hi; x += 150) {
-      const p = makeSprite("scenery", x, side * (ROAD_HALF + 70), 0, chevronSVG(right), side < 0 ? -96 : 0, -150, 1.1);
+      const p = makeSprite("scenery", x, side * (ROAD_HALF + 70), 0, chevronSVG(right), side < 0 ? -96 : 0, -150, 1.1, 96);
       p.chevron = true;
       scenery.push(p);
     }
@@ -6740,14 +6802,15 @@ function addScenery(x, side, r = Math.random) {
   const pz = pool[i];
   const lx = side < 0 ? -(ROAD_HALF + 80 + pz.back) : ROAD_HALF + 80 + pz.back;
   /* left-side pieces hang off their right edge so nothing ever overlaps the road */
-  const p = makeSprite("scenery", x, lx, 0, pz.svg, side < 0 ? -pz.w : 0, pz.yOff, pz.k);
+  const p = makeSprite("scenery", x, lx, 0, pz.svg, side < 0 ? -pz.w : 0, pz.yOff, pz.k, pz.w);
   scenery.push(p);
 }
 /* a structure over the road: wide art anchored at lane center, like the finish gantry */
 function addArch(x) {
   const a = scArch;
   if (!a) return;
-  const p = makeSprite("scenery", x, 0, 0, a.svg, -a.w / 2, -a.h);
+  const p = makeSprite("scenery", x, 0, 0, a.svg, -a.w / 2, -a.h, 1, 0);   /* no blob: an arch spans the road on two legs */
+  p.arch = true;
   scenery.push(p);
 }
 function buildScenery(len, world = 1, seed = 0) {
@@ -6815,6 +6878,23 @@ function placeSprite(p, carX) {
   if (zi !== p.zi) { p.wrap.style.zIndex = zi; p.zi = zi; }
   const op = z > DRAW_FAR - FADE ? ((DRAW_FAR - z) / FADE).toFixed(2) : "";
   if (op !== p.op) { p.wrap.style.opacity = op; p.op = op; }
+  /* atmospheric haze (13.3): the silhouette overlay fades in over the far 65% of the draw window, in HAZE_STEPS
+     steps so the style is only touched when the step changes. The colour is read from the live palette at the
+     first non-zero step (worlds roll in from the horizon in free drive) */
+  if (p.hz) {
+    const f = (z / DRAW_FAR - HAZE_START) / (1 - HAZE_START);
+    const step = f > 0 ? Math.min(HAZE_STEPS, Math.ceil(f * HAZE_STEPS)) : 0;
+    if (step !== p.hzs) {
+      if (p.hzc !== roadPal.haze) { p.hzc = roadPal.haze; p.hz.style.background = p.hzc; }
+      p.hz.style.opacity = step ? (step * HAZE_MAX / HAZE_STEPS).toFixed(2) : "0";
+      p.hzs = step;
+    }
+  }
+  /* a hit or collected prop leaves the ground (it flies off or pops away): its blob goes with it.
+     A knocked cone, a doused geyser or a woken dino still stands, so it keeps its shadow */
+  if (p.shd && p.done && !p.shdOff && (p.el.classList.contains("hit") || p.el.classList.contains("collected"))) {
+    p.shdOff = true; p.shd.style.display = "none";
+  }
 }
 
 /* ---- the ground plane: grass bands, road, rumble strips, lane dashes, ramps, finish ---- */

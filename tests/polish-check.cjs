@@ -104,6 +104,48 @@ function check(name, ok, detail) {
   });
   check('drive: hard hit launches prop away', hh.skip || (hh.hit && hh.done), JSON.stringify(hh));
 
+  /* 13.3 grounding: every standing prop and roadside piece carries a blob shadow inside its wrapper; flat
+     things (puddles, oil, the finish) and the road-spanning arches carry none */
+  const shd = await page.evaluate(() => {
+    buildLevel(5); pos = 0; v = 0;
+    const FLAT = ['puddle', 'oil', 'ice', 'finish', 'fan', 'trophy'];
+    const has = p => !!p.shd && p.shd.classList.contains('shd') && p.wrap.contains(p.shd) && p.shd.previousSibling === null && p.shd.nextSibling === p.el;
+    const flat = props.filter(p => FLAT.includes(p.type)), standing = props.filter(p => !FLAT.includes(p.type));
+    const pieces = scenery.filter(p => !p.arch), arches = scenery.filter(p => p.arch);
+    return { standing: standing.length, standingOk: standing.every(has), flat: flat.length, flatOk: flat.every(p => !p.shd),
+      pieces: pieces.length, piecesOk: pieces.every(has), arches: arches.length, archesOk: arches.every(p => !p.shd) };
+  });
+  check('shadows: every standing prop + roadside piece has a blob under the art, flat props and arches none',
+    shd.standing > 10 && shd.standingOk && shd.flat > 0 && shd.flatOk && shd.pieces > 5 && shd.piecesOk && shd.archesOk, JSON.stringify(shd));
+
+  /* a star in the air throws a smaller, fainter blob than a cone of about the same width, and a high star a smaller one than a low star */
+  const air = await page.evaluate(() => {
+    const cone = props.find(p => p.type === 'cone') || addProp('cone', 900, 0, 0, coneSVG, -32, -78);
+    const low = props.find(p => p.type === 'star' && p.h === LOW_STAR_H);
+    const high = props.find(p => p.type === 'star' && p.h >= HIGH_STAR_H) || addProp('star', 1000, 1, HIGH_STAR_H, starSVG, -32, -32);
+    const dims = p => ({ w: parseFloat(p.shd.style.width), op: parseFloat(p.shd.style.opacity), top: parseFloat(p.shd.style.top), h: p.h });
+    return { cone: dims(cone), low: dims(low), high: dims(high) };
+  });
+  check('shadows: a low star blob is narrower + fainter than a cone blob, a high star blob narrower + fainter still, both sit at ground level (top ~ h)',
+    air.low.w < air.cone.w && air.low.op < air.cone.op && air.high.w < air.low.w && air.high.op < air.low.op && air.low.top > 60 && air.high.top > 200, JSON.stringify(air));
+
+  /* 13.3 atmospheric perspective: the haze overlay (the sprite's own silhouette as a mask) is at step 0 up close
+     and at a non-zero quantized step out near DRAW_FAR, with the world's haze colour as its fill */
+  const hz = await page.evaluate(async () => {
+    buildLevel(5); pos = 0; v = 0;
+    await new Promise(r => setTimeout(r, 120));   /* a couple of frames: placeSprite sets the steps */
+    const carX = pos + CAR_SCREEN_X - CAR_HIT_Z;
+    const all = [...props, ...scenery].filter(p => p.vis);
+    const far = all.filter(p => p.x - carX > DRAW_FAR * 0.7), near = all.filter(p => p.x - carX < DRAW_FAR * 0.3 && p.x - carX > 0);
+    const masked = p => getComputedStyle(p.hz).webkitMaskImage.startsWith('url("data:image/svg+xml');
+    const hex = h => `rgb(${parseInt(h.slice(1, 3), 16)}, ${parseInt(h.slice(3, 5), 16)}, ${parseInt(h.slice(5, 7), 16)})`;
+    return { far: far.length, farOk: far.every(p => p.hzs > 0 && parseFloat(p.hz.style.opacity) > 0 && masked(p) && p.hz.style.background === hex(roadPal.haze)),
+      farMax: Math.max(...far.map(p => parseFloat(p.hz.style.opacity))),
+      near: near.length, nearOk: near.every(p => p.hzs === 0 && !(parseFloat(p.hz.style.opacity) > 0) && masked(p)) };
+  });
+  check('haze: far sprites carry a non-zero quantized haze step (<= 0.45) in the world haze colour, near ones step 0, all masked by their own art',
+    hz.far > 2 && hz.farOk && hz.farMax <= 0.45 && hz.near > 2 && hz.nearOk, JSON.stringify(hz));
+
   /* idle nudge */
   await page.evaluate(() => { v = 0; idleT = 0; });
   await page.waitForTimeout(4600);

@@ -1,6 +1,6 @@
 # Vroom test suites
 
-Twenty-three Playwright regression suites (395 checks) that drive the real game in headless
+Twenty-three Playwright regression suites (398 checks) that drive the real game in headless
 Chromium. They are the gate for every change: CI runs them on each push and pull request.
 
 ## Run everything
@@ -28,7 +28,7 @@ built-in one, e.g. `python3 -m http.server 4173` then
 `VROOM_URL=http://localhost:4173/index.html npm test`).
 
 - `verify.cjs` — garage/shop/economy/levels/map/persistence core loop (35)
-- `polish-check.cjs` — kid-UX round: locks, tags, magnet, headlights, celebrate, `prefers-reduced-motion` (decorative keyframes off, no confetti pieces, short iris) (16)
+- `polish-check.cjs` — kid-UX round: locks, tags, magnet, headlights, celebrate, `prefers-reduced-motion` (decorative keyframes off, no confetti pieces, short iris), sprite blob shadows and the distance haze overlay (19)
 - `damage-check.cjs` — damage/repair/upgrades/keyboard (20)
 - `free-check.cjs` — capsules, free drive, time tiers (14)
 - `feel-check.cjs` — game feel: dynamics, hit-stop, choreography, iPad shell (12)
@@ -64,7 +64,7 @@ click stability check.
 | Suite | Checks | Covers |
 |---|---|---|
 | `verify.cjs` | 35 | core loop: garage inventory and 64 px touch floor, shop/economy, level invariants, map, persistence |
-| `polish-check.cjs` | 16 | kid-UX round: locks, price tags, magnet, headlights, celebrate choreography |
+| `polish-check.cjs` | 19 | kid-UX round: locks, price tags, magnet, headlights, celebrate choreography, blob shadows, distance haze |
 | `damage-check.cjs` | 20 | damage tiers, repair, upgrades, keyboard controls |
 | `free-check.cjs` | 14 | capsules and prizes, free drive, time-medal tiers |
 | `feel-check.cjs` | 12 | game feel: body dynamics, hit-stop, celebrate pacing, iPad shell metas |
