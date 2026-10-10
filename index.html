@@ -247,48 +247,63 @@
   .lockDot svg { width: 16px; height: 16px; }
 
 
-  /* ---------- STICKER ALBUM ---------- */
-  #album { background: linear-gradient(#f7ede2, #f2e0c9); }
-  #album::before {
-    content: ""; position: absolute; inset: 22px; border: 6px dashed #d4a37366; border-radius: 26px;
+  /* ---------- STICKER ALBUM (13.23: a scrapbook) ----------
+     Three framed pages on the paper: the buddy shelf, the sticker board and the photo wall, each with a pictogram
+     tab and a found/total count. The wall holds one photo per world (12) and one for the parade, so every finish
+     fills a different frame and the album reads as a collection. Items new since the last visit carry a star. */
+  #album { background-color: var(--v-surface); background-image: var(--v-dots), linear-gradient(#fff8ec, #f3e4c8); background-size: var(--v-dots-size), 100% 100%; }
+  #album::before { content: ""; position: absolute; inset: 22px; border: 6px dashed rgba(216, 185, 140, .45); border-radius: var(--v-r-lg); }
+  #albumBook { position: absolute; left: 40px; top: 134px; width: 1120px; display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+  #album .albumPage { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: var(--v-r-lg); background: rgba(255, 253, 246, .72); border: 4px solid rgba(201, 164, 118, .35); box-shadow: 0 4px 0 rgba(74, 53, 35, .08); animation: popIn .3s cubic-bezier(.2, 1.6, .4, 1) backwards; animation-delay: calc(var(--i, 0) * 60ms); }
+  #album .albumPage::before { content: ""; position: absolute; left: 50%; top: -10px; width: 90px; height: 22px; margin-left: -45px; background: rgba(244, 162, 97, .55); border-radius: 4px; transform: rotate(-2deg); }   /* a strip of tape holds the page */
+  #album .albumTab { flex: 0 0 72px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  #album .albumTab svg { width: 46px; height: 46px; }
+  #album .albumTab b { font: 900 20px/1 var(--v-font); color: var(--v-ink-soft); letter-spacing: 1px; }
+  #album .albumTab.done b { color: var(--v-green-line); }
+  #album .albumRow { display: flex; gap: 10px; flex-wrap: wrap; }
+  #album .buddySlot, #album .badgeSlot {
+    width: 80px; height: 80px; border-radius: 50%; position: relative;
+    background: rgba(90, 70, 52, .07); border: 4px dashed rgba(138, 115, 96, .55);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; touch-action: none;
   }
-  #albumBook {
-    position: absolute; left: 50%; top: 140px; transform: translateX(-50%);
-    display: flex; flex-direction: column; gap: 26px; align-items: center;
-  }
-  .albumRow { display: flex; gap: 16px; }
-  .buddySlot, .badgeSlot {
-    width: 112px; height: 112px; border-radius: 50%;
-    background: #00000010; border: 5px dashed #b0896899;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; touch-action: none; position: relative;
-  }
-  .badgeSlot { border-radius: 26px; width: 104px; height: 104px; }
-  .buddySlot.filled, .badgeSlot.filled { background: #fff; border-style: solid; border-color: #ffb703; box-shadow: 0 4px 0 rgba(0,0,0,.15); }
-  .buddySlot.equipped { outline: 6px solid #38b000; }
-  .buddySlot svg { width: 78px; height: 78px; }
-  .badgeSlot svg { width: 66px; height: 66px; }
-  .buddySlot .sil, .badgeSlot .sil { filter: brightness(0); opacity: .18; }
-  .buddySlot.wiggle, .badgeSlot.wiggle, .photoSlot.wiggle { animation: stickerWiggle .5s ease; }
+  #album .badgeSlot { border-radius: var(--v-r-md); }
+  #album .buddySlot.filled, #album .badgeSlot.filled { background: var(--v-surface); border: 4px solid var(--v-accent-yellow); box-shadow: 0 4px 0 rgba(74, 53, 35, .15); }
+  #album .buddySlot.equipped { border-color: var(--v-accent-green); outline: 5px solid var(--v-accent-green); outline-offset: 1px; }
+  #album .buddySlot.equipped svg { animation: albumBob 1.4s ease-in-out infinite; }
+  @keyframes albumBob { 50% { transform: translateY(-4px) rotate(-3deg); } }
+  #album .buddySlot svg { width: 60px; height: 60px; }
+  #album .badgeSlot svg { width: 54px; height: 54px; }
+  #album .buddySlot .sil, #album .badgeSlot .sil { filter: brightness(0); opacity: .16; }
+  #album .buddySlot.wiggle, #album .badgeSlot.wiggle, #album .photoSlot.wiggle { animation: stickerWiggle .5s ease; }
   @keyframes stickerWiggle { 25% { transform: rotate(-7deg) scale(1.08); } 65% { transform: rotate(6deg) scale(1.04); } }
-  .photoSlot {
-    width: 150px; height: 184px; background: #fff; border-radius: 8px;
-    box-shadow: 0 5px 0 rgba(0,0,0,.18); padding: 8px; cursor: pointer; touch-action: none;
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
-    transform: rotate(var(--tilt, 0deg));
+  /* the "new since last visit" star: a gold sparkle on the slot's shoulder, pulsing */
+  #album .buddySlot.fresh::after, #album .badgeSlot.fresh::after, #album .photoSlot.fresh::after { content: ""; position: absolute; right: -8px; top: -8px; width: 26px; height: 26px; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z' fill='%23ffd60a' stroke='%23fb8500' stroke-width='4'/></svg>") center / contain no-repeat; animation: freshPulse 1s ease-in-out infinite; z-index: 3; }
+  @keyframes freshPulse { 50% { transform: scale(1.3) rotate(15deg); } }
+  /* the photo wall: polaroids, two staggered rows, each frame tilted its own way, a tape strip on the filled ones */
+  #photoRow { gap: 10px; }
+  #album .photoSlot {
+    width: 132px; height: 134px; background: #fffdf6; border-radius: var(--v-r-sm); position: relative;
+    box-shadow: 0 5px 0 rgba(74, 53, 35, .16); padding: 8px 8px 6px; box-sizing: border-box; cursor: pointer; touch-action: none;
+    display: flex; flex-direction: column; align-items: center; gap: 4px; transform: rotate(var(--tilt, 0deg));
   }
-  .photoSlot.empty { background: #00000010; border: 5px dashed #b0896899; box-shadow: none; }
-  .photoCar { width: 134px; height: 120px; background: #bde0fe; border-radius: 6px; overflow: hidden; display: flex; align-items: flex-end; position: relative; }
-  .photoCar > svg { width: 100%; height: auto; position: relative; z-index: 1; }
+  #album .photoSlot:not(.empty)::before { content: ""; position: absolute; left: 50%; top: -7px; width: 44px; height: 14px; margin-left: -22px; background: rgba(111, 192, 223, .55); border-radius: 3px; transform: rotate(3deg); z-index: 3; }
+  #album .photoSlot.empty { background: rgba(90, 70, 52, .07); border: 4px dashed rgba(138, 115, 96, .55); box-shadow: none; justify-content: center; }
+  #album .photoSlot.empty .photoGhost { width: 56px; height: 56px; border-radius: 50%; background: rgba(90, 70, 52, .12); display: flex; align-items: center; justify-content: center; }
+  #album .photoSlot.empty .photoGhost svg { width: 40px; height: 40px; filter: brightness(0); opacity: .22; }
+  #album .photoSlot.parade { border-color: var(--v-accent-yellow); }
+  #album .photoSlot.parade:not(.empty) { box-shadow: 0 5px 0 var(--v-yellow-down), 0 0 0 4px var(--v-accent-yellow); }
+  #album .photoCar { width: 116px; height: 80px; border-radius: 8px; overflow: hidden; display: flex; align-items: flex-end; position: relative; }
+  #album .photoCar > svg { width: 100%; height: auto; position: relative; z-index: 1; }
   /* world stamp in the photo corner: the map icon on the world's tint */
-  .photoStamp { position: absolute; top: 6px; right: 6px; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 2; box-shadow: 0 2px 0 rgba(0,0,0,.18); }
-  .photoStamp svg { width: 22px; height: 22px; }
-  .photoStamp.big { width: 72px; height: 72px; top: 16px; right: 16px; }
-  .photoStamp.big svg { width: 50px; height: 50px; }
-  /* keepsake photos stay pristine — never show the car's current dings or mud */
-  .photoCar .dmgScuff, .photoCar .dmgCrack, .photoCar .dmgSmoke, .photoCar .mudSpots { display: none !important; }
-  .photoCap { display: flex; align-items: center; gap: 6px; font: 900 26px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #023047; }
-  .photoCap svg { width: 30px; height: 30px; }
+  #album .photoStamp { position: absolute; top: 5px; right: 5px; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 2; box-shadow: 0 2px 0 rgba(0,0,0,.18); }
+  #album .photoStamp svg { width: 20px; height: 20px; }
+  #album .photoStamp.big { width: 72px; height: 72px; top: 16px; right: 16px; }
+  #album .photoStamp.big svg { width: 50px; height: 50px; }
+  /* keepsake photos stay pristine: never the car's current dings or mud */
+  #album .photoCar .dmgScuff, #album .photoCar .dmgCrack, #album .photoCar .dmgSmoke, #album .photoCar .mudSpots { display: none !important; }
+  #album .photoCap { display: flex; align-items: center; gap: 4px; font: 900 22px/1 var(--v-font); color: var(--v-ink); }
+  #album .photoCap svg { width: 26px; height: 26px; }
+  @media (prefers-reduced-motion: reduce) { .buddySlot.equipped svg, #album .buddySlot.fresh::after, #album .badgeSlot.fresh::after, #album .photoSlot.fresh::after, #album .albumPage { animation: none; } }
   #stickerToast {
     position: absolute; left: 50%; top: 130px; transform: translateX(-50%) scale(0);
     background: #fff; border: 6px solid #ffb703; border-radius: 30px; padding: 14px 26px;
@@ -1039,29 +1054,6 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 .lvlBtn.locked.night { background: #8b90ac; }
 .lvlBtn.current { outline: 6px solid var(--v-accent-yellow); }
 
-/* --- album: same paper, harmonized to token set --- */
-#album {
-  background-color: var(--v-surface);
-  background-image: var(--v-dots), linear-gradient(#fff8ec, #f3e4c8);
-  background-size: var(--v-dots-size), 100% 100%;
-}
-#album::before { border-color: rgba(216, 185, 140, .45); border-radius: var(--v-r-lg); }
-.buddySlot, .badgeSlot {
-  background: rgba(90, 70, 52, .07);
-  border: 5px dashed rgba(138, 115, 96, .55);
-}
-.buddySlot { border-radius: var(--v-r-round); }
-.badgeSlot { border-radius: var(--v-r-lg); }
-.buddySlot.filled, .badgeSlot.filled {
-  background: var(--v-surface);
-  border-color: var(--v-accent-yellow);
-  box-shadow: 0 4px 0 rgba(74, 53, 35, .15);
-}
-.buddySlot.equipped { outline: 6px solid var(--v-accent-green); }
-.photoSlot { background: #fffdf6; border-radius: 10px; box-shadow: 0 5px 0 rgba(74, 53, 35, .16); }
-.photoSlot.empty { background: rgba(90, 70, 52, .07); border: 5px dashed rgba(138, 115, 96, .55); box-shadow: none; }
-.photoCap { color: var(--v-ink); }
-
 /* ---------- 7. OVERLAYS + PANELS ---------- */
 #profileOverlay { background: var(--v-scrim); }
 #celebrate { background: var(--v-scrim); }
@@ -1386,13 +1378,6 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ---- road: pedal arms were cold gray ---- */
 .pedal [fill="#6c757d"] { fill: var(--v-ink-soft); }
 
-/* ---- album: one slot size (96), one gap (16), holes cast no shadow, polaroids share the small radius ---- */
-#album .albumRow { gap: 16px; }
-.badgeSlot { width: 96px; height: 96px; }
-.badgeSlot svg { width: 62px; height: 62px; }
-.buddySlot:not(.filled), .badgeSlot:not(.filled), .photoSlot.empty { box-shadow: none; }
-.photoSlot { border-radius: var(--v-r-sm); }
-.photoCar { border-radius: 10px; }
 /* ============ GARAGE REDESIGN: one hierarchy — the car is the hero, GO is the one primary action ============
    stage coordinates: top bar 24-120 (profile 24 | album right 240 | wallet right 24)
    hero: preview 506 wide, floor line y≈436; right column x-centre 1086, 16px rhythm: gift 192-280 (daily, contextual) on the wall,
@@ -1673,7 +1658,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
   .confetti, .buddyBob, .buddyPop, .hoverBob, .hoverGlow, .hoverTrail, .spinner, .rearFlame, .flapWing, .boosterFlame, .antennaSway, .bubbleDrift,
   .lavaGlow, .maneWave, .lightFlashA, .lightFlashB, .jetPuff, .discoGlint, .decalShimmer, .decalStomp, .decalSpin, .decalFlicker, .decalTwinkle,
   .decalBeat, .decalCrackle .sparks, .decalPupil, .decalPupilB, .fanBounce, .prop.trophy svg, #preview.blink .vEye, #preview.bounce, #sun.cool,
-  .cloud.puffed, .buddySlot.wiggle, .badgeSlot.wiggle, .photoSlot.wiggle, .peekBadge, #celebrateDamage .medal svg, #celebrateTime .medal svg,
+  .cloud.puffed, .buddySlot.wiggle, .badgeSlot.wiggle, .photoSlot.wiggle, .peekBadge, .buddySlot.equipped svg, .fresh::after, .albumPage, #celebrateDamage .medal svg, #celebrateTime .medal svg,
   #rotateOverlay svg, #diceBtn.rolling, #title.active #titleLogo, #title.active #titleCar, #title.active #titleGo, #titleCar.idle svg, #titleGift, #giftBtn,
   .prop.ghost, #celebrateTime .ghostWin svg, #celebrateTime.newBest .medal svg { animation: none !important; }
   #iris.go { animation-duration: .2s; }
@@ -1812,9 +1797,18 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     </button>
     <div class="chip" id="albumWallet" aria-label="star wallet"></div>
     <div id="albumBook">
-      <div class="albumRow" id="buddyRow"></div>
-      <div class="albumRow" id="badgeRow"></div>
-      <div class="albumRow" id="photoRow"></div>
+      <div class="albumPage" style="--i:0" aria-label="buddies found">
+        <div class="albumTab" id="buddyTab"><svg viewBox="0 0 64 64"><ellipse cx="32" cy="42" rx="14" ry="12" fill="#b08968"/><circle cx="14" cy="28" r="7" fill="#b08968"/><circle cx="26" cy="16" r="7" fill="#b08968"/><circle cx="38" cy="16" r="7" fill="#b08968"/><circle cx="50" cy="28" r="7" fill="#b08968"/></svg><b></b></div>
+        <div class="albumRow" id="buddyRow"></div>
+      </div>
+      <div class="albumPage" style="--i:1" aria-label="first-time stickers">
+        <div class="albumTab" id="badgeTab"><svg viewBox="0 0 64 64"><path d="M22 34 L14 60 L26 54 L32 62 L38 54 L50 60 L42 34 Z" fill="#ef7d6d"/><circle cx="32" cy="26" r="20" fill="#ffd66e" stroke="#dca63f" stroke-width="4"/><circle cx="32" cy="26" r="10" fill="#fff8ec"/></svg><b></b></div>
+        <div class="albumRow" id="badgeRow"></div>
+      </div>
+      <div class="albumPage" style="--i:2" aria-label="finish-line photos, one per world">
+        <div class="albumTab" id="photoTab"><svg viewBox="0 0 64 64"><rect x="6" y="18" width="52" height="38" rx="8" fill="#6fc0df" stroke="#4a94b5" stroke-width="4"/><rect x="22" y="10" width="20" height="12" rx="4" fill="#4a94b5"/><circle cx="32" cy="37" r="12" fill="#fff8ec" stroke="#4a94b5" stroke-width="4"/><circle cx="32" cy="37" r="5" fill="#4a94b5"/><circle cx="50" cy="26" r="3" fill="#fff8ec"/></svg><b></b></div>
+        <div class="albumRow" id="photoRow"></div>
+      </div>
     </div>
   </div>
 
@@ -2095,7 +2089,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.22.0";
+const APP_VERSION = "13.23.0";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -2196,6 +2190,9 @@ function levelLen(n) { n = Math.min(n, 80); return 3500 + Math.min(n, 20) * 250 
 
 /* time-trial medals: S needs a near-clean full-throttle run (upgrades help late game) */
 const TIER_RANK = { S: 3, A: 2, B: 1, C: 0 };
+/* the album's photo wall (13.23): one frame per world in order, then the parade's (world key 0); loadState reads these */
+function photoWorld(n) { return n > MAX_LEVEL ? 0 : worldOf(n); }
+const PHOTO_SLOTS = WORLD_COUNT + 1;
 const TIER_COLOR = { S: "#ffd60a", A: "#cfd8dc", B: "#cd7f32", C: "#90a4ae" };
 /* forgiving early (a wobbly level-1 run can still S), mastery-tuned late
    (deep worlds assume engine upgrades and a near-clean line) */
@@ -2255,7 +2252,7 @@ function numberSVG(n, cls = "") {
 let progress = { wallet: 0, owned: { body: [], wheels: [], color: [], extras: [], buddy: [], decal: [] }, levels: {}, current: 1,
                  muddy: false, fuel: FUEL_MAX, tread: TREAD_MAX,
                  damage: 0, upgrades: { engine: 0, armor: 0, magnet: 0, tank: 0, springs: 0 }, quiet: false,
-                 badges: [], photos: [], lastGift: "", freeDay: "", freeUsed: 0 };   /* lastGift / freeDay / freeUsed: local dates and the day's free-drive stars (localStorage only) */
+                 badges: [], photos: [], lastGift: "", freeDay: "", freeUsed: 0, albumSeen: [] };   /* lastGift / freeDay / freeUsed / albumSeen: local dates, the day's free-drive stars and what the album has shown (localStorage only) */
 
 /* ---- profiles: up to 3 kids, identified by a buddy-face avatar, no reading ---- */
 const MAX_PROFILES = 3;
@@ -2325,9 +2322,12 @@ function loadState() {
   if (b.buddy && BUDDY_ORDER.includes(b.buddy) && progress.owned.buddy.includes(b.buddy)) state.buddy = b.buddy;
   if (Array.isArray(saved.badges)) progress.badges = saved.badges.filter(id => BADGES.some(x => x.id === id));
   if (Array.isArray(saved.photos)) {
-    progress.photos = saved.photos.slice(0, 6).filter(p =>
-      p && p.b && p.b.extras && BODY_ORDER.includes(p.b.body) && WHEEL_ORDER.includes(p.b.wheels) && COLORS.includes(p.b.color));
+    const seen = new Set();   /* one frame per world (13.23): an older save's six latest finishes keep the first of each world */
+    progress.photos = saved.photos.filter(p =>
+      p && p.b && p.b.extras && BODY_ORDER.includes(p.b.body) && WHEEL_ORDER.includes(p.b.wheels) && COLORS.includes(p.b.color) && TIER_RANK[p.t] != null
+      && !seen.has(photoWorld(p.n)) && seen.add(photoWorld(p.n))).slice(0, PHOTO_SLOTS);
   }
+  progress.albumSeen = Array.isArray(saved.albumSeen) ? saved.albumSeen.filter(k => typeof k === "string").slice(0, 60) : [];
   if (Number.isFinite(saved.damage)) progress.damage = Math.min(MAX_DAMAGE, Math.max(0, Math.floor(saved.damage)));
   progress.fuel = Number.isFinite(saved.fuel) ? Math.min(FUEL_MAX + 6, Math.max(0, saved.fuel)) : FUEL_MAX;   /* clamped to fuelMax() below, once the tank pips are in */      /* older saves: full tank */
   progress.tread = Number.isFinite(saved.tread) ? Math.min(TREAD_MAX, Math.max(0, saved.tread)) : TREAD_MAX;
@@ -4151,8 +4151,6 @@ const SHOP_CSS = `
   #extrasFlip svg { width: 48px; height: 48px; }
   #extrasFlip .flipArrow { transform-box: fill-box; transform-origin: center; transition: transform .2s; }
   #extrasFlip.pg2 .flipArrow { transform: scaleX(-1); }
-  /* album: ten buddies in one row */
-  #buddyRow { gap: 12px; } #buddyRow .buddySlot { width: 96px; height: 96px; } #buddyRow .buddySlot svg { width: 68px; height: 68px; }
   /* catalog position dots under the body / wheel / decal buttons: one per item, the big one is current */
   #cycleDots { position: absolute; left: 6px; width: 348px; top: 648px; display: flex; justify-content: center; gap: 5px; pointer-events: none; opacity: 0; transition: opacity .25s; z-index: 5; }
   #cycleDots.show { opacity: 1; }
@@ -4930,19 +4928,45 @@ function resetRoadOverlays() {
 function showGarage() { bankFreeRun(); showScene(garageScene); renderPreview(); renderWallets(false); renderUpgrades(); renderUpkeep(); renderGift(); syncStrip(); }
 function showMap() { selectedWorld = worldOf(progress.current); showScene(mapScene); renderMap(); renderFreeBtn(); renderWallets(false); }
 const albumScene = document.getElementById("album");
-function showAlbum() { showScene(albumScene); renderAlbum(); renderWallets(false); }
+function showAlbum() { showScene(albumScene); renderAlbum(true); renderWallets(false); }
 
 /* ============ 16. SCENE: STICKER ALBUM ============ */
 function wiggleSlot(el) {
   restartAnim(el, "wiggle");
 }
-function renderAlbum() {
+const photoFor = key => progress.photos.find(p => photoWorld(p.n) === key) || null;
+/* a finish offers its photo to its world's frame: it goes up when the frame is empty or the finish is as good or
+   better (medal first, then stars), so a frame never gets worse and the newest of equals shows; false = kept the old */
+function keepPhoto(photo) {
+  const key = photoWorld(photo.n), i = progress.photos.findIndex(p => photoWorld(p.n) === key);
+  if (i >= 0) {
+    const old = progress.photos[i];
+    if (TIER_RANK[old.t] > TIER_RANK[photo.t] || (TIER_RANK[old.t] === TIER_RANK[photo.t] && old.s > photo.s)) return false;
+    progress.photos.splice(i, 1);
+  }
+  progress.photos.unshift(photo);
+  progress.photos = progress.photos.slice(0, PHOTO_SLOTS);
+  return true;
+}
+/* what the kid has not seen in the album yet: keys of buddies, stickers and photos, against progress.albumSeen
+   (localStorage only, never in a share code); a visit marks everything seen for the next one */
+const photoKey = p => "p:" + photoWorld(p.n) + ":" + p.t + ":" + p.s;
+function albumKeys() {
+  return progress.owned.buddy.map(id => "b:" + id).concat(progress.badges.map(id => "g:" + id), progress.photos.map(photoKey));
+}
+const albumFresh = key => !progress.albumSeen.includes(key);
+function albumCount(tab, n, total) {
+  const el = document.getElementById(tab);
+  el.querySelector("b").textContent = n + "/" + total;
+  el.classList.toggle("done", n >= total);
+}
+function renderAlbum(visit) {
   const bRow = document.getElementById("buddyRow");
   bRow.innerHTML = "";
   for (const id of BUDDY_ORDER) {
     const owned = progress.owned.buddy.includes(id);
     const slot = document.createElement("button");
-    slot.className = "bigBtn buddySlot pressable enter" + (owned ? " filled" : "") + (owned && state.buddy === id ? " equipped" : "");
+    slot.className = "bigBtn buddySlot pressable enter" + (owned ? " filled" : "") + (owned && state.buddy === id ? " equipped" : "") + (owned && albumFresh("b:" + id) ? " fresh" : "");
     slot.style.setProperty("--i", BUDDY_ORDER.indexOf(id));
     slot.innerHTML = `<svg viewBox="-6 -58 76 72" ${owned ? "" : 'class="sil"'}>${BUDDY_SVG[id]}</svg>`;
     slot.setAttribute("aria-label", owned ? "buddy " + id + (state.buddy === id ? ", riding along" : ", tap to ride") : "buddy not found yet");
@@ -4955,35 +4979,45 @@ function renderAlbum() {
     });
     bRow.appendChild(slot);
   }
+  albumCount("buddyTab", progress.owned.buddy.length, BUDDY_ORDER.length);
   const gRow = document.getElementById("badgeRow");
   gRow.innerHTML = "";
   for (const badge of BADGES) {
     const owned = progress.badges.includes(badge.id);
     const slot = document.createElement("button");
-    slot.className = "bigBtn badgeSlot pressable enter" + (owned ? " filled" : "");
+    slot.className = "bigBtn badgeSlot pressable enter" + (owned ? " filled" : "") + (owned && albumFresh("g:" + badge.id) ? " fresh" : "");
     slot.style.setProperty("--i", BADGES.indexOf(badge) + 6);
     slot.innerHTML = owned ? badge.icon : badge.icon.replace("<svg ", '<svg class="sil" ');
     slot.setAttribute("aria-label", "sticker " + badge.id + (owned ? "" : ", not earned yet"));
     slot.addEventListener("pointerdown", () => { wiggleSlot(slot); owned ? peekBadge(badge) : sfx.deny(); });
     gRow.appendChild(slot);
   }
+  albumCount("badgeTab", progress.badges.length, BADGES.length);
   const pRow = document.getElementById("photoRow");
   pRow.innerHTML = "";
-  for (let i = 0; i < 6; i++) {
-    const photo = progress.photos[i];
+  let filled = 0;
+  for (let i = 0; i < PHOTO_SLOTS; i++) {
+    const key = i < WORLD_COUNT ? i + 1 : 0, photo = photoFor(key), parade = key === 0;
     const slot = document.createElement("button");
-    slot.className = "bigBtn photoSlot pressable enter" + (photo ? "" : " empty");
+    slot.className = "bigBtn photoSlot pressable enter" + (photo ? "" : " empty") + (parade ? " parade" : "") + (photo && albumFresh(photoKey(photo)) ? " fresh" : "");
     slot.style.setProperty("--i", i + 12);
     slot.style.setProperty("--tilt", ((i % 3) - 1) * 2 + "deg");
     if (photo) {
+      filled++;
       const sc = photoScene(photo.n);
       slot.innerHTML = `<span class="photoCar" style="background:${sc.bg}">${vehicleSVG(photo.b)}<span class="photoStamp" style="background:${sc.tint}">${sc.icon}</span></span>
-        <span class="photoCap">${levelFlagIcon}${photo.n > MAX_LEVEL ? "" : photo.n}${medalSVG(photo.t)}</span>`;
+        <span class="photoCap">${parade ? "" : levelFlagIcon + photo.n}${medalSVG(photo.t)}</span>`;
       slot.addEventListener("pointerdown", () => { wiggleSlot(slot); peekPhoto(photo); });
+    } else {
+      const sc = photoScene(parade ? MAX_LEVEL + 1 : key * WORLD_SIZE);   /* the frame says which world's photo goes here */
+      slot.innerHTML = `<span class="photoGhost">${sc.icon}</span>`;
+      slot.addEventListener("pointerdown", () => { wiggleSlot(slot); sfx.deny(); });
     }
-    slot.setAttribute("aria-label", photo ? "photo of level " + photo.n + ", tap to see it big" : "empty photo slot");
+    slot.setAttribute("aria-label", photo ? (parade ? "parade photo" : "photo of level " + photo.n) + ", tap to see it big" : parade ? "no parade photo yet" : "no photo from world " + key + " yet");
     pRow.appendChild(slot);
   }
+  albumCount("photoTab", filled, PHOTO_SLOTS);
+  if (visit) { progress.albumSeen = albumKeys(); save(); }   /* seen now: the stars show this visit, not the next */
 }
 /* every photo is taken where it happened: the world's sky + ground from its road palette and its map icon as a stamp */
 const levelFlagIcon = `<svg viewBox="0 0 64 64"><path d="M14 58 V8" stroke="#023047" stroke-width="7" stroke-linecap="round"/><path d="M18 10 L54 16 L18 30 Z" fill="#e63946"/></svg>`;
@@ -4992,9 +5026,10 @@ function photoScene(n) {
     return { bg: "linear-gradient(#ffe9a8 0 58%, #e63946 58% 66%, #ff9f1c 66% 74%, #ffd60a 74% 82%, #43aa8b 82% 90%, #4cc9f0 90%)",
       icon: BADGES.find(b => b.id === "champ").icon, tint: "#ffb703" };
   }
-  const w = worldOf(n), pal = ROAD_PAL[w] || ROAD_PAL[1];
-  const sky = pal.haze, ground = pal.ground, road = pal.road;
-  return { bg: `linear-gradient(${sky} 0 62%, ${ground} 62% 78%, ${road} 78% 86%, ${ground} 86%)`,
+  const w = worldOf(n), pal = ROAD_PAL[w] || ROAD_PAL[1], dark = worldMeta(w).dark;
+  const sky = pal.haze, ground = pal.ground, hill = pal.ground2, road = pal.road, dash = pal.dash;
+  const sun = dark ? "radial-gradient(circle at 76% 24%, #f1faee 0 9%, transparent 10%)" : "radial-gradient(circle at 24% 28%, #ffd60a 0 11%, #ffd60a55 12% 16%, transparent 17%)";
+  return { bg: `${sun}, repeating-linear-gradient(90deg, ${dash} 0 6%, transparent 6% 14%) 0 83% / 100% 3% no-repeat, linear-gradient(${sky} 0 48%, ${hill} 48% 60%, ${ground} 60% 78%, ${road} 78% 90%, ${ground} 90%)`,
     icon: WORLD_ICONS["w" + w] || `<span>${w}</span>`, tint: WORLD_TINT["w" + w] || "#8a7360" };
 }
 /* ---- peek: a tapped photo or sticker fills a big card; tap anywhere to put it back ---- */
@@ -5162,7 +5197,7 @@ function exportJSON() {
   /* ghost traces (GHOST RACE) and the daily gift stamp are local keepsakes: they never ride in a save code */
   const levels = {};
   for (const n in progress.levels) { const { ghost, ...rest } = progress.levels[n]; void ghost; levels[n] = rest; }
-  return JSON.stringify({ build: state, ...progress, levels, lastGift: undefined, freeDay: undefined, freeUsed: undefined, avatar: meta.avatars[meta.active] || undefined });
+  return JSON.stringify({ build: state, ...progress, levels, lastGift: undefined, freeDay: undefined, freeUsed: undefined, albumSeen: undefined, avatar: meta.avatars[meta.active] || undefined });
 }
 /* the plain (uncompressed) full code, built synchronously: the share sheet and the clipboard must be asked
    for inside the tap itself on iOS, so the copy button can never wait on a stream first */
@@ -10494,8 +10529,7 @@ function finishLevel() {
   const tier = isParade ? "S" : timeTier(level, runTime);
 
   /* album keepsakes: a finish-line photo of this exact build, plus first-time stickers */
-  progress.photos.unshift({ b: JSON.parse(JSON.stringify(state)), n: level, t: tier, s: runStars });
-  progress.photos = progress.photos.slice(0, 6);
+  keepPhoto({ b: JSON.parse(JSON.stringify(state)), n: level, t: tier, s: runStars });   /* one frame per world: up when as good or better */
   if (isParade) award("champ");
   else {
     if (clean) award("clean");

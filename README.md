@@ -57,7 +57,7 @@
 
 | Album | Results |
 |---|---|
-| ![The sticker album: buddies, badges, and finish-line polaroids with their world behind the car](docs/album.png) | ![The results card: star tally, rating stars, time medal, and the row of again, garage, map and next](docs/celebrate.png) |
+| ![The sticker album: the buddy shelf, the sticker board and the photo wall, one frame per world](docs/album.png) | ![The results card: star tally, rating stars, time medal, and the row of again, garage, map and next](docs/celebrate.png) |
 
 ## How to play
 
@@ -69,7 +69,7 @@
 
 **The map.** A winding road of level nodes, with the day's surprises marked on it. Beat a world's last level to unlock the next and bank a trophy bonus. The free-drive wheel tours every world with no finish line and no timer. Beat all 120 levels and the Victory Parade appears: a rainbow road finale with fireworks and every buddy you have found cheering from the roadside.
 
-**The album.** Buddies you have found (tap one to ride along), "first!" sticker badges, and a polaroid of every finish taken where it happened. Tap a photo or a sticker to see it big.
+**The album.** A scrapbook of three pages: buddies you have found (tap one to ride along), "first!" sticker badges, and a photo wall with one frame per world and a gold one for the parade. Every finish offers a polaroid taken where it happened, and a frame only ever gets better. Each page counts found over total, anything new since your last visit wears a gold star, and a tap opens any photo or sticker big.
 
 | | Touch (the real way) | Keyboard (desktop) |
 |---|---|---|
@@ -120,7 +120,7 @@ python3 -m http.server 4173     # then open http://localhost:4173/
 
 There is no build. Edit `index.html`, reload.
 
-The test suite is 23 Playwright suites (470 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the race number, the title screen and daily gift, the ghost race, garage life, the map surprises, the update gate, and the fairness bots that drive all 120 levels.
+The test suite is 23 Playwright suites (475 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the race number, the title screen and daily gift, the ghost race, garage life, the map surprises, the update gate, and the fairness bots that drive all 120 levels.
 
 ```bash
 npm ci                                   # playwright-core + jsqr, test-only

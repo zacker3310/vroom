@@ -164,9 +164,12 @@ Book button in the garage opens a paper album page, all wordless:
 - **"First!" badges** (middle row): first jump, first clean run, first S medal, first
   world clear, first purchase, first gag. Earned once, announced by a wordless
   pop-in toast, silhouettes until earned.
-- **Photos** (bottom row): every finish saves a polaroid of the exact build (paint,
-  buddy, extras) with the level number and time medal. Last six kept, tilted like a
-  real album. Everything wiggles + sounds when tapped.
+- **Photos** (bottom page, 13.23): a photo wall with one frame per world and a gold one for
+  the parade. A finish saves a polaroid of the exact build (paint, buddy, extras) on the
+  world's backdrop with the level number and time medal; a frame only ever gets better
+  (medal, then stars), and an empty frame shows the world's icon as a ghost. Each page has a
+  pictogram tab with a found/total count; anything new since the last visit wears a gold
+  star for that visit. Everything wiggles + sounds when tapped.
 
 ## Look ("Toybox", v7)
 
