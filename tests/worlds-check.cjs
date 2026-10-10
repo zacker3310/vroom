@@ -315,6 +315,25 @@ function check(name, ok, detail) {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   check('deep sea: caustic drift and the whale crossing are off under prefers-reduced-motion', rm.caustic === 'none' && rm.whale === 'none', JSON.stringify(rm));
 
+  /* ---- 13.25: every piece of roadside art fits its own box (the boot-time fit grows a box to its art) ---- */
+  const fit = await page.evaluate(() => {
+    const host = document.createElement('div'); host.style.cssText = 'position:absolute;left:0;top:0;visibility:hidden'; document.body.appendChild(host);
+    const over = svgStr => { host.innerHTML = svgStr; const svg = host.querySelector('svg'); if (!svg) return 0; const vb = svg.viewBox.baseVal; let bb; try { bb = svg.getBBox(); } catch (e) { return 0; }
+      return Math.max(vb.y - bb.y, vb.x - bb.x, bb.y + bb.height - vb.y - vb.height, bb.x + bb.width - vb.x - vb.width); };
+    let worst = -1e9, where = '', n = 0;
+    const see = (w, svg) => { n++; const o = over(svg); if (o > worst) { worst = o; where = w; } };
+    for (const [wk, pool] of Object.entries(WORLD_SET)) pool.forEach((pz, i) => see(wk + '#' + i, pz.svg));
+    for (const [t, ep] of Object.entries(EXTRA_PROPS)) see('prop:' + t, ep.svg);
+    for (const [w, a] of Object.entries(WORLD_ARCH)) see('arch:' + w, a.svg);
+    see('chomper', chomperSVG); see('capsule', capsuleSVG); see('star', starSVG); see('chevron', chevronSVG(true)); see('gapBoard', gapBoardSVG);
+    host.remove();
+    /* the pipe stack (w1#6) used to lose its top pipe: its box now runs above the top circle */
+    const pipe = WORLD_SET.w1[6], pipeTop = /viewBox="0 (-\d+)/.exec(pipe.svg);
+    return { n, worst: Math.round(worst), where, fitN: window.artFitN, pipeBox: pipeTop ? +pipeTop[1] : null, pipeYOff: pipe.yOff };
+  });
+  check('art fit (13.25): every scenery piece, world prop, arch and base sprite draws inside its own SVG box (the boot-time fit grew ' + fit.fitN + ' boxes)',
+    fit.n > 100 && fit.worst <= 0 && fit.fitN >= 40 && fit.pipeBox <= -180 && fit.pipeYOff === fit.pipeBox, JSON.stringify(fit));
+
   check('no console errors', errors.length === 0, errors.join(' | ').slice(0, 400));
 
   await browser.close();

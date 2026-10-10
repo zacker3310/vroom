@@ -293,6 +293,11 @@
 
 - [x] T40.1: Launches cut hard: the standard kick 0.9 -> 0.6 (`KICK_STD`, also the flight-star arc), mega 1.1 -> 0.75, hop 0.55 -> 0.4, the springs ladder +18% -> +8% a pip (1.24 at the top, was 1.54), the chomper's spit 470 -> 420. Flight tables, tails and landing zones unchanged (they were generous), so every landing stays clear. [SPID]
 
+## v13.25.0 (2026-10-10, user-directed: "I can still see through the hills and some items off the road are being cut off, do a full sweep")
+
+- [x] T45.1: Hills are solid again. The veil loop in `drawRoad` had lost its body, so the valley behind a crest showed through wherever a taller hill behind lifted the haze band above the crest line. The veil quads are back, one per run of hidden steps and clipped to above the crest in front (the crest's own face stays ground); a hill behind keeps its head only when `OCC_HEAD` (60) clear of the crest, and the veil holds to 180 before the crest and is gone at 30 (was 280..60). polish-check: a pixel sweep of every see-through spot on level 5's run-up. [SPID]
+- [x] T45.2: Nothing off the road is cut off. A boot-time sweep (`fitAllArt`) measures every scenery piece, world prop and arch and grows its SVG box to its art without moving its ground point; 40 pieces, two props and five arches were drawing past their boxes (the pipe stack lost its top pipe, the crane its top, the volcano its foot). The chomper's box now holds its horns and chin. worlds-check: every piece and base sprite inside its box. [SPID]
+
 ## v13.24.0 (2026-10-10, user-directed: "the sign needs to be shrunk a bit so we can see the whole thing")
 
 - [x] T44.1: The whole ZOOMIES sign is on the stage. The chains and flags were drawn above the SVG's top edge, so they could never show. The sign is 560 wide (was 680), its canvas runs 50 units higher, and a wooden rail at the top is what the chains hang from; rail, chains, both flags and the plank now sit inside the sky band above the skyline. docs/title.png regenerated. [SPID]

@@ -2089,7 +2089,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.24.0";
+const APP_VERSION = "13.25.0";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -8219,15 +8219,15 @@ function addScenery(x, side, r = Math.random) {
   scLast[si] = i;
   const pz = pool[i];
   const lx = side < 0 ? -(ROAD_HALF + 80 + pz.back) : ROAD_HALF + 80 + pz.back;
-  /* left-side pieces hang off their right edge so nothing ever overlaps the road */
-  const p = makeSprite("scenery", x, lx, 0, pz.svg, side < 0 ? -pz.w : 0, pz.yOff, pz.k, pz.w);
+  /* left-side pieces hang off their right edge so nothing ever overlaps the road (pz.xOff: what fitArt grew the box by) */
+  const p = makeSprite("scenery", x, lx, 0, pz.svg, (side < 0 ? -pz.w : 0) + (pz.xOff || 0), pz.yOff, pz.k, pz.w);
   scenery.push(p);
 }
 /* a structure over the road: wide art anchored at lane center, like the finish gantry */
 function addArch(x) {
   const a = scArch;
   if (!a) return;
-  const p = makeSprite("scenery", x, 0, 0, a.svg, -a.w / 2, -a.h, 1, 0);   /* no blob: an arch spans the road on two legs */
+  const p = makeSprite("scenery", x, 0, 0, a.svg, -a.w / 2 + (a.xOff || 0), -a.h + (a.yOff || 0), 1, 0);   /* no blob: an arch spans the road on two legs (xOff/yOff: what fitArt grew the box by) */
   p.arch = true;
   scenery.push(p);
 }
@@ -8330,24 +8330,24 @@ const OCC_STEP = 40, OCC_N = Math.ceil((ROAD_FAR - DRAW_NEAR) / OCC_STEP) + 2, O
    ahead has turned its back to the camera (zTurn, the first back-facing step past the car), everything farther
    that lies lower than the highest crest so far is hidden (OCCH) and the strip above the visible ground is haze
    (occTop up to the horizon, occA strong). As the car closes on the crest the haze thins (occA fades over the
-   last 280..60 units to the crest) and the far side comes through, so the view unfolds instead of popping; sprites on hidden
+   last 180..30 units to the crest) and the far side comes through, so the view unfolds instead of popping; sprites on hidden
    ground stay out until the haze is nearly gone (occA 0.15). A dip keeps its far side (same height as the near lip) and a
    taller hill behind keeps its head. */
-const OCCH = new Uint8Array(OCC_N);
+const OCCH = new Uint8Array(OCC_N), OCC_HEAD = 60;
 let occTop = Infinity, occHid = false, occA = 0;
 function buildOcc() {
   let m = Infinity, maxE = -Infinity, prevY = Infinity, zTurn = Infinity, zCrest = 0;
   occTop = Infinity; occHid = false; occA = 0;
   for (let i = 0; i < OCC_N; i++) {
     const z = DRAW_NEAR + i * OCC_STEP, e = elevAt(curCarX + z), y = HORIZON + (CAM_H + camElev - e) * CAM_D / (z + CAM_D);
-    if (z > 0 && zTurn < Infinity && e < maxE - 8) { OCCH[i] = 1; OCC[i] = m; occHid = true; continue; }
+    if (z > 0 && zTurn < Infinity && e < maxE + OCC_HEAD) { OCCH[i] = 1; OCC[i] = m; occHid = true; continue; }   /* 13.25: a hill behind keeps its head only when it stands OCC_HEAD clear of the crest in front, else its road poked a stub through the horizon */
     OCCH[i] = 0; OCC[i] = m;   /* strictly nearer ground only: a thing on the crest itself is never cut by that crest */
     if (z > 0) { if (e > maxE) { maxE = e; if (zTurn === Infinity) zCrest = z; } if (y > prevY + 1e-6 && zTurn === Infinity) zTurn = z; }
     prevY = y;
     if (y < m) m = y;
   }
   occTop = m;
-  occA = occHid ? Math.max(0, Math.min(1, (zCrest - 60) / 220)) : 0;   /* keyed to the crest itself, not the drop past it */
+  occA = occHid ? Math.max(0, Math.min(1, (zCrest - 30) / 150)) : 0;   /* keyed to the crest itself, not the drop past it; full to 180 before it, gone at 30 (13.25: was 280..60, the far side ghosted in too early) */
   if (occA === 0) { occHid = false; OCCH.fill(0); }
 }
 const occHidAt = z => occA > 0.15 && OCCH[Math.min(OCC_N - 1, Math.max(0, Math.floor((z - DRAW_NEAR) / OCC_STEP)))] === 1;
@@ -8445,7 +8445,7 @@ let chomp = null;   /* the bite in progress: { t, at } */
   chompView.querySelectorAll(".teeth svg").forEach(sv => { sv.innerHTML = row; });
 })();
 /* the monster: a round purple beast sitting across the road, its mouth the archway (880 wide, ground at y 0 like an arch) */
-const chomperSVG = `<svg width="880" height="620" viewBox="0 -620 880 620">
+const chomperSVG = `<svg width="880" height="664" viewBox="0 -640 880 664">
   <g class="body">
     <ellipse cx="440" cy="-280" rx="420" ry="300" fill="#8338ec"/>
     <ellipse cx="440" cy="-300" rx="380" ry="250" fill="#9d4edd"/>
@@ -8476,7 +8476,7 @@ const chomperSVG = `<svg width="880" height="620" viewBox="0 -620 880 620">
 const CHOMP_K = [0, 0.36, 0.64, 1];
 function addChomper(t) {
   const n = t.l1 - t.l0 + 1, lx = n === 3 ? 0 : (laneX(t.l0) + laneX(t.l1)) / 2;
-  const p = makeSprite("scenery", t.x0 + CHOMP_MOUTH, lx, 0, chomperSVG, -440, -620, CHOMP_K[n], 0);   /* no blob: it sits on the road */
+  const p = makeSprite("scenery", t.x0 + CHOMP_MOUTH, lx, 0, chomperSVG, -440, -640, CHOMP_K[n], 0);   /* no blob: it sits on the road (the box runs 640 up: the horns reach past 620) */
   p.arch = n === 3; p.chomper = t; t.p = p;
   scenery.push(p);
 }
@@ -8732,12 +8732,18 @@ function drawRoad(carX) {
   if (occHid) {
     c.globalAlpha = occA;
     c.fillStyle = mist;
-    c.beginPath();
+    /* one veil quad per run of hidden steps (runs capped at 10 steps so a dip inside one still projects within it),
+       each clipped to above the crest in front of it (OCC[i]): only the part of hidden ground that would show over
+       that crest is veiled, the crest's own face stays ground. 13.25 restored: the loop had lost its body and the
+       valley behind every crest showed through wherever a taller head behind lifted occTop above the crest line */
     for (let i = 0; i < OCC_N; i++) {
       if (!OCCH[i]) continue;
-      const z0 = DRAW_NEAR + i * OCC_STEP;
+      let j = i; while (j + 1 < OCC_N && OCCH[j + 1] && j - i < 9 && OCC[j + 1] === OCC[i]) j++;
+      c.save(); c.beginPath(); c.rect(-canvasOX, 0, canvasW, OCC[i]); c.clip();
+      c.beginPath(); qpath(c, DRAW_NEAR + i * OCC_STEP, DRAW_NEAR + (j + 1) * OCC_STEP, -7000, 7000); c.fill();
+      c.restore();
+      i = j;
     }
-    c.fill();
     if (occTop > HORIZON + 0.5) {
       const hg = c.createLinearGradient(0, HORIZON, 0, occTop);
       hg.addColorStop(0, P.haze); hg.addColorStop(1, mist);
@@ -11614,6 +11620,37 @@ function titleIdleStop() {
    worlds: desert (6), snow (5), volcano (9), sky kingdom (12) far; construction (1), rain city (4), candy
    land (10), beach (7) and the deep sea's whale (11) mid; space (8) and night (3) in the dark corner; the
    sunset's balloons (2) in the sky. ---- */
+/* ---- art fit (13.25): a sweep found 40 scenery pieces, two world props and five arches drawing past their own
+   SVG box (a pipe on the stack, a crane's top, a volcano's foot, a palm's crown), and the box clipped them on the
+   road. Once at boot every piece is measured (getBBox in a hidden host) and its box grown to its art with a 2 px
+   margin. The art's own origin (its ground point) does not move: the piece records how far the box grew (xOff /
+   yOff shifts) and the spawners add that to their offsets. ---- */
+function fitArt(spec, host) {
+  host.innerHTML = spec.svg;
+  const svg = host.querySelector("svg");
+  if (!svg) return false;
+  let bb; try { bb = svg.getBBox(); } catch (e) { return false; }
+  if (!bb.width && !bb.height) return false;
+  const vb = svg.viewBox.baseVal;
+  const x0 = Math.min(vb.x, Math.floor(bb.x - 2)), y0 = Math.min(vb.y, Math.floor(bb.y - 2));
+  const x1 = Math.max(vb.x + vb.width, Math.ceil(bb.x + bb.width + 2)), y1 = Math.max(vb.y + vb.height, Math.ceil(bb.y + bb.height + 2));
+  if (x0 === vb.x && y0 === vb.y && x1 === vb.x + vb.width && y1 === vb.y + vb.height) return false;
+  spec.svg = spec.svg.replace(/<svg([^>]*)>/, (m, a) => "<svg" + a.replace(/\s(viewBox|width|height)="[^"]*"/g, "") + ` width="${x1 - x0}" height="${y1 - y0}" viewBox="${x0} ${y0} ${x1 - x0} ${y1 - y0}">`);
+  spec.xOff = (spec.xOff || 0) + (x0 - vb.x);
+  spec.yOff = (spec.yOff || 0) + (y0 - vb.y);
+  return true;
+}
+window.artFitN = 0;   /* how many pieces the fit grew (the suite reads it) */
+function fitAllArt() {
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:0;top:0;width:1px;height:1px;overflow:hidden;visibility:hidden";
+  document.body.appendChild(host);
+  for (const pool of Object.values(WORLD_SET)) for (const pz of pool) if (fitArt(pz, host)) window.artFitN++;
+  for (const ep of Object.values(EXTRA_PROPS)) if (fitArt(ep, host)) window.artFitN++;
+  for (const a of Object.values(WORLD_ARCH)) if (fitArt(a, host)) window.artFitN++;
+  host.remove();
+}
+fitAllArt();
 (function buildTitleWorld() {
   const cloud = (x, y, k) => `<g transform="translate(${x},${y}) scale(${k})" fill="#fff"><ellipse cx="0" cy="0" rx="62" ry="30"/><ellipse cx="-46" cy="12" rx="40" ry="22"/><ellipse cx="48" cy="10" rx="46" ry="25"/><rect x="-80" y="6" width="160" height="30" rx="15"/></g>`;
   const hill = (x, y, rx, ry, c) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${c}"/>`;

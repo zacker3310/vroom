@@ -220,6 +220,28 @@ mouth's lane past them is not a bite). That is why a chomper covers one lane or 
 the beast, for the bitten kid shoved there and the gas-only toddler who now lives there. The fairness bots
 model the bite (held, stars dropped, thrown 560 back, shoved aside) and the snap.
 
+### Opaque crests, as drawn (13.25)
+
+`buildOcc` marks a step hidden once the ground ahead has turned its back and that step lies lower than the
+highest crest so far plus `OCC_HEAD` (60): a hill behind keeps its head only when it stands that much clear
+of the crest in front, otherwise its road poked a stub through the horizon. `drawRoad` then paints the
+hidden steps over in mist (`mixHex(haze, ground, .55)`): one quad per run of hidden steps with the same
+crest in front (runs capped at ten steps), each clipped to above that crest's line (`OCC[i]`), so only the
+part of hidden ground that would show over the crest is veiled and the crest's own face stays ground. Above
+the visible ground a haze-to-mist gradient runs from the horizon to `occTop`. Both ride `occA`, full until
+180 before the crest and gone at 30. (13.25 restored the veil quads: the loop had lost its body, and the
+valley behind every crest showed through wherever a taller head behind lifted `occTop` above the crest.)
+
+### Art fit (13.25)
+
+Roadside art is authored as SVG strings with a box (`pc(w, h, ...)` gives `viewBox 0 -h w h`), and the box
+clips: a sweep found 40 scenery pieces, two world props and five arches drawing past theirs (a pipe on the
+stack, a crane's top, a volcano's foot, a palm's crown). `fitAllArt` runs once at boot: `fitArt` measures each
+piece (`getBBox` in a hidden host), grows its box to the art with a 2 px margin and records the growth as
+`xOff` / `yOff` shifts; `addScenery`, `addWorldProp` and `addArch` add those to their offsets, so the art's
+own origin (its ground point) never moves. `window.artFitN` counts the boxes grown; worlds-check sweeps every
+piece and base sprite afterwards and expects nothing outside its box.
+
 ### A clean line is faster
 
 `LANE_SCRUB` (0.94 per lane crossed, in `setLane`, only above 100 px/s) and `LAND_SCRUB` (0.85 on every

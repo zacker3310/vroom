@@ -167,6 +167,34 @@ function check(name, ok, detail) {
   check('far road (13.22): the tarmac reaches the horizon: 12000 out (about HORIZON + 15) the road centre differs from the verge beside it and sits nearer the near road than the verge does; ROAD_FAR >= 12000',
     far.roadFar >= 12000 && far.y < far.horizon + 20 && far.midVsSide > 20 && far.midVsRoad < far.sideVsRoad, JSON.stringify(far));
 
+  /* 13.25: the valley behind a crest is veiled. On level 5's first run-up (400 before the crest) the hidden ground is painted
+     over in mist: the road centre of a hidden step, where it projects below the haze band, is neither tarmac nor a dash */
+  const veil = await page.evaluate(async () => {
+    drive(5); await new Promise(r => setTimeout(r, 900));
+    const h = HILLS[0], crest = (h.x0 + h.x1) / 2;
+    pos = crest - 400 - CAR_SCREEN_X + CAR_HIT_Z; v = 0; await new Promise(r => setTimeout(r, 250));
+    const k = roadCanvas.width / 1200, px = (x, y) => { const d = rctx.getImageData(Math.round(x * k), Math.round(y * k), 1, 1).data; return [d[0], d[1], d[2]]; };
+    const hex = c => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
+    const near = (a, b, tol) => a.every((v, i) => Math.abs(v - b[i]) <= tol);
+    const mist = hex(mixHex(roadPal.haze, roadPal.ground, 0.55));
+    /* hidden steps whose road centre projects above the crest in front of them: the see-through spots. Each must be mist
+       or haze (the veil quads and the horizon gradient), never tarmac or a dash; the crest's own face must stay ground */
+    let samples = 0, roady = 0, hazy = 0;
+    for (let i = 0; i < OCC_N; i++) {
+      if (!OCCH[i]) continue;
+      const z = DRAW_NEAR + i * OCC_STEP; if (z > 6000) break;
+      const pt = proj(z, 0, 0); if (pt[1] >= occAt(z) - 2 || pt[1] <= HORIZON + 2) continue;
+      const c = px(pt[0], pt[1]); samples++;
+      if (near(c, hex(roadPal.road), 6) || near(c, hex(roadPal.dash), 6)) roady++;
+      if (near(c, mist, 8) || near(c, hex(roadPal.haze), 8) || (c[0] >= Math.min(mist[0], hex(roadPal.haze)[0]) - 8 && c[0] <= Math.max(mist[0], hex(roadPal.haze)[0]) + 8)) hazy++;
+    }
+    const face = px(...proj(crest - 60 - (pos + CAR_SCREEN_X - CAR_HIT_Z), -600, 0).slice(0, 2));   /* the near face, off the road */
+    const r = { hid: occHid, a: +occA.toFixed(2), head: OCC_HEAD, samples, roady, hazy, faceGround: near(face, hex(roadPal.ground), 10) || near(face, hex(roadPal.ground2), 10) || near(face, hex(roadPal.field || roadPal.ground), 14), face };
+    stopDrive(); return r;
+  });
+  check('veil (13.25): on the run-up every see-through spot behind the crest reads as mist or haze, never tarmac or a dash; the crest\'s own face stays ground; a hill behind keeps its head only 60 clear of the crest',
+    veil.hid && veil.a === 1 && veil.head === 60 && veil.samples >= 3 && veil.roady === 0 && veil.hazy === veil.samples && veil.faceGround, JSON.stringify(veil));
+
   /* night headlights */
   await page.evaluate(() => { progress.levels[24] = { best: 1, rating: 1 }; drive(25); });
   await page.waitForTimeout(250);

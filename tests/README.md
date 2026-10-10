@@ -1,6 +1,6 @@
 # Vroom test suites
 
-Twenty-three Playwright regression suites (475 checks) that drive the real game in headless
+Twenty-three Playwright regression suites (477 checks) that drive the real game in headless
 Chromium. They are the gate for every change: CI runs them on each push and pull request.
 
 ## Run everything
@@ -32,7 +32,7 @@ built-in one, e.g. `python3 -m http.server 4173` then
 - `damage-check.cjs` — damage/repair/upgrades/keyboard (20)
 - `free-check.cjs` — capsules, free drive (the daily 100-star cap, the star meter, the spent map button), time tiers (15)
 - `feel-check.cjs` — game feel: dynamics, hit-stop, choreography, iPad shell (18)
-- `worlds-check.cjs` — 12 worlds, movers, gravity, world map, premium content, the 13.3 ground painter (shoulder + field tones, road crown on all 12 worlds, ramp side walls, quad budget), the deep sea rebuild (tunnel ribs outside twists, caustic overlay, whale + scenery, palette + dune swells, reduced motion) (30)
+- `worlds-check.cjs` — 12 worlds, every piece of roadside art inside its box (13.25), movers, gravity, world map, premium content, the 13.3 ground painter (shoulder + field tones, road crown on all 12 worlds, ramp side walls, quad budget), the deep sea rebuild (tunnel ribs outside twists, caustic overlay, whale + scenery, palette + dune swells, reduced motion) (31)
 - `album-check.cjs` — sticker album: buddies, badges, the photo wall (13.23: 13 frames, one per world and the parade, a frame only gets better, the ghost icon and deny on an empty one, tab counts, the fresh stars for one visit, albumSeen out of the share code, 76 px targets), world backdrops + stamps, the peek card for photos and stickers, muddy flag (20)
 - `profile-check.cjs` — 3 kid profiles, the slot card and hold-to-erase, save codes, QR round-trip via jsQR, the in-app QR scanner and its pure-JS decoder, the share / scan flow (scan button, import preview, welcome pop) (32)
 - `washdecals-check.cjs` — wash mini-game and decal shop/persistence (11)
@@ -65,11 +65,11 @@ click stability check.
 |---|---|---|
 | `verify.cjs` | 40 | core loop: garage inventory and 64 px touch floor, shop/economy, level invariants, map, persistence, steering yaw views and bindings |
 | `garage-check.cjs` | 19 | redesigned garage: control budget, category tabs and the shuffle at the tab row end, workbench strip order (wash first), GO and map, gift on the rhythm |
-| `polish-check.cjs` | 20 | kid-UX round: locks, price tags, magnet, headlights, celebrate choreography, the road reaching the horizon (13.22) |
+| `polish-check.cjs` | 21 | kid-UX round: locks, price tags, magnet, headlights, celebrate choreography, the road reaching the horizon (13.22), the crest veil (13.25) |
 | `damage-check.cjs` | 20 | damage tiers, repair, upgrades, keyboard controls |
 | `free-check.cjs` | 15 | capsules and prizes, free drive, time-medal tiers |
 | `feel-check.cjs` | 19 | game feel: body dynamics, hit-stop, the lane change and landing speed scrubs, celebrate pacing, iPad shell metas |
-| `worlds-check.cjs` | 30 | 12 worlds: level invariants, world hazards, movers, gravity, map, unlock chain, world bonus, golden capsule, premium shop, free-drive tour, ground painter (shoulder and field tones, crowned road on every world, ramp side walls, quad budget), the deep sea rebuild (glass tunnel ribs, caustics, whale, second roadside set, palette, roller swells, reduced motion) |
+| `worlds-check.cjs` | 31 | 12 worlds: level invariants, world hazards, movers, gravity, map, unlock chain, world bonus, golden capsule, premium shop, free-drive tour, ground painter (shoulder and field tones, crowned road on every world, ramp side walls, quad budget), the deep sea rebuild (glass tunnel ribs, caustics, whale, second roadside set, palette, roller swells, reduced motion) |
 | `album-check.cjs` | 20 | sticker album: buddies, badges, the per-world photo wall and its keep rule, tab counts, fresh stars, peek card, muddy flag |
 | `profile-check.cjs` | 33 | the in-app QR scanner (viewfinder, BarcodeDetector or the pure-JS decoder, the picture picker), the slot card (play, scan into the slot, hold-to-erase), 3 kid profiles, save codes, scan-to-open QR decoded byte-exact with jsQR across version boundaries, the send / receive flow: receiver sheet (clipboard, paste box, camera scan when stubbed), the import preview card with its warning triangle, the welcome pop after a confirmed import |
 | `washdecals-check.cjs` | 11 | wash mini-game, decal shop and persistence |
