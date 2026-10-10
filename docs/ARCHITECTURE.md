@@ -118,7 +118,8 @@ head-on in v10, so the level generator, physics and collision code never changed
 | `CAM_H` | 360 | camera height; the car's ground line lands at y=650 |
 | `LANE_W` | 240 | lane spacing at the car's depth |
 | `CAM_FOLLOW` | 0.6 | how far the camera slides with a lane change (the car moves the other 40%) |
-| `DRAW_FAR` / `DRAW_NEAR` / `FADE` | 3400 / −260 / 500 | depth window and the far fade |
+| `DRAW_FAR` / `DRAW_NEAR` / `FADE` | 4200 / −260 / 500 | the sprite depth window and the far fade |
+| `ROAD_FAR` | 14000 | how far the ground itself is drawn (13.22): the tarmac, bends, hills, ramps, holes and the flags run to a dozen px under the horizon, into the haze |
 
 A point at depth `z = p.x − carX` projects to
 
@@ -154,7 +155,7 @@ per unit² of depth) from `CURVE = { gentle: 0.0001, medium: 0.00018, tight: 0.0
 `curvAt(x)` sums the stretches covering `x`, each eased linearly in and out over
 `CURVE_EASE = 320` units. Once per frame `buildOffsets(carX)` integrates curvature twice
 outward from the car (`z = 0`, road dead ahead) in `OFF_STEP = 40` steps into the
-`Float32Array OFF`, forward to `DRAW_FAR` and backward to `DRAW_NEAR`; `offAt(z)` interpolates
+`Float32Array OFF`, forward to `ROAD_FAR` and backward to `DRAW_NEAR`; `offAt(z)` interpolates
 it. The car always drives the centreline, so the road, every sprite and the roadside all
 add `offAt(z)`. `headingAt(x)` (a flat approximation of the eased integral) drives the
 skyline parallax. The car itself stays square to the road (v12.6 removed the skew and bank), only squatting on the gas and lifting on the brake; in a side lane it is composed for the camera's real lateral offset (`vpOff`, quarter-lane views cached by `setCarView`), so the inner flank shows and the far end leans toward the vanishing point. Chase-cam parts are lit by shared object-bounding-box gradients (`V3D_DEFS`: top sheen, side fall-off, back-face ambient occlusion, a bevel hairline, a tire ramp) layered over the fill so pattern paints keep working, and a blurred footprint polygon grounds the car on the tarmac.
@@ -252,14 +253,28 @@ and lip shadow between `laneX(l0) - LANE_W/2` and `laneX(l1) + LANE_W/2`; a ramp
 parade) is the whole road.
 
 A gap is `{x, w: 220, l0, l1}` in `GAPS`: the road is gone for 220 units across one, two or all three lanes.
-Driving onto one on the ground in its lane (`gapTick`, in the hazard pass after the props) is a soft hit and
-never a fail: `v *= 0.35`, a thud, the `drop` animation on the car and a small shake, no damage, no stars lost,
-one drop per gap per run (`g.hit`). A full-width gap always comes 120 past the lip of a full-width standard ramp
-(the `rampGap` beat, `RAMP_GAP_AT`): a launch at three quarters of top speed or more clears it, a slower one
-drops in and bounces out. One- and two-lane gaps (the `gap` beat) are steered round, three stars in the open lane
-showing the way. `drawRoad` paints each hole as a dark pit (`#1d1a1f`, a lighter far wall) with a hazard rim of
-the world's two rumble tones in 60-unit cells, inside `occClip`; `addGapBoards` stands an amber and black board on
-each verge at the near rim so a hole hidden behind a ramp lip is still announced.
+Driving onto one on the ground in its lane (`gapTick`, in the hazard pass after the props) is a wreck and
+never a fail (13.22): `GAP_DMG` (2) through `applyDamage` with the crash shake, a thud, the `drop` animation (a
+real fall now, 74 px and a 9 degree pitch over .7 s), `v *= GAP_KEEP` (0.15), no stars lost, one drop per gap
+per run (`g.hit`). Then the dice: `gapRoll()` (Math.random, a seam the suite pins) under `GAP_POP` (0.35) is a
+blowout, `popTire`: the tread goes to 0 at once (bald: `gripK` 0.6, nine tenths of top speed, the tire chip
+red and bumped), a bang and a hiss (`sfx.blowout`), and the car rides a flat (`#carWrap.flat`, the `carLimp`
+keyframe: a list to one side and a limp, a still list under reduced motion) until the workbench fits new
+tires. `syncFlat` ties the look to `progress.tread <= 0`, at drive start, on wear ticks and after `doTires`, so
+tires worn bald by the road limp the same way. A full-width gap always comes 120 past the lip of a full-width
+standard ramp (the `rampGap` beat, `RAMP_GAP_AT`): a launch at three quarters of top speed or more clears it, a
+slower one falls in. One- and two-lane gaps (the `gap` beat) are steered round, three stars in the open lane
+showing the way.
+
+`drawRoad` gives each hole real depth (13.22): the ground-level opening is a canvas clip, and through it go the
+floor at `-GAP_DEPTH` (90, near black, a lighter band at the foot of the far wall), the far wall lit (`span`, a face
+across the road from 0 down to the floor) and whichever side walls face the camera (`wall`, chosen by `camWX`
+against the hole's edges), so the hole has parallax and swallows the car. Round the opening a lip stands
+`GAP_LIP` (10) proud of the tarmac: its faces shaded (the near lip's front, the far lip's face over the hole, the
+side lips' inner or outer faces), its tops hazard-striped in the world's two rumble tones in 60-unit cells, plain
+corner blocks, and three cracks run 110 units into the road before it. The whole thing is inside `occClip`
+anchored at the cracks (not the opening, or the near lip would be cut); `addGapBoards` stands an amber and black
+board on each verge at the near lip so a hole hidden behind a ramp lip is still announced.
 
 ### The ground plane
 
@@ -267,7 +282,7 @@ each verge at the near rim so a hole hidden behind a ramp lip is still announced
 horizon, grass bands alternating every `SEG = 160` units, lateral field strips in two extra
 tones (`fields` extents mirrored both sides: crop rows on the farm, dune ridges, drifts, lava
 cracks), a dirt shoulder outside each rumble strip, asphalt with a crown highlight down the
-centre and faint wheel-track wear in the outer lanes, lane dashes, the gaps' dark holes with their striped rims,
+centre and faint wheel-track wear in the outer lanes, lane dashes, the gaps' deep holes with their striped lips,
 sloped ramps (over the lanes their deck spans) with a camera-facing side wall and a lip shadow, the checkered
 finish stripe with a near edge, and the
 ground shadow under a jumping car, all as `quad()`s (batched into one fill per tone where they

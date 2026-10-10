@@ -154,6 +154,19 @@ function check(name, ok, detail) {
   const nudge = await page.evaluate(() => gasPedal.classList.contains('nudge'));
   check('drive: idle 4s pulses the gas pedal', nudge);
 
+  /* 13.22: the road runs to the horizon. On a straight at rest, the tarmac is still under the centre of the stage a
+     dozen px below the horizon (ROAD_FAR), where the ground used to show through from 4600 on */
+  const far = await page.evaluate(async () => {
+    drive(1); await new Promise(r => setTimeout(r, 900)); pos = 0; v = 0; await new Promise(r => setTimeout(r, 200));
+    const k = roadCanvas.width / 1200, px = (x, y) => { const d = rctx.getImageData(Math.round(x * k), Math.round(y * k), 1, 1).data; return [d[0], d[1], d[2]]; };
+    const far = proj(12000, 0, 0), y = Math.round(far[1]), x = Math.round(far[0]);   /* the road's own centre 12000 out (a bend carries it off the stage centre) */
+    const mid = px(x, y), side = px(x - 400, y), wide = px(...proj(600, 0, 0).map(Math.round));
+    const diff = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
+    return { roadFar: ROAD_FAR, x, y, horizon: HORIZON, midVsSide: diff(mid, side), midVsRoad: diff(mid, wide), sideVsRoad: diff(side, wide) };
+  });
+  check('far road (13.22): the tarmac reaches the horizon: 12000 out (about HORIZON + 15) the road centre differs from the verge beside it and sits nearer the near road than the verge does; ROAD_FAR >= 12000',
+    far.roadFar >= 12000 && far.y < far.horizon + 20 && far.midVsSide > 20 && far.midVsRoad < far.sideVsRoad, JSON.stringify(far));
+
   /* night headlights */
   await page.evaluate(() => { progress.levels[24] = { best: 1, rating: 1 }; drive(25); });
   await page.waitForTimeout(250);

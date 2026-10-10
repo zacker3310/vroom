@@ -492,11 +492,13 @@
   #carWrap { position: absolute; left: 400px; top: 190px; width: 400px; will-change: transform; cursor: pointer; touch-action: none; transform-origin: 50% 92%; pointer-events: none; }
   #carWrap svg { width: 100%; height: auto; overflow: visible; transform-origin: 50% 92%; }
   #carWrap .hitbox { pointer-events: all; }
+  #carWrap.flat svg { animation: carLimp .46s linear infinite; }   /* a blown tire (13.22): listing to one side, limping */
+  @keyframes carLimp { 0%, 100% { transform: rotate(-2.6deg) translateY(3px); } 50% { transform: rotate(-1.4deg) translateY(0); } }
   #carWrap.wobble svg { animation: carWobble .55s ease; }
   @keyframes carWobble { 20% { transform: rotate(-7deg); } 40% { transform: rotate(6deg); } 60% { transform: rotate(-4deg); } 80% { transform: rotate(2deg); } }
   #carWrap.spin svg { animation: spinOut .65s ease; }
-  #carWrap.drop svg { animation: carDrop .5s cubic-bezier(.3,.6,.3,1); }   /* into a gap and out again (13.16) */
-  @keyframes carDrop { 30% { transform: translateY(38px) rotate(-3deg); } 65% { transform: translateY(-8px) rotate(2deg); } }
+  #carWrap.drop svg { animation: carDrop .7s cubic-bezier(.3,.6,.3,1); }   /* into a gap and out again (13.16; 13.22: a real fall) */
+  @keyframes carDrop { 25% { transform: translateY(74px) rotate(-9deg) scale(.96); } 45% { transform: translateY(66px) rotate(-6deg) scale(.96); } 75% { transform: translateY(-10px) rotate(3deg); } }
   @keyframes spinOut { to { transform: perspective(900px) rotateY(360deg); } }
   .dmgSmoke circle { animation: puffUp 1.3s ease-in infinite; transform-box: fill-box; }
   @keyframes puffUp {
@@ -1378,6 +1380,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 @keyframes bonusDrop { 0% { transform: translateY(-140px) scale(.2); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .evZz circle, .prop.napdino.awake, .bonusDrop { animation-duration: .01s !important; animation-iteration-count: 1 !important; }
+  #carWrap.flat svg { animation: none; transform: rotate(-2deg) translateY(2px); }   /* the flat still shows, it just does not bounce */
 }
 
 /* ---- road: pedal arms were cold gray ---- */
@@ -2092,7 +2095,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.21.0";
+const APP_VERSION = "13.22.0";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -2421,6 +2424,7 @@ const sfx = {
   tick(i)  { tone("sine", 700 + i * 40, 700 + i * 40, 0.08, 0.18); },
   boink()  { tone("triangle", 500, 150, 0.2, 0.3); },
   thud()   { tone("square", 130, 55, 0.3, 0.35); noiseBurst(0.15, 700, 0.3); },
+  blowout() { noiseBurst(0.3, 900, 0.5); tone("square", 90, 35, 0.32, 0.3); noiseBurst(0.55, 4200, 0.08, 0.12); },   /* the bang, then the hiss */
   squeal() { tone("sawtooth", 1400, 900, 0.35, 0.08); noiseBurst(0.3, 2400, 0.1); },
   whoosh() { tone("sine", 300, 620, 0.14, 0.16); },
   passby(k, pan) {   /* doppler swish as a prop slides past: a falling bandpass hiss + a falling sine, panned to the prop's side */
@@ -4702,7 +4706,7 @@ function doTires(tile) {
   if (cost <= 0) return;
   if (progress.wallet < cost) { denyTile(tile); return; }
   progress.wallet -= cost;
-  progress.tread = TREAD_MAX;
+  progress.tread = TREAD_MAX; syncFlat();
   for (let i = 0; i < 4; i++) { tone("square", 160, 90, 0.08, 0.14, i * 0.12); noiseBurst(0.05, 2400, 0.1, i * 0.12); }   /* air wrench */
   save(); renderWallets(true); renderUpkeep();
   sfx.fixed(); confettiBurst(garageScene, 16);
@@ -6144,7 +6148,8 @@ const CAM_H = 360;                /* camera height: the car's ground line lands 
 const LANE_W = 240;               /* lane spacing at the car's depth */
 const ROAD_HALF = LANE_W * 1.5;
 const CAM_FOLLOW = 0.6;           /* camera slides most of the way with lane changes */
-const DRAW_FAR = 3400, DRAW_NEAR = -260, FADE = 500;
+const DRAW_FAR = 4200, DRAW_NEAR = -260, FADE = 500;   /* sprites: 13.22 pushed out from 3400 so things show further up the road */
+const ROAD_FAR = 14000;           /* the ground itself (bends, hills, tarmac, ramps, holes, the flags) runs to here: a dozen px under the horizon, into the haze, so the road never ends in a stub (13.22) */
 const CAR_TOP = 540;              /* roughly the roofline of the chase-cam car on stage */
 const CAR_HIT_Z = 100;            /* collisions land this far up the car (mid-hood), not at the bumper */
 const LOW_STAR_H = 85, HIGH_STAR_H = 240;
@@ -6251,7 +6256,7 @@ function headingAt(x) {
   return h;
 }
 /* per-frame lateral offset table, sampled every OFF_STEP of depth from the car */
-const OFF_STEP = 40, OFF_N = Math.ceil((DRAW_FAR - DRAW_NEAR) / OFF_STEP) + 2;
+const OFF_STEP = 40, OFF_N = Math.ceil((ROAD_FAR - DRAW_NEAR) / OFF_STEP) + 2;
 const OFF = new Float32Array(OFF_N);
 let offBaseZ = DRAW_NEAR;
 function buildOffsets(carX) {
@@ -6957,16 +6962,32 @@ const gapHas = (g, lane) => lane >= g.l0 && lane <= g.l1;
 function gapOn(x, lane) { for (const g of GAPS) if (x >= g.x && x <= g.x + g.w && gapHas(g, lane)) return g; return null; }
 const inGapZone = (x, pad = 0) => GAPS.some(g => x > g.x - pad && x < g.x + g.w + pad);
 const inRampZone = x => RAMPS.some(rp => x > rp.x - 200 && x < rp.x + rp.w + (rp.tail || 420));
-/* driving into a gap: a soft hit, never a fail. On the ground in a gap's lane the car drops in and bounces out
-   (a thud, the drop animation, a third of its speed kept), no damage, no stars lost, one drop per gap per run */
+/* driving into a gap (13.22): a wreck, never a fail. On the ground in a gap's lane the car falls in and claws
+   back out: GAP_DMG damage with the crash shake, the drop animation, GAP_KEEP of its speed kept, no stars lost,
+   one drop per gap per run. And the dice: GAP_POP of the time a tire blows (popTire), so the car limps bald
+   until the workbench fits new ones. gapRoll is the dice (a seam the suite pins). */
+const GAP_DMG = 2, GAP_KEEP = 0.15, GAP_POP = 0.35, GAP_DEPTH = 90, GAP_LIP = 10;
+let gapRoll = Math.random;
 function gapTick(carX) {
   if (airborne || jumpY >= 40) return;
   const g = gapOn(carX, Math.round(laneVis));
   if (!g || g.hit) return;
-  g.hit = true; v *= 0.35; sfx.thud();
-  restartAnim(carWrap, "drop", "wobble", "spin");
-  startShake(1);
+  g.hit = true; v *= GAP_KEEP; sfx.thud();
+  applyDamage(GAP_DMG); shakeCar(GAP_DMG);
+  restartAnim(carWrap, "drop", "wobble", "spin");   /* the fall replaces the wobble; the camera shake still runs */
+  if (gapRoll() < GAP_POP) popTire();
 }
+/* a blowout: the tread goes to nothing at once (bald: slower lane changes, nine tenths of top speed, the tire chip
+   red), a bang and a hiss, and the car rides on a flat (#carWrap.flat: a list to one side and a limp) until new
+   tires. syncFlat keeps the look on the state, so tires worn bald by the road limp the same way. */
+function popTire() {
+  progress.tread = 0; save();
+  sfx.blowout();
+  buddyReact("duck");
+  syncFlat();
+  renderHudUpkeep(true); restartAnim(hudTires, "bump");
+}
+function syncFlat() { carWrap.classList.toggle("flat", progress.tread <= 0); }
 
 /* a sprite: an outer .sprite wrapper the projector moves/scales (anchor = its 0,0),
    holding the .prop element whose own transforms/animations stay free for gags */
@@ -8267,7 +8288,7 @@ const SEG = 160;
    rebuilt every frame. Anything at depth z is only visible above occAt(z): the road paints itself
    back to front so it needs nothing, but sprites, ramps, the finish stripe and the hoops are clipped
    to it (13.2.1: houses, stars and ramps used to float over the face of the hill in front of them). ---- */
-const OCC_STEP = 40, OCC_N = Math.ceil((DRAW_FAR + 1200 - DRAW_NEAR) / OCC_STEP) + 2, OCC = new Float64Array(OCC_N);
+const OCC_STEP = 40, OCC_N = Math.ceil((ROAD_FAR - DRAW_NEAR) / OCC_STEP) + 2, OCC = new Float64Array(OCC_N);
 /* opaque crests (13.12): the chase camera sits 360 above the road and the hills top out near 220, so every crest
    is below the eye and, geometrically, the plain beyond shows above it; the renderer used to draw that plain in
    full, props and all, so every hill read as glass. Now a crest well ahead of the car is a wall: once the ground
@@ -8526,16 +8547,19 @@ function drawRoad(carX) {
   c.fillStyle = P.ground;
   c.fillRect(-canvasOX, HORIZON, canvasW, canvasH - canvasOY - HORIZON);
   /* the ground plane itself follows the hills, so a rise lifts the whole landscape; past the banded
-     stretch the same pass lays the far fields, shoulders, road and crown in coarse 400-unit bands,
-     so a bend keeps curving to the haze and no strip ends at the fade */
-  for (let z = DRAW_FAR + 1200; z > nearZ; z -= 400) {
-    const z0 = Math.max(nearZ, z - 400);
+     stretch the same pass lays the far fields, shoulders, road and crown in coarse bands (400 units out to
+     4800, then growing with depth, three more bands to ROAD_FAR), so a bend keeps curving all the way into the
+     haze under the horizon and no strip ends at the fade (13.22: the road used to stop in a stub at 4600) */
+  for (let z = ROAD_FAR; z > nearZ;) {
+    const z0 = Math.max(nearZ, z - (z > 4800 ? Math.round(z * 0.3) : 400));
     quad(c, z0, z, -7000, 7000, P.ground);
-    if (z >= 2400) fieldStrips(c, z0, z, T);
-    if (z < 2400) continue;
-    quadPair(c, z0, z, ROAD_HALF + 26, ROAD_HALF + 26 + SHOULDER_W, T.shoulder);
-    quad(c, z0, z, -ROAD_HALF, ROAD_HALF, P.road);
-    if (T.crown) quad(c, z0, z, -CROWN_HALF, CROWN_HALF, T.crown[0]);
+    if (z >= 2400) {
+      if (z0 < 8000) fieldStrips(c, z0, z, T);   /* the field strips are a pixel wide out there: the painter's quad budget (worlds-check) buys the road instead */
+      quadPair(c, z0, z, ROAD_HALF + 26, ROAD_HALF + 26 + SHOULDER_W, T.shoulder);
+      quad(c, z0, z, -ROAD_HALF, ROAD_HALF, P.road);
+      if (T.crown) quad(c, z0, z, -CROWN_HALF, CROWN_HALF, T.crown[0]);
+    }
+    z = z0;
   }
   /* banded near ground and road: alternating stripes sell the speed; each band lays, back to front,
      the mown stripe, the field strips, the dirt shoulders, the tarmac with its crown and wheel tracks,
@@ -8560,7 +8584,7 @@ function drawRoad(carX) {
   /* lane dashes: 60 on, 60 off, every dash in one fill */
   c.fillStyle = P.dash;
   c.beginPath();
-  for (let d = Math.floor((carX + nearZ) / 120) * 120; d < carX + 2400; d += 120) {
+  for (let d = Math.floor((carX + nearZ) / 120) * 120; d < carX + 3000; d += 120) {
     const z0 = Math.max(nearZ, d - carX), z1 = d + 60 - carX;
     if (z1 <= z0) continue;
     qpath(c, z0, z1, -LANE_W / 2 - 6, -LANE_W / 2 + 6);
@@ -8570,7 +8594,7 @@ function drawRoad(carX) {
   /* finish line: a checkered band across the road, a dark edge on its near side so it sits on the tarmac */
   if (!freeMode) {
     const zf = LEVEL_LEN - carX;
-    if (zf > nearZ && zf < DRAW_FAR) occClip(c, zf, () => {
+    if (zf > nearZ && zf < ROAD_FAR) occClip(c, zf, () => {
       if (zf - 10 > nearZ) quad(c, zf - 10, zf, -ROAD_HALF, ROAD_HALF, "rgba(0,0,0,0.3)");
       for (let r = 0; r < 2; r++) for (let col = 0; col < 12; col++) {
         const l0 = -ROAD_HALF + col * (ROAD_HALF / 6);
@@ -8584,35 +8608,68 @@ function drawRoad(carX) {
      covers most of whichever wall faces away, so once the road is offset the face toward the
      camera is the one that shows), then the sloped deck up to the lip with its chevrons. All of it
      is clipped to the crest in front. */
-  /* gaps (13.16): a hole in the tarmac across the lanes it spans, a hazard-striped rim round it (the rumble tones
-     alternating in 60-unit cells), the far wall catching a little light so the hole reads as deep */
+  /* gaps (13.16, rebuilt 13.22 with real depth): a hole GAP_DEPTH deep across the lanes it spans. Seen through its
+     opening (the ground-level quad is the clip) are the floor, the far wall catching the light and whichever side
+     walls face the camera, so the hole has parallax and swallows the car. Round the opening a lip stands GAP_LIP
+     proud of the tarmac, hazard-striped on top (the rumble tones in 60-unit cells) with its faces shaded, and a
+     few cracks run into the road before it. The road behind the near lip is left alone: the lip hides the floor. */
   for (const g of GAPS) {
     const z0 = g.x - carX, z1 = z0 + g.w;
-    if (z1 < nearZ || z0 > DRAW_FAR) continue;
-    const L0 = laneX(g.l0) - LANE_W / 2, L1 = laneX(g.l1) + LANE_W / 2, zz0 = Math.max(nearZ, z0), RIM = 22;
-    occClip(c, zz0, () => {
-      quad(c, zz0, z1, L0, L1, "#1d1a1f");
-      if (z1 - 36 > zz0) quad(c, z1 - 36, z1, L0 + 12, L1 - 12, "#2d2833");
+    if (z1 < nearZ || z0 > ROAD_FAR) continue;
+    const L0 = laneX(g.l0) - LANE_W / 2, L1 = laneX(g.l1) + LANE_W / 2, zz0 = Math.max(nearZ, z0), RIM = 22, D = GAP_DEPTH, H = GAP_LIP;
+    const leftIn = camWX > L0, rightIn = camWX < L1;   /* which side walls (and lip faces) look at the camera */
+    const face = (pts, col) => { c.fillStyle = col; c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); c.closePath(); c.fill(); roadQuadN++; };
+    const wall = (za, zb, l, h0, h1) => [proj(za, l, h0), proj(zb, l, h0), proj(zb, l, h1), proj(za, l, h1)];   /* a face along the road at lateral l */
+    const span = (z, l0, l1, h0, h1) => [proj(z, l0, h0), proj(z, l1, h0), proj(z, l1, h1), proj(z, l0, h1)];   /* a face across the road at depth z */
+    occClip(c, Math.max(nearZ, z0 - RIM - 110), () => {   /* clipped to the crest in front of the cracks, not of the opening: the near lip stands before it */
+      /* the inside, through the opening */
+      c.save(); c.beginPath(); qpath(c, zz0, z1, L0, L1); c.clip();
+      quad(c, zz0, z1 + 60, L0 - 300, L1 + 300, "#120f17", -D, -D);                 /* the floor: wide, the clip trims it */
+      if (z1 - 40 > zz0) quad(c, z1 - 40, z1 + 60, L0 - 300, L1 + 300, "#1c1722", -D, -D);   /* a little light at the foot of the far wall */
+      if (leftIn) face(wall(zz0, z1, L0, 0, -D), "#2a2431");
+      if (rightIn) face(wall(zz0, z1, L1, 0, -D), "#2a2431");
+      face(span(z1, L0, L1, 0, -D), "#3b3345");                                     /* the far wall, lit */
+      c.restore();
+      /* cracks into the tarmac before the near lip */
+      if (z0 - RIM - 110 > nearZ) {
+        c.fillStyle = "#1d1a1f";
+        for (const [l, dl] of [[L0 + (L1 - L0) * 0.2, -46], [L0 + (L1 - L0) * 0.55, 28], [L0 + (L1 - L0) * 0.82, -18]]) {
+          c.beginPath();
+          const a = proj(z0 - RIM, l, 0), b = proj(z0 - RIM, l + 7, 0), d = proj(z0 - RIM - 110, l + dl + 3, 0), e = proj(z0 - RIM - 110, l + dl, 0);
+          c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(d[0], d[1]); c.lineTo(e[0], e[1]); c.closePath(); c.fill(); roadQuadN++;
+        }
+      }
+      /* the lip's faces: the near lip's front, the far lip's face over the hole, the side lips' inner and outer faces */
+      if (z0 - RIM > nearZ) face(span(z0 - RIM, L0 - RIM, L1 + RIM, 0, H), "#5a5261");
+      face(span(z1, L0 - RIM, L1 + RIM, 0, H), "#8d8597");
+      if (leftIn) face(wall(zz0, z1, L0, 0, H), "#6e6676"); else face(wall(Math.max(nearZ, z0 - RIM), z1 + RIM, L0 - RIM, 0, H), "#4a4350");
+      if (rightIn) face(wall(zz0, z1, L1, 0, H), "#6e6676"); else face(wall(Math.max(nearZ, z0 - RIM), z1 + RIM, L1 + RIM, 0, H), "#4a4350");
+      /* the lip tops, striped */
       const cells = Math.round((L1 - L0) / 60), cw = (L1 - L0) / cells, rows = Math.round(g.w / 55), rh = g.w / rows;
       for (let tone = 0; tone < 2; tone++) {
         c.fillStyle = tone ? P.rumB : P.rumA;
         c.beginPath();
-        for (let i = tone; i < cells; i += 2) {   /* near and far rims */
-          if (z0 > zz0) qpath(c, Math.max(zz0, z0 - RIM), z0, L0 + i * cw, L0 + (i + 1) * cw);
-          qpath(c, z1, z1 + RIM, L0 + i * cw, L0 + (i + 1) * cw);
+        for (let i = tone; i < cells; i += 2) {   /* near and far lips */
+          if (z0 > nearZ) qpath(c, Math.max(nearZ, z0 - RIM), z0, L0 + i * cw, L0 + (i + 1) * cw, H, H);
+          qpath(c, z1, z1 + RIM, L0 + i * cw, L0 + (i + 1) * cw, H, H);
         }
-        for (let i = tone; i < rows; i += 2) {   /* side rims */
+        for (let i = tone; i < rows; i += 2) {   /* side lips */
           const za = Math.max(zz0, z0 + i * rh), zb = z0 + (i + 1) * rh;
           if (zb <= za) continue;
-          qpath(c, za, zb, L0 - RIM, L0); qpath(c, za, zb, L1, L1 + RIM);
+          qpath(c, za, zb, L0 - RIM, L0, H, H); qpath(c, za, zb, L1, L1 + RIM, H, H);
         }
         c.fill();
       }
+      c.fillStyle = "#6e6676";   /* the corner blocks, plain */
+      c.beginPath();
+      if (z0 > nearZ) { qpath(c, Math.max(nearZ, z0 - RIM), z0, L0 - RIM, L0, H, H); qpath(c, Math.max(nearZ, z0 - RIM), z0, L1, L1 + RIM, H, H); }
+      qpath(c, z1, z1 + RIM, L0 - RIM, L0, H, H); qpath(c, z1, z1 + RIM, L1, L1 + RIM, H, H);
+      c.fill();
     });
   }
   for (const rp of RAMPS) {
     const z0 = rp.x - carX, z1 = z0 + rp.w;
-    if (z1 < nearZ || z0 > DRAW_FAR) continue;
+    if (z1 < nearZ || z0 > ROAD_FAR) continue;
     const zz0 = Math.max(nearZ, z0), hh0 = (zz0 - z0) / rp.w * rp.h, edge = rp.edge || "#b08968";
     /* the deck spans the ramp's lanes (13.16): the whole road, two lanes or one */
     const L0 = rp.l0 == null ? -ROAD_HALF : laneX(rp.l0) - LANE_W / 2, L1 = rp.l1 == null ? ROAD_HALF : laneX(rp.l1) + LANE_W / 2;
@@ -8939,6 +8996,7 @@ function startDrive() {
   renderHudStars(false);
   renderHudDamage(false);
   renderHudUpkeep(false);
+  syncFlat();
   engineStart();
   worldAudioStart();   /* per-world jingle + ambience bed + bend-scrub layer */
   lastT = performance.now();
@@ -9441,7 +9499,7 @@ function burnUpkeep(d, now) {
   const f0 = Math.ceil(progress.fuel), t0 = Math.ceil(progress.tread);
   progress.fuel = Math.max(0, progress.fuel - d / FUEL_PER_UNIT);
   progress.tread = Math.max(0, progress.tread - d / TREAD_PER_UNIT);
-  if (Math.ceil(progress.fuel) !== f0 || Math.ceil(progress.tread) !== t0) renderHudUpkeep(true);
+  if (Math.ceil(progress.fuel) !== f0 || Math.ceil(progress.tread) !== t0) { renderHudUpkeep(true); syncFlat(); }
   /* low tank: the engine coughs and the gauge jolts; dry: faster coughs */
   if (progress.fuel <= FUEL_LOW && v > 40 && now - sputterT > (progress.fuel <= 0 ? 340 : 620)) {
     sputterT = now;

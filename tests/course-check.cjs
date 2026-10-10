@@ -309,22 +309,40 @@ function check(name, ok, detail) {
     /* a gap: drive into a one-lane hole in its lane, then past it in the open lane */
     let g = null, gn = 0;
     for (let k = 15; k <= 60 && !g; k++) { buildLevel(k); g = GAPS.find(q => q.l0 === q.l1); if (g) gn = k; }
-    drive(gn); g = GAPS.find(q => q.l0 === q.l1); progress.damage = 0; runStars = 5;   /* drive() rebuilds the level: take the live gap */
-    const into = lane => {
+    drive(gn); g = GAPS.find(q => q.l0 === q.l1); progress.damage = 0; progress.upgrades.armor = 0; runStars = 5;   /* drive() rebuilds the level: take the live gap */
+    await new Promise(r => setTimeout(r, 200));
+    /* the hole as drawn (13.22): seen from close in (its near lip 100 past the projector's origin, which sits CAR_HIT_Z
+       ahead of the bumper) in the lane beside, the far wall fills most of the opening and a sliver of floor shows under
+       it: the floor near black, the far wall lighter, the tarmac beside the hole lighter still (the canvas is read at
+       its backing scale) */
+    pos = g.x - 100 - CAR_SCREEN_X + CAR_HIT_Z; v = 0; targetLane = g.l0 === 1 ? 0 : 1; laneVis = targetLane; await new Promise(r => setTimeout(r, 250));
+    const k = roadCanvas.width / 1200, px = (x, y) => { const d = rctx.getImageData(Math.round(x * k), Math.round(y * k), 1, 1).data; return d[0] + d[1] + d[2]; };
+    const z0 = g.x - curCarX, z1 = z0 + g.w;
+    const floor = proj(z0 + 190, laneX(g.l0), -GAP_DEPTH), wallMid = proj(z1, laneX(g.l0), -GAP_DEPTH * 0.5), tarmac = proj(z0 + g.w * 0.5, laneX(g.l0 === 1 ? 0 : 1), 0);
+    const look = { z0: Math.round(z0), floor: px(floor[0], floor[1]), wall: px(wallMid[0], wallMid[1]), tarmac: px(tarmac[0], tarmac[1]) };
+    const into = (lane, roll) => {
+      gapRoll = () => roll;
       pos = g.x - 120 - CAR_SCREEN_X; v = 600; targetLane = lane; laneVis = lane; airborne = false; jumpY = 0; g.hit = false;
-      carWrap.classList.remove('drop');
+      carWrap.classList.remove('drop', 'flat'); progress.damage = 0; progress.tread = TREAD_MAX;
       const dt = 1 / 60, v0 = v;
       for (let i = 0; i < 60; i++) { pos += v * dt; gapTick(pos + CAR_SCREEN_X); }
-      return { hit: g.hit, v0, v1: Math.round(v), drop: carWrap.classList.contains('drop') };
+      return { hit: g.hit, v0, v1: Math.round(v), drop: carWrap.classList.contains('drop'), damage: progress.damage, tread: +progress.tread.toFixed(2), flat: carWrap.classList.contains('flat'), limp: getComputedStyle(carWrap.querySelector('svg')).animationName };
     };
-    const inHole = into(g.l0), beside = into(g.l0 === 1 ? 0 : 1);
-    return { n, lane: rp.l0, on, off, gn, inHole, beside, damage: progress.damage, stars: runStars };
+    const inHole = into(g.l0, 0.9), popped = into(g.l0, 0.1), beside = into(g.l0 === 1 ? 0 : 1, 0.1);
+    gapRoll = Math.random;
+    return { n, lane: rp.l0, on, off, gn, look, inHole, popped, beside, stars: runStars };
   });
   check('ramps (13.16, physics): a car on a single-lane deck climbs it and launches off the lip; one in the lane beside it rolls past on the flat',
     lanes.on.launched && lanes.on.top > 100 && lanes.on.onDeck > 5 && !lanes.off.launched && lanes.off.top === 0 && lanes.off.onDeck === 0, JSON.stringify(lanes));
-  check('gaps (13.16, physics): driving into a hole in its lane is a soft hit: the car drops and keeps about a third of its speed, no damage, no stars lost; the lane beside it is untouched',
-    lanes.inHole.hit && lanes.inHole.drop && lanes.inHole.v1 <= Math.round(lanes.inHole.v0 * 0.35) + 1 && lanes.inHole.v1 > 100 && !lanes.beside.hit && lanes.beside.v1 === lanes.beside.v0 && lanes.damage === 0 && lanes.stars === 5,
-    JSON.stringify(lanes));
+  check('gaps (13.22, physics): driving into a hole in its lane wrecks the car: the fall, 2 damage, speed down to GAP_KEEP (15%), no stars lost; the lane beside it is untouched',
+    lanes.inHole.hit && lanes.inHole.drop && lanes.inHole.v1 <= Math.round(lanes.inHole.v0 * 0.15) + 1 && lanes.inHole.v1 > 60 && lanes.inHole.damage === 2 && !lanes.inHole.flat && lanes.inHole.tread > 7
+      && !lanes.beside.hit && lanes.beside.v1 === lanes.beside.v0 && lanes.beside.damage === 0 && lanes.stars === 5,
+    JSON.stringify({ inHole: lanes.inHole, beside: lanes.beside, stars: lanes.stars }));
+  check('gaps (13.22, blowout): the dice under GAP_POP pop a tire: tread 0 at once, the car on a flat (#carWrap.flat, the limp keyframe) until new tires; over it, no pop',
+    lanes.popped.hit && lanes.popped.flat && lanes.popped.tread === 0 && lanes.popped.limp === 'carDrop' && !lanes.inHole.flat && lanes.inHole.limp === 'carDrop' && !lanes.beside.flat,
+    JSON.stringify({ popped: lanes.popped, inHole: lanes.inHole }));
+  check('gaps (13.22, depth): the hole is drawn deep: through the opening the floor is near black, the far wall lighter than the floor, the tarmac beside it untouched',
+    lanes.look.z0 === 100 && lanes.look.floor < 120 && lanes.look.wall > lanes.look.floor + 30 && lanes.look.tarmac > lanes.look.wall + 20, JSON.stringify(lanes.look));
 
   /* ---- 6. T2.3: the mixer drum turns with the road speed ---- */
   const drum = await page.evaluate(async () => {
