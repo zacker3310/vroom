@@ -43,7 +43,7 @@ function check(name, ok, detail) {
     }
     return rep;
   });
-  check('gen: all levels — 1 finish each, no 3-lane walls, in bounds', gen.finishBad === 0 && gen.wall === 0 && gen.out === 0, JSON.stringify(gen).slice(0, 200));
+  check('gen: all levels: 1 finish each, no 3-lane walls, in bounds', gen.finishBad === 0 && gen.wall === 0 && gen.out === 0, JSON.stringify(gen).slice(0, 200));
   check('gen: stars never starve, length capped', gen.minStars >= 5 && gen.maxLen === 3500 + 20 * 250 + 60 * 100, JSON.stringify({ minStars: gen.minStars, maxLen: gen.maxLen }));
   check('gen: world hazards appear in worlds 5-8', [5,6,7,8].every(w => gen.worldProps[w] > 0), JSON.stringify(gen.worldProps));
   check('gen: world hazards appear in worlds 11-12 (deep sea, sky kingdom)', [11,12].every(w => gen.worldProps[w] > 0), JSON.stringify(gen.worldProps));

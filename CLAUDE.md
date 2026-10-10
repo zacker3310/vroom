@@ -13,7 +13,7 @@ table of contents sits at the top of the script). No build, no dependencies, no 
 - Toybox look: the `--v-*` tokens in `:root`, flat `0 6px 0` shadows, big radii, `var(--v-font)`. Navy is game art, never chrome.
 - Save data is forever: `CODE_*`, `BODY_ORDER`, `WHEEL_ORDER`, `COLORS`, `DECAL_ORDER`, `BUDDY_ORDER`, `BADGES` are append-only. New save fields go on the end of the v3 tail with a `pos + n <= bytes.length * 8` guard, and in `loadState()` with a default for older saves.
 - Honour `prefers-reduced-motion` for anything decorative.
-- Bump `APP_VERSION` on every user-visible change; the hosted update gate keys off it.
+- Bump `APP_VERSION` (and the `version` in package.json) on every user-visible change; the hosted update gate keys off the code itself, the version is for people.
 - No em dashes in anything you write (code comments, docs, commit messages, replies).
 
 ## Working here

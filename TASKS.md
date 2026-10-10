@@ -32,7 +32,7 @@
 
 ## v7 (2026-07-11, user-directed: "Animal Crossing perfect" overhaul)
 
-- [x] T7.1: Full visual/UX audit (agent, 17 screenshots, 25-item report: "two art directors — the album's language wins"). Found the WORLD_TINT key bug. [SPID]
+- [x] T7.1: Full visual/UX audit (agent, 17 screenshots, 25-item report: "two art directors: the album's language wins"). Found the WORLD_TINT key bug. [SPID]
 - [x] T7.2: "Toybox" design system integrated: warm cream/wood/putty tokens replacing navy chrome everywhere, unified radii + flat shadows + one press squash, dot textures, warmed scrims/letterbox/iris, attribute-selector icon recolors, theme-color meta. [SPI-]
 - [x] T7.3: Structural overhaul: garage 3-tray toolbar + map/GO column; map → winding journey path (nodes on road, one padlock, quiet far dots, per-world tint, calm locked tabs); circular free-drive wheel; celebrate results card (+home hidden while celebrating); entrance choreography (popIn staggers everywhere); lane-arrow gutter; anchor-based damage decals (visible on premium bodies); star-scalloped S medal; 76px swatch floor reconciliation. Suites 137/137. [SPI-]
 
@@ -51,8 +51,8 @@
 ## v11 (2026-10-06, user-directed: "review every level, make turns, make them very different")
 
 - [x] T11.0: Curve engine (OutRun-style curvature stretches eased in/out, per-frame lateral offset table, skyline parallax by heading, lean into bends). T11.1: hills (cosine elevation through the projector, per-world amplitude).
-- [x] T11.2 (agent): beat sequencer — 30 formations, per-level signature + contrast templates, world beats, finales, guarantee passes; `tests/level-report.cjs`.
-- [x] T11.3 (agent): every world is a place — roadside pools (5-8 pieces each), overhead arches, horizon landmarks, festive parade set, free-drive re-skin.
+- [x] T11.2 (agent): beat sequencer: 30 formations, per-level signature + contrast templates, world beats, finales, guarantee passes; `tests/level-report.cjs`.
+- [x] T11.3 (agent): every world is a place: roadside pools (5-8 pieces each), overhead arches, horizon landmarks, festive parade set, free-drive re-skin.
 - [x] T11.4 (agent): per-world audio (jingles, ambience beds, star scales, bend scrub) + 10 live sky events; suite `world-check-audio-events.cjs` (16).
 - [x] T11.5 (agent): adversarial audit of all 80 levels (240 screenshots): owl/whale/snowball events redrawn, arches clear of ramp lips, landmarks drawn once; `buildCourse` rewritten with per-world road character (WORLD_ROAD: highway, switchback pass, drag strips, coast, moon chicanes) and a 10-shape menu so no level after L2 is straight and no neighbours match; fairness bots (greedy star-seeker + center-lane 'lazy toddler') drive all 80 levels: moon flights get a float arc and 950/1850 ramp tails, walls open within one lane of the kid, 700-unit runways, fills never trap a star trail; finales always end in a star shower. Suite `fairness-check.cjs` (9). 13 suites, 191/191.
 - [x] T11.6-11.7: HUD row fills the width; garage top row spacing with fixed-width wallets.
@@ -60,17 +60,17 @@
 ## v12 (2026-10-07, user-directed: "go bonkers")
 
 - [x] T12.0: plumbing for 12 worlds / 120 levels (WORLD_META, derived MAX_LEVEL/PARADE_LEVEL, 12 map tabs, length cap at L80), save-code format v3 (count-prefixed catalogs, build travels, v1/v2 decode kept), pack anchors.
-- [x] T12.1 (agent): accessory anchor contract — per-body `anchors` in both views, all 15 bodies hand-tuned from contact sheets.
-- [x] T12.2 (agents): worlds 9 Volcano, 10 Candy Land, 11 Deep Sea, 12 Sky Kingdom — themes, palettes, scenery pools, arches, landmarks, weather, 2 hazards each (timed geysers, rolling donuts, bobbing jellyfish, lane-hopping crab king and kites, thunderclouds), road character, beats, jingles, ambience, star scales, events; flight length scales with gravity.
+- [x] T12.1 (agent): accessory anchor contract: per-body `anchors` in both views, all 15 bodies hand-tuned from contact sheets.
+- [x] T12.2 (agents): worlds 9 Volcano, 10 Candy Land, 11 Deep Sea, 12 Sky Kingdom: themes, palettes, scenery pools, arches, landmarks, weather, 2 hazards each (timed geysers, rolling donuts, bobbing jellyfish, lane-hopping crab king and kites, thunderclouds), road character, beats, jingles, ambience, star scales, events; flight length scales with gravity.
 - [x] T12.3 (agent): 11 pattern paints as SVG defs in both views, two-page swatch flipper; suite paint-check (22).
-- [x] T12.4 (agent): shop pack — 8 bodies (hover 1000 with no wheels + glow + trail, bulldozer, school bus, ambulance, submarine, pirate, dino, unicorn), 5 wheels, 4 extras, 4 buddies, 3 decals; hold-to-cycle-back + dot indicator; legacy decoder sliced to v2 catalog sizes; suite shop-check (21). 15 suites, 237/237.
+- [x] T12.4 (agent): shop pack: 8 bodies (hover 1000 with no wheels + glow + trail, bulldozer, school bus, ambulance, submarine, pirate, dino, unicorn), 5 wheels, 4 extras, 4 buddies, 3 decals; hold-to-cycle-back + dot indicator; legacy decoder sliced to v2 catalog sizes; suite shop-check (21). 15 suites, 237/237.
 
 ## v12.1 (2026-10-07, user-directed: "super clean and professional", "Nintendo-grade menu")
 
-- [x] T13.1 (agent): visual polish across every screen — one panel recipe, aligned columns, consistent radii/borders/shadows, 12 tabs clear the top row, 76px hit zones on small nodes, parade/free-drive buttons mirror.
-- [x] T13.2 (agent): code quality — 30-section TOC, dead code and always-true guards removed, shared helpers (injectCSS, restartAnim, mountCar, shopGateOpen...), ESLint harness at zero findings; byte-identical level report.
-- [x] T13.3 (agent): repo hygiene — GitHub Actions CI, `npm test` runner, manifest + app icons, APP_VERSION in the grown-ups panel, README/CONTRIBUTING/ARCHITECTURE.
-- [x] T13.4 (agent): garage redesign — car as hero, six category tabs + one scroll-snap tile strip (23/13/23/9/10 + workbench), GO dominant, repair/wash contextual, speaker moved to the grown-ups panel, title plate and side racks removed; suite garage-check (19). 16 suites, 256/256.
+- [x] T13.1 (agent): visual polish across every screen: one panel recipe, aligned columns, consistent radii/borders/shadows, 12 tabs clear the top row, 76px hit zones on small nodes, parade/free-drive buttons mirror.
+- [x] T13.2 (agent): code quality: 30-section TOC, dead code and always-true guards removed, shared helpers (injectCSS, restartAnim, mountCar, shopGateOpen...), ESLint harness at zero findings; byte-identical level report.
+- [x] T13.3 (agent): repo hygiene: GitHub Actions CI, `npm test` runner, manifest + app icons, APP_VERSION in the grown-ups panel, README/CONTRIBUTING/ARCHITECTURE.
+- [x] T13.4 (agent): garage redesign: car as hero, six category tabs + one scroll-snap tile strip (23/13/23/9/10 + workbench), GO dominant, repair/wash contextual, speaker moved to the grown-ups panel, title plate and side racks removed; suite garage-check (19). 16 suites, 256/256.
 
 ## v12.2 (2026-10-07, user-directed: "duplicate buttons, more mechanical upkeep, clean car = bonus")
 
@@ -292,6 +292,11 @@
 ## v13.20.0 (2026-10-10, user-directed: "gravity needs majorly nerfed, the vehicles are going way too high")
 
 - [x] T40.1: Launches cut hard: the standard kick 0.9 -> 0.6 (`KICK_STD`, also the flight-star arc), mega 1.1 -> 0.75, hop 0.55 -> 0.4, the springs ladder +18% -> +8% a pip (1.24 at the top, was 1.54), the chomper's spit 470 -> 420. Flight tables, tails and landing zones unchanged (they were generous), so every landing stays clear. [SPID]
+
+## v13.26.0 (2026-10-10, user-directed: "move the hold-to-reload button to the home screen and make it replace PLAY; implement what you think is best")
+
+- [x] T46.1: The PLAY pill is the update gate. When a new version is on the server the pill goes amber and swaps its face for the update one (a tray with an arrow dropping in, the hold ring round it, three sparkles: pictograms, no third word on screen); press and hold fills the ring and loads the new version, a quick tap lets go and stays put. The two round gate buttons (title and garage) are gone. update-check rewritten (8 -> 6), title-check follows. [SPID]
+- [x] T46.2: Audit cleanups. Every em dash in the repo is gone (index.html comments, TASKS, SPEC, tests/README, four suites). package.json carries the app version. SPEC: 120 levels, ten buddies. The dead corkscrew-renderer paragraph in ARCHITECTURE is one sentence. The armor probe waits for the hit instead of a fixed 650 ms (it flaked under battery load). The fairness bots roll seeded blowout dice, so every run is reproducible. [SPID]
 
 ## v13.25.0 (2026-10-10, user-directed: "I can still see through the hills and some items off the road are being cut off, do a full sweep")
 

@@ -35,7 +35,7 @@
 - **Something new every day.** A gift capsule once a day, and three surprises on the map seeded from the date: a sleeping dino to honk awake, a rainbow day with a secret paint, a weather day. The garage car idles, blinks and yawns; tap the hood or a wheel.
 - **Keep it running.** Fuel burns and tires wear as you drive, mud sticks until you wash it, dings stay until you fix them. A dry tank crawls and bald tires slide, but nothing ever stops you, and crossing the line spotless pays a shine bonus.
 - **Nothing to read, nothing to lose.** Icons, pictures and numerals only (the two words in the game, ZOOMIES on the title sign and PLAY on its button, are drawn as shapes). The star wallet only goes up. Crashes are comedy.
-- **Grown-up friendly.** Three kid profiles, a QR of every save, share-out and scan-in or paste-in, a quiet mode for the car, home-screen install, and a toddler-proof update badge on the title and in the garage.
+- **Grown-up friendly.** Three kid profiles, a QR of every save, share-out and scan-in or paste-in, a quiet mode for the car, home-screen install, and a toddler-proof update: when a new version is live the PLAY pill turns amber and only a press-and-hold loads it.
 - **One file.** No frameworks, no build step, no assets, no network calls. All art is inline SVG, all sound is Web Audio synthesis.
 
 ## Screenshots
@@ -61,7 +61,7 @@
 
 ## How to play
 
-**The title.** The game opens on a landing: the ZOOMIES sign swings in over a panorama of the twelve worlds, your own car drives on and idles with its wheels turning, and the PLAY pill takes you to the garage. The avatar top left opens the profiles; when a new version is live, a green badge appears beside it (hold it to update). Tap the car to honk.
+**The title.** The game opens on a landing: the ZOOMIES sign swings in over a panorama of the twelve worlds, your own car drives on and idles with its wheels turning, and the PLAY pill takes you to the garage. The avatar top left opens the profiles. When a new version is live the PLAY pill turns amber and shows a tray with an arrow dropping in: hold it to load the new version. Tap the car to honk.
 
 **The garage.** Six category tabs (body, wheels, paint, stickers, extras, workbench) open one scrollable strip of big picture tiles; tap a tile to equip it, swipe or use the arrows to see more. Locked parts show in full colour with a star price tag: collect stars, tap, own it. The sticker tab also holds a race number: tap the roundel tile, type up to two digits on a big keypad, and 400 stars paints it on both sides of the car (taking it off is free). The workbench tab holds the engine, shield, star magnet, fuel tank and springs upgrades and the upkeep: fix crash damage with the wrench, wash off real mud with your finger, fill the tank, fit new tires. The shuffle button at the end of the tab row builds you a surprise from the parts you own. Tap the car to honk, tap the hood to pop it open, tap a wheel to spin it. Once a day a gift capsule waits on the right wall.
 
@@ -120,7 +120,7 @@ python3 -m http.server 4173     # then open http://localhost:4173/
 
 There is no build. Edit `index.html`, reload.
 
-The test suite is 23 Playwright suites (477 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the race number, the title screen and daily gift, the ghost race, garage life, the map surprises, the update gate, and the fairness bots that drive all 120 levels.
+The test suite is 23 Playwright suites (475 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the race number, the title screen and daily gift, the ghost race, garage life, the map surprises, the update gate, and the fairness bots that drive all 120 levels.
 
 ```bash
 npm ci                                   # playwright-core + jsqr, test-only

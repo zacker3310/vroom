@@ -35,6 +35,7 @@ function check(name, ok, detail) {
       stopDrive(); paradeMode = false; freeMode = false; level = n;
       buildLevel(n);
       progress.damage = 0; progress.fuel = FUEL_MAX; progress.tread = TREAD_MAX;   /* a serviced car per level: the bots judge the road, not the upkeep */
+      let dice = (n * 7919 + (smart ? 1 : 2)) >>> 0; gapRoll = () => { dice = (Math.imul(dice, 1103515245) + 12345) >>> 0; return (dice >>> 8) / 16777216; };   /* the blowout dice, seeded per run so the bots are reproducible */
       pos = 0; v = 0; jumpY = 0; vy = 0; airborne = false; finished = false;
       targetLane = 1; laneVis = 1; runStars = 0; runDamage = 0; runTime = 0;
       const dt = 1 / 60;

@@ -1,4 +1,4 @@
-/* paint-check: pattern paint pack — two-page swatch tray, pattern defs in both views,
+/* paint-check: pattern paint pack: two-page swatch tray, pattern defs in both views,
    buying a pattern, save-code round trip. Honours CHROMIUM + VROOM_URL. */
 const pw = require('playwright-core');
 const os = require('os');

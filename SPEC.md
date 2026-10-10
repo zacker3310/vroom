@@ -43,7 +43,7 @@ World flavor: rain (particles, puddles everywhere), snow (flakes, ice slicks,
 snowmen, slush), desert (giant sun, cacti, rolling tumbleweeds), beach (waves,
 palms, sandcastles, lane-hopping crabs), space (starfield, moon road, craters,
 friendly aliens, LOW GRAVITY floaty jumps, headlights). Tumbleweeds and crabs
-MOVE — the first moving obstacles. First clear of a world's last level banks a
+MOVE: the first moving obstacles. First clear of a world's last level banks a
 +25 star trophy bonus.
 
 ## Scene 3: Road
@@ -71,11 +71,11 @@ stripe) is painted on a canvas each frame; roadside set pieces rush past on both
 - Tap vehicle = honk
 - Mud puddle -> splash, muddy wheels (lane-specific). The mud STAYS (v4.4b): the truck
   comes home dirty, a sponge tile appears on the workbench tab (the wrench tab pulses a
-  dot), and washing is a mini-game — rub the truck with a finger, soap bubbles trail the touch, fill the
+  dot), and washing is a mini-game: rub the truck with a finger, soap bubbles trail the touch, fill the
   meter, rinse, sparkle. Pure care-play, no stars needed.
 - **Decals** (v4.4b, alive since v9): a sticker button beside body/wheels tap-cycles a
-  flank decal — a flickering layered flame, a shooting star with sparkle trail, a glossy
-  heart with a heartbeat, a crackling electric bolt, wobbling googly eyes — each a priced
+  flank decal: a flickering layered flame, a shooting star with sparkle trail, a glossy
+  heart with a heartbeat, a crackling electric bolt, wobbling googly eyes: each a priced
   unlock through the same tag flow. Decals ride into photos and save codes (format v2).
 - **Race number** (v12.3): the sticker tab leads with a roundel tile. A keypad overlay (0-9,
   erase, clear; two digits max) previews the number live on a white roundel; OK costs 400
@@ -88,7 +88,7 @@ stripe) is painted on a canvas each frame; roadside set pieces rush past on both
   (the parade gets a rainbow road and the champion cup). Tap a photo and it fills a big
   polaroid with the level, the stars collected and the medal; tap an earned sticker and it
   pops up big with confetti. Tap anywhere to put it back.
-- **Victory Parade** (v9): beat all 80 levels and a golden trophy button appears on the
+- **Victory Parade** (v9): beat all 120 levels and a golden trophy button appears on the
   map, forever. It opens the finale: rainbow road, golden sky, no hazards, floaty
   low-gravity jumps, waves of stars, capsules, every found buddy cheering roadside,
   fireworks all the way to a glowing trophy arch. First finish pays +100 stars and the
@@ -121,7 +121,7 @@ stripe) is painted on a canvas each frame; roadside set pieces rush past on both
   or a one-off gag animation (duck parade, ball burst, rainbow bloom, bird banner).
 - **Time medals** (v4.3): every level records best time; S/A/B/C medal by par curve
   (S = near-clean full-throttle run; engine upgrades matter late). Small timer in the HUD
-  progress chip, medal pops on celebrate, badge on the level map. Best medal is kept —
+  progress chip, medal pops on celebrate, badge on the level map. Best medal is kept -
   time never punishes, only rewards.
 - **Surprise events** (v12.5): three small surprises rotate with the calendar day (seeded on
   YYYY-MM-DD, so the whole day shows the same one): a sleeping dino on one beaten level's node that
@@ -129,7 +129,7 @@ stripe) is painted on a canvas each frame; roadside set pieces rush past on both
   never damage); a rainbow day after level 30 whose marked level awards the secret rainbow-shine
   paint once; a weather day that runs one world under borrowed rain or snow; plus a sun chip with
   the day of the month on the map.
-- **Free drive** (v4.3): big road button on the map starts an endless cruise — no finish,
+- **Free drive** (v4.3): big road button on the map starts an endless cruise: no finish,
   no timer, kid-paced. Difficulty rises gently with distance, day/sunset/night cycle every
   stretch, stars bank automatically when heading home.
 - Stars -> chime + burst, +1 to run counter, banked to wallet at the finish (+3 finish bonus)
@@ -156,7 +156,7 @@ stripe) is painted on a canvas each frame; roadside set pieces rush past on both
 
 Book button in the garage opens a paper album page, all wordless:
 
-- **Buddies** (top row): six critters — pup, kitty, ducky, dino, penguin, monkey —
+- **Buddies** (top row): six critters: pup, kitty, ducky, dino, penguin, monkey -
   found ONLY in surprise capsules (mystery silhouettes until found). A found buddy
   auto-hops into the cab: head peeking over the roofline, bobbing, squeaks when the
   vehicle is tapped, appears in every scene and photo. Tap a buddy sticker to make it

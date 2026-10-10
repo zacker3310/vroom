@@ -23,49 +23,43 @@ function check(name, ok, detail) {
     route.fulfill({ status: 200, contentType: 'text/html', body: serveNew ? src.replace('"use strict";', '"use strict"; /* v-next */') : src });
   });
 
-  await page.goto(URL);
+  /* 13.26: the gate is the title's PLAY pill. Boot without ?garage: no update, the pill is PLAY and a tap goes to the garage */
+  const TITLE = URL.replace(/[?&]garage\b/, '');
+  await page.goto(TITLE);
   await page.waitForTimeout(3200);
-  let shown = await page.evaluate(() => updateBtn.classList.contains('show'));
-  check('update: no gate when the server copy matches', !shown);
+  const plain = await page.evaluate(() => ({ ready: updateReady, cls: titleScene.classList.contains('update'), playFace: getComputedStyle(titleGo.querySelector('.facePlay')).display !== 'none', newFace: getComputedStyle(titleGo.querySelector('.faceNew')).display === 'none', noGates: !document.getElementById('updateBtn') && !document.getElementById('titleUpdateBtn') }));
+  check('update: when the server copy matches the pill is PLAY, no update face, no gate buttons anywhere', !plain.ready && !plain.cls && plain.playFace && plain.newFace && plain.noGates, JSON.stringify(plain));
 
   serveNew = true;
   await page.evaluate(() => { lastUpdateCheck = 0; return checkForUpdate(); });
-  shown = await page.evaluate(() => updateBtn.classList.contains('show'));
-  check('update: gate appears when a new version is deployed', shown);
+  const armed = await page.evaluate(() => ({ ready: updateReady, cls: titleScene.classList.contains('update'), playFace: getComputedStyle(titleGo.querySelector('.facePlay')).display === 'none', newFace: getComputedStyle(titleGo.querySelector('.faceNew')).display !== 'none', bg: getComputedStyle(titleGo).backgroundImage.includes('240, 165, 0'), label: titleGo.getAttribute('aria-label'), words: titleGo.querySelectorAll('text').length }));
+  check('update: a new version arms the pill: PLAY gives way to the amber update face (tray, arrow, ring, sparkles), still no words', armed.ready && armed.cls && armed.playFace && armed.newFace && armed.bg && armed.label.includes('hold') && armed.words === 0, JSON.stringify(armed));
 
-  /* a quick tap must not reload */
-  const box = await page.locator('#updateBtn').boundingBox();
+  /* a quick tap must not reload, and must not go to the garage either: the ring lets go */
+  const box = await page.locator('#titleGo').boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down(); await page.waitForTimeout(300); await page.mouse.up();
+  await page.mouse.down(); await page.waitForTimeout(300);
+  const midHold = await page.evaluate(() => ({ holding: titleGo.classList.contains('holding'), ring: +titleGo.querySelector('.faceNew .ring').style.strokeDashoffset }));
+  await page.mouse.up();
   await page.waitForTimeout(1800);
-  check('update: a quick tap does not reload', !reloadedWithBust);
+  const after = await page.evaluate(() => ({ title: titleScene.classList.contains('active'), holding: titleGo.classList.contains('holding'), ring: +titleGo.querySelector('.faceNew .ring').style.strokeDashoffset }));
+  check('update: a quick tap on the armed pill fills part of the ring, then lets go: no reload, still on the title', !reloadedWithBust && midHold.holding && midHold.ring < 289 && midHold.ring > 100 && after.title && !after.holding && after.ring === 289, JSON.stringify({ midHold, after }));
 
   /* holding through the ring reloads with a cache-busting URL */
   await page.mouse.down();
   await page.waitForTimeout(2300);
   await page.mouse.up().catch(() => {});
   await page.waitForTimeout(800);
-  check('update: press-and-hold reloads the new version', reloadedWithBust && page.url().includes('?v='), page.url());
+  check('update: press-and-hold on the pill loads the new version (a cache-busting URL)', reloadedWithBust && page.url().includes('?v='), page.url());
 
-  /* ---- the same gate on the title scene (v13.10): boot without ?garage, the probe finds the new version, the title's
-     own button shows, a tap does nothing, a hold reloads ---- */
-  reloadedWithBust = false;
-  await page.goto(URL.replace(/[?&]garage\b/, ''));
-  await page.waitForTimeout(3200);
-  const onTitle = await page.evaluate(() => ({ active: [...document.querySelectorAll('.scene.active')].map(s => s.id).join(','),
-    show: titleUpdateBtn.classList.contains('show'), display: getComputedStyle(titleUpdateBtn).display, garageToo: updateBtn.classList.contains('show') }));
-  check('title gate: the title scene shows its own gate when a new version is deployed (and the garage one is armed too)', onTitle.active === 'title' && onTitle.show && onTitle.display !== 'none' && onTitle.garageToo, JSON.stringify(onTitle));
-  const tb = await page.locator('#titleUpdateBtn').boundingBox();
-  await page.mouse.move(tb.x + tb.width / 2, tb.y + tb.height / 2);
-  await page.mouse.down(); await page.waitForTimeout(300); await page.mouse.up();
-  await page.waitForTimeout(1800);
-  const stillTitle = await page.evaluate(() => document.getElementById('title').classList.contains('active') && !document.getElementById('titleUpdateBtn').classList.contains('holding'));
-  check('title gate: a quick tap does not reload and lets go of the ring', !reloadedWithBust && stillTitle);
-  await page.mouse.down();
-  await page.waitForTimeout(2300);
-  await page.mouse.up().catch(() => {});
-  await page.waitForTimeout(800);
-  check('title gate: press-and-hold on the title reloads the new version', reloadedWithBust && page.url().includes('?v='), page.url());
+  /* the fresh page: PLAY is back and goes to the garage */
+  reloadedWithBust = false; serveNew = false;
+  await page.goto(TITLE); await page.waitForTimeout(3200);
+  const fresh = await page.evaluate(() => ({ ready: updateReady, cls: titleScene.classList.contains('update') }));
+  await page.locator('#titleGo').dispatchEvent('pointerdown');
+  await page.waitForTimeout(600);
+  const went = await page.evaluate(() => ({ garage: document.getElementById('garage').classList.contains('active'), title: titleScene.classList.contains('active') }));
+  check('update: on the fresh page the pill is PLAY again and a tap goes to the garage', !fresh.ready && !fresh.cls && went.garage && !went.title && !reloadedWithBust, JSON.stringify({ fresh, went }));
   check('update: no page errors', errors.length === 0, errors.join(' | '));
 
   await browser.close();

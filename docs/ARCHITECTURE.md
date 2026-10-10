@@ -183,9 +183,7 @@ every board stands nearest its own turn, and the tires squeal through it above 4
 the monster covers (13.16): one lane, two or all three. `chompLanes` deals the size and lanes from a seed off
 the level number (its own mulberry32, so the road itself never moved), never the same size twice on one
 level, so a two-monster level is always two different beasts; across the 120 levels about a third of each. The corkscrew they
-replace went through four renderers (13.4 rolled the view, 13.12 rolled the ribbon under a level camera,
-13.12.2 made it glass, 13.14 cut to a side view) and never read right: the 2D projector cannot draw a road
-leaving its plane. A chomper is a set piece the projector can draw. `addChomper` sits a monster at
+replaced never read right on a 2D projector (TASKS.md has the four attempts). A chomper is a set piece the projector can draw. `addChomper` sits a monster at
 `x0 + CHOMP_MOUTH` as arch-style scenery (`p.chomper`, no blob): the one piece of art (880 wide, three
 lanes) scaled by the sprite's `k` (`CHOMP_K`: 0.36 for one lane, 0.64 for two) and
 centred on its lanes (`lx`), so the CSS states scale with it; only the full one carries `p.arch` (the flag
@@ -594,12 +592,13 @@ off and hides the glint.
 At boot the page concatenates the text of its first `<style>` and `<script>` and hashes it
 with FNV-1a (`bootHash`). `checkForUpdate()` fetches `location.pathname + "?v=" + Date.now()`
 with `cache: "no-store"`, parses the response with `DOMParser`, hashes the same two blocks and
-arms both gates (`updateGates`: `#titleUpdateBtn` on the title and `#updateBtn` in the garage,
-one `.updateGate` style) when they differ. It runs 2.5 s after boot, on `visibilitychange` back to
-visible and every 10 minutes, rate-limited to one check per 30 s, never on `file:`, and any
-network error is swallowed (offline in the car keeps playing). The badge needs a 1.6 s hold
-(`UPDATE_HOLD_MS`, a ring fills) before it saves and navigates to a cache-busting URL, so a
-stray toddler tap does nothing. Only the style and script blocks are fingerprinted:
+arms the title's PLAY pill (`armUpdate`, 13.26: `updateReady`, `#title.update`) when they differ:
+the pill goes amber and shows its update face (`.faceNew`: a tray with an arrow dropping in, a hold
+ring, sparkles) in place of PLAY. It runs 2.5 s after boot, on `visibilitychange` back to visible
+and every 10 minutes, rate-limited to one check per 30 s, never on `file:`, and any network error
+is swallowed (offline in the car keeps playing). A press on the armed pill (`updateHoldBegin`) fills
+the ring over 1.6 s (`UPDATE_HOLD_MS`) and then saves and navigates to a cache-busting URL; letting
+go sooner resets it, so a stray toddler tap does nothing and the garage carries no gate of its own. Only the style and script blocks are fingerprinted:
 `<head>` changes (metas, manifest, icons) do not trigger it, `APP_VERSION` is informational.
 
 ## Tests

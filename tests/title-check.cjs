@@ -62,8 +62,9 @@ const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); retu
     if (wheel) wheel.style.animation = 'none';
     const wheelBottom = wheel ? wheel.getBoundingClientRect().bottom : car.bottom;
     if (wheel) wheel.style.animation = '';
-    const gate = document.getElementById('titleUpdateBtn'), gateHidden = getComputedStyle(gate).display === 'none';
-    gate.classList.add('show'); const gr = gate.getBoundingClientRect(); gate.classList.remove('show');
+    /* 13.26: the update gate is the PLAY pill itself; nothing else on the title carries it */
+    const gateHidden = !document.getElementById('titleUpdateBtn') && !updateReady && getComputedStyle(titleGo.querySelector('.faceNew')).display === 'none';
+    const gr = titleGo.getBoundingClientRect();
     return { trees: an(document.getElementById('tNear')), dash: an(document.getElementById('tDash')), balloon: an(document.querySelector('#tSky .balloon')),
       glint: an(document.querySelector('#titleLogo .glint')), wheel: wheel ? an(wheel) : 'tWheel', go: an(titleGo), carX: Math.round((car.left - st.left) / s),
       ground, shadowGap: Math.round(((shadow.top + shadow.height / 2) - wheelBottom) / s), shadowOnTires: Math.abs((shadow.top + shadow.height / 2) - wheelBottom) / s < 12, layers: document.querySelectorAll('#title .tLayer svg').length,

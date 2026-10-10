@@ -53,7 +53,7 @@
     width: 506px; cursor: pointer; touch-action: none; pointer-events: auto;
   }
   #preview svg { width: 100%; height: auto; overflow: visible; }
-  /* locked stays full color — the kid needs to see the cool thing; the padlock badge says "not yet" */
+  /* locked stays full color: the kid needs to see the cool thing; the padlock badge says "not yet" */
   #previewLock {
     position: absolute; left: 50%; top: 140px; transform: translateX(-50%);
     width: 96px; height: 96px; border-radius: 50%; background: #023047; border: 6px solid #ffb703;
@@ -91,7 +91,7 @@
   /* green = you can afford it, gray = keep collecting */
   #priceTag { background: #adb5bd; }
   #priceTag.afford { background: #38b000; color: #fff; border-color: #d8f3dc; }
-  /* keep the wiggle alive after the shake — .deny stays on the class list */
+  /* keep the wiggle alive after the shake: .deny stays on the class list */
   #priceTag.deny { animation: denyShake .4s ease, tagWiggle 1.6s ease .4s infinite; }
   @keyframes tagWiggle { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
 
@@ -100,19 +100,6 @@
     border-radius: 50%; background: #fff; border: 6px solid #023047; z-index: 20;
   }
   #profileBtn svg { width: 74px; height: 74px; }
-  /* new version gate: appears only when the hosted game changed; hold to reload
-     (a press-and-hold so a stray toddler tap can't restart the app) */
-  .updateGate {
-    position: absolute; left: 136px; top: 24px; width: 96px; height: 96px; padding: 0;
-    border-radius: 50%; background: #74c465; border: 6px solid #fff; z-index: 20;
-    box-shadow: 0 6px 0 #438a3b; display: none; touch-action: none;
-    animation: pulse 1.4s ease infinite;
-  }
-  .updateGate.show { display: block; }
-  .updateGate svg { width: 100%; height: 100%; }
-  .updateGate .ring { transition: stroke-dashoffset .1s linear; }
-  .updateGate.holding { animation: none; transform: scale(.94); }
-  .updateGate.holding .arrows { animation: spin 1s linear infinite; transform-origin: 50px 50px; }
   #profileOverlay {
     position: absolute; inset: 0; z-index: 80; display: none;
     background: rgba(2,48,71,.6); align-items: center; justify-content: center;
@@ -443,7 +430,7 @@
   .drum { transform-box: fill-box; transform-origin: center; }
   #road.night #skyStars { display: block; }
   #weather { position: absolute; inset: 0; pointer-events: none; z-index: 17; }
-  /* snow world: mud reads wrong on white — puddles become blue-gray slush */
+  /* snow world: mud reads wrong on white: puddles become blue-gray slush */
   #road.w5 .puddle ellipse { fill: #9db4c0; }
   #road.w5 .puddle ellipse + ellipse { fill: #c3d5de; }
   #road.w5 .puddle .splash path { stroke: #c3d5de; }
@@ -794,9 +781,9 @@
 
 /* ============ TOYBOX DESIGN SYSTEM (T7, agent-generated layer) ============ */
 /* ============================================================
-   VROOM DESIGN SYSTEM — "Toybox" layer (Animal Crossing school)
+   VROOM DESIGN SYSTEM: "Toybox" layer (Animal Crossing school)
    Drop-in override sheet. Append AFTER the existing <style> rules;
-   later rules win the cascade. No new class names — only selectors
+   later rules win the cascade. No new class names: only selectors
    that already exist in index.html.
    ============================================================ */
 
@@ -819,7 +806,7 @@
   --v-wood-dark: #6e5233;
   --v-wood-line: #8a6538;
 
-  /* accents — each fill ships with its own soft outline + flat shadow */
+  /* accents: each fill ships with its own soft outline + flat shadow */
   --v-accent-green: #74c465;  --v-green-line: #4e9a45;  --v-green-down: #438a3b;
   --v-accent-red:   #ef7d6d;  --v-red-line:   #c95a4c;  --v-red-down:   #b34e41;
   --v-accent-blue:  #6fc0df;  --v-blue-line:  #4a94b5;  --v-blue-down:  #3f83a2;
@@ -836,13 +823,13 @@
   --v-r-xl: 38px;      /* panels */
   --v-r-round: 50%;
 
-  /* shadow tokens — flat, never blurred */
+  /* shadow tokens: flat, never blurred */
   --v-shadow-soft: 0 5px 0 rgba(74, 53, 35, .18);   /* over unknown fills */
   --v-shadow-card: 0 6px 0 rgba(74, 53, 35, .14);
   --v-outline-soft: rgba(74, 53, 35, .22);           /* translucent 2-tone edge for JS-tinted fills */
   --v-scrim: rgba(64, 44, 28, .55);
 
-  /* bgPattern utility — one dot texture, ~4% opacity, reused everywhere */
+  /* bgPattern utility: one dot texture, ~4% opacity, reused everywhere */
   --v-dots: radial-gradient(rgba(90, 70, 52, .05) 2.4px, transparent 2.6px);
   --v-dots-light: radial-gradient(rgba(255, 255, 255, .06) 2.4px, transparent 2.6px);
   --v-dots-size: 26px 26px;
@@ -894,7 +881,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
   border-radius: var(--v-r-lg);
   box-shadow: 0 6px 0 var(--v-surface-down);
 }
-#profileBtn {                                      /* circle — keep 50% radius */
+#profileBtn {                                      /* circle: keep 50% radius */
   background: var(--v-surface);
   border: 6px solid var(--v-surface-line);
   box-shadow: 0 6px 0 var(--v-surface-down);
@@ -1108,7 +1095,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 
 /* ---------- 8. ENTRANCE ANIMATION ---------- */
 /* the game already defines `@keyframes popIn` (scale .5 -> 1.06 -> 1, with
-   opacity) for its .enter choreography — reuse it rather than redefining,
+   opacity) for its .enter choreography: reuse it rather than redefining,
    so every entrance in the game shares one pop */
 #profileOverlay.show #profilePanel {
   animation: popIn .35s cubic-bezier(.2, 1.4, .4, 1) both;
@@ -1195,7 +1182,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 .prop.trophy svg { animation: trophyGlow 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 @keyframes trophyGlow { 50% { transform: scale(1.06) rotate(2deg); } }
 #paradeBtn {
-  /* mirrors the free-drive wheel in the opposite corner — clear of the world tabs' tap zone */
+  /* mirrors the free-drive wheel in the opposite corner: clear of the world tabs' tap zone */
   position: absolute; right: 30px; bottom: 30px; width: 130px; height: 130px;
   border-radius: 50%; background: #ffb703; border: 7px solid #fff8ec; z-index: 6;
   display: none; animation: pulse 1.1s ease infinite;
@@ -1210,7 +1197,6 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #qrBox { border-radius: var(--v-r-md); }
 
 /* update gate: green on green like the GO family, not a white ring */
-.updateGate { border-color: var(--v-green-line); }
 
 
 /* copy / paste glyphs: old sky-blue strokes and cold gray -> toybox blue ink */
@@ -1378,7 +1364,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ---- road: pedal arms were cold gray ---- */
 .pedal [fill="#6c757d"] { fill: var(--v-ink-soft); }
 
-/* ============ GARAGE REDESIGN: one hierarchy — the car is the hero, GO is the one primary action ============
+/* ============ GARAGE REDESIGN: one hierarchy: the car is the hero, GO is the one primary action ============
    stage coordinates: top bar 24-120 (profile 24 | album right 240 | wallet right 24)
    hero: preview 506 wide, floor line y≈436; right column x-centre 1086, 16px rhythm: gift 192-280 (daily, contextual) on the wall,
    map 392-488 resting on the bench rim, GO 504-684. The shuffle ends the tab row at x 664-740, 28px after the wrench (12.8). Upkeep lives on the workbench tab only;
@@ -1620,6 +1606,20 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #title.active #titleGo::before { animation: tHalo 1.7s ease-out 1.9s infinite; }
 #title.active #titleGo:active, #title.active #titleGo.pressed { animation: none; transform: translateY(8px); }
 @keyframes tGoPulse { 50% { transform: scale(1.04); } }
+/* a new version is waiting (13.26): the one button on the title is the update gate. The pill goes amber and shows its
+   update face; a press fills the ring over UPDATE_HOLD_MS and loads the new version, a quick tap lets go (a stray
+   toddler tap never restarts the app). PLAY comes back on the fresh page. */
+#titleGo .faceNew { display: none; }
+#titleGo .ring { transition: stroke-dashoffset .1s linear; }
+#title.update #titleGo { background: linear-gradient(#ffe8a3 0%, #ffcc4d 45%, #f0a500 100%); border-color: var(--v-yellow-line); box-shadow: 0 8px 0 var(--v-yellow-down), 0 8px 0 2px rgba(0, 0, 0, .08), 0 14px 0 rgba(0, 0, 0, .16), inset 0 5px 0 rgba(255, 255, 255, .45), inset 0 -8px 0 rgba(0, 0, 0, .14); }
+#title.update #titleGo::before { border-color: var(--v-accent-yellow); }
+#title.update #titleGo .facePlay { display: none; }
+#title.update #titleGo .faceNew { display: block; }
+#title.update #titleGo:active, #title.update #titleGo.pressed, #title.update #titleGo.holding { box-shadow: 0 2px 0 var(--v-yellow-down), 0 2px 0 2px rgba(0, 0, 0, .08), 0 6px 0 rgba(0, 0, 0, .14), inset 0 3px 0 rgba(255, 255, 255, .3), inset 0 -4px 0 rgba(0, 0, 0, .14); }
+#title.active #titleGo.holding { animation: none; transform: translateY(8px); }
+#titleGo.holding .faceNew .arrow { animation: tLoadBob .45s ease-in-out infinite; }
+@keyframes tLoadBob { 50% { transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { #titleGo.holding .faceNew .arrow { animation: none; } }
 @keyframes tHalo { 0% { transform: scale(.92); opacity: .75; } 100% { transform: scale(1.22); opacity: 0; } }
 /* the gift badge: a small capsule riding the play pill's shoulder while today's gift is unclaimed */
 #titleGift {
@@ -1630,7 +1630,6 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #titleGift.show { display: flex; }
 #titleGift svg { width: 38px; height: 42px; }
 #title.active #titleProfileBtn { animation: popIn .5s cubic-bezier(.2, 1.6, .4, 1) backwards; }
-#title.active #titleUpdateBtn.show { animation: pulse 1.4s ease infinite; }
 @media (prefers-reduced-motion: reduce) {
   #title.active #titleLogo, #title.active #titleLogo .glint, #title.active #titleLogo .spark,
   #title.active #titleCar, #title.active #titleCar .wheelrot, #title.active #titleCar .tPuffs span, #titleCar.idle svg, #titleGift,
@@ -1653,7 +1652,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* --- reduced motion: decorative keyframes off (pulses, nudges, pop-ins, confetti, idle bobs, shimmers,
    accessory flutter); the functional ones (scene iris, chip pops, deny shakes, road hits) stay but short --- */
 @media (prefers-reduced-motion: reduce) {
-  .updateGate, #nextBtn, #replayBtn, #ghostTease, #ghostTease .gTongue, #ghostTease .gWave, #goBtn.nudge, #gasPedal.nudge, .catTab.needs .alert, .tile.urgent, #previewLock, #priceTag:not(.deny),
+  #nextBtn, #replayBtn, #ghostTease, #ghostTease .gTongue, #ghostTease .gWave, #goBtn.nudge, #gasPedal.nudge, .catTab.needs .alert, .tile.urgent, #previewLock, #priceTag:not(.deny),
   .enter, .tile.enter, .tile.justSel.enter, #celebrate.active #resultsCard, #importConfirm.show #importCard, #deleteConfirm.show #deleteCard, #deleteHold.holding .lid, #numCard, #peekCard, #stickerToast.show,
   .confetti, .buddyBob, .buddyPop, .hoverBob, .hoverGlow, .hoverTrail, .spinner, .rearFlame, .flapWing, .boosterFlame, .antennaSway, .bubbleDrift,
   .lavaGlow, .maneWave, .lightFlashA, .lightFlashB, .jetPuff, .discoGlint, .decalShimmer, .decalStomp, .decalSpin, .decalFlicker, .decalTwinkle,
@@ -1686,24 +1685,27 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     <div id="tVerge" class="tLayer" aria-hidden="true"></div>
     <div id="titleLogo" aria-hidden="true"></div>
     <button class="bigBtn" id="titleProfileBtn" aria-label="who is playing"></button>
-    <button class="updateGate" id="titleUpdateBtn" aria-label="new version ready: press and hold to update">
-      <svg viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="40" fill="none" stroke="#ffffff55" stroke-width="8"/>
-        <circle class="ring" cx="50" cy="50" r="40" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"
-          stroke-dasharray="251.3" stroke-dashoffset="251.3" transform="rotate(-90 50 50)"/>
-        <g class="arrows" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round">
-          <path d="M30 44 A21 21 0 0 1 68 38"/><path d="M70 56 A21 21 0 0 1 32 62"/>
-        </g>
-        <path d="M60 30 L72 38 L60 46 Z M40 54 L28 62 L40 70 Z" fill="#fff"/>
-      </svg>
-    </button>
     <div id="titleCar" aria-label="your car: tap to honk"></div>
     <button class="bigBtn" id="titleGo" aria-label="play: to the garage">
       <!-- the face: a play chip and PLAY drawn as paths (the title's second word, a label on the one button, never <text>) -->
-      <svg viewBox="0 0 400 132">
+      <svg class="facePlay" viewBox="0 0 400 132">
         <circle cx="86" cy="66" r="50" fill="#2f7a2a" opacity=".35"/><circle cx="86" cy="62" r="50" fill="#e9f8e4"/><circle cx="86" cy="62" r="42" fill="#fff"/>
         <path d="M72 38 L112 62 L72 86 Z" fill="#46a63a"/>
         <g transform="translate(152,34) scale(.58)"><g transform="translate(0,0)"><path fill-rule="evenodd" d="M0 0 H52 C76 0 90 14 90 36 C90 58 76 70 52 70 H24 V110 H0 Z M24 22 V48 H50 C58 48 64 44 64 35 C64 26 58 22 50 22 Z" fill="#fff" stroke="#2f7a2a" stroke-width="10" stroke-linejoin="round" paint-order="stroke"/></g><g transform="translate(104,0)"><path d="M0 0 H24 V86 H70 V110 H0 Z" fill="#fff" stroke="#2f7a2a" stroke-width="10" stroke-linejoin="round" paint-order="stroke"/></g><g transform="translate(188,0)"><path fill-rule="evenodd" d="M0 110 L30 0 H58 L88 110 H62 L56 86 H32 L26 110 Z M37 64 H51 L44 34 Z" fill="#fff" stroke="#2f7a2a" stroke-width="10" stroke-linejoin="round" paint-order="stroke"/></g><g transform="translate(290,0)"><path d="M0 0 H28 L44 38 L60 0 H88 L56 64 V110 H32 V64 Z" fill="#fff" stroke="#2f7a2a" stroke-width="10" stroke-linejoin="round" paint-order="stroke"/></g></g>
+      </svg>
+      <!-- the update face (13.26): a new version is waiting. The pill goes amber, the chip is a tray with an arrow
+           dropping into it and a hold ring round it, sparkles say "new"; press and hold fills the ring and loads it -->
+      <svg class="faceNew" viewBox="0 0 400 132" aria-hidden="true">
+        <circle cx="86" cy="66" r="50" fill="#8a5a00" opacity=".3"/><circle cx="86" cy="62" r="50" fill="#fff3d1"/><circle cx="86" cy="62" r="42" fill="#fff"/>
+        <circle cx="86" cy="62" r="46" fill="none" stroke="#f0a500" stroke-width="6" opacity=".35"/>
+        <circle class="ring" cx="86" cy="62" r="46" fill="none" stroke="#e07b00" stroke-width="7" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289" transform="rotate(-90 86 62)"/>
+        <path d="M60 70 V86 H112 V70" fill="none" stroke="#d9823f" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+        <g class="arrow"><path d="M86 32 V66" stroke="#e07b00" stroke-width="10" stroke-linecap="round"/><path d="M70 54 L86 72 L102 54 Z" fill="#e07b00"/></g>
+        <g fill="#fff" stroke="#d9823f" stroke-width="4" stroke-linejoin="round">
+          <path d="M230 30 L242 58 L272 62 L250 82 L256 112 L230 97 L204 112 L210 82 L188 62 L218 58 Z"/>
+          <path d="M318 44 L325 60 L342 62 L329 74 L333 92 L318 83 L303 92 L307 74 L294 62 L311 60 Z"/>
+          <path d="M166 86 L171 97 L183 98 L174 106 L176 118 L166 112 L156 118 L158 106 L149 98 L161 97 Z"/>
+        </g>
       </svg>
       <span id="titleGift" aria-label="a gift is waiting"></span>
     </button>
@@ -1714,17 +1716,6 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     <div id="garageFloor"></div>
     <!-- top bar: who is playing (left) | album + star wallet (right); the speaker lives in the grown-ups overlay -->
     <button class="bigBtn" id="profileBtn" aria-label="who is playing"></button>
-    <button class="updateGate" id="updateBtn" aria-label="new version ready: press and hold to update">
-      <svg viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="40" fill="none" stroke="#ffffff55" stroke-width="8"/>
-        <circle class="ring" cx="50" cy="50" r="40" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"
-          stroke-dasharray="251.3" stroke-dashoffset="251.3" transform="rotate(-90 50 50)"/>
-        <g class="arrows" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round">
-          <path d="M30 44 A21 21 0 0 1 68 38"/><path d="M70 56 A21 21 0 0 1 32 62"/>
-        </g>
-        <path d="M60 30 L72 38 L60 46 Z M40 54 L28 62 L40 70 Z" fill="#fff"/>
-      </svg>
-    </button>
     <button class="bigBtn" id="albumBtn" aria-label="sticker album">
       <svg viewBox="0 0 100 100"><path d="M50 18 Q30 8 14 14 V78 Q30 72 50 82 Q70 72 86 78 V14 Q70 8 50 18 Z" fill="#fff" stroke="#023047" stroke-width="5"/><path d="M50 18 V82" stroke="#023047" stroke-width="4"/><path d="M30 34 L33 41 L41 42 L35 47 L37 55 L30 50 L23 55 L25 47 L19 42 L27 41 Z" fill="#ffd60a"/><circle cx="68" cy="44" r="9" fill="#74c69d"/></svg>
     </button>
@@ -2040,10 +2031,10 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 "use strict";
 
 /* ==========================================================================================
-   VROOM — a build-a-car game for 3-5 year olds. One file, no build step, no dependencies;
+   VROOM: a build-a-car game for 3-5 year olds. One file, no build step, no dependencies;
    runs from file:// and GitHub Pages. No words on screen: everything is pictures and sound.
 
-   TABLE OF CONTENTS — each section opens with a banner "===== N. NAME =====".
+   TABLE OF CONTENTS: each section opens with a banner "===== N. NAME =====".
      1. STAGE                     fit the fixed 1200x700 stage to any screen
      2. DOM HELPERS               injectCSS, restartAnim
      3. CATALOG + ECONOMY         part ids and prices, upgrades, world table, medals, badges, icons
@@ -2089,7 +2080,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.25.0";
+const APP_VERSION = "13.26.0";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -2205,7 +2196,7 @@ function timeTier(n, t) {
 }
 const stopwatchIcon = `<svg viewBox="0 0 64 64"><circle cx="32" cy="36" r="24" fill="#fff" stroke="#023047" stroke-width="6"/><path d="M32 36 V22 M32 36 L42 42" stroke="#e63946" stroke-width="5" stroke-linecap="round"/><path d="M26 8 H38 M32 8 V12" stroke="#023047" stroke-width="6" stroke-linecap="round"/></svg>`;
 
-/* "first time!" sticker badges — earned once, live in the album */
+/* "first time!" sticker badges: earned once, live in the album */
 const BADGES = [
   { id: "jump",  icon: `<svg viewBox="0 0 64 64"><path d="M4 54 L34 42 L34 54 Z" fill="#e9c46a" stroke="#b08968" stroke-width="3"/><path d="M30 40 Q44 18 58 26" stroke="#4cc9f0" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="1 9"/><circle cx="58" cy="26" r="7" fill="#e63946"/></svg>` },
   { id: "clean", icon: `<svg viewBox="0 0 64 64"><path d="M32 4 L54 12 V30 Q54 48 32 58 Q10 48 10 30 V12 Z" fill="#bde0fe" stroke="#1d3557" stroke-width="4"/><path d="M20 30 L28 38 L44 20" stroke="#38b000" stroke-width="7" fill="none" stroke-linecap="round"/></svg>` },
@@ -2634,7 +2625,7 @@ function engineStop() {
 }
 
 /* ============ 6. ART: VEHICLES, SIDE VIEW ============ */
-/* viewBox 0 0 320 230 — ground line y=200, axles x=85/235 */
+/* viewBox 0 0 320 230: ground line y=200, axles x=85/235 */
 const WHEELS = {
   normal:  { r: 26, hub: "#adb5bd" },
   monster: { r: 40, hub: "#adb5bd" },
@@ -2653,7 +2644,7 @@ const WHEEL_DECOR = {
   gold: (r) => [0, 1, 2, 3, 4].map(a =>
     `<rect x="-2" y="${-r + 3}" width="4" height="${r - 3}" rx="2" fill="#ffd700" transform="rotate(${a * 72})"/>`
   ).join(""),
-  /* 6 white petal ellipses around the pink hub — hub becomes the flower center */
+  /* 6 white petal ellipses around the pink hub: hub becomes the flower center */
   flower: (r) => [0, 1, 2, 3, 4, 5].map(a =>
     `<ellipse cx="0" cy="${-r * 0.62}" rx="${r * 0.28}" ry="${r * 0.42}" fill="#fff" transform="rotate(${a * 60})"/>`
   ).join(""),
@@ -2677,7 +2668,7 @@ function wheelSVG(type, cx) {
 function eye(cx, cy, r) {
   return `<g class="vEye"><circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff"/><circle cx="${cx + r * 0.25}" cy="${cy}" r="${r * 0.45}" fill="#1d3557"/></g>`;
 }
-/* ---- BODIES — garage side view (viewBox 0 0 320 230, ground y=200, car faces RIGHT) ----
+/* ---- BODIES: garage side view (viewBox 0 0 320 230, ground y=200, car faces RIGHT) ----
    Every body carries an `anchors` block; it is the ONLY thing that positions accessories. All
    points are [x, y] in viewBox px, measured on the body art as drawn (big wheels lift the whole
    group, anchors move with it). Fill in every field; the garage, wash bay and album all read them.
@@ -2769,7 +2760,7 @@ const BODIES = {
       <path d="M60 132 Q80 118 96 132 Q112 146 128 132" stroke="#ffd60a" stroke-width="7" fill="none" stroke-linecap="round"/>
       <rect x="36" y="158" width="252" height="14" rx="7" fill="#495057"/>`
   },
-  /* police: low sedan silhouette — long trunk-hood line with a rounded cabin hump,
+  /* police: low sedan silhouette: long trunk-hood line with a rounded cabin hump,
      white side stripe with a navy star badge, red+blue lightbar on the roof */
   police: {
     anchors: { hat: [80, 116], horn: [230, 85], beacon: [150, 84], flag: [50, 118], wings: [118, 136], booster: [44, 150], decal: [208, 142, .45], buddy: [80, 116] },
@@ -2906,7 +2897,7 @@ function extrasSVG(body, extras, hasBuddy) {
   }
   return out;
 }
-/* ============ 7. ART: BUDDIES — capsule-prize critters that ride along ============ */
+/* ============ 7. ART: BUDDIES: capsule-prize critters that ride along ============ */
 /* each is a head-and-paws peeking over the roofline; ~64 wide, drawn upward from y=6 */
 const BUDDY_ORDER = ["pup", "kitty", "ducky", "dino", "penguin", "monkey"];
 const BUDDY_SVG = {
@@ -3025,42 +3016,42 @@ function hoodToySVG([x, y]) {
     </g>`;
 }
 
-/* ============ 8. ART: WORLDS 1-8 — sky CSS, roadside vignettes, far hills, weather, hazards, icons, tints ============ */
+/* ============ 8. ART: WORLDS 1-8: sky CSS, roadside vignettes, far hills, weather, hazards, icons, tints ============ */
 /* Conventions: flat chunky SVG, no gradients / ids / filters. Roadside vignettes are <g> groups at
    translate(x,462); far hills are two-hump quads tiling every 520px down to y=465; hazards are
    { type, svg, w, h, xOff, yOff } with xOff ~ -w/2 and yOff ~ -(h-2) so the art sits on the lane. */
 
-/* ---- WORLD_CSS — #road.w4 .. #road.w8 (worlds 1-3 use the base #road / .sunset / .night rules) ---- */
+/* ---- WORLD_CSS: #road.w4 .. #road.w8 (worlds 1-3 use the base #road / .sunset / .night rules) ---- */
 /* worlds 1-3 keep the existing #road / .sunset / .night rules untouched */
 const WORLD_CSS = `
-  /* ----- world 4: RAIN — gray wet city, sun hiding behind the clouds ----- */
+  /* ----- world 4: RAIN: gray wet city, sun hiding behind the clouds ----- */
   #road.w4 { background: linear-gradient(#5c677d 0%, #7d8597 45%, #a9b4c2 62%); }
   #road.w4 #sun { display: none; }
   #road.w4 .cloud { background: #adb5bd; opacity: 1; }
   #road.w4 .cloud::before, #road.w4 .cloud::after { background: #adb5bd; }
 
-  /* ----- world 5: SNOW — pale low sun, white road with plowed edges ----- */
+  /* ----- world 5: SNOW: pale low sun, white road with plowed edges ----- */
   #road.w5 { background: linear-gradient(#9db8d2 0%, #c3d9ea 45%, #e9f2f9 62%); }
   #road.w5 #sun { background: #f8f9fa; box-shadow: 0 0 30px 10px rgba(248,249,250,.4); }
   #road.w5 .cloud { opacity: 1; }
 
-  /* ----- world 6: DESERT — big orange sun, sandy shoulders ----- */
+  /* ----- world 6: DESERT: big orange sun, sandy shoulders ----- */
   #road.w6 { background: linear-gradient(#f4a24c 0%, #ffc971 45%, #ffe8c2 62%); }
   #road.w6 #sun { background: #fb8500; width: 150px; height: 150px; box-shadow: 0 0 80px 30px rgba(251,133,0,.5); }
   #road.w6 .cloud { opacity: .45; }
 
-  /* ----- world 7: BEACH — tropical sky, sand under the boardwalk road ----- */
+  /* ----- world 7: BEACH: tropical sky, sand under the boardwalk road ----- */
   #road.w7 { background: linear-gradient(#00b4d8 0%, #48cae4 45%, #ade8f4 62%); }
   #road.w7 .cloud { opacity: .95; }
 
-  /* ----- world 8: SPACE — night-plus, tiny far-away sun, moon road ----- */
+  /* ----- world 8: SPACE: night-plus, tiny far-away sun, moon road ----- */
   #road.w8 { background: linear-gradient(#000814 0%, #001d3d 45%, #003566 62%); }
   #road.w8 #sun { background: #caf0f8; width: 64px; height: 64px; box-shadow: 0 0 30px 10px rgba(202,240,248,.45); }
   #road.w8 .cloud { opacity: 0; }
   #road.w8 #skyStars { display: block; }
 `;
 
-/* ---- WORLD_SCENERY — the original roadside vignettes for worlds 4-8 ----
+/* ---- WORLD_SCENERY: the original roadside vignettes for worlds 4-8 ----
    One <g> at translate(x,462) per world; legacyPiece() wraps each into its WORLD_SET pool (section 22). */
 const WORLD_SCENERY = {
   /* rain: two gray city blocks with lit windows + two sidewalk umbrellas */
@@ -3153,7 +3144,7 @@ const WORLD_SCENERY = {
     </g>`
 };
 
-/* ---- WORLD_FAR — one far hill variant per 520px tile ----
+/* ---- WORLD_FAR: one far hill variant per 520px tile ----
    Same two-hump quad structure as the existing #74c69d hills. */
 const WORLD_FAR = {
   /* sunset: golden hills */
@@ -3182,7 +3173,7 @@ const WORLD_FAR = {
            `<ellipse cx="${x + 390}" cy="438" rx="24" ry="7" fill="#343a40"/>`
 };
 
-/* ---- WORLD_WEATHER — particle div specs ----
+/* ---- WORLD_WEATHER: particle div specs ----
    Spawn `count` divs into #road (behind HUD, z 15), each with the returned
    className + cssText. rng is a seeded mulberry32 so runs are reproducible. */
 const WORLD_WEATHER = {
@@ -3211,7 +3202,7 @@ const WORLD_WEATHER = {
       };
     }
   },
-  w6: null,   /* desert: no particles — the big sun and dunes carry it */
+  w6: null,   /* desert: no particles: the big sun and dunes carry it */
   w7: null,   /* beach: no particles */
   w8: null    /* space: reuse #skyStars (enabled by #road.w8 CSS) */
 };
@@ -3245,7 +3236,7 @@ const WORLD_WEATHER_CSS = {
   w8: null
 };
 
-/* ---- WORLD_PROPS — two hazards per world 5-8 (copied into EXTRA_PROPS at registration) ----
+/* ---- WORLD_PROPS: two hazards per world 5-8 (copied into EXTRA_PROPS at registration) ----
    kinds: soft = fun knock (cone-style), hard = stop + damage (hardHit),
    slick = oil physics (v *= 0.45 + spin), mover-soft = soft but the prop
    moves each tick per moveSpec. xOff/yOff follow addProp() conventions. */
@@ -3253,56 +3244,56 @@ const WORLD_PROPS = {
   w5: [
     {
       type: "ice", w: 150, h: 40, xOff: -75, yOff: -34, kind: "slick",
-      /* feel: reuse oil exactly — sfx.slip() + carWrap .spin, v *= 0.45 */
+      /* feel: reuse oil exactly: sfx.slip() + carWrap .spin, v *= 0.45 */
       svg: `<svg width="150" height="40" viewBox="0 0 150 40"><ellipse cx="75" cy="26" rx="70" ry="12" fill="#bde0fe"/><ellipse cx="75" cy="22" rx="54" ry="8" fill="#e3f2fd"/><path d="M38 22 L52 18 M70 24 L88 19 M104 22 L118 18" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".9"/></svg>`
     },
     {
       type: "snowman", w: 70, h: 90, xOff: -35, yOff: -88, kind: "soft",
-      /* feel: sfx.splat() then sfx.boink() 120ms later — a poof, then the head pops off via .hit/propAway */
+      /* feel: sfx.splat() then sfx.boink() 120ms later: a poof, then the head pops off via .hit/propAway */
       svg: `<svg width="70" height="90" viewBox="0 0 70 90"><circle cx="35" cy="66" r="22" fill="#fff"/><circle cx="35" cy="36" r="16" fill="#fff"/><circle cx="35" cy="14" r="11" fill="#fff"/><circle cx="31" cy="11" r="2" fill="#023047"/><circle cx="39" cy="11" r="2" fill="#023047"/><path d="M35 15 L50 18 L35 20 Z" fill="#f77f00"/><rect x="24" y="22" width="22" height="6" rx="3" fill="#e63946"/><circle cx="35" cy="32" r="2.5" fill="#023047"/><circle cx="35" cy="40" r="2.5" fill="#023047"/><path d="M20 34 L4 26 M50 34 L66 26" stroke="#6b4423" stroke-width="4" stroke-linecap="round"/></svg>`
     }
   ],
   w6: [
     {
       type: "cactus", w: 60, h: 95, xOff: -30, yOff: -93, kind: "hard",
-      /* feel: hardHit(p, d, 1) — sfx.thud() + shakeCar(), spiky things stop trucks */
+      /* feel: hardHit(p, d, 1): sfx.thud() + shakeCar(), spiky things stop trucks */
       svg: `<svg width="60" height="95" viewBox="0 0 60 95"><rect x="21" y="4" width="18" height="91" rx="9" fill="#588157"/><rect x="2" y="26" width="12" height="34" rx="6" fill="#588157"/><rect x="2" y="48" width="24" height="12" rx="6" fill="#588157"/><rect x="46" y="16" width="12" height="30" rx="6" fill="#588157"/><rect x="36" y="34" width="22" height="12" rx="6" fill="#588157"/><path d="M27 20 V30 M33 40 V52" stroke="#3a5a40" stroke-width="3" stroke-linecap="round"/><circle cx="30" cy="7" r="5" fill="#e76f51"/></svg>`
     },
     {
       type: "tumbleweed", w: 64, h: 64, xOff: -32, yOff: -62, kind: "mover-soft",
       moveSpec: { vx: -130, spin: true },   /* rolls toward the car; rotate el by vx-proportional angle */
-      /* feel: sfx.boink() + noiseBurst(0.12, 1500, 0.2) — a dry crunchy bounce, v *= 0.9 */
+      /* feel: sfx.boink() + noiseBurst(0.12, 1500, 0.2): a dry crunchy bounce, v *= 0.9 */
       svg: `<svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="none" stroke="#b08968" stroke-width="5"/><circle cx="32" cy="32" r="17" fill="none" stroke="#b08968" stroke-width="4"/><path d="M32 4 V60 M4 32 H60 M13 13 L51 51 M51 13 L13 51" stroke="#b08968" stroke-width="3" stroke-linecap="round"/></svg>`
     }
   ],
   w7: [
     {
       type: "sandcastle", w: 76, h: 70, xOff: -38, yOff: -68, kind: "soft",
-      /* feel: sfx.splat() + tone("sine", 260, 90, 0.2, 0.2) — crumbles (swap art or .hit fling), v *= 0.9 */
+      /* feel: sfx.splat() + tone("sine", 260, 90, 0.2, 0.2): crumbles (swap art or .hit fling), v *= 0.9 */
       svg: `<svg width="76" height="70" viewBox="0 0 76 70"><rect x="8" y="34" width="60" height="34" fill="#e9c46a"/><rect x="2" y="26" width="20" height="42" fill="#e9c46a"/><rect x="54" y="26" width="20" height="42" fill="#e9c46a"/><rect x="2" y="20" width="6" height="8" fill="#e9c46a"/><rect x="16" y="20" width="6" height="8" fill="#e9c46a"/><rect x="54" y="20" width="6" height="8" fill="#e9c46a"/><rect x="68" y="20" width="6" height="8" fill="#e9c46a"/><rect x="28" y="18" width="20" height="50" fill="#f4a261"/><path d="M32 68 V52 Q38 44 44 52 V68 Z" fill="#b08968"/><path d="M38 18 V4" stroke="#6b4423" stroke-width="3"/><path d="M38 4 L52 8 L38 13 Z" fill="#e63946"/></svg>`
     },
     {
       type: "crab", w: 70, h: 50, xOff: -35, yOff: -48, kind: "mover-soft",
       moveSpec: { laneHop: 1.4 },   /* hops one lane every 1.4s, bouncing between lanes 0 and 2 */
-      /* feel: sfx.boink() + tone("sine", 1000, 1400, 0.12, 0.2) — a happy startled squeak, no slow-down */
+      /* feel: sfx.boink() + tone("sine", 1000, 1400, 0.12, 0.2): a happy startled squeak, no slow-down */
       svg: `<svg width="70" height="50" viewBox="0 0 70 50"><path d="M27 22 V10 M43 22 V10" stroke="#e63946" stroke-width="4" stroke-linecap="round"/><circle cx="27" cy="8" r="5" fill="#fff"/><circle cx="27" cy="8" r="2.5" fill="#023047"/><circle cx="43" cy="8" r="5" fill="#fff"/><circle cx="43" cy="8" r="2.5" fill="#023047"/><circle cx="7" cy="26" r="6" fill="#d1495b"/><circle cx="63" cy="26" r="6" fill="#d1495b"/><path d="M18 44 L10 49 M28 46 L24 50 M42 46 L46 50 M52 44 L60 49" stroke="#d1495b" stroke-width="4" stroke-linecap="round"/><ellipse cx="35" cy="34" rx="22" ry="14" fill="#e63946"/><path d="M28 36 Q35 42 42 36" stroke="#8d0801" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`
     }
   ],
   w8: [
     {
       type: "crater", w: 90, h: 50, xOff: -45, yOff: -46, kind: "hard",
-      /* feel: hardHit(p, d, 1) — sfx.thud() + shakeCar(); jumpable like rocks */
+      /* feel: hardHit(p, d, 1): sfx.thud() + shakeCar(); jumpable like rocks */
       svg: `<svg width="90" height="50" viewBox="0 0 90 50"><path d="M6 48 L14 22 L30 12 L60 12 L76 22 L84 48 Z" fill="#8d99ae"/><ellipse cx="45" cy="18" rx="26" ry="8" fill="#495057"/><path d="M20 34 L30 30 M62 32 L72 36" stroke="#6c757d" stroke-width="4" stroke-linecap="round"/></svg>`
     },
     {
       type: "alien", w: 64, h: 76, xOff: -32, yOff: -74, kind: "soft",
-      /* feel: tone("sine", 600, 1800, 0.3, 0.2) + sfx.chime() — teleport zip; fade el opacity to 0 over .3s instead of .hit */
+      /* feel: tone("sine", 600, 1800, 0.3, 0.2) + sfx.chime(): teleport zip; fade el opacity to 0 over .3s instead of .hit */
       svg: `<svg width="64" height="76" viewBox="0 0 64 76"><path d="M26 7 Q22 2 18 4 M38 7 Q42 2 46 4" stroke="#43a047" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M32 4 Q56 4 56 40 Q56 68 32 74 Q8 68 8 40 Q8 4 32 4 Z" fill="#74c69d"/><path d="M10 44 Q0 36 4 28" stroke="#74c69d" stroke-width="7" fill="none" stroke-linecap="round"/><circle cx="32" cy="32" r="13" fill="#fff"/><circle cx="32" cy="32" r="6" fill="#023047"/><path d="M25 50 Q32 56 39 50" stroke="#1b4332" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="22" cy="72" rx="7" ry="3" fill="#43a047"/><ellipse cx="42" cy="72" rx="7" ry="3" fill="#43a047"/></svg>`
     }
   ]
 };
 
-/* ---- WORLD_ICONS — 100x100 map/button icons, white-on-color ---- */
+/* ---- WORLD_ICONS: 100x100 map/button icons, white-on-color ---- */
 const WORLD_ICONS = {
   /* construction crane */
   w1: `<svg viewBox="0 0 100 100"><rect x="20" y="14" width="10" height="72" fill="#fff"/><rect x="12" y="10" width="76" height="9" fill="#fff"/><path d="M74 19 V44" stroke="#fff" stroke-width="5"/><rect x="64" y="44" width="20" height="16" rx="3" fill="#ffd60a"/><rect x="8" y="84" width="36" height="8" rx="4" fill="#fff"/></svg>`,
@@ -3322,7 +3313,7 @@ const WORLD_ICONS = {
   w8: `<svg viewBox="0 0 100 100"><path d="M50 6 Q68 26 68 52 L68 70 H32 L32 52 Q32 26 50 6 Z" fill="#fff"/><circle cx="50" cy="42" r="9" fill="#4cc9f0"/><path d="M32 56 L16 78 L32 74 Z" fill="#fff"/><path d="M68 56 L84 78 L68 74 Z" fill="#fff"/><path d="M42 74 Q50 92 58 74 Z" fill="#ff9f1c"/></svg>`
 };
 
-/* ---- WORLD_TINT — accent per world for map tabs / buttons ---- */
+/* ---- WORLD_TINT: accent per world for map tabs / buttons ---- */
 const WORLD_TINT = {
   w1: "#f77f00",   /* construction orange */
   w2: "#e76f51",   /* sunset coral */
@@ -3341,7 +3332,7 @@ const WORLD_TINT = {
    brightness() filters only. */
 
 const PREMIUM_BODIES = {
-  /* limo: super-stretched low sedan spanning nearly the full frame — long
+  /* limo: super-stretched low sedan spanning nearly the full frame: long
      hood + trunk, extra-long cabin with a row of 4 windows (eye up front),
      gold trim line down the flank, tiny black chauffeur cap on the roof */
   limo: {
@@ -3361,7 +3352,7 @@ const PREMIUM_BODIES = {
       <circle cx="22" cy="126" r="5" fill="#e63946"/>
       <rect x="20" y="156" width="284" height="14" rx="6" fill="#495057"/>`
   },
-  /* dragon: scaly paint-colored beast-car — curling tail off the rear with a
+  /* dragon: scaly paint-colored beast-car: curling tail off the rear with a
      spade tip, spiky darker back ridge, folded pale wing on the flank, big
      round head up front with yellow horns, huge friendly eye, snout and a
      tiny orange flame-breath puff */
@@ -3388,7 +3379,7 @@ const PREMIUM_BODIES = {
       <circle cx="309" cy="124" r="3.5" fill="#ffd60a"/>
       <rect x="54" y="158" width="224" height="14" rx="6" fill="#495057"/>`
   },
-  /* train: chunky locomotive — tall cab at the rear with window + eye, long
+  /* train: chunky locomotive: tall cab at the rear with window + eye, long
      boiler barrel with darker bands and front cap, brass-ish dome, black
      chimney puffing a white steam cloud, red cow-catcher at the front,
      silver side-rod hint running between the wheels */
@@ -3418,7 +3409,7 @@ const PREMIUM_BODIES = {
       <circle cx="85" cy="168" r="5" fill="#6c757d"/>
       <circle cx="235" cy="168" r="5" fill="#6c757d"/>`
   },
-  /* royal: rounded parade coach — big jeweled gold crown on a red cushion up
+  /* royal: rounded parade coach: big jeweled gold crown on a red cushion up
      top, curtained front window with the eye peeking out, gold swirl on the
      flank, gold scalloped bead skirt along the bottom, waving red pennant
      at the front corner */
@@ -3501,7 +3492,7 @@ const PREMIUM_HONKS = {
 
 /* ---- extras pack: wings, booster, partyhat ----
    Each takes the (x, y) it is drawn at; extrasSVG() / vehicleRearSVG() pass the body's
-   `anchors.wings` (root), `anchors.booster` (nozzle attach) and `anchors.hat` (hat base) — see
+   `anchors.wings` (root), `anchors.booster` (nozzle attach) and `anchors.hat` (hat base): see
    the anchor contract above BODIES. The art stays within ~40px of its anchor. */
 
 const NEW_EXTRAS_SVG = {
@@ -3607,7 +3598,7 @@ for (const exName in NEW_EXTRAS_SVG) {
   document.getElementById("extras").appendChild(exBtn);
 }
 
-/* ============ 10. PACK: SHOP — 8 bodies, 6 wheels, 6 extras, 4 buddies, 3 decals ============ */
+/* ============ 10. PACK: SHOP: 8 bodies, 6 wheels, 6 extras, 4 buddies, 3 decals ============ */
 /* Registers into BODY_ORDER / WHEEL_ORDER / BUDDY_ORDER / DECAL_ORDER / PRICES and adds garage
    buttons; the CODE_* lists (section 17) append its ids. Must run before loadState() so saved
    builds validate against the full catalog.
@@ -4400,7 +4391,7 @@ const WORK_ICON = {
   wash:   `<svg class="glyph" viewBox="0 0 100 100"><rect x="18" y="34" width="52" height="38" rx="14" fill="#ffd66e" stroke="#dca63f" stroke-width="4"/><circle cx="30" cy="30" r="9" fill="#fff" opacity=".9"/><circle cx="48" cy="22" r="12" fill="#fff" opacity=".9"/><circle cx="66" cy="30" r="8" fill="#fff" opacity=".9"/><circle cx="80" cy="44" r="6" fill="#fff" opacity=".8"/></svg>`
 };
 
-/* body tile: the body in the current paint on default wheels — no extras, buddy, mud or dings; cached per body+paint */
+/* body tile: the body in the current paint on default wheels: no extras, buddy, mud or dings; cached per body+paint */
 const miniCarCache = new Map();
 function miniCarSVG(body) {
   const key = body + "|" + state.color;
@@ -5067,7 +5058,7 @@ const b64url = {
     return Uint8Array.from(s, c => c.charCodeAt(0));
   }
 };
-/* paid-item orders are FROZEN for code compatibility — append only */
+/* paid-item orders are FROZEN for code compatibility: append only */
 const CODE_BODIES = ["police", "race", "tractor", "icecream", "rocket", "ufo", "limo", "dragon", "train", "royal", ...SHOP_BODY_IDS];   /* v3 codes count-prefix these lists */
 const CODE_WHEELS = ["gold", "flower", "tank", "glow", "star", ...SHOP_WHEEL_IDS];
 const CODE_COLORS = ["#8e24aa", "#00acc1", "#9ccc65", "#f5f5f5", "#37474f", "rainbow", ...Object.keys(PATTERNS)];
@@ -5077,7 +5068,7 @@ const CODE_EXTRAS = ["wings", "booster", "partyhat", ...SHOP_EXTRA_IDS];
 const CODE_BADGES = ["jump", "clean", "s", "world", "buy", "gag"];   /* FROZEN for save-code layout; champ travels in full codes only */
 const CODE_DECALS = ["flame", "star", "heart", "bolt", "eyes", ...SHOP_DECAL_IDS];
 
-/* compact binary save: everything except photos + best times — small enough for a QR.
+/* compact binary save: everything except photos + best times: small enough for a QR.
    Format 3: every list is count-prefixed and the build rides along, so content packs can
    append to CODE_* lists / BODY_ORDER / WHEEL_ORDER / COLORS / BUDDY_ORDER and old codes
    still decode (shorter lists read fewer bits). Append only, never reorder. */
@@ -5436,7 +5427,7 @@ function qrEncode(text) {
   for (let i = 0; i <= 5; i++) { M[8][i] = fbit(14 - i); M[i][8] = fbit(i); }
   M[8][7] = fbit(8); M[8][8] = fbit(7); M[7][8] = fbit(6);
   for (let i = 0; i < 8; i++) M[8][size - 1 - i] = fbit(i);
-  for (let i = 0; i < 7; i++) M[size - 1 - i][8] = fbit(14 - i);   /* 7 bits — (size-8,8) is the dark module */
+  for (let i = 0; i < 7; i++) M[size - 1 - i][8] = fbit(14 - i);   /* 7 bits: (size-8,8) is the dark module */
   return M;
 }
 
@@ -6466,7 +6457,7 @@ function mulberry32(a) {
   };
 }
 
-/* ============ 20. ROAD: CHASE-CAM VEHICLE — the build as chunky 3D toy blocks, seen from behind ============ */
+/* ============ 20. ROAD: CHASE-CAM VEHICLE: the build as chunky 3D toy blocks, seen from behind ============ */
 /* Each body is boxes / cylinders / hulls in car space (x lateral, y up, z forward from the rear
    bumper), projected through the same camera as the road, so you see the roof, the cab past
    the bed, the hood running off toward the horizon and the front wheels poking out ahead.
@@ -7654,7 +7645,7 @@ function buildLevel(n) {
     }
     run(noRoom ? BEATS.trailStraight : rhythm[bi++ % rhythm.length]);   /* no jump fits any more: the run home is stars, not new hazards */
   }
-  /* never a level without its jump — but land well before the flags, so the gantry never
+  /* never a level without its jump: but land well before the flags, so the gantry never
      looks planted on the ramp lip and the car is on its wheels at the finish */
   /* a forced ramp never lands on another ramp's run-up or flight */
   const rampClash = rx => RAMPS.some(rp => rx - 250 < rp.x + rp.w + (rp.tail || 420) && rx + 250 + rampTail(w) > rp.x - 250)
@@ -8093,21 +8084,21 @@ const WORLD_SET = {
 const arch = (h, g) => ({ w: 880, h, svg: `<svg width="880" height="${h}" viewBox="0 ${-h} 880 ${h}">${g}</svg>` });
 const postsG = (c, w = 30, h = 300, x0 = 30, x1 = 820) => R(x0, -h, w, h, c) + R(x1, -h, w, h, c);
 const WORLD_ARCH = {
-  /* construction: scaffold bridge — lattice posts, plank deck, hazard stripe */
+  /* construction: scaffold bridge: lattice posts, plank deck, hazard stripe */
   w1: arch(400, postsG("#e76f51", 26, 330, 24, 830) + postsG("#e76f51", 26, 330, 70, 784) +
     `<path d="M24 -300 L96 -230 M96 -300 L24 -230 M24 -200 L96 -130 M96 -200 L24 -130 M784 -300 L856 -230 M856 -300 L784 -230 M784 -200 L856 -130 M856 -200 L784 -130" stroke="#e76f51" stroke-width="8"/>` +
     R(0, -360, 880, 30, "#b08968") + R(0, -330, 880, 12, "#8d5a2f") + [...Array(22)].map((_, i) => R(i * 40, -400, 20, 36, i % 2 ? "#ffd60a" : "#212529")).join("") +
     R(0, -400, 880, 8, "#495057") + C(440, -414, 10, "#e63946") + C(440, -414, 5, "#ffd60a")),
-  /* sunset: covered-bridge entry — timber frame with a barn-red gable */
+  /* sunset: covered-bridge entry: timber frame with a barn-red gable */
   w2: arch(440, postsG("#8d5a2f", 40, 300, 20, 820) + R(0, -330, 880, 36, "#8d5a2f") +
     `<path d="M0 -330 L440 -440 L880 -330 Z" fill="#9d0208"/><path d="M60 -330 L440 -425 L820 -330 Z" fill="#e63946"/>` +
     R(395, -400, 90, 60, "#fff3e0", 8) + `<path d="M395 -370 H485 M440 -400 V-340" stroke="#e63946" stroke-width="8"/>` +
     `<path d="M20 -300 L60 -200 M60 -300 L20 -200 M820 -300 L860 -200 M860 -300 L820 -200" stroke="#6b4423" stroke-width="8"/>`),
-  /* night: string-lights arch — a sagging cable of glowing bulbs */
+  /* night: string-lights arch: a sagging cable of glowing bulbs */
   w3: arch(400, postsG("#343a40", 16, 360, 36, 828) + `<path d="M44 -360 Q440 -230 836 -360" stroke="#495057" stroke-width="5" fill="none"/>` +
     [...Array(11)].map((_, i) => { const t = (i + 0.5) / 11, x = 44 + 792 * t, y = -360 + 65 * 4 * t * (1 - t) + 14, col = ["#ffd60a", "#ef7d6d", "#6fc0df", "#74c465", "#ec407a"][i % 5]; return C(x, y + 10, 26, col, 0.25) + R(x - 4, y - 14, 8, 10, "#6c757d") + C(x, y + 10, 12, col); }).join("") +
     C(44, -370, 30, "#ffd60a", 0.3) + C(836, -370, 30, "#ffd60a", 0.3) + C(44, -370, 12, "#ffd60a") + C(836, -370, 12, "#ffd60a")),
-  /* rain: highway sign gantry — gray truss with a big pictogram board (no words) */
+  /* rain: highway sign gantry: gray truss with a big pictogram board (no words) */
   w4: arch(420, postsG("#6c757d", 28, 320, 24, 828) + R(0, -360, 880, 40, "#6c757d") +
     `<path d="M20 -360 L60 -320 M60 -360 L100 -320 M100 -360 L140 -320 M740 -360 L780 -320 M780 -360 L820 -320 M820 -360 L860 -320" stroke="#adb5bd" stroke-width="5"/>` +
     R(280, -420, 320, 110, "#2d6a4f", 10) + `<path d="M440 -400 L480 -360 H455 V-325 H425 V-360 H400 Z" fill="#fff"/>` +
@@ -8127,7 +8118,7 @@ const WORLD_ARCH = {
     `<path d="M43 -340 Q440 -230 837 -340" stroke="#343a40" stroke-width="4" fill="none"/>` +
     [...Array(13)].map((_, i) => { const t = (i + 0.5) / 13, x = 43 + 794 * t, y = -340 + 55 * 4 * t * (1 - t) + 6; return `<path d="M${x - 16} ${y} L${x} ${y + 40} L${x + 16} ${y} Z" fill="${["#e63946", "#ffd60a", "#2a9d8f", "#fff", "#f77f00"][i % 5]}"/>`; }).join("") +
     `<circle cx="440" cy="-250" r="36" fill="none" stroke="#e63946" stroke-width="18"/><path d="M440 -286 V-266 M440 -234 V-214 M404 -250 H424 M456 -250 H476" stroke="#fff" stroke-width="18"/>`),
-  /* space: airlock ring — rounded steel frame with running lights */
+  /* space: airlock ring: rounded steel frame with running lights */
   w8: arch(420, `<path d="M20 0 V-320 Q20 -400 100 -400 H780 Q860 -400 860 -320 V0 H800 V-310 Q800 -340 770 -340 H110 Q80 -340 80 -310 V0 Z" fill="#6c757d"/>` +
     `<path d="M50 0 V-320 Q50 -370 100 -370 H780 Q830 -370 830 -320 V0" stroke="#adb5bd" stroke-width="6" fill="none"/>` +
     [160, 260, 360, 460, 560, 660, 760].map((x, i) => C(x, -370, 10, i % 2 ? "#4cc9f0" : "#ffd60a") + C(x, -370, 20, i % 2 ? "#4cc9f0" : "#ffd60a", 0.3)).join("") +
@@ -9349,7 +9340,7 @@ function award(id) {
   toastTimer = setTimeout(() => toast.classList.remove("show"), 1900);
 }
 
-/* prop collision handlers — d = carX - p.x; car front bumper reaches ~+90, tail ~-30 */
+/* prop collision handlers: d = carX - p.x; car front bumper reaches ~+90, tail ~-30 */
 const PROP_HIT = {
   capsule(p, d) {
     if (Math.abs(laneVis - p.lane) > 0.65) return;
@@ -9422,7 +9413,7 @@ const PROP_HIT = {
       /* drift toward the car: sideways across lanes and down to belly height */
       p.el.style.transform = `translate(${(laneVis - p.lane) * LANE_W * 0.35}px, ${dy * 0.25}px)`;
     } else if (p.el.style.transform) {
-      p.el.style.transform = "";   /* missed it — the star glides back home */
+      p.el.style.transform = "";   /* missed it: the star glides back home */
     }
   },
   ramp() {},   /* physics handled by rampElev */
@@ -10060,7 +10051,6 @@ const MUSIC = {
 };
 let music = null;
 function musicTarget() { return progress.quiet ? 0 : MUSIC_LEVEL * (finished ? MUSIC_DUCK : 1); }
-function musicLive() { return music ? music.live.length : 0; }
 /* one note: osc -> gain envelope -> bus, tracked in music.live until it ends */
 function mNote(m, bus, type, f, t, dur, vol) {
   const o = actx.createOscillator(), g = actx.createGain();
@@ -10440,6 +10430,7 @@ function injectEventCSS() {
 }
 
 /* ---- hook-ins called from startDrive / stopDrive / tick ---- */
+function musicLive() { return music ? music.live.length : 0; }   /* a suite seam (world-check-audio-events reads it inside the page) */
 function worldAudioStart() {
   if (paradeMode) scheduleEvents(PARADE_LEVEL, 1);   /* the parade has its own fixed sky schedule */
   if (!actx) return;
@@ -10576,7 +10567,7 @@ function finishLevel() {
   const cDamage = document.getElementById("celebrateDamage");
   cDamage.innerHTML = wrenchIcon + `<span>${progress.damage}</span>`;
   cDamage.classList.toggle("clean", clean);
-  /* the wrench is garage business — only show it on the victory screen if this run got dinged */
+  /* the wrench is garage business: only show it on the victory screen if this run got dinged */
   cDamage.style.display = runDamage > 0 ? "" : "none";
   const cShine = document.getElementById("celebrateShine");
   cShine.innerHTML = sparkIcon + `<span>+${shine}</span>`;
@@ -10811,12 +10802,12 @@ function eventFinish(n) {
   const bombArc = (dir) => [...Array(11)].map((_, i) => { const t = i / 10; return `${i * 10}% { transform: translate(${Math.round(dir * 420 * t)}px, ${Math.round(440 * t * t - 60 * t)}px) rotate(${Math.round(dir * 400 * t)}deg); }`; }).join(" ");
   const beanHop = [...Array(9)].map((_, i) => { const t = i / 8, up = i % 2; return `${i * 12.5}% { transform: translate(${Math.round(1400 * t)}px, ${up ? -110 : 0}px) scale(${up ? ".9,1.1" : "1.15,.85"}); }`; }).join(" ");
   injectCSS(`
-  /* ----- world 9: VOLCANO — ember sky, a red sun low in the smoke, ash clouds ----- */
+  /* ----- world 9: VOLCANO: ember sky, a red sun low in the smoke, ash clouds ----- */
   #road.w9 { background: linear-gradient(#2b0b0b 0%, #a8321c 45%, #ff8c42 62%); }
   #road.w9 #sun { background: #ff5a1f; width: 120px; height: 120px; box-shadow: 0 0 80px 30px rgba(255,90,31,.5); top: 110px; }
   #road.w9 .cloud { background: #5e5553; opacity: .9; }
   #road.w9 .cloud::before, #road.w9 .cloud::after { background: #5e5553; }
-  /* ----- world 10: CANDY LAND — cotton-candy sky, lemon-drop sun, pink clouds ----- */
+  /* ----- world 10: CANDY LAND: cotton-candy sky, lemon-drop sun, pink clouds ----- */
   #road.w10 { background: linear-gradient(#f48fb1 0%, #fbc4dc 45%, #dff3ff 62%); }
   #road.w10 #sun { background: #fff176; box-shadow: 0 0 60px 24px rgba(255,241,118,.6); }
   #road.w10 .cloud { background: #ffb3d9; opacity: 1; }
@@ -11177,7 +11168,7 @@ function eventFinish(n) {
   @keyframes jellyBob { from { transform: translateY(-10px) scale(1, .96); } to { transform: translateY(8px) scale(.96, 1.04); } }
   .prop.crabKing svg { animation: crabScuttle .5s ease-in-out infinite alternate; }
   @keyframes crabScuttle { from { transform: translateY(0); } to { transform: translateY(-5px); } }
-  /* ----- world 12: SKY KINGDOM — sunrise above the cloud sea, the sun on the horizon ----- */
+  /* ----- world 12: SKY KINGDOM: sunrise above the cloud sea, the sun on the horizon ----- */
   #road.w12 { background: linear-gradient(#4a4e8f 0%, #b388ff 18%, #ff8fab 38%, #ffb86b 52%, #ffe8a3 62%); }
   #road.w12 #sun { background: #ffd166; width: 150px; height: 150px; top: 142px; right: 180px; box-shadow: 0 0 100px 40px rgba(255,209,102,.55); }
   #road.w12 .cloud { opacity: 1; background: #fff4f6; }
@@ -11237,7 +11228,7 @@ function eventFinish(n) {
   /* deep sea: dark reef humps, lower than hills */
   WORLD_FAR.w11 = x => `<path d="M${x} 465 Q${x + 130} 350 ${x + 260} 465 Q${x + 390} 370 ${x + 520} 465" fill="#135a7c"/>` +
     C(x + 130, 420, 6, "#48cae4", 0.5) + C(x + 390, 432, 4, "#48cae4", 0.5);
-  /* sky kingdom: the cloud sea — rounded fluffy tops */
+  /* sky kingdom: the cloud sea: rounded fluffy tops */
   WORLD_FAR.w12 = x => `<path d="M${x} 465 Q${x + 40} 400 ${x + 100} 410 Q${x + 150} 360 ${x + 210} 400 Q${x + 260} 380 ${x + 300} 415 Q${x + 350} 355 ${x + 420} 400 Q${x + 470} 390 ${x + 520} 465 Z" fill="#fff6f8"/>` +
     `<path d="M${x} 465 Q${x + 90} 430 ${x + 180} 440 Q${x + 300} 420 ${x + 400} 445 Q${x + 470} 430 ${x + 520} 465 Z" fill="#ffd6e0"/>`;
   /* deep sea: a sunken ship listing on the reef + a rock stack */
@@ -11774,6 +11765,7 @@ titleCar.addEventListener("pointerdown", e => {
 });
 titleGo.addEventListener("pointerdown", e => {
   e.stopPropagation();
+  if (updateReady) { updateHoldBegin(e); return; }   /* a new version is waiting: the pill is the gate (section 31) */
   sfx.pop(); titleIdleStop(); showGarage();
 });
 titleProfileBtn.addEventListener("pointerdown", e => {
@@ -11789,7 +11781,6 @@ welcomeImport();   /* a save was just loaded: the car says hello (section 17) */
 /* No service worker here: a stale game is Safari's cache or a home-screen app left running.
    Fingerprint the code this page booted with, and quietly compare it against a fresh copy
    from the server on boot, whenever the app comes back to the foreground, and every 10 min. */
-const updateBtn = document.getElementById("updateBtn");
 const bootCode = (() => {
   const st = document.querySelector("style"), sc = document.querySelector("script");
   return (st ? st.textContent : "") + (sc ? sc.textContent : "");
@@ -11810,43 +11801,44 @@ async function checkForUpdate() {
     const doc = new DOMParser().parseFromString(await res.text(), "text/html");
     const st = doc.querySelector("style"), sc = doc.querySelector("script");
     if (!st || !sc) return;
-    if (codeHash(st.textContent + sc.textContent) !== bootHash) updateGates.forEach(b => b.classList.add("show"));
+    if (codeHash(st.textContent + sc.textContent) !== bootHash) armUpdate();
   } catch (e) { /* offline in the car: keep playing what we have */ }
 }
-/* the gate sits on both the title and the garage (same button, same hold); whichever is held fills its own ring */
+/* the gate is the title's one button (13.26): PLAY becomes the update face, amber, and a press-and-hold fills its
+   ring and loads the new version. The garage has no gate of its own any more: the title shows on every boot and
+   whenever the kid comes home. updateReady is read by titleGo's press (section 30) and the suite. */
 const UPDATE_HOLD_MS = 1600;
-const updateGates = [document.getElementById("titleUpdateBtn"), updateBtn];
-let updateHoldT = null, updateHoldStart = 0, updateHoldRaf = null, updateHeld = null;
+let updateReady = false, updateHoldT = null, updateHoldStart = 0, updateHoldRaf = null;
+const updateRing = titleGo.querySelector(".faceNew .ring");
+function armUpdate() {
+  updateReady = true;
+  titleScene.classList.add("update");
+  titleGo.setAttribute("aria-label", "new version ready: press and hold to load it");
+}
 function updateHoldEnd() {
   clearTimeout(updateHoldT); cancelAnimationFrame(updateHoldRaf);
   updateHoldT = null;
-  if (updateHeld) { updateHeld.classList.remove("holding"); updateHeld.querySelector(".ring").style.strokeDashoffset = 251.3; }
-  updateHeld = null;
+  titleGo.classList.remove("holding"); updateRing.style.strokeDashoffset = 289;
 }
-for (const gate of updateGates) {
-  const ring = gate.querySelector(".ring");
-  gate.addEventListener("pointerdown", e => {
-    e.stopPropagation();
-    if (updateHoldT) updateHoldEnd();
-    try { gate.setPointerCapture(e.pointerId); } catch (err) {}
-    sfx.pop();
-    updateHeld = gate;
-    gate.classList.add("holding");
-    updateHoldStart = performance.now();
-    (function fill() {
-      const f = Math.min(1, (performance.now() - updateHoldStart) / UPDATE_HOLD_MS);
-      ring.style.strokeDashoffset = 251.3 * (1 - f);
-      if (f < 1) updateHoldRaf = requestAnimationFrame(fill);
-    })();
-    updateHoldT = setTimeout(() => {
-      save();
-      sfx.tada();
-      /* cache-busting navigation so Safari can't hand back the old page */
-      setTimeout(() => location.replace(location.pathname + "?v=" + Date.now() + location.hash), 350);
-    }, UPDATE_HOLD_MS);
-  });
-  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) gate.addEventListener(ev, () => { if (updateHoldT && updateHeld === gate) updateHoldEnd(); });
+function updateHoldBegin(e) {
+  if (updateHoldT) updateHoldEnd();
+  try { titleGo.setPointerCapture(e.pointerId); } catch (err) { /* a synthetic press has no pointer to capture */ }
+  sfx.pop();
+  titleGo.classList.add("holding");
+  updateHoldStart = performance.now();
+  (function fill() {
+    const f = Math.min(1, (performance.now() - updateHoldStart) / UPDATE_HOLD_MS);
+    updateRing.style.strokeDashoffset = 289 * (1 - f);
+    if (f < 1) updateHoldRaf = requestAnimationFrame(fill);
+  })();
+  updateHoldT = setTimeout(() => {
+    save();
+    sfx.tada();
+    /* cache-busting navigation so Safari can't hand back the old page */
+    setTimeout(() => location.replace(location.pathname + "?v=" + Date.now() + location.hash), 350);
+  }, UPDATE_HOLD_MS);
 }
+for (const ev of ["pointerup", "pointercancel", "pointerleave"]) titleGo.addEventListener(ev, () => { if (updateHoldT) updateHoldEnd(); });
 setTimeout(checkForUpdate, 2500);
 setInterval(checkForUpdate, 10 * 60 * 1000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) checkForUpdate(); });

@@ -1,4 +1,4 @@
-/* garage-check: the redesigned garage — one hierarchy (car hero, GO primary), six category tabs over one
+/* garage-check: the redesigned garage: one hierarchy (car hero, GO primary), six category tabs over one
    options strip. Checks: calm element count at rest, every tab's item count, selection ring follows state,
    locked tile -> tag -> buy -> equipped, arrows page the strip, swipe scrolls instead of equipping, the speaker
    lives in the grown-ups overlay and persists, >=64px targets at iPad scale, zero text (numerals only). */
