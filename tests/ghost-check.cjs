@@ -141,6 +141,16 @@ function check(name, ok, detail) {
   const faded = await page.evaluate(() => ({ vis: ghostSprite.vis, display: ghostSprite.wrap.style.display, over: +(ghostT - ghostTrace.t).toFixed(2) }));
   check('replay: the old twin (behind the camera at the kid\'s finish) rolls on by its own clock after the kid finishes, then is gone 0.8 s past its own line',
     !faster.rolling && rolling.finished && rolling.vis && rolling.z > -260 && +rolling.op > 0 && !faded.vis && faded.display === 'none', JSON.stringify({ rolling, faded }));
+  /* during a race the twin is never drawn between the camera and the car (13.19: a flat saucer body there was a grey disc across the road) */
+  const behind = await page.evaluate(async () => {
+    drive(1); await new Promise(r => setTimeout(r, 300));
+    ghostT = ghostTrace.t * 0.5; v = 0; pos = ghostAt(ghostT)[0] + 100;   /* the car 100 past the twin: the twin is just behind */
+    await new Promise(r => setTimeout(r, 120));
+    const z0 = ghostSprite.x - curCarX, hid = !ghostSprite.vis;
+    pos = ghostAt(ghostT)[0] - 400; await new Promise(r => setTimeout(r, 120));   /* 400 ahead: drawn at full strength */
+    return { z0, hid, ahead: ghostSprite.x - curCarX, vis: ghostSprite.vis, op: +ghostSprite.el.style.opacity };
+  });
+  check('race: the twin is hidden while it is behind the car, drawn when ahead', behind.z0 < -30 && behind.hid && behind.ahead > 0 && behind.vis && behind.op > 0.3, JSON.stringify(behind));
   const ghostB = faster.t;
 
   /* ---- 5. persistence: reload keeps it, the full save code leaves it out, a malformed stored ghost is dropped ---- */

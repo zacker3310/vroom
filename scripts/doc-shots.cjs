@@ -51,6 +51,16 @@ const EXE = process.env.CHROMIUM || pw.chromium.executablePath();
   };
   await spot('chomper.png', () => { drive(9); const t = CHOMPS[0]; pos = t.x0 + CHOMP_MOUTH - 760 - CAR_SCREEN_X; v = 0; });   /* the jaws open as the car comes up the star trail */
   await spot('hardturn.png', () => { drive(56); const c = COURSE.find(c => c.hard); pos = c.x0 - CAR_SCREEN_X - 420; v = 0; });
+  /* a hole in the track (13.18): the first level with a one-lane gap, the car in the lane beside it */
+  await spot('gap.png', () => {
+    let n = 0; for (let k = 15; k <= 60 && !n; k++) { buildLevel(k); if (GAPS.some(g => g.l0 === g.l1)) n = k; }
+    drive(n); const g = GAPS.find(g => g.l0 === g.l1); pos = g.x - CAR_SCREEN_X - 520; v = 0; targetLane = g.l0 === 1 ? 0 : 1; laneVis = targetLane;
+  });
+  /* a single-lane ramp (13.18): the deck only under one lane */
+  await spot('narrowramp.png', () => {
+    let n = 0; for (let k = 3; k <= 40 && !n; k++) { buildLevel(k); if (RAMPS.some(r => r.l0 === r.l1 && r.kick !== 1.1)) n = k; }
+    drive(n); const rp = RAMPS.find(r => r.l0 === r.l1 && r.kick !== 1.1); pos = rp.x - CAR_SCREEN_X - 620; v = 0; targetLane = rp.l0; laneVis = rp.l0;
+  });
   await spot('megaramp.png', () => {
     let n = 0; for (let k = 6; k <= 40 && !n; k++) { buildLevel(k); if (RAMPS.some(r => r.kick === 1.1)) n = k; }
     drive(n); const rp = RAMPS.find(r => r.kick === 1.1); pos = rp.x - CAR_SCREEN_X - 760; v = 0;   /* the big red one dead ahead, its star arc rising */
@@ -59,6 +69,6 @@ const EXE = process.env.CHROMIUM || pw.chromium.executablePath();
   await page.evaluate(async () => { showGarage(); progress.muddy = false; progress.damage = 0; drive(12); await new Promise(r => setTimeout(r, 200)); runStars = 9; runDamage = 0; renderHudStars(false); pos = LEVEL_LEN - 350; gasKey = true; });
   await page.waitForTimeout(3600); await page.evaluate(() => { gasKey = false; });
   await page.screenshot({ path: OUT + 'celebrate.png' });
-  console.log('wrote 12 screenshots to', OUT, errs.length ? '\nerrors: ' + errs.join('\n') : '');
+  console.log('wrote 14 screenshots to', OUT, errs.length ? '\nerrors: ' + errs.join('\n') : '');
   await b.close();
 })();

@@ -1,6 +1,6 @@
 # Vroom test suites
 
-Twenty-three Playwright regression suites (464 checks) that drive the real game in headless
+Twenty-three Playwright regression suites (465 checks) that drive the real game in headless
 Chromium. They are the gate for every change: CI runs them on each push and pull request.
 
 ## Run everything
@@ -81,7 +81,7 @@ click stability check.
 | `number-check.cjs` | 13 | race number: sticker-tab tile, keypad rules, 400-star change / free removal, roundel in both views beside a sticker, save-code tail, photos |
 | `course-check.cjs` | 30 | wild courses: chompers (one per world, in one-lane, two-lane and full sizes, the monster at the mouth with its trail in its lanes, the bite that holds the car and tosses run stars, the drive-past in another lane), ramps in three widths with their stars in the deck's lanes and the off-lane roll-past, track gaps (counts, widths, beats, placement rules, boards, the full-width ramp before a full hole, the drop that slows and never damages), opaque crests, hard turns, rollers, jumps, the mixer drum, reduced motion |
 | `title-check.cjs` | 17 | start screen: title scene on boot, 88 px play pill, gift badge, honk, the moving world and its reduced-motion stop, the title update gate; daily gift: once-a-day capsule above the dice, 15..40 stars or an unowned buddy, claimed state across reloads, next-day return, the `?garage` / `vroom.skipTitle` skips, reduced motion |
-| `ghost-check.cjs` | 19 | ghost race: trace recording, replay sprite follows the trace, slower keeps / faster replaces, gap chip, fade at the line, reload, save-code exclusion, malformed ghost dropped |
+| `ghost-check.cjs` | 20 | ghost race: trace recording, replay sprite follows the trace, slower keeps / faster replaces, gap chip, fade at the line, reload, save-code exclusion, malformed ghost dropped |
 | `upkeep-check.cjs` | 24 | fuel and tire wear, the combined HUD chip and its low-gauge split, dry-tank crawl, bald-tire grip, shine bonus, workbench fill-up and tire tiles, save-code tail, legacy defaults, garage column geometry |
 | `events-check.cjs` | 23 | surprise events: date-seeded picks, sleeping dino marker + road prop (wake, 5 bonus stars, no damage), rainbow day + the secret rainbow-shine paint (once, both views, save code, reload), weather day particles, today chip, no-date fallback |
 | `life-check.cjs` | 17 | garage life: idle putter lifecycle and quiet mode, buddy blink / yawn, animated extras, wheel settle, hood and wheel tap toys, road buddy cheer / duck / wave hooks, reduced motion |

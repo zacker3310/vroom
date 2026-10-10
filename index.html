@@ -1341,9 +1341,6 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 
 /* ============ SURPRISE EVENTS: map markers, the today chip, the road dino ============ */
 /* today chip: sun + day numeral, mirrors the road HUD's level chip slot (home 24-120 | chip 136-300) */
-#todayChip { left: 136px; top: 24px; width: 164px; justify-content: center; padding: 0; box-sizing: border-box; display: none; }
-#todayChip.show { display: flex; }
-#todayChip svg { width: 56px; height: 56px; }
 /* rainbow day: a soft arc over the meadow, behind the tabs and nodes */
 #mapRainbow { position: absolute; left: 50%; top: 10px; width: 1000px; height: 330px; transform: translateX(-50%); pointer-events: none; z-index: 1; display: none; }
 #mapRainbow.show { display: block; }
@@ -1831,7 +1828,6 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     <div id="mapGround"></div>
     <!-- surprise events: rainbow day arc + the "today" sun chip (filled by renderMapEvents) -->
     <div id="mapRainbow" aria-hidden="true"></div>
-    <div class="chip" id="todayChip" aria-label="today"></div>
     <div id="worldTabs"></div>
     <button class="bigBtn" id="paradeBtn" aria-label="victory parade">
       <svg viewBox="0 0 64 64"><path d="M22 4 L26 10 L32 5 L38 10 L42 4 L44 14 H20 Z" fill="#fff8ec"/><path d="M18 14 H46 V30 Q46 44 32 48 Q18 44 18 30 Z" fill="#fff8ec" stroke="#dca63f" stroke-width="3"/><path d="M18 18 Q6 20 12 32 Q15 38 20 38 M46 18 Q58 20 52 32 Q49 38 44 38" stroke="#fff8ec" stroke-width="4" fill="none"/><rect x="26" y="48" width="12" height="7" fill="#dca63f"/><rect x="20" y="55" width="24" height="6" rx="3" fill="#c69334"/></svg>
@@ -2099,7 +2095,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.18.1";
+const APP_VERSION = "13.19.0";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -8774,10 +8770,12 @@ function ghostPlace(carX) {
   if (over > GHOST_FADE) { if (g.vis) { g.wrap.style.display = "none"; g.vis = false; } return; }
   const [gp, gl, gj] = ghostAt(ghostT);
   g.x = gp + CAR_SCREEN_X - CAR_HIT_Z; g.lx = (gl - 1) * LANE_W; g.h = gj;
+  /* behind the car (between it and the camera) the twin would draw huge and over everything, a flat saucer body as a
+     grey disc across half the road (13.19): it is never drawn there, and on top of the kid's car it fades right out */
+  if (!finished && g.x - carX < -30) { if (g.vis) { g.wrap.style.display = "none"; g.vis = false; } return; }   /* after the kid's finish it may drive through the frame */
   placeSprite(g, carX);
-  /* right on top of the kid's car it thins out so it never hides them; past its own line it fades away */
-  const near = Math.min(1, Math.abs(g.x - carX) / 140);
-  const op = (0.45 * (0.3 + 0.7 * near) * (over > 0 ? 1 - over / GHOST_FADE : 1)).toFixed(2);
+  const near = Math.min(1, Math.abs(g.x - carX) / 160);
+  const op = (0.45 * near * (over > 0 ? 1 - over / GHOST_FADE : 1)).toFixed(2);
   if (op !== g.gop) { g.el.style.opacity = op; g.gop = op; }
 }
 /* ---- end GHOST RACE ---- */
@@ -10553,7 +10551,6 @@ const EVENT_WEATHER = {
   rain: { world: 4, icon: `<svg viewBox="0 0 64 64"><path d="M18 34 a12 12 0 0 1 2 -24 a14 14 0 0 1 26 2 a10 10 0 0 1 2 22 Z" fill="#fff8ec" stroke="#1d3557" stroke-width="4" stroke-linejoin="round"/><path d="M22 42 L18 52 M32 42 L28 52 M42 42 L38 52" stroke="#4cc9f0" stroke-width="5" stroke-linecap="round"/></svg>` },
   snow: { world: 5, icon: `<svg viewBox="0 0 64 64"><g stroke="#4cc9f0" stroke-width="5" stroke-linecap="round" fill="none"><path d="M32 8 V56 M11 20 L53 44 M53 20 L11 44"/><path d="M26 14 L32 20 L38 14 M26 50 L32 44 L38 50 M14 28 L22 30 L20 22 M50 28 L42 30 L44 22 M14 36 L22 34 L20 42 M50 36 L42 34 L44 42"/></g></svg>` }
 };
-const EV_SUN = `<svg viewBox="0 0 64 64"><g stroke="#fb8500" stroke-width="5" stroke-linecap="round"><path d="M32 4 V12 M32 52 V60 M4 32 H12 M52 32 H60 M12 12 L18 18 M46 46 L52 52 M12 52 L18 46 M46 18 L52 12"/></g><circle cx="32" cy="32" r="14" fill="#ffd60a" stroke="#fb8500" stroke-width="4"/></svg>`;
 const EV_RAINBOW_ARC = (() => {
   const cols = ["#e53935", "#fb8c00", "#fdd835", "#43a047", "#1e88e5", "#8e24aa"];
   return `<svg viewBox="0 0 1000 330">` + cols.map((c, i) => {
@@ -10613,12 +10610,9 @@ function dailyEvents() {
   out.weatherWorld = wOrder.find(k => k <= w && k !== EVENT_WEATHER[out.weather].world) || 0;
   return out;
 }
-/* ---- map: markers on the nodes and tabs, the arc, the day chip ---- */
+/* ---- map: markers on the nodes and tabs, the arc (the day chip went in 13.19: a sun with a number nobody could read) ---- */
 function renderMapEvents() {
   const ev = dailyEvents();
-  const chip = document.getElementById("todayChip");
-  chip.classList.toggle("show", ev.day > 0);
-  chip.innerHTML = ev.day > 0 ? EV_SUN + `<span>${ev.day}</span>` : "";
   const arc = document.getElementById("mapRainbow");
   arc.classList.toggle("show", ev.rainbow > 0);
   arc.innerHTML = ev.rainbow > 0 ? EV_RAINBOW_ARC : "";

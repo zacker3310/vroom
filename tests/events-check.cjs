@@ -64,20 +64,19 @@ const TODAY = '2026-10-08';
     const dinoBtn = q('#mapGrid .evDino') && q('#mapGrid .evDino').closest('.lvlBtn');
     const pipBtn = q('#mapGrid .evPip') && q('#mapGrid .evPip').closest('.lvlBtn');
     const badgeTab = q('#worldTabs .evBadge') && q('#worldTabs .evBadge').closest('.worldTab');
-    const chip = q('#todayChip'), r = chip.getBoundingClientRect();
     return { ev, dinoOn: dinoBtn && dinoBtn.getAttribute('aria-label'), dinoLocked: dinoBtn && dinoBtn.classList.contains('locked'),
       dinoZz: !!q('#mapGrid .evDino .evZz'), pipOn: pipBtn && pipBtn.getAttribute('aria-label'),
       arc: q('#mapRainbow').classList.contains('show') && q('#mapRainbow svg path') !== null,
       badgeOn: badgeTab && badgeTab.getAttribute('aria-label'), badgeKind: q('#worldTabs .evBadge') && q('#worldTabs .evBadge').classList.contains(ev.weather),
       badgeLocked: badgeTab && badgeTab.classList.contains('locked'),
-      chipShown: chip.classList.contains('show'), chipText: chip.textContent.trim(), chipSun: !!chip.querySelector('svg'), chipH: Math.round(r.height),
+      chipGone: !q('#todayChip'),
       counts: [document.querySelectorAll('.evDino').length, document.querySelectorAll('.evPip').length, document.querySelectorAll('.evBadge').length],
-      words: [...document.querySelectorAll('#map .evDino, #map .evPip, #map .evBadge, #todayChip, #mapRainbow')].map(e => e.textContent.trim()).join('') };
+      words: [...document.querySelectorAll('#map .evDino, #map .evPip, #map .evBadge, #mapRainbow')].map(e => e.textContent.trim()).join('') };
   });
   check('map: the dino sleeps on its level (unlocked, not the frontier), with sleep bubbles', map.dinoOn === 'level ' + map.ev.dino && map.dinoLocked === false && map.dinoZz, JSON.stringify([map.dinoOn, map.dinoLocked]));
   check('map: the rainbow arcs over the meadow and one level wears the pip', map.arc && map.pipOn === 'level ' + map.ev.rainbow, JSON.stringify([map.arc, map.pipOn]));
   check('map: the weather world tab wears its badge (unlocked tab, right glyph)', map.badgeOn === 'world ' + map.ev.weatherWorld && map.badgeKind && map.badgeLocked === false, JSON.stringify([map.badgeOn, map.ev.weather]));
-  check('map: today chip shows a sun and the day number 8, >= 64px, one marker of each kind, no words', map.chipShown && map.chipSun && map.chipText === '8' && map.chipH >= 64 && map.counts.join() === '1,1,1' && /^\d*$/.test(map.words), JSON.stringify([map.chipText, map.chipH, map.counts, map.words]));
+  check('map: no day chip any more (13.19), one marker of each kind, no words', map.chipGone && map.counts.join() === '1,1,1' && /^\d*$/.test(map.words), JSON.stringify([map.chipText, map.chipH, map.counts, map.words]));
   await page.waitForTimeout(500);
   await page.screenshot({ path: SHOT + 'ev-map.png' });
 
@@ -206,11 +205,11 @@ const TODAY = '2026-10-08';
     window.__today = 'not a date';
     const ev = dailyEvents();
     showMap();
-    const out = { ev, chip: document.getElementById('todayChip').classList.contains('show'), markers: document.querySelectorAll('.evDino, .evPip, .evBadge').length, arc: document.getElementById('mapRainbow').classList.contains('show') };
+    const out = { ev, markers: document.querySelectorAll('.evDino, .evPip, .evBadge').length, arc: document.getElementById('mapRainbow').classList.contains('show') };
     window.__today = '2026-10-08';
     return out;
   });
-  check('no date: no picks, no chip, no markers, no arc, no errors', !nodate.ev.key && nodate.ev.dino === 0 && nodate.ev.rainbow === 0 && !nodate.ev.weather && !nodate.chip && nodate.markers === 0 && !nodate.arc, JSON.stringify(nodate));
+  check('no date: no picks, no markers, no arc, no errors', !nodate.ev.key && nodate.ev.dino === 0 && nodate.ev.rainbow === 0 && !nodate.ev.weather && nodate.markers === 0 && !nodate.arc, JSON.stringify(nodate));
 
   check('no console errors', errors.length === 0, errors.join(' | ').slice(0, 300));
 

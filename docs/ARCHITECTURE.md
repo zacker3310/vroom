@@ -299,7 +299,9 @@ projector as every prop at `x = pos_g + CAR_SCREEN_X - CAR_HIT_Z`, `lx = (lane_g
 `h = jumpY_g`, where `ghostAt(ghostT)` interpolates linearly between samples (and extrapolates
 past the last one). `ghostT` is the ghost's own clock, advanced in `tick` alongside `runTime`, so
 the twin keeps rolling after the kid finishes and fades out `GHOST_FADE = 0.8` s after its own
-line. The sprite is never in `props`, so no `PROP_HIT` or mover sees it. `#hudGhost` shows
+line. During the race the twin is never drawn between the camera and the car (13.19: a flat saucer body there
+projected as a grey disc across half the road) and it fades right out on top of the kid's car; after the
+kid's finish it may drive through the frame. The sprite is never in `props`, so no `PROP_HIT` or mover sees it. `#hudGhost` shows
 `round(ghostTimeAt(pos) - runTime)` signed: positive means the kid reached this point sooner.
 
 ## The beat sequencer

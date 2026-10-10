@@ -283,6 +283,12 @@
 
 - [x] T38.5: The bite does 3 damage with the crash shake; the spat stars land before the mouth in the kid's lane and the spit throws the car backwards through the air (`chompFling`) to land behind them; the beast dozes off full and the road through it is open, so the kid drives back up and collects. [SPID]
 
+## v13.19.0 (2026-10-10, user-directed: "drop the sun chip, grey disc, update README completely")
+
+- [x] T39.1: The map's day chip (a sun with the day of the month) is gone: `#todayChip`, its CSS, `EV_SUN` and the fill in `renderMapEvents`; events-check follows. [SPID]
+- [x] T39.2: The grey disc: the ghost twin drawn between the camera and the car (a flat saucer body there projects as a huge translucent disc across the road). During a race `ghostPlace` never draws the twin behind the car and fades it right out on top of the kid's car; after the finish it may still drive through the frame. ghost-check 19 -> 20. [SPID]
+- [x] T39.3: README rewritten for the game as it is: Zoomies, the title landing, chompers in three sizes, ramps in three widths, track gaps, the clean-line speed scrubs, solid hills, the paste button, the results row; new docs/gap.png and docs/narrowramp.png; counts and version badge current. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
