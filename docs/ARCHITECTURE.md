@@ -188,7 +188,10 @@ climbs the wall, hangs under the ribbon upside down at the top and comes back. T
 rolls: it stays level and follows the car part of the way up (`LOOP_FOLLOW = 0.6` of the climb goes
 into `camWX / camWY`), so the car visibly rises on screen while sky, ground, hoops and roadside stay
 the right way up. Each road band is shaded by how far its surface has turned from the sky (`lit` in
-`drawRoad`, down to 70% upside down) so the ribbon reads as a tube. The 13.4 to 13.11 corkscrew
+`drawRoad`, down to 70% upside down) so the ribbon reads as a tube. Inside a twist the ribbon is painted in
+half-bands (80 units) so it curves, without shoulders, its deck at `LOOP_DECK` (0.55) alpha with solid rumble
+edges (a glass road: the stretch standing on edge beside the camera is a tinted sheet, not a wall), and the
+stretch behind the car dissolves over 120 units. The 13.4 to 13.11 corkscrew
 rolled `#view` with the car (camera on the tube, a 1500 px overscan canvas, the car counter-rolled)
 and read as the whole world flipping; the loop keeps only the ribbon and lets the car do the turning.
 `drawHoops()` rings the twist with

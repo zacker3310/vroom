@@ -234,6 +234,10 @@
 
 - [x] T34.3: Loop rendering pass. Inside a twist the ribbon is painted in half-bands (80 units) so it curves instead of kinking, drops its shoulders so it reads as a bare tube of tarmac and rumble rather than a wide deck turned on its side, and the stretch behind the car dissolves over 120 units (tarmac alpha, no dashes) so the rolled near field never sweeps a giant slab across the frame. [SPID]
 
+## v13.12.2 (2026-10-10, user-directed: level 116 screenshot, the ribbon on edge beside the camera was a wall)
+
+- [x] T34.4: The glass road. Inside a twist the ribbon's deck is painted at `LOOP_DECK` (0.55) alpha, rumble edges solid, so the stretch standing on edge beside the level camera is a tinted sheet the world shows through instead of a grey wall filling half the frame; the helix still reads from its edges and the hoops. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

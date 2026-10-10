@@ -2054,7 +2054,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.12.1";
+const APP_VERSION = "13.12.2";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -6242,6 +6242,7 @@ function addHill(x0, len, amp) { HILLS.push({ x0, x1: x0 + len, amp }); return x
    back, while sky, ground, hoops and roadside stay the right way up. ---- */
 let TWISTS = [], rollCar = 0, twistLive = false;
 const LOOP_FOLLOW = 0.6;   /* how much of the car's climb the camera follows: 0 = fixed, 1 = the car never leaves y 650 */
+const LOOP_DECK = 0.55;    /* the rolled ribbon's deck alpha: a glass road, so the part on edge beside the camera is not a wall */
 let carRibDX = 0, carRibY = 0;   /* the car's ribbon spot this frame, as a shift from its flat lane spot (renderWorld) */
 const TWIST_LEN = 2200;   /* long enough that the road a car-length ahead turns gently, not in a snap */
 function addTwist(x0, len, dir) { TWISTS.push({ x0, x1: x0 + len, dir }); return x0 + len; }
@@ -8270,8 +8271,12 @@ function drawRoad(carX) {
          (upside down at the top of the loop it sits at 70%); quantised so the shade memo stays small */
       const lit = rolled ? -Math.round((1 - Math.cos(rollAt(carX + (z0 + z1) / 2))) * 0.15 * 20) / 20 : 0;
       const L = col => lit ? shade(col, lit) : col;
-      if (rolled && z1 < 0) c.globalAlpha = Math.max(0, 1 + z1 / 120);
+      /* the rolled ribbon is a glass road (13.12.2): its deck is drawn at LOOP_DECK alpha so the stretch standing on
+         edge beside the camera is a tinted sheet the world shows through, not a wall; the rumble edges stay solid
+         so the helix still reads. The tail behind the car dissolves on top of that */
+      const tail = rolled && z1 < 0 ? Math.max(0, 1 + z1 / 120) : 1;
       if (!rolled) quadPair(c, z0, z1, ROAD_HALF + 26, ROAD_HALF + 26 + SHOULDER_W, T.shoulder);
+      if (rolled) c.globalAlpha = tail * LOOP_DECK;
       quad(c, z0, z1, -ROAD_HALF, ROAD_HALF, L(P.bands ? P.bands[((k % 6) + 6) % 6] : odd ? P.road2 : P.road));
       if (T.crown) {
         quad(c, z0, z1, -CROWN_HALF, CROWN_HALF, L(T.crown[odd]));
@@ -8280,6 +8285,7 @@ function drawRoad(carX) {
         for (const t of WEAR) { qpath(c, z0, z1, t[0], t[1]); qpath(c, z0, z1, -t[1], -t[0]); }
         c.fill();
       }
+      if (rolled) c.globalAlpha = tail;
       quadPair(c, z0, z1, ROAD_HALF, ROAD_HALF + 26, odd ? P.rumA : P.rumB);
       c.globalAlpha = 1;
     }
