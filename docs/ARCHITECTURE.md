@@ -177,16 +177,27 @@ every board stands nearest its own turn, and the tires squeal through it above 4
 
 ### Chompers
 
-`CHOMPS` is a list of `{x0, x1, dir}` stretches (`CHOMP_LEN = 1500`), the "chomper" shape in every world's
-`WORLD_ROAD` order (one per world, two from world 3, one in every finale from world 2). The corkscrew they
+`CHOMPS` is a list of `{x0, x1, dir, l0, l1}` stretches (`CHOMP_LEN = 1500`), the "chomper" shape in every world's
+`WORLD_ROAD` order (one per world, two from world 3, one in every finale from world 2). `l0..l1` are the lanes
+the monster covers (13.16): one lane, two or all three. `chompLanes` deals the size and lanes from a seed off
+the level number (its own mulberry32, so the road itself never moved), never the same size twice on one
+level, so a two-monster level is always two different beasts; across the 120 levels about a third of each. The corkscrew they
 replace went through four renderers (13.4 rolled the view, 13.12 rolled the ribbon under a level camera,
 13.12.2 made it glass, 13.14 cut to a side view) and never read right: the 2D projector cannot draw a road
-leaving its plane. A chomper is a set piece the projector can draw. `addChomper` sits a monster across the
-road at `x0 + CHOMP_MOUTH` as arch-style scenery (`p.chomper`, no blob); a trail of stars (`b.star`, lanes
-1 0 1 2) leads in, and from the mouth to the end of the stretch nothing is placed (`chompClear`, honoured
-by `b.star`, `b.high` and `spotFor`), so the spit has a clear landing. `chompTick` toggles `.open` (jaw
-drops, lids lower, a growl once) while the car is within 1100, and at the mouth `chompStart` runs the
-bite: `#chompView` (dark mouth, two tooth rows, a uvula, under the HUD at z 18) clips shut over the stage,
+leaving its plane. A chomper is a set piece the projector can draw. `addChomper` sits a monster at
+`x0 + CHOMP_MOUTH` as arch-style scenery (`p.chomper`, no blob): the one piece of art (880 wide, three
+lanes) scaled by the sprite's `k` (`CHOMP_K`: 0.36 for one lane, 0.64 for two, 1 for the full one) and
+centred on its lanes (`lx`), so the CSS states scale with it; only the full one carries `p.arch` (the flag
+that keeps other overheads away), a small one still owns its stretch through `inChomp`. A trail of stars
+(`b.star`) leads in through the monster's lanes only (lanes 1 0 1 2 under a full one, alternating under a
+two-lane one, a single file 100 apart under a one-lane one), laid after the opening run's stars in the
+run-in are taken out, and `chompOff` keeps every other star (`b.star`, `b.high`, `spotFor`) out of the
+run-in's other lanes, so the trail says where the mouth is. From the mouth to the end of the stretch
+nothing is placed (`chompClear`, honoured by the same three), so the spit has a clear landing. `chompTick`
+toggles `.open` (jaw drops, lids lower, a growl once) while the car is within 1100; at the mouth, with the
+car's lane (`Math.round(laneVis)`, `inChompLanes`) inside `l0..l1`, `chompStart` runs the bite, and in any
+other lane the car drives past: 60 past the mouth `chompMiss` snaps the jaws shut behind it (`.bite` for
+360 ms, a munch, `t.missed`), no hold, no stars. The bite: `#chompView` (dark mouth, two tooth rows, a uvula, under the HUD at z 18) clips shut over the stage,
 the car is held by `freezeUntil` for `CHOMP_HOLD` ms (the crash hit-stop, so nothing moves), munch sounds
 and a chew shake (`.chew`, off under reduced motion), then `chompDrop` takes `min(CHOMP_DROP, runStars)`
 off the run tally and puts them back on the road at `CHOMP_STAR_X` in the kid's own lane (`p.spat`, not

@@ -1,6 +1,7 @@
 /* course-check: the wild courses (v12.9, T21) and the speed-linked mixer drum (T2.3).
    Chompers (13.15, the corkscrew's replacement): a monster across the road with a star trail leading in; it bites,
-   chews, spits a few run stars onto the road ahead and spits the car out over them; hard turns get chevron boards on their
+   chews, spits a few run stars onto the road ahead and spits the car out over them. Sizes (13.16): one lane, two or
+   all three, the trail in the monster's lanes only, a car in another lane drives past unbitten; hard turns get chevron boards on their
    outside; roller levels run a train of big hills; mega ramps and hop chains launch by their own numbers
    through the one launch rule the fairness bots share; the chase-cam mixer drum turns with the road speed.
    Reduced motion keeps the bite and drops the chew shake. */
@@ -34,11 +35,12 @@ function check(name, ok, detail) {
     const out = [];
     for (let n = 1; n <= MAX_LEVEL; n++) {
       buildLevel(n);
-      const tw = CHOMPS.map(t => ({ x0: t.x0, x1: t.x1,
+      const tw = CHOMPS.map(t => { const n = t.l1 - t.l0 + 1, lx = n === 3 ? 0 : (laneX(t.l0) + laneX(t.l1)) / 2; return { x0: t.x0, x1: t.x1, l0: t.l0, l1: t.l1, n,
         stars: props.filter(p => p.type === 'star' && p.x > t.x0 && p.x < t.x0 + CHOMP_MOUTH).length,
+        lanes: [...new Set(props.filter(p => p.type === 'star' && p.x > t.x0 - 150 && p.x < t.x0 + CHOMP_MOUTH).map(p => p.lane))].sort(),
         after: props.filter(p => p.type === 'star' && p.x > t.x0 + CHOMP_MOUTH && p.x < t.x1).length,
         blockers: props.filter(p => BLOCKER_T(p.type) && inChomp(p.x, 150)).length,
-        monster: scenery.filter(p => p.chomper === t && p.x === t.x0 + CHOMP_MOUTH && p.lx === 0).length }));
+        monster: scenery.filter(p => p.chomper === t && p.x === t.x0 + CHOMP_MOUTH && p.lx === lx && p.k === CHOMP_K[n] && p.arch === (n === 3)).length }; });
       const hard = COURSE.filter(c => c.hard);
       const chev = scenery.filter(p => p.chevron);
       /* each board belongs to the hard stretch it is nearest: it must stand on that stretch's outside verge */
@@ -70,6 +72,14 @@ function check(name, ok, detail) {
     twistLvls.every(r => r.tw.every(t => t.monster === 1 && t.stars >= 5 && t.after === 0 && !t.blockers) && !r.archInTwist),
     twistLvls.filter(r => r.tw.some(t => t.monster !== 1 || t.stars < 5 || t.after || t.blockers) || r.archInTwist).map(r => 'L' + r.n + JSON.stringify(r.tw.map(t => [t.monster, t.stars, t.after, t.blockers]))).join(' '));
   check('chompers: the monster is its own beat in the level sequence', twistLvls.every(r => r.beats.includes('chomper')));
+  /* sizes (13.16): one-lane, two-lane and full monsters across the 120 levels, a fair share of each, two different on a two-monster level */
+  const allTw = twistLvls.flatMap(r => r.tw), sizeN = [1, 2, 3].map(n => allTw.filter(t => t.n === n).length);
+  check('chompers: one-lane, two-lane and three-lane monsters each take at least a fifth of the 120 levels\' chompers, and a level with two has two different sizes',
+    sizeN.every(c => c >= allTw.length / 5) && allTw.every(t => t.l0 >= 0 && t.l1 <= 2 && t.l1 >= t.l0 && t.n === t.l1 - t.l0 + 1) && twistLvls.filter(r => r.tw.length === 2).every(r => r.tw[0].n !== r.tw[1].n),
+    'sizes 1/2/3: ' + sizeN.join('/') + ' of ' + allTw.length + '; ' + twistLvls.map(r => 'L' + r.n + ':' + r.tw.map(t => t.l0 + '-' + t.l1).join(',')).join(' '));
+  check('chompers: the star trail runs in the monster\'s lanes only (every one of them under a two- or three-lane monster), the monster sits centred on its lanes at its size, only the full one is an arch',
+    allTw.every(t => t.lanes.length === t.n && t.lanes.every(l => l >= t.l0 && l <= t.l1) && t.monster === 1),
+    twistLvls.filter(r => r.tw.some(t => t.lanes.length !== t.n || t.lanes.some(l => l < t.l0 || l > t.l1) || t.monster !== 1)).map(r => 'L' + r.n + JSON.stringify(r.tw.map(t => [t.l0, t.l1, t.lanes, t.monster]))).join(' '));
   const rollers = scan.filter(r => r.shape === 'roller');
   check('roller: nine roller levels, each a train of >= 3 big hills, even in the flat worlds (construction, rain, beach)',
     rollers.length === 9 && rollers.every(r => r.bigHills >= 3), rollers.map(r => `L${r.n}:${r.bigHills}`).join(' '));
@@ -124,6 +134,29 @@ function check(name, ok, detail) {
   /* ---- 3. driving into a chomper (13.15): the jaws open on approach; at the mouth the stage goes into the mouth
      (#chompView shut), the car is held, the chew tosses up to three run stars onto the road ahead in the kid's lane,
      the spit launches the car over them, and driving on gets them straight back ---- */
+  const miss = await page.evaluate(async () => {
+    /* a one-lane monster whose stretch is the first on its level (level 9 is one); the car drives past it in another lane */
+    let n = 0, t = null;
+    for (let k = 1; k <= MAX_LEVEL && !t; k++) { buildLevel(k); if (CHOMPS.length && CHOMPS[0].l0 === CHOMPS[0].l1) { n = k; t = CHOMPS[0]; } }
+    if (!t) return { none: true };
+    drive(n); t = CHOMPS[0];
+    const lane = t.l0 === 0 ? 2 : 0;
+    await new Promise(r => setTimeout(r, 900));
+    pos = t.x0 - 100 - CAR_SCREEN_X; targetLane = lane; laneVis = lane; gasKey = true;
+    const t0 = performance.now(); let shut = false, snapped = false, open = false;
+    while (performance.now() - t0 < 6000) {
+      await new Promise(r => setTimeout(r, 40));
+      if (chompView.classList.contains('shut')) shut = true;
+      if (t.p.el.classList.contains('open')) open = true;
+      if (t.p.el.classList.contains('bite')) snapped = true;
+      if (pos + CAR_SCREEN_X > t.x1 + 200) break;
+    }
+    gasKey = false;
+    await new Promise(r => setTimeout(r, 400));
+    return { n, l0: t.l0, lane, open, shut, snapped, missed: !!t.missed, ate: !!t.ate, spat: props.filter(p => p.spat).length, bite: !!chomp, on: chompView.classList.contains('on'), jawsAtRest: !t.p.el.classList.contains('bite') && !t.p.el.classList.contains('open'), past: pos + CAR_SCREEN_X > t.x1 };
+  });
+  check('chomper: a car in a lane a one-lane monster does not cover drives past it: the jaws gape then snap shut behind it, the stage never goes into the mouth, no star is dropped, it is not eaten',
+    !miss.none && miss.past && miss.open && miss.snapped && !miss.shut && miss.spat === 0 && !miss.ate && miss.missed && !miss.bite && !miss.on && miss.jawsAtRest, JSON.stringify(miss));
   const bite = await page.evaluate(async () => {
     window.__growl = 0; window.__spit = 0; const og = sfx.growl, os = sfx.spit; sfx.growl = () => { window.__growl++; og(); }; sfx.spit = () => { window.__spit++; os(); };
     drive(9);
@@ -135,7 +168,7 @@ function check(name, ok, detail) {
     await new Promise(r => setTimeout(r, 150));
     const near = { open: t.p.el.classList.contains('open'), growl: window.__growl, on: chompView.classList.contains('on') };
     /* drive in at speed from just before the trail */
-    pos = t.x0 - 100 - CAR_SCREEN_X; targetLane = 1; laneVis = 1; gasKey = true;
+    pos = t.x0 - 100 - CAR_SCREEN_X; targetLane = t.l0; laneVis = t.l0; gasKey = true;
     const t0 = performance.now(); let shut = null, held = null, dropped = null;
     while (performance.now() - t0 < 7000) {
       await new Promise(r => setTimeout(r, 40));
@@ -146,7 +179,7 @@ function check(name, ok, detail) {
     }
     gasKey = false;
     await new Promise(r => setTimeout(r, 300));
-    return { far, near, shut, held, dropped, after: { on: chompView.classList.contains('on'), runStars, spatLeft: props.filter(p => p.spat && !p.done).length, spit: window.__spit, ate: t.ate, open: t.p.el.classList.contains('open') } };
+    return { far, near, shut, held, dropped, lane: t.l0, after: { on: chompView.classList.contains('on'), runStars, spatLeft: props.filter(p => p.spat && !p.done).length, spit: window.__spit, ate: t.ate, open: t.p.el.classList.contains('open') } };
   });
   await page.evaluate(async () => { const t = CHOMPS[0]; t.ate = false; t.p.el.classList.remove('spit', 'bite'); pos = t.x0 + CHOMP_MOUTH - 700 - CAR_SCREEN_X; v = 0; await new Promise(r => setTimeout(r, 150)); });
   await page.screenshot({ path: SHOT + 'course-chomper.png' });
@@ -155,7 +188,7 @@ function check(name, ok, detail) {
     JSON.stringify({ far: bite.far, near: bite.near, shut: bite.shut, held: bite.held }));
   check('chomper: the chew tosses min(3, run stars) onto the road ahead in the kid\'s lane, the spit sends the car flying out, and driving on gets every star back with the jaws at rest',
     !!bite.dropped && bite.dropped.spat.length === Math.min(3, bite.shut.runStars) && bite.dropped.spat.length >= 1 && bite.dropped.runStars === bite.shut.runStars - bite.dropped.spat.length
-      && bite.dropped.spat.every(([x, lane]) => x > math.mouth && x < math.len && lane === 1) && bite.after.spit === 1 && bite.after.spatLeft === 0 && bite.after.runStars >= bite.shut.runStars && !bite.after.on && bite.after.ate && !bite.after.open,
+      && bite.dropped.spat.every(([x, lane]) => x > math.mouth && x < math.len && lane === bite.lane) && bite.after.spit === 1 && bite.after.spatLeft === 0 && bite.after.runStars >= bite.shut.runStars && !bite.after.on && bite.after.ate && !bite.after.open,
     JSON.stringify({ shut: bite.shut, dropped: bite.dropped, after: bite.after }));
 
   /* ---- 4. hard turn: squeal at speed ---- */

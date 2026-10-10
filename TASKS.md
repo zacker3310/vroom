@@ -270,6 +270,10 @@
 
 - [x] T38.1: A clean line is faster. `LANE_SCRUB` 0.94 per lane crossed on every lane change above 100 px/s, `LAND_SCRUB` 0.85 on every touchdown, so a swerving, jumping run no longer matches the ghost that did not; medal curve untouched. feel-check 18 -> 19. [SPID]
 
+## v13.17.0 (2026-10-10, user-directed: "make a ton of them single lane, dual lane or all three lanes")
+
+- [x] T38.2: Chompers in three sizes. Every `CHOMPS` entry carries `l0..l1`, the lanes it covers: a small monster in a single lane, a middling one over two, the giant across all three (`chompLanes`, dealt from a seed off the level number so the roads never moved, never the same size twice on one level; 11/10/12 across the 120 levels). `addChomper` scales the one piece of art by the sprite's `k` (`CHOMP_K`) and centres it on its lanes; only the full one is an arch. The star trail runs in the monster's lanes only (alternating under two, a single file under one) after the opening run's stars in the run-in make way, and `chompOff` keeps other stars out of the run-in's other lanes. `chompTick` bites only with the car's lane inside `l0..l1`; in another lane the car drives past and `chompMiss` snaps the jaws shut behind it with a munch, no hold, no stars. course-check 20 -> 23 (size mix, trail lanes and placement, the drive-past), battery 453 -> 456. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
