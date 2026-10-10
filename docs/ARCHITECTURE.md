@@ -319,6 +319,23 @@ of the script; 9-10 and 11-12 are packs registered at anchors A and B. Free driv
 Parade (`paradeMode`) is a one-off level at `PARADE_LEVEL` with its own jingle, events and
 fans.
 
+The deep sea (world 11, section 29) is the one world that is drawn as water rather than sky.
+`#road.w11` is a water column gradient that lands on `ROAD_PAL[11].haze` exactly at `HORIZON`,
+and the palette's `hazeH`/`hazeA` keys deepen `drawRoad`'s horizon veil (150 px at near full
+strength) so the far reef silhouettes, the haze and the sandy-teal seabed melt together with no
+line. The palette's `tunnel` key switches on `drawTunnel`: a pale rib every `TUN_GAP` (320)
+units from z 100 to `DRAW_FAR`, each one stroke in `groundSpace` about the road's axis
+(`TUN_R`, `TUN_C`), clipped by `occClip` and fading with the far fade, never within
+`inTwist(x, 150)` because the corkscrew's hoops own those stretches (`tunnelRibN` counts them
+for the suite). `#seaCaustic`, a div inside `#view` shown only under `.w11`, is the light
+dapple on the seabed: a tilted repeating radial-gradient plane drifting by `transform` alone,
+masked out toward the horizon, blended `soft-light`, still under `prefers-reduced-motion`.
+`WORLD_WEATHER.w11` adds a slow whale silhouette (`.seaWhale`, an inline SVG data URL crossing
+the far water once a minute) to the swaying light shafts and the bubbles. The palette sets an
+explicit `shoulder` a hair lighter than the seabed and `fields: []` so a slope reads as a dune,
+and `WORLD_META[11].roller` (`len`, `amp`) stretches and lowers the roller train into long
+swells that still clear course-check's big-hill bar.
+
 ## Audio
 
 Everything is synthesized in one `AudioContext`, unlocked on the first `pointerdown` (iOS).

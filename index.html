@@ -1816,6 +1816,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     </div>
     <canvas id="roadCanvas" width="2400" height="1400"></canvas>
     <div id="world"><div id="carWrap"></div></div>
+    <div id="seaCaustic"></div>
     <div id="weather"></div>
     </div>
     <div id="speedLines"><div></div><div></div><div></div><div></div><div></div><div></div></div>
@@ -2054,7 +2055,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.12.2";
+const APP_VERSION = "13.13.0";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -6337,8 +6338,11 @@ function buildCourse(n, rng, len) {
   HILLS = [];
   const hillAmp = worldMeta(w).hill * (0.7 + 0.3 * ((n - 1) % 10) / 9);
   if (roller) {   /* whatever the world's own hills: big, short, back to back, the last one a monster */
+    /* a world may stretch and lower its train (WORLD_META.roller, 13.13: the seabed rolls in long swells, it has no cliffs);
+       every rise stays past the 110 that counts as a big hill */
+    const rs = worldMeta(w).roller || { len: 1, amp: 1 };
     let hx = 700 + rng() * 300, j = 0;
-    while (hx < len - 1600) { const big = hx > len - 3200; hx = addHill(hx, big ? 1100 : 760 + rng() * 240, (big ? 260 : 170 + rng() * 50) * (j++ % 3 === 2 ? -0.7 : 1)) + 60 + rng() * 140; }
+    while (hx < len - 1600) { const big = hx > len - 3200; hx = addHill(hx, (big ? 1100 : 760 + rng() * 240) * rs.len, (big ? 260 : 170 + rng() * 50) * rs.amp * (j++ % 3 === 2 ? -0.7 : 1)) + 60 + rng() * 140; }
   } else if (hillAmp) {
     let hx = 600 + rng() * 600;
     while (hx < len - 1400) {
@@ -8228,6 +8232,39 @@ function drawHoops(c, carX) {
   }
   c.globalAlpha = 1;
 }
+/* the deep sea's glass tunnel (13.13): a pale rib arches over the road every 320 units, on any palette with a
+   tunnel colour (world 11). Each rib is one stroke in world space about the road's axis, clipped to the crest in
+   front and fading with the far fade; about a dozen are on screen. A corkscrew stretch keeps its striped hoops
+   instead, so no rib goes down within a twist. tunnelRibN counts the ribs a frame put down, for the suite. */
+const TUN_R = ROAD_HALF + 40, TUN_C = 300, TUN_A = Math.asin(TUN_C / TUN_R), TUN_GAP = 320;
+let tunnelRibN = 0;
+function drawTunnel(c, carX) {
+  tunnelRibN = 0;
+  const col = roadPal.tunnel;
+  if (!col) return;
+  c.strokeStyle = col;
+  c.lineCap = "round";
+  groundSpace = true;   /* the ribs ring the axis in world space, like the hoops */
+  for (let x = Math.ceil((carX + 100) / TUN_GAP) * TUN_GAP; x - carX < DRAW_FAR; x += TUN_GAP) {
+    if (inTwist(x, 150)) continue;
+    const z = x - carX, s = CAM_D / (z + CAM_D);
+    tunnelRibN++;
+    c.globalAlpha = z > DRAW_FAR - FADE ? (DRAW_FAR - z) / FADE : 1;
+    c.lineWidth = Math.max(1, 16 * s);
+    occClip(c, z, () => {
+      c.beginPath();
+      for (let q = 0; q <= 12; q++) {
+        const f = -TUN_A + (Math.PI + 2 * TUN_A) * q / 12;
+        const pt = proj(z, Math.cos(f) * TUN_R, TUN_C + Math.sin(f) * TUN_R);
+        q ? c.lineTo(pt[0], pt[1]) : c.moveTo(pt[0], pt[1]);
+      }
+      c.stroke();
+    });
+  }
+  groundSpace = false;
+  c.globalAlpha = 1;
+  c.lineCap = "butt";
+}
 function drawRoad(carX) {
   const c = rctx, P = roadPal, T = groundTones(P);
   const nearZ = DRAW_NEAR;
@@ -8339,6 +8376,7 @@ function drawRoad(carX) {
     });
   }
   drawHoops(c, carX);
+  drawTunnel(c, carX);
   /* opaque crests: hidden ground is veiled (it only shows where it projects above the visible crest line, so one
      veil per hidden band over the finished ground is enough), and the strip from the visible ground's top to the
      horizon is haze. Both fade with occA as the car closes on the crest */
@@ -8361,10 +8399,12 @@ function drawRoad(carX) {
   }
   /* horizon haze melts the far road into the sky: a thin, half-strength veil (13.6.1: the old 46 px band at full
      strength read as a bright gap under the far hills, as if you could see through their feet) */
-  const g = c.createLinearGradient(0, HORIZON, 0, HORIZON + 26);
-  g.addColorStop(0, P.haze + "8c"); g.addColorStop(1, P.haze + "00");
+  /* a palette may deepen it (hazeH, hazeA; 13.13: the deep sea's water column runs 150 px down into the seabed) */
+  const hzH = P.hazeH || 26;
+  const g = c.createLinearGradient(0, HORIZON, 0, HORIZON + hzH);
+  g.addColorStop(0, P.haze + (P.hazeA || "8c")); g.addColorStop(1, P.haze + "00");
   c.fillStyle = g;
-  c.fillRect(-canvasOX, HORIZON, canvasW, 26);
+  c.fillRect(-canvasOX, HORIZON, canvasW, hzH);
   /* the car's footprint shadow stays on the ground while it flies */
   const lx = (laneVis - 1) * LANE_W, sh = Math.max(0.3, 1 - jumpY / 320), w = (carHalf + 22) * sh;
   quad(c, 4, carLen * sh, lx - w, lx + w, `rgba(0,0,0,${(0.2 * sh).toFixed(3)})`);
@@ -10751,7 +10791,7 @@ function eventFinish(n) {
    conventions (flat SVG, ground at y=0, no gradients/filters/ids in scenery). */
 (() => {
   /* ---- meta, tints, map icons ---- */
-  WORLD_META[11] = { dark: true,  gravity: 1100, hill: 40 };    /* the glass tunnel glows: headlights on, floaty water jumps */
+  WORLD_META[11] = { dark: true,  gravity: 1100, hill: 40, roller: { len: 1.6, amp: 0.72 } };    /* the glass tunnel glows: headlights on, floaty water jumps; the roller's train is long low swells */
   WORLD_META[12] = { dark: false, gravity: 900,  hill: 120 };   /* thin air: long floaty flights over big cloud hills */
   WORLD_TINT.w11 = "#0077b6";   /* deep sea blue */
   WORLD_TINT.w12 = "#8e7dbe";   /* sunrise lavender (gold would swallow the selected-tab ring) */
@@ -10759,17 +10799,38 @@ function eventFinish(n) {
   WORLD_ICONS.w12 = `<svg viewBox="0 0 100 100"><path d="M14 66 A36 36 0 0 1 86 66" stroke="#ffd60a" stroke-width="7" fill="none"/><path d="M22 66 A28 28 0 0 1 78 66" stroke="#4cc9f0" stroke-width="7" fill="none"/><rect x="28" y="42" width="14" height="36" fill="#fff"/><rect x="58" y="42" width="14" height="36" fill="#fff"/><path d="M26 44 L35 26 L44 44 Z M56 44 L65 26 L74 44 Z" fill="#fff"/><rect x="41" y="56" width="18" height="22" fill="#fff"/><rect x="47" y="64" width="6" height="14" fill="#e9a23b"/><ellipse cx="50" cy="84" rx="38" ry="11" fill="#fff"/><circle cx="26" cy="80" r="11" fill="#fff"/><circle cx="74" cy="80" r="11" fill="#fff"/></svg>`;
 
   /* ---- ground palettes (canvas) ---- */
-  ROAD_PAL[11] = { ground: "#7fa99b", ground2: "#76a092", road: "#dcc897", road2: "#d4c08e", dash: "#f1faee", rumA: "#f8edeb", rumB: "#f4a261", haze: "#0470b0" };
+  /* deep sea (13.13): a cool sandy-teal seabed, the shoulder a shade of the same sand so a hill reads as a dune, white and
+     light-blue rumbles, a deep-water haze that the sky gradient lands on at the horizon, and the tunnel key that tells
+     drawTunnel to rib the road */
+  ROAD_PAL[11] = { ground: "#79aa9e", ground2: "#72a397", shoulder: "#80afa2", fields: [], road: "#b9b39c", road2: "#b0aa94", dash: "#f1faee", rumA: "#f8f9fa", rumB: "#4cc9f0",
+                   haze: "#2a7d98", hazeH: 150, hazeA: "f4", tunnel: "rgba(230,248,255,.6)" };
   ROAD_PAL[12] = { ground: "#f6dcd6", ground2: "#f0d1cb", road: "#6c7a92", road2: "#65738a", dash: "#ffd60a", rumA: "#ff5d8f", rumB: "#ffd60a", haze: "#ff9f85" };
 
   /* ---- themes + prop/scenery animations + weather + live-event CSS ---- */
   injectCSS(`
-  /* ----- world 11: DEEP SEA — glass tunnel on the seabed, the sun a wobble far above ----- */
-  #road.w11 { background: linear-gradient(#03045e 0%, #0353a4 35%, #0096c7 62%); }
-  #road.w11 #sun { background: #caf0f8; opacity: .55; top: 14px; right: 140px; width: 96px; height: 96px; box-shadow: 0 0 90px 44px rgba(202,240,248,.35); }
+  /* ----- world 11: DEEP SEA, a glass tunnel on the seabed, the sun a wobble far above ----- */
+  /* the water column (13.13): deep navy overhead, blue through the middle, landing on the haze colour at the horizon
+     (290 of 700 = 41.4%) so the far strip and the seabed melt together instead of meeting at a hard line */
+  #road.w11 { background: linear-gradient(#02023f 0%, #03045e 9%, #073f80 24%, #1d7394 36%, #2a7d98 41.4%, #2a7d98 100%); }
+  #road.w11 #sun { background: #caf0f8; opacity: .5; top: 10px; right: 150px; width: 110px; height: 110px; box-shadow: 0 0 110px 54px rgba(202,240,248,.3); }
   #road.w11 .cloud { opacity: 0; }
-  .seaShaft { position: absolute; background: linear-gradient(rgba(255,255,255,.26), rgba(255,255,255,0)); transform: skewX(-14deg); pointer-events: none; z-index: 15; animation: seaShaft ease-in-out infinite alternate; }
-  @keyframes seaShaft { from { opacity: .35; } to { opacity: 1; } }
+  .seaShaft { position: absolute; background: linear-gradient(rgba(255,255,255,.26), rgba(255,255,255,0)); transform: skewX(-14deg); transform-origin: top center; pointer-events: none; z-index: 15; animation: seaShaft ease-in-out infinite alternate; }
+  @keyframes seaShaft { from { opacity: .35; transform: skewX(-17deg) translateX(-14px); } to { opacity: 1; transform: skewX(-11deg) translateX(16px); } }
+  /* caustics (13.13): a dapple of light on the seabed, a tilted plane of soft white blobs that drifts by transform only,
+     masked to nothing at the horizon and blended soft-light so it lights the sand and the road without covering them.
+     It lives inside #view so the HUD never sits under it; still under reduced motion */
+  #seaCaustic { display: none; position: absolute; left: 0; top: 290px; width: 1200px; height: 410px; overflow: hidden; pointer-events: none; z-index: 16; opacity: .55; mix-blend-mode: soft-light;
+    -webkit-mask-image: linear-gradient(rgba(0,0,0,0) 0, rgba(0,0,0,.4) 70px, #000 200px); mask-image: linear-gradient(rgba(0,0,0,0) 0, rgba(0,0,0,.4) 70px, #000 200px); }
+  #road.w11 #seaCaustic { display: block; }
+  #seaCaustic::before { content: ""; position: absolute; left: -700px; top: -40px; width: 2600px; height: 700px; transform-origin: 50% 0;
+    background: radial-gradient(circle, rgba(255,255,255,.95) 0 9px, rgba(255,255,255,0) 34px) 0 0 / 120px 84px repeat, radial-gradient(circle, rgba(255,255,255,.8) 0 7px, rgba(255,255,255,0) 30px) 58px 40px / 150px 110px repeat;
+    animation: seaCaustic 18s ease-in-out infinite alternate; }
+  @keyframes seaCaustic { from { transform: perspective(900px) rotateX(55deg) translate(0, 0); } to { transform: perspective(900px) rotateX(55deg) translate(150px, 90px); } }
+  /* the whale (13.13): a big silhouette that crosses the far water once a minute, bobbing as it goes; parked mid-water under reduced motion */
+  .seaWhale { position: absolute; left: 380px; width: 460px; height: 160px; pointer-events: none; z-index: 14; opacity: .8; animation: seaWhale 58s linear infinite;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 520 180'%3E%3Cpath d='M22 96 Q120 26 300 50 Q420 68 500 34 Q472 96 500 152 Q420 122 300 128 Q120 150 22 96 Z' fill='%23062a55'/%3E%3Cpath d='M190 128 Q222 172 282 154 Q236 140 190 128 Z' fill='%23062a55'/%3E%3Cpath d='M236 58 Q256 10 282 58 Z' fill='%23062a55'/%3E%3Cpath d='M70 118 Q150 150 270 134 Q160 158 70 118 Z' fill='%23123f6f'/%3E%3Ccircle cx='96' cy='88' r='7' fill='%2390e0ef'/%3E%3C/svg%3E") no-repeat center / contain; }
+  @keyframes seaWhale { 0% { transform: translate(900px, 0); } 25% { transform: translate(450px, -16px); } 50% { transform: translate(0, 4px); } 75% { transform: translate(-450px, -14px); } 100% { transform: translate(-900px, 0); } }
+  @media (prefers-reduced-motion: reduce) { #seaCaustic::before, .seaWhale, .seaShaft { animation: none; } }
   .seaBubble { position: absolute; border-radius: 50%; border: 2px solid rgba(255,255,255,.75); background: rgba(255,255,255,.14); pointer-events: none; z-index: 15; animation: seaRise linear infinite; }
   @keyframes seaRise { 0% { transform: translate(0, 0); opacity: 0; } 8% { opacity: 1; } 50% { transform: translate(18px, -420px); } 100% { transform: translate(-10px, -860px); opacity: .6; } }
   .scenery .kelpSway { animation: kelpSway 3.2s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: bottom center; }
@@ -10818,10 +10879,13 @@ function eventFinish(n) {
   `);
 
   /* ---- weather: light shafts + rising bubbles / drifting puffs + sparkles ---- */
+  /* deep sea: four swaying light shafts, one slow whale in the far water, and a column of bubbles (13.13: more of them) */
   WORLD_WEATHER.w11 = {
-    count: 22,
+    count: 32,
     make: (i, rng) => i < 4
       ? { className: "seaShaft", cssText: `left:${120 + i * 270 + Math.floor(rng() * 90)}px; top:-40px; width:${60 + Math.floor(rng() * 60)}px; height:${420 + Math.floor(rng() * 160)}px; animation-duration:${(3.5 + rng() * 3).toFixed(2)}s; animation-delay:${(rng() * 3).toFixed(2)}s;` }
+      : i === 4
+      ? { className: "seaWhale", cssText: `top:${110 + Math.floor(rng() * 50)}px; animation-delay:${(-rng() * 58).toFixed(1)}s;` }
       : (() => { const s = 6 + Math.floor(rng() * 14); return { className: "seaBubble", cssText: `left:${Math.floor(rng() * 1200)}px; top:${700 + Math.floor(rng() * 160)}px; width:${s}px; height:${s}px; animation-duration:${(6 + rng() * 6).toFixed(2)}s; animation-delay:${(-rng() * 10).toFixed(2)}s;` }; })()
   };
   WORLD_WEATHER.w12 = {
@@ -10833,7 +10897,7 @@ function eventFinish(n) {
 
   /* ---- far strips + landmarks ---- */
   /* deep sea: dark reef humps, lower than hills */
-  WORLD_FAR.w11 = x => `<path d="M${x} 465 Q${x + 130} 350 ${x + 260} 465 Q${x + 390} 370 ${x + 520} 465" fill="#1b5e7a"/>` +
+  WORLD_FAR.w11 = x => `<path d="M${x} 465 Q${x + 130} 350 ${x + 260} 465 Q${x + 390} 370 ${x + 520} 465" fill="#135a7c"/>` +
     C(x + 130, 420, 6, "#48cae4", 0.5) + C(x + 390, 432, 4, "#48cae4", 0.5);
   /* sky kingdom: the cloud sea — rounded fluffy tops */
   WORLD_FAR.w12 = x => `<path d="M${x} 465 Q${x + 40} 400 ${x + 100} 410 Q${x + 150} 360 ${x + 210} 400 Q${x + 260} 380 ${x + 300} 415 Q${x + 350} 355 ${x + 420} 400 Q${x + 470} 390 ${x + 520} 465 Z" fill="#fff6f8"/>` +
@@ -10886,7 +10950,34 @@ function eventFinish(n) {
       `<path d="M70 -40 Q30 -20 24 -4 M110 -20 Q100 -4 84 2 M180 -24 Q190 -6 206 -2 M66 -80 Q30 -100 10 -92" stroke="#80b918" stroke-width="14" fill="none" stroke-linecap="round"/>`, 1, 60),
     /* a school of little fish, set back from the road */
     pc(380, 170, [[20, -60], [80, -100], [90, -40], [150, -130], [160, -70], [220, -110], [230, -50], [300, -90], [310, -140], [350, -60]].map(([x, y], i) =>
-      `<path d="M${x} ${y} Q${x + 24} ${y - 20} ${x + 48} ${y} Q${x + 24} ${y + 20} ${x} ${y} Z M${x} ${y} L${x - 16} ${y - 14} V${y + 14} Z" fill="${i % 3 ? "#f77f00" : "#ffd60a"}"/>` + C(x + 36, y - 4, 3, "#212529")).join(""), 1.1, 240)
+      `<path d="M${x} ${y} Q${x + 24} ${y - 20} ${x + 48} ${y} Q${x + 24} ${y + 20} ${x} ${y} Z M${x} ${y} L${x - 16} ${y - 14} V${y + 14} Z" fill="${i % 3 ? "#f77f00" : "#ffd60a"}"/>` + C(x + 36, y - 4, 3, "#212529")).join(""), 1.1, 240),
+    /* ---- 13.13: a second, smaller set for roadside variety ---- */
+    /* a cluster of sea stars on a sand hump */
+    pc(240, 110, `<path d="M0 0 Q120 -30 240 0 Z" fill="#c9b98a"/>` +
+      [[60, -34, 34, "#f4a261", "#e76f51"], [140, -28, 30, "#ff7096", "#e5557d"], [196, -52, 24, "#b388ff", "#9d4edd"]].map(([cx, cy, r, col, ink]) => {
+        const pts = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.44 : r; return `${(cx + Math.cos(a) * rr).toFixed(1)} ${(cy + Math.sin(a) * rr).toFixed(1)}`; }).join(" L");
+        return `<path d="M${pts} Z" fill="${col}" stroke="${col}" stroke-width="8" stroke-linejoin="round"/>` + [0, 1, 2, 3, 4].map(i => { const a = -Math.PI / 2 + i * 2 * Math.PI / 5; return C(cx + Math.cos(a) * r * 0.5, cy + Math.sin(a) * r * 0.5, 3.5, ink); }).join("") + C(cx, cy, 4, ink);
+      }).join(""), 1, 0),
+    /* a sunken rowing boat, half buried, a fish peeking over the gunwale */
+    pc(320, 170, `<path d="M0 0 Q160 -24 320 0 Z" fill="#c9b98a"/>` +
+      `<path d="M14 -96 Q30 -14 70 -8 H250 Q290 -14 306 -96 Q160 -62 14 -96 Z" fill="#8d5a2f"/><path d="M14 -96 Q160 -62 306 -96 Q160 -54 14 -96 Z" fill="#6b4423"/>` +
+      `<path d="M40 -70 Q160 -40 280 -70 M60 -46 Q160 -22 262 -46" stroke="#6b4423" stroke-width="4" fill="none"/>` + R(100, -84, 14, 60, "#a47148", 3) + R(206, -84, 14, 60, "#a47148", 3) +
+      `<path d="M230 -80 L300 -170" stroke="#a47148" stroke-width="8" stroke-linecap="round"/><path d="M296 -186 Q318 -176 306 -152 Q290 -160 296 -186 Z" fill="#a47148"/>` +
+      [[52, -100], [120, -92], [240, -94]].map(([x, y]) => C(x, y, 5, "#f8edeb", 0.8)).join("") +
+      `<path d="M150 -106 Q172 -124 194 -106 Q172 -88 150 -106 Z M150 -106 L136 -116 V-96 Z" fill="#ffd60a"/>` + C(186, -109, 3, "#212529"), 1, 30),
+    /* a diver's helmet sunk to its collar, a crab on the brim */
+    pc(200, 170, `<path d="M0 0 Q100 -26 200 0 Z" fill="#c9b98a"/>` + R(30, -56, 140, 44, "#b5651d", 10) + R(22, -62, 156, 14, "#d98c3f", 7) +
+      C(100, -104, 70, "#c9772a") + C(100, -104, 44, "#90e0ef") + `<circle cx="100" cy="-104" r="44" fill="none" stroke="#d98c3f" stroke-width="10"/>` +
+      C(84, -118, 10, "#fff", 0.7) + C(34, -112, 14, "#d98c3f") + C(34, -112, 8, "#90e0ef") + C(166, -112, 14, "#d98c3f") + C(166, -112, 8, "#90e0ef") +
+      [[62, -56], [100, -50], [138, -56], [100, -156]].map(([x, y]) => C(x, y, 5, "#6b4423")).join("") +
+      `<path d="M118 -176 Q124 -196 140 -190 Q136 -178 126 -176 Z M150 -170 Q152 -190 170 -186 Q164 -174 156 -172 Z" fill="#e63946"/>` +
+      `<path d="M120 -168 Q146 -184 170 -168 Q146 -152 120 -168 Z" fill="#e63946"/>` + C(138, -172, 3, "#212529") + C(154, -172, 3, "#212529") +
+      `<path d="M126 -158 L118 -148 M136 -156 L132 -144 M156 -156 L160 -144 M166 -158 L174 -148" stroke="#e63946" stroke-width="4" stroke-linecap="round"/>`, 1, 20),
+    /* an anemone waving its tentacles, a clownfish tucked in */
+    pc(240, 180, `<path d="M0 0 Q120 -30 240 0 Z" fill="#c9b98a"/><ellipse cx="120" cy="-18" rx="74" ry="26" fill="#9d4edd"/>` + `<g class="kelpSway">` +
+      [[60, -140, "#ff7096"], [84, -156, "#ff8fab"], [108, -164, "#ff7096"], [132, -166, "#ffb3c6"], [156, -156, "#ff7096"], [180, -138, "#ff8fab"], [72, -118, "#ffb3c6"], [168, -120, "#ffb3c6"]].map(([x, y, col]) =>
+        `<path d="M${x} -24 Q${x - 10} ${y / 2} ${x} ${y}" stroke="${col}" stroke-width="16" fill="none" stroke-linecap="round"/>` + C(x, y, 9, col === "#ff7096" ? "#ffb3c6" : "#ff7096")).join("") + `</g>` +
+      `<path d="M98 -70 Q124 -98 150 -70 Q124 -42 98 -70 Z M98 -70 L80 -84 V-56 Z" fill="#f77f00"/><path d="M112 -86 Q116 -70 112 -54 M134 -86 Q138 -70 134 -54" stroke="#fff" stroke-width="7" stroke-linecap="round"/>` + C(142, -74, 3.5, "#212529"), 1.1, 10)
   ];
   WORLD_SET.w12 = [
     /* cloud puffs you could nap on */

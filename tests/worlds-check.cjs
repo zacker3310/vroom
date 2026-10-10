@@ -268,6 +268,53 @@ function check(name, ok, detail) {
   check('free: tours all 8 worlds then wraps', tour === 'day,sunset,night,w4,w5,w6,w7,w8,day', tour);
   await page.evaluate(() => showGarage());
 
+  /* ---- 13.13 deep sea: the glass tunnel's ribs, the caustic overlay, the whale and the bubbles, the second roadside
+     set, the cool palette with a dune shoulder and no field strips, and the roller's long low swells ---- */
+  const sea = await page.evaluate(async () => {
+    const park = async (n, x) => { drive(n); v = 0; gasKey = false; pos = x; await new Promise(r => setTimeout(r, 150)); renderWorld(); };
+    const ribsWanted = () => { const carX = pos + CAR_SCREEN_X - CAR_HIT_Z; let want = 0; for (let x = Math.ceil((carX + 100) / TUN_GAP) * TUN_GAP; x - carX < DRAW_FAR; x += TUN_GAP) if (!inTwist(x, 150)) want++; return want; };
+    const out = {};
+    await park(101, 600);
+    out.ribsOpen = tunnelRibN; out.ribsOpenWant = ribsWanted();
+    out.caustic = getComputedStyle(document.getElementById('seaCaustic')).display;
+    out.causticAnim = getComputedStyle(document.getElementById('seaCaustic'), '::before').animationName;
+    out.causticInView = document.getElementById('seaCaustic').parentElement.id;
+    out.whale = document.querySelectorAll('#weather .seaWhale').length;
+    out.bubbles = document.querySelectorAll('#weather .seaBubble').length;
+    const T = groundTones(roadPal);
+    out.pal = { rumA: roadPal.rumA, rumB: roadPal.rumB, haze: roadPal.haze, tunnel: !!roadPal.tunnel, fields: T.fields.length, shoulder: T.shoulder, ground: roadPal.ground };
+    out.set = WORLD_SET.w11.length;
+    out.pieces = ['#c9772a', 'M14 -96 Q30 -14 70 -8', 'M98 -70 Q124 -98 150 -70', 'stroke-linejoin="round"/><circle'].map(s => WORLD_SET.w11.some(p => p.svg.includes(s)));
+    stopDrive();
+    /* inside level 104's first corkscrew: the ribs that would fall within the twist are skipped, the hoops own it */
+    await park(104, 0);
+    const t = TWISTS[0];
+    pos = t.x0 + 400; renderWorld();
+    out.ribsTwist = tunnelRibN; out.ribsTwistWant = ribsWanted(); out.twistLen = t.x1 - t.x0;
+    stopDrive();
+    await park(95, 600);
+    out.ribsCandy = tunnelRibN; out.causticCandy = getComputedStyle(document.getElementById('seaCaustic')).display;
+    stopDrive();
+    buildLevel(107);
+    out.roller = { big: HILLS.filter(h => Math.abs(h.amp) >= 110).length, maxAmp: Math.max(...HILLS.map(h => Math.abs(h.amp))), minLen: Math.min(...HILLS.map(h => h.x1 - h.x0)) };
+    return out;
+  });
+  check('deep sea: glass tunnel ribs ring the road outside twists, none inside a corkscrew, none on other worlds',
+    sea.ribsOpen >= 9 && sea.ribsOpen === sea.ribsOpenWant && sea.ribsTwist === sea.ribsTwistWant && sea.ribsTwist < sea.ribsOpen - 3 && sea.ribsCandy === 0,
+    JSON.stringify({ open: sea.ribsOpen, want: sea.ribsOpenWant, twist: sea.ribsTwist, twistWant: sea.ribsTwistWant, candy: sea.ribsCandy }));
+  check('deep sea: caustic overlay inside #view, shown on w11 only, drifting by a transform keyframe',
+    sea.caustic === 'block' && sea.causticCandy === 'none' && sea.causticAnim === 'seaCaustic' && sea.causticInView === 'view', JSON.stringify({ w11: sea.caustic, w10: sea.causticCandy, anim: sea.causticAnim, parent: sea.causticInView }));
+  check('deep sea: a whale and more bubbles in the weather, the second roadside set (sea stars, rowing boat, diver helmet, anemone)',
+    sea.whale === 1 && sea.bubbles >= 24 && sea.set >= 12 && sea.pieces.every(Boolean), JSON.stringify({ whale: sea.whale, bubbles: sea.bubbles, set: sea.set, pieces: sea.pieces }));
+  check('deep sea: white + light-blue rumbles, deep-water haze, dune shoulder, no field strips; the roller rolls in long low swells that still count as big hills',
+    sea.pal.rumA === '#f8f9fa' && sea.pal.rumB === '#4cc9f0' && sea.pal.haze === '#2a7d98' && sea.pal.tunnel && sea.pal.fields === 0 && sea.pal.shoulder === '#80afa2' &&
+    sea.roller.big >= 3 && sea.roller.maxAmp <= 200 && sea.roller.minLen >= 1100, JSON.stringify({ pal: sea.pal, roller: sea.roller }));
+  /* the caustic drift is decorative: off when the device asks for reduced motion */
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const rm = await page.evaluate(() => ({ caustic: getComputedStyle(document.getElementById('seaCaustic'), '::before').animationName, whale: getComputedStyle(document.querySelector('.seaWhale') || document.body).animationName }));
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  check('deep sea: caustic drift and the whale crossing are off under prefers-reduced-motion', rm.caustic === 'none' && rm.whale === 'none', JSON.stringify(rm));
+
   check('no console errors', errors.length === 0, errors.join(' | ').slice(0, 400));
 
   await browser.close();

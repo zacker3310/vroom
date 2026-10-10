@@ -237,6 +237,9 @@
 ## v13.12.2 (2026-10-10, user-directed: level 116 screenshot, the ribbon on edge beside the camera was a wall)
 
 - [x] T34.4: The glass road. Inside a twist the ribbon's deck is painted at `LOOP_DECK` (0.55) alpha, rumble edges solid, so the stretch standing on edge beside the level camera is a tinted sheet the world shows through instead of a grey wall filling half the frame; the helix still reads from its edges and the hoops. [SPID]
+## v13.13.0 (2026-10-10, user-directed: "the underwater levels need massive amounts of work")
+
+- [x] T35.1: Deep sea rebuild. The glass tunnel is drawn (`drawTunnel`: pale ribs every 320 units in world space, clipped to crests, fading far, never inside a corkscrew twist); the hard navy band is a water column that runs down into the seabed (`#road.w11` gradient landing on the haze at `HORIZON`, `hazeH`/`hazeA` deepen the canvas veil); a caustic light dapple drifts over the seabed (`#seaCaustic`, transform-only, soft-light, masked at the horizon, still under reduced motion); a slow whale silhouette crosses the far water, the light shafts sway and there are more bubbles; four new roadside pieces (sea star cluster, sunken rowing boat, diver's helmet with a crab, anemone with a clownfish); the palette is a cool sandy-teal seabed with a greyer sand road, white and light-blue rumbles, a dune shoulder and no field strips; the roller level's train is long low swells (`WORLD_META[11].roller`). worlds-check +5 (30).
 
 ## Backlog (v2 candidates, from kid-testing)
 

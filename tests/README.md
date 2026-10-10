@@ -1,6 +1,6 @@
 # Vroom test suites
 
-Twenty-three Playwright regression suites (451 checks) that drive the real game in headless
+Twenty-three Playwright regression suites (456 checks) that drive the real game in headless
 Chromium. They are the gate for every change: CI runs them on each push and pull request.
 
 ## Run everything
@@ -32,7 +32,7 @@ built-in one, e.g. `python3 -m http.server 4173` then
 - `damage-check.cjs` — damage/repair/upgrades/keyboard (20)
 - `free-check.cjs` — capsules, free drive (the daily 100-star cap, the star meter, the spent map button), time tiers (15)
 - `feel-check.cjs` — game feel: dynamics, hit-stop, choreography, iPad shell (18)
-- `worlds-check.cjs` — 12 worlds, movers, gravity, world map, premium content, the 13.3 ground painter (shoulder + field tones, road crown on all 12 worlds, ramp side walls, quad budget) (25)
+- `worlds-check.cjs` — 12 worlds, movers, gravity, world map, premium content, the 13.3 ground painter (shoulder + field tones, road crown on all 12 worlds, ramp side walls, quad budget), the deep sea rebuild (tunnel ribs outside twists, caustic overlay, whale + scenery, palette + dune swells, reduced motion) (30)
 - `album-check.cjs` — sticker album: buddies, badges, photos with world backdrops + stamps, the peek card for photos and stickers, muddy flag (15)
 - `profile-check.cjs` — 3 kid profiles, the slot card and hold-to-erase, save codes, QR round-trip via jsQR, the in-app QR scanner and its pure-JS decoder, the share / scan flow (scan button, import preview, welcome pop) (32)
 - `washdecals-check.cjs` — wash mini-game and decal shop/persistence (11)
@@ -69,7 +69,7 @@ click stability check.
 | `damage-check.cjs` | 20 | damage tiers, repair, upgrades, keyboard controls |
 | `free-check.cjs` | 15 | capsules and prizes, free drive, time-medal tiers |
 | `feel-check.cjs` | 18 | game feel: body dynamics, hit-stop, celebrate pacing, iPad shell metas |
-| `worlds-check.cjs` | 25 | 12 worlds: level invariants, world hazards, movers, gravity, map, unlock chain, world bonus, golden capsule, premium shop, free-drive tour, ground painter (shoulder and field tones, crowned road on every world, ramp side walls, quad budget) |
+| `worlds-check.cjs` | 30 | 12 worlds: level invariants, world hazards, movers, gravity, map, unlock chain, world bonus, golden capsule, premium shop, free-drive tour, ground painter (shoulder and field tones, crowned road on every world, ramp side walls, quad budget), the deep sea rebuild (glass tunnel ribs, caustics, whale, second roadside set, palette, roller swells, reduced motion) |
 | `album-check.cjs` | 15 | sticker album: buddies, badges, world-backdrop photos, peek card, muddy flag |
 | `profile-check.cjs` | 32 | the in-app QR scanner (viewfinder, BarcodeDetector or the pure-JS decoder, the picture picker), the slot card (play, scan into the slot, hold-to-erase), 3 kid profiles, save codes, scan-to-open QR decoded byte-exact with jsQR across version boundaries, the send / receive flow: receiver sheet (clipboard, paste box, camera scan when stubbed), the import preview card with its warning triangle, the welcome pop after a confirmed import |
 | `washdecals-check.cjs` | 11 | wash mini-game, decal shop and persistence |
