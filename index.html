@@ -1580,23 +1580,30 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
   border-radius: 50%; background: var(--v-surface); border: 6px solid var(--v-surface-line); box-shadow: 0 6px 0 var(--v-surface-down);
 }
 #titleProfileBtn svg { width: 74px; height: 74px; }
-/* PLAY: one huge green pill at the bottom, a gloss cap and a halo that keeps rolling outward */
+/* PLAY: one huge green pill at the bottom, built like a toy button: a lit top edge, a shaded lower lip, a thick
+   base and a ground shadow; it sinks onto its base when pressed. The face is a white play chip and PLAY. */
 #titleGo {
-  position: absolute; left: 410px; top: 538px; width: 380px; height: 152px; border-radius: 76px; overflow: visible;
-  background: var(--v-accent-green); border: 10px solid var(--v-green-line); box-shadow: 0 8px 0 var(--v-green-down); z-index: 10;
+  position: absolute; left: 390px; top: 534px; width: 420px; height: 152px; border-radius: 76px; overflow: visible; z-index: 10;
+  background: linear-gradient(#9be283 0%, #6fcf5a 45%, #4fb542 100%); border: 10px solid var(--v-green-line);
+  box-shadow: 0 10px 0 var(--v-green-down), 0 10px 0 2px rgba(0, 0, 0, .08), 0 18px 0 rgba(0, 0, 0, .16),
+    inset 0 5px 0 rgba(255, 255, 255, .45), inset 0 -8px 0 rgba(0, 0, 0, .14);
+  transition: transform .08s, box-shadow .08s;
 }
-#titleGo svg { width: 104px; height: 104px; position: relative; z-index: 1; }
-#titleGo::before { content: ""; position: absolute; inset: -12px; border-radius: 90px; border: 8px solid var(--v-accent-green); opacity: 0; pointer-events: none; }
-#titleGo::after { content: ""; position: absolute; left: 8%; top: 8%; width: 84%; height: 32%; border-radius: 50%; background: rgba(255, 255, 255, .26); pointer-events: none; }
-#titleGo:active, #titleGo.pressed { box-shadow: 0 2px 0 var(--v-green-down); }
+#titleGo svg { width: 400px; height: 132px; position: relative; z-index: 1; overflow: visible; }
+#titleGo::before { content: ""; position: absolute; inset: -14px; border-radius: 92px; border: 8px solid var(--v-accent-green); opacity: 0; pointer-events: none; }
+#titleGo::after { content: ""; position: absolute; left: 6%; top: 7%; width: 88%; height: 26%; border-radius: 50%; background: rgba(255, 255, 255, .22); pointer-events: none; }
+#titleGo:active, #titleGo.pressed {
+  transform: translateY(8px);
+  box-shadow: 0 2px 0 var(--v-green-down), 0 2px 0 2px rgba(0, 0, 0, .08), 0 6px 0 rgba(0, 0, 0, .14), inset 0 3px 0 rgba(255, 255, 255, .3), inset 0 -4px 0 rgba(0, 0, 0, .14);
+}
 #title.active #titleGo { animation: popIn .5s cubic-bezier(.2, 1.6, .4, 1) 1.4s backwards, tGoPulse 1.7s ease-in-out 1.9s infinite; }
 #title.active #titleGo::before { animation: tHalo 1.7s ease-out 1.9s infinite; }
-#title.active #titleGo:active, #title.active #titleGo.pressed { animation: none; }
+#title.active #titleGo:active, #title.active #titleGo.pressed { animation: none; transform: translateY(8px); }
 @keyframes tGoPulse { 50% { transform: scale(1.04); } }
 @keyframes tHalo { 0% { transform: scale(.92); opacity: .75; } 100% { transform: scale(1.22); opacity: 0; } }
 /* the gift badge: a small capsule riding the play pill's shoulder while today's gift is unclaimed */
 #titleGift {
-  position: absolute; right: -10px; top: -14px; width: 64px; height: 64px; border-radius: 50%; z-index: 2;
+  position: absolute; right: -22px; top: -30px; width: 64px; height: 64px; border-radius: 50%; z-index: 2;
   background: var(--v-surface); border: 5px solid var(--v-yellow-line); box-shadow: 0 4px 0 var(--v-yellow-down);
   display: none; align-items: center; justify-content: center; animation: pulse 1.1s ease infinite;
 }
@@ -1671,8 +1678,13 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
       </svg>
     </button>
     <div id="titleCar" aria-label="your car: tap to honk"></div>
-    <button class="bigBtn" id="titleGo" aria-label="start: to the garage">
-      <svg viewBox="0 0 100 100"><path d="M30 18 L82 50 L30 82 Z" fill="#fff"/></svg>
+    <button class="bigBtn" id="titleGo" aria-label="play: to the garage">
+      <!-- the face: a play chip and PLAY drawn as paths (the title's second word, a label on the one button, never <text>) -->
+      <svg viewBox="0 0 400 132">
+        <circle cx="86" cy="66" r="50" fill="#2f7a2a" opacity=".35"/><circle cx="86" cy="62" r="50" fill="#e9f8e4"/><circle cx="86" cy="62" r="42" fill="#fff"/>
+        <path d="M72 38 L112 62 L72 86 Z" fill="#46a63a"/>
+        <g transform="translate(152,34) scale(.58)"><g transform="translate(0,0)"><path fill-rule="evenodd" d="M0 0 H52 C76 0 90 14 90 36 C90 58 76 70 52 70 H24 V110 H0 Z M24 22 V48 H50 C58 48 64 44 64 35 C64 26 58 22 50 22 Z" fill="#fff" stroke="#2f7a2a" stroke-width="10" stroke-linejoin="round" paint-order="stroke"/></g><g transform="translate(104,0)"><path d="M0 0 H24 V86 H70 V110 H0 Z" fill="#fff" stroke="#2f7a2a" stroke-width="10" stroke-linejoin="round" paint-order="stroke"/></g><g transform="translate(188,0)"><path fill-rule="evenodd" d="M0 110 L30 0 H58 L88 110 H62 L56 86 H32 L26 110 Z M37 64 H51 L44 34 Z" fill="#fff" stroke="#2f7a2a" stroke-width="10" stroke-linejoin="round" paint-order="stroke"/></g><g transform="translate(290,0)"><path d="M0 0 H28 L44 38 L60 0 H88 L56 64 V110 H32 V64 Z" fill="#fff" stroke="#2f7a2a" stroke-width="10" stroke-linejoin="round" paint-order="stroke"/></g></g>
+      </svg>
       <span id="titleGift" aria-label="a gift is waiting"></span>
     </button>
   </div>
@@ -2042,7 +2054,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.11.0";
+const APP_VERSION = "13.11.1";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";

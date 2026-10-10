@@ -484,7 +484,9 @@ gradient, navy outline via `paint-order: stroke`, a paw in the first O), never `
 title stays free of text nodes; it is the one word in the game, a brand mark rather than a
 thing to read. The entrance is pure CSS: the sign drops on its chains (`tDrop`), swings to rest
 (`tSwing`) and then sways (`tSway`), the car drives in from off-stage (`tDrive`), the play pill
-pops last and then pulses with a halo (`tGoPulse`, `tHalo`). Every keyframe is scoped to
+pops last and then pulses with a halo (`tGoPulse`, `tHalo`). The pill is built like a toy
+button (a lit top edge, a shaded lower lip, a thick base and a ground shadow, sinking onto its
+base when pressed); its face is a white play chip and PLAY, also paths. Every keyframe is scoped to
 `#title.active`, so the garage never pays for it, and the reduced-motion block turns all of it
 off and hides the glint.
 

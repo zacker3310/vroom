@@ -221,6 +221,10 @@
 
 - [x] T33.1: The landing. A wooden sign hangs from two chains over the stage with the ZOOMIES wordmark drawn as SVG paths (gold gradient, navy outline, a paw in the first O; the one word in the game, never `<text>`), a star pennant, a checkered flag, leaves, a glint sweep and twinkles; it drops in, swings to rest and sways. Behind it a panorama of the twelve worlds in parallax bands: desert mesas and arch, snow peaks with a waterfall, the volcano, the sky kingdom's floating castle (far); the construction crane, the rain city with its cloud, candy-land lollipops, beach palms over the sea with the deep sea's whale (mid); the hills; fences, bushes, cactus and paw signposts at the road edge and the verge flowers below it (road speed). The space corner (SVG radial fade, stars, ringed planet, the night's moon, a rocket crossing) and two sunset balloons live in the static sky. The car sits centred on the road, wheels turning, exhaust puffing, shadow on the tire line; the play pill (380x152) glows at the bottom with its gloss and halo. Everything scoped to `#title.active`, all of it off under reduced motion. title-check: play pill >= 150 stage px tall, 12 tile svgs, balloons, no SVG text nodes. CLAUDE.md records the wordmark exception. [SPID]
 
+## v13.11.1 (2026-10-10, user-directed: "the play button should say play, make it skeuomorphic with proper shadowing and spacing")
+
+- [x] T33.2: The play pill, 420x152, built like a toy button: a top-lit gradient face, an inset highlight and a shaded lower lip, the thick green base, a soft ground shadow, and a press that sinks it 8 px onto the base. The face is a white play chip on the left and PLAY on the right, the letters drawn as paths like the wordmark (CLAUDE.md records both exceptions). The gift badge rides the upper right shoulder clear of the Y. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

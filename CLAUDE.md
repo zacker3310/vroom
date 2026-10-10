@@ -7,7 +7,7 @@ table of contents sits at the top of the script). No build, no dependencies, no 
 
 ## Rules that the suite and the user both enforce
 
-- Zero on-screen words: numerals and symbols only, pictograms for everything. `aria-label`s are fine. The one exception is the ZOOMIES wordmark on the title sign, drawn as SVG paths (never `<text>`): a brand mark, not a thing to read.
+- Zero on-screen words: numerals and symbols only, pictograms for everything. `aria-label`s are fine. The exceptions are the ZOOMIES wordmark on the title sign and the PLAY label on its one button, both drawn as SVG paths (never `<text>`): a brand mark and a label, not things to read.
 - No fail states. Stars only go up. Obstacles stop and ding, never end a run. Dry fuel crawls, it never strands.
 - Every tap target is at least 64 px rendered at 1024x768 (so 76 stage px or more).
 - Toybox look: the `--v-*` tokens in `:root`, flat `0 6px 0` shadows, big radii, `var(--v-font)`. Navy is game art, never chrome.
