@@ -217,6 +217,10 @@
 
 - [x] T32.5: The results row's red button is the level map: the wrench already lands in the garage, so the two buttons pointed at the same room. It wears the map pictogram (the garage's own, in white with red-down ink) and calls `showMap()`; polish-check's mid-tally exit now expects the map. [SPID]
 
+## v13.11.0 (2026-10-10, user-directed: "revamp the home screen inspired by this one, find a spot for the Zoomies logo, the real worlds in the background")
+
+- [x] T33.1: The landing. A wooden sign hangs from two chains over the stage with the ZOOMIES wordmark drawn as SVG paths (gold gradient, navy outline, a paw in the first O; the one word in the game, never `<text>`), a star pennant, a checkered flag, leaves, a glint sweep and twinkles; it drops in, swings to rest and sways. Behind it a panorama of the twelve worlds in parallax bands: desert mesas and arch, snow peaks with a waterfall, the volcano, the sky kingdom's floating castle (far); the construction crane, the rain city with its cloud, candy-land lollipops, beach palms over the sea with the deep sea's whale (mid); the hills; fences, bushes, cactus and paw signposts at the road edge and the verge flowers below it (road speed). The space corner (SVG radial fade, stars, ringed planet, the night's moon, a rocket crossing) and two sunset balloons live in the static sky. The car sits centred on the road, wheels turning, exhaust puffing, shadow on the tire line; the play pill (380x152) glows at the bottom with its gloss and halo. Everything scoped to `#title.active`, all of it off under reduced motion. title-check: play pill >= 150 stage px tall, 12 tile svgs, balloons, no SVG text nodes. CLAUDE.md records the wordmark exception. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

@@ -38,13 +38,14 @@ const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); retu
     const walker = document.createTreeWalker(document.getElementById('title'), NodeFilter.SHOW_TEXT);
     const words = []; let n; while ((n = walker.nextNode())) if (/[A-Za-z0-9]/.test(n.nodeValue)) words.push(n.nodeValue.trim().slice(0, 20));
     const go = r('titleGo'), car = r('titleCar'), logo = r('titleLogo'), prof = r('titleProfileBtn');
+    const textEls = document.querySelectorAll('#title text, #title tspan').length;   /* the wordmark is paths, never SVG text */
     return { active: [...document.querySelectorAll('.scene.active')].map(s => s.id).join(','), go: Math.min(go.width, go.height),
       car: car.width > 300 && !!document.querySelector('#titleCar svg'), idle: titleCar.classList.contains('idle'),
-      logo: logo.width > 200 && !!document.querySelector('#titleLogo svg'), words, prof: Math.min(prof.width, prof.height),
+      logo: logo.width > 200 && !!document.querySelector('#titleLogo svg'), words, textEls, prof: Math.min(prof.width, prof.height),
       buddyBob: !!document.querySelector('#titleCar .buddyBob') || !state.buddy };
   });
-  check('boot: the title scene is the active scene, GO >= 153px rendered, car + emblem drawn, avatar >= 64px', boot.active === 'title' && boot.go >= 153 && boot.car && boot.logo && boot.idle && boot.prof >= 64, JSON.stringify(boot));
-  check('boot: zero text on the title (no letters or numerals)', boot.words.length === 0, boot.words.join(' | '));
+  check('boot: the title scene is the active scene, the play pill >= 128px tall rendered (150 stage), car + sign drawn, avatar >= 64px', boot.active === 'title' && boot.go >= 128 && boot.car && boot.logo && boot.idle && boot.prof >= 64, JSON.stringify(boot));
+  check('boot: zero text on the title (no letters or numerals; the wordmark is paths, no SVG text)', boot.words.length === 0 && boot.textEls === 0, boot.words.join(' | ') + ' textEls=' + boot.textEls);
   await page.screenshot({ path: SHOT + 'title-boot.png' });
 
   /* ---- 1b. the moving world (v13.10): once the entrance is over, the tree line, road dashes, sun rays, glint,
@@ -63,12 +64,12 @@ const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); retu
     if (wheel) wheel.style.animation = '';
     const gate = document.getElementById('titleUpdateBtn'), gateHidden = getComputedStyle(gate).display === 'none';
     gate.classList.add('show'); const gr = gate.getBoundingClientRect(); gate.classList.remove('show');
-    return { trees: an(document.getElementById('tTrees')), dash: an(document.getElementById('tDash')), rays: an(document.querySelector('#tSun .rays')),
+    return { trees: an(document.getElementById('tNear')), dash: an(document.getElementById('tDash')), balloon: an(document.querySelector('#tSky .balloon')),
       glint: an(document.querySelector('#titleLogo .glint')), wheel: wheel ? an(wheel) : 'tWheel', go: an(titleGo), carX: Math.round((car.left - st.left) / s),
       ground, shadowGap: Math.round(((shadow.top + shadow.height / 2) - wheelBottom) / s), shadowOnTires: Math.abs((shadow.top + shadow.height / 2) - wheelBottom) / s < 12, layers: document.querySelectorAll('#title .tLayer svg').length,
       gateHidden, gate: Math.min(gr.width, gr.height) / s };
   });
-  check('world: trees, dashes, sun rays, glint, wheels and GO animate; the car has arrived at x=330; 10 tile svgs', world.trees === 'tScroll' && world.dash === 'tDash' && world.rays === 'spin' && world.glint === 'tGlint' && world.wheel === 'tWheel' && /tGoPulse/.test(world.go) && world.carX === 330 && world.layers === 10, JSON.stringify(world));
+  check('world: near band, dashes, balloons, glint, wheels and GO animate; the car has arrived at x=320; 12 tile svgs', world.trees === 'tScroll' && world.dash === 'tDash' && world.balloon === 'tBalloon' && world.glint === 'tGlint' && world.wheel === 'tWheel' && /tGoPulse/.test(world.go) && world.carX === 320 && world.layers === 12, JSON.stringify(world));
   check('world: the shadow sits on the tire line (--tGround measured)', world.ground > 0 && world.shadowOnTires, JSON.stringify({ ground: world.ground, gap: world.shadowGap, on: world.shadowOnTires }));
   check('gate: the title carries its own update gate, hidden until a new version is found, >= 76 stage px when shown', world.gateHidden && world.gate >= 76, JSON.stringify({ hidden: world.gateHidden, size: world.gate }));
 
@@ -94,7 +95,7 @@ const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); retu
     return { active: [...document.querySelectorAll('.scene.active')].map(x => x.id).join(','), show: giftBtn.classList.contains('show'),
       size: Math.min(g.width, g.height), cx: Math.round((g.left + g.width / 2 - st.left) / s), top: Math.round((g.top - st.top) / s),
       aboveDice: g.bottom < d.top, sameAxis: Math.abs((g.left + g.width / 2) - (d.left + d.width / 2)) < 1, anim,
-      worldOff: getComputedStyle(document.getElementById('tTrees')).animationName === 'none' && getComputedStyle(document.getElementById('tDash')).animationName === 'none' };
+      worldOff: getComputedStyle(document.getElementById('tNear')).animationName === 'none' && getComputedStyle(document.getElementById('tDash')).animationName === 'none' };
   });
   check('GO: the title world stops animating once the garage is up (nothing runs behind it)', garage.worldOff, JSON.stringify({ worldOff: garage.worldOff }));
   check('GO: lands in the garage; the gift capsule pulses above the map, 88px, centred on x=1086 at top 192', garage.active === 'garage' && garage.show && garage.size >= 64 && garage.cx === 1086 && garage.top === 192 && garage.aboveDice && garage.sameAxis && garage.anim === 'pulse', JSON.stringify(garage));
@@ -153,7 +154,7 @@ const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); retu
   await page.waitForTimeout(300);
   const rm = await page.evaluate(() => ({ active: [...document.querySelectorAll('.scene.active')].map(x => x.id).join(','),
     logo: getComputedStyle(titleLogo).animationName, car: getComputedStyle(titleCar).animationName, go: getComputedStyle(titleGo).animationName,
-    trees: getComputedStyle(document.getElementById('tTrees')).animationName, dash: getComputedStyle(document.getElementById('tDash')).animationName,
+    trees: getComputedStyle(document.getElementById('tNear')).animationName, dash: getComputedStyle(document.getElementById('tDash')).animationName,
     wheel: (w => w ? getComputedStyle(w).animationName : 'none')(titleCar.querySelector('.wheelrot')), glint: getComputedStyle(document.querySelector('#titleLogo .glint')).display }));
   check('reduced motion: no pop-in animations on the title, the world holds still, the glint is hidden', rm.active === 'title' && rm.logo === 'none' && rm.car === 'none' && rm.go === 'none' && rm.trees === 'none' && rm.dash === 'none' && rm.wheel === 'none' && rm.glint === 'none', JSON.stringify(rm));
   await page.emulateMedia({ reducedMotion: 'no-preference' });

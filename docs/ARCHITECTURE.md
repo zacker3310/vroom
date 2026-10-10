@@ -463,18 +463,30 @@ checks the payload byte-exact, and exercises every version boundary.
 
 ## The title scene
 
-Section 30. `buildTitleWorld()` fills five parallax strips once at boot (two cloud layers, two
-hill bands, a tree line): each is a 1200 px SVG tile drawn twice inside a 2400 px `.tLayer`,
-and a `tScroll` keyframe slides the strip exactly one tile per loop, so the wrap is seamless as
-long as no shape crosses a tile edge. The road dashes are a 140 px repeating gradient slid one
-period per loop (`tDash`, 0.32 s, about 437 px/s), and the car's `.wheelrot` groups turn at the
-matching rate (`tWheel`, 0.5 s per revolution for a 70 px tire). `placeTitleGround()` measures
-the tire line after the scene is up and writes it to `--tGround` on `#titleCar`, which the
-shadow and the exhaust puffs hang off (tracks and hover rings use their art's lowest point).
-The entrance is pure CSS: the badge slams in (`tSlam`) behind a shock ring (`tRing`), the car
-drives in from off-stage (`tDrive`), GO pops last and then pulses with a halo (`tGoPulse`,
-`tHalo`). Every keyframe is scoped to `#title.active`, so the garage never pays for it, and the
-reduced-motion block turns all of it off and hides the glint.
+Section 30. `buildTitleWorld()` fills six parallax strips once at boot: clouds, a far band
+(desert mesas and arch, snow peaks with a waterfall, the volcano, the sky kingdom's floating
+castle), a mid band (the construction crane, the rain city, candy-land lollipops, the beach
+palms with the deep sea's whale), a hill band, a near band at the road's top edge (fences,
+bushes, cactus, paw signposts) and the verge below the road. Each is a 1200 px SVG tile drawn
+twice inside a 2400 px `.tLayer`, and a `tScroll` keyframe slides the strip exactly one tile
+per loop, so the wrap is seamless as long as no shape crosses a tile edge. `#tSky` is static:
+the space corner (an SVG radial fade, stars, a ringed planet, the night's moon, a rocket that
+crosses now and then) and two sunset balloons bobbing. The road dashes are a 140 px repeating
+gradient slid one period per loop (`tDash`, 0.32 s, about 437 px/s), and the car's `.wheelrot`
+groups turn at the matching rate (`tWheel`, 0.5 s per revolution for a 70 px tire).
+`placeTitleGround()` measures the tire line after the scene is up and writes it to `--tGround`
+on `#titleCar`, which the shadow and the exhaust puffs hang off (tracks and hover rings use
+their art's lowest point).
+
+The sign (`#titleLogo`) hangs from two chains: a plank with grain and nails, a star pennant and
+a checkered flag on poles, leaves, and the ZOOMIES wordmark. The letters are SVG paths (gold
+gradient, navy outline via `paint-order: stroke`, a paw in the first O), never `<text>`, so the
+title stays free of text nodes; it is the one word in the game, a brand mark rather than a
+thing to read. The entrance is pure CSS: the sign drops on its chains (`tDrop`), swings to rest
+(`tSwing`) and then sways (`tSway`), the car drives in from off-stage (`tDrive`), the play pill
+pops last and then pulses with a halo (`tGoPulse`, `tHalo`). Every keyframe is scoped to
+`#title.active`, so the garage never pays for it, and the reduced-motion block turns all of it
+off and hides the glint.
 
 ## The update gate
 

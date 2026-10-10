@@ -1485,45 +1485,54 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #quietBtn svg { width: 60px; height: 60px; }
 #quietBtn.on { background: var(--v-mute); border-color: var(--v-mute-line); box-shadow: 0 6px 0 var(--v-mute-down); }
 
-/* ============ TITLE SCENE + DAILY GIFT (T17.2, v13.10 premium pass) ============ */
-/* The boot ceremony as a moving world. A sun with turning rays, two cloud layers, two hill bands,
-   a tree line and the road dashes all stream left at parallax speeds, so the kid's car (which
-   drives in from the left with its wheels turning and exhaust puffing) reads as rolling down the
-   road while it idles. The emblem slams in behind a shock ring and keeps a glint sweeping over it,
-   stars twinkle around it, birds cross the sky, and GO throws a halo. Every layer is a 2400 px
-   strip of two identical 1200 px tiles moved by a transform, scoped to #title.active so nothing
-   runs behind the garage, and all of it is off under prefers-reduced-motion (the car sits in
-   place, the emblem and GO simply appear). */
-#title { background: linear-gradient(#4fc3f7 0%, #9bdcfa 42%, #d6f1fd 58%, #d6f1fd 100%); overflow: hidden; }
-#titleGround { position: absolute; left: 0; right: 0; top: 452px; bottom: 0; background: linear-gradient(#a5d97f 0%, #8cc968 28%, #6fa85a 100%); }
+/* ============ TITLE SCENE + DAILY GIFT (T17.2, v13.11 landing) ============ */
+/* The landing: a wooden sign hangs from two chains with the ZOOMIES wordmark (letters drawn as
+   paths, the one word in the game), over a panorama of the twelve worlds. Far band: desert mesas,
+   snow peaks with a waterfall, the volcano, the sky kingdom's floating castle. Mid band: the
+   construction crane, the rain city, candy-land lollipops, the beach palms. Near bands: fences,
+   bushes, cactus, paw signposts and the verge flowers streaming past at road speed. The space
+   corner (planet, stars, a rocket) and the balloons drift in the sky. The kid's car sits centred on
+   the road, wheels turning, exhaust puffing; the play pill glows at the bottom. Every layer is a
+   2400 px strip of two identical 1200 px tiles moved by a transform, scoped to #title.active so
+   nothing runs behind the garage, and all of it is off under prefers-reduced-motion. */
+#title { background: linear-gradient(#2f9ee9 0%, #6cc4f6 30%, #b9e6fb 52%, #dff3fc 60%); overflow: hidden; }
+#titleGround { position: absolute; left: 0; right: 0; top: 330px; bottom: 0; background: linear-gradient(#a5d97f 0%, #8cc968 30%, #6fa85a 100%); }
 .tLayer { position: absolute; left: 0; width: 2400px; pointer-events: none; }
 .tLayer svg { position: absolute; left: 0; top: 0; width: 1200px; height: 100%; overflow: visible; }
 .tLayer svg + svg { left: 1200px; }
-#tSun { position: absolute; left: 850px; top: 30px; width: 240px; height: 240px; pointer-events: none; }
-#tSun svg { width: 100%; height: 100%; overflow: visible; }
-#tSun .rays { transform-origin: 120px 120px; }
-#tCloudsFar { top: 48px; height: 160px; opacity: .8; }
-#tCloudsNear { top: 128px; height: 190px; }
-#tHillsFar { top: 300px; height: 160px; }
-#tHillsNear { top: 352px; height: 110px; }
-#tTrees { top: 356px; height: 160px; }
-#tBirds { position: absolute; left: 0; top: 70px; width: 160px; height: 60px; pointer-events: none; opacity: 0; }
+#tSky { position: absolute; left: 0; top: 0; width: 1200px; height: 340px; pointer-events: none; }
+#tSky svg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }
+#tSky .star { transform-box: fill-box; transform-origin: center; }
+#tSky .balloon { transform-box: fill-box; transform-origin: center; }
+#tSky .rocket { opacity: 0; }
+#tClouds { top: 40px; height: 160px; opacity: .85; }
+#tFar { top: 40px; height: 300px; }
+#tMid { top: 200px; height: 140px; }
+#tHills { top: 296px; height: 164px; }
+#tNear { top: 356px; height: 100px; }
+#tVerge { top: 598px; height: 102px; }
+#tBirds { position: absolute; left: 0; top: 150px; width: 160px; height: 60px; pointer-events: none; opacity: 0; }
 #tBirds svg { width: 100%; height: 100%; overflow: visible; }
 #tBirds .wing { transform-box: fill-box; transform-origin: center bottom; }
-#title.active #tSun .rays { animation: spin 60s linear infinite; }
-#title.active #tCloudsFar { animation: tScroll 110s linear infinite; }
-#title.active #tCloudsNear { animation: tScroll 64s linear infinite; }
-#title.active #tHillsFar { animation: tScroll 46s linear infinite; }
-#title.active #tHillsNear { animation: tScroll 22s linear infinite; }
-#title.active #tTrees { animation: tScroll 7.5s linear infinite; }
+#title.active #tClouds { animation: tScroll 120s linear infinite; }
+#title.active #tFar { animation: tScroll 150s linear infinite; }
+#title.active #tMid { animation: tScroll 70s linear infinite; }
+#title.active #tHills { animation: tScroll 30s linear infinite; }
+#title.active #tNear { animation: tScroll 8s linear infinite; }
+#title.active #tVerge { animation: tScroll 8s linear infinite; }
 #title.active #tBirds { animation: tBird 26s linear 4s infinite; }
 #title.active #tBirds .wing { animation: tFlap .42s ease-in-out infinite alternate; }
+#title.active #tSky .star { animation: tTwinkle 2.4s ease-in-out infinite; }
+#title.active #tSky .balloon { animation: tBalloon 5s ease-in-out infinite; }
+#title.active #tSky .rocket { animation: tRocket 18s linear 6s infinite; }
 @keyframes tScroll { to { transform: translateX(-1200px); } }
 @keyframes tBird { 0% { transform: translate(1260px, 40px); opacity: 0; } 4% { opacity: 1; } 50% { transform: translate(560px, -30px); } 96% { opacity: 1; } 100% { transform: translate(-220px, 20px); opacity: 0; } }
 @keyframes tFlap { from { transform: scaleY(1); } to { transform: scaleY(-.6); } }
+@keyframes tBalloon { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-16px) rotate(2deg); } }
+@keyframes tRocket { 0% { transform: translate(-80px, 120px) rotate(-30deg); opacity: 0; } 3% { opacity: 1; } 30% { transform: translate(560px, -40px) rotate(-30deg); opacity: 1; } 33%, 100% { transform: translate(640px, -70px) rotate(-30deg); opacity: 0; } }
 /* the road: a static slab with a dash strip streaming under the car (one 140 px dash cycle per loop, seamless) */
 #titleRoad {
-  position: absolute; left: 0; right: 0; top: 508px; height: 150px; overflow: hidden;
+  position: absolute; left: 0; right: 0; top: 450px; height: 150px; overflow: hidden;
   background: #5b5651; border-top: 10px solid #efe6d6; border-bottom: 10px solid #efe6d6;
 }
 #tDash {
@@ -1532,24 +1541,22 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 }
 #title.active #tDash { animation: tDash .32s linear infinite; }
 @keyframes tDash { to { transform: translateX(-140px); } }
-/* the emblem: a gold-rimmed badge that slams in behind a shock ring, then floats with a glint sweeping across */
-#titleLogo { position: absolute; left: 50%; top: 14px; width: 440px; height: 250px; margin-left: -220px; pointer-events: none; z-index: 3; }
+/* the sign: drops in on its chains, swings to rest, then sways; the glint sweeps the wordmark, stars twinkle */
+#titleLogo { position: absolute; left: 260px; top: 0; width: 680px; height: 200px; pointer-events: none; z-index: 3; transform-origin: 50% 0; }
 #titleLogo svg { width: 100%; height: 100%; overflow: visible; }
 #titleLogo .glint { opacity: 0; }
 #titleLogo .spark { transform-box: fill-box; transform-origin: center; opacity: 0; }
-#titleRing { position: absolute; left: 50%; top: 24px; width: 300px; height: 210px; margin-left: -150px; border-radius: 56px; border: 10px solid #fff; opacity: 0; pointer-events: none; z-index: 2; }
-#title.active #titleLogo { animation: tSlam .75s cubic-bezier(.2, 1.25, .4, 1) .15s backwards; }
-#title.active #titleLogo .badge { animation: tFloat 3.4s ease-in-out 1s infinite; }
-#title.active #titleLogo .glint { animation: tGlint 4.2s ease-in-out 1.4s infinite; }
+#titleLogo .leaf { transform-box: fill-box; transform-origin: center; }
+#title.active #titleLogo { animation: tDrop .8s cubic-bezier(.2, 1.1, .4, 1) .1s backwards, tSwing 1.8s ease-out .9s, tSway 5s ease-in-out 2.7s infinite; }
+#title.active #titleLogo .glint { animation: tGlint 4.2s ease-in-out 1.6s infinite; }
 #title.active #titleLogo .spark { animation: tTwinkle 2.1s ease-in-out infinite; }
-#title.active #titleRing { animation: tRing .7s ease-out .55s both; }
-@keyframes tSlam { 0% { transform: scale(2.6) translateY(-40px); opacity: 0; } 50% { transform: scale(.94) translateY(4px); opacity: 1; } 100% { transform: scale(1) translateY(0); } }
-@keyframes tFloat { 50% { transform: translateY(7px); } }
-@keyframes tGlint { 0%, 30% { transform: translateX(-300px); opacity: 0; } 32% { opacity: .55; } 62%, 100% { transform: translateX(420px); opacity: 0; } }
+@keyframes tDrop { 0% { transform: translateY(-320px); } 100% { transform: translateY(0); } }
+@keyframes tSwing { 0% { transform: rotate(-5deg); } 30% { transform: rotate(4deg); } 60% { transform: rotate(-2deg); } 85% { transform: rotate(1deg); } 100% { transform: rotate(0); } }
+@keyframes tSway { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg); } }
+@keyframes tGlint { 0%, 30% { transform: translateX(-200px); opacity: 0; } 32% { opacity: .5; } 62%, 100% { transform: translateX(760px); opacity: 0; } }
 @keyframes tTwinkle { 0%, 100% { transform: scale(.15) rotate(0deg); opacity: 0; } 50% { transform: scale(1) rotate(90deg); opacity: 1; } }
-@keyframes tRing { 0% { transform: scale(.55); opacity: .9; } 100% { transform: scale(1.5); opacity: 0; } }
-/* the car: drives in from off-stage, wheels turning the whole time it is on the title, exhaust puffing from the tail */
-#titleCar { position: absolute; left: 330px; top: 236px; width: 560px; cursor: pointer; touch-action: none; z-index: 4; }
+/* the car: centred on the road, drives in from off-stage, wheels turning the whole time it is on the title, exhaust puffing from the tail */
+#titleCar { position: absolute; left: 320px; top: 178px; width: 560px; cursor: pointer; touch-action: none; z-index: 4; }
 #titleCar svg { width: 100%; height: auto; overflow: visible; position: relative; z-index: 1; }
 /* --tGround: the gap from the box's bottom edge to the tire line, measured by placeTitleGround() */
 #titleCar .tShadow { position: absolute; left: 24px; right: 24px; bottom: calc(var(--tGround, 40px) - 14px); height: 28px; border-radius: 50%; background: rgba(40, 30, 20, .22); }
@@ -1573,23 +1580,23 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
   border-radius: 50%; background: var(--v-surface); border: 6px solid var(--v-surface-line); box-shadow: 0 6px 0 var(--v-surface-down);
 }
 #titleProfileBtn svg { width: 74px; height: 74px; }
-/* GO: the one huge green button, with a gloss and a halo ring that keeps rolling outward */
+/* PLAY: one huge green pill at the bottom, a gloss cap and a halo that keeps rolling outward */
 #titleGo {
-  position: absolute; left: 930px; top: 400px; width: 210px; height: 210px; border-radius: 50%; overflow: visible;
+  position: absolute; left: 410px; top: 538px; width: 380px; height: 152px; border-radius: 76px; overflow: visible;
   background: var(--v-accent-green); border: 10px solid var(--v-green-line); box-shadow: 0 8px 0 var(--v-green-down); z-index: 10;
 }
-#titleGo svg { width: 108px; height: 108px; position: relative; z-index: 1; }
-#titleGo::before { content: ""; position: absolute; inset: -12px; border-radius: 50%; border: 8px solid var(--v-accent-green); opacity: 0; pointer-events: none; }
-#titleGo::after { content: ""; position: absolute; left: 18%; top: 8%; width: 64%; height: 30%; border-radius: 50%; background: rgba(255, 255, 255, .26); pointer-events: none; }
+#titleGo svg { width: 104px; height: 104px; position: relative; z-index: 1; }
+#titleGo::before { content: ""; position: absolute; inset: -12px; border-radius: 90px; border: 8px solid var(--v-accent-green); opacity: 0; pointer-events: none; }
+#titleGo::after { content: ""; position: absolute; left: 8%; top: 8%; width: 84%; height: 32%; border-radius: 50%; background: rgba(255, 255, 255, .26); pointer-events: none; }
 #titleGo:active, #titleGo.pressed { box-shadow: 0 2px 0 var(--v-green-down); }
 #title.active #titleGo { animation: popIn .5s cubic-bezier(.2, 1.6, .4, 1) 1.4s backwards, tGoPulse 1.7s ease-in-out 1.9s infinite; }
 #title.active #titleGo::before { animation: tHalo 1.7s ease-out 1.9s infinite; }
 #title.active #titleGo:active, #title.active #titleGo.pressed { animation: none; }
-@keyframes tGoPulse { 50% { transform: scale(1.05); } }
-@keyframes tHalo { 0% { transform: scale(.88); opacity: .75; } 100% { transform: scale(1.32); opacity: 0; } }
-/* the gift badge: a small capsule riding the GO button's shoulder while today's gift is unclaimed */
+@keyframes tGoPulse { 50% { transform: scale(1.04); } }
+@keyframes tHalo { 0% { transform: scale(.92); opacity: .75; } 100% { transform: scale(1.22); opacity: 0; } }
+/* the gift badge: a small capsule riding the play pill's shoulder while today's gift is unclaimed */
 #titleGift {
-  position: absolute; right: -10px; top: -10px; width: 64px; height: 64px; border-radius: 50%; z-index: 2;
+  position: absolute; right: -10px; top: -14px; width: 64px; height: 64px; border-radius: 50%; z-index: 2;
   background: var(--v-surface); border: 5px solid var(--v-yellow-line); box-shadow: 0 4px 0 var(--v-yellow-down);
   display: none; align-items: center; justify-content: center; animation: pulse 1.1s ease infinite;
 }
@@ -1598,9 +1605,10 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #title.active #titleProfileBtn { animation: popIn .5s cubic-bezier(.2, 1.6, .4, 1) backwards; }
 #title.active #titleUpdateBtn.show { animation: pulse 1.4s ease infinite; }
 @media (prefers-reduced-motion: reduce) {
-  #title.active #titleLogo, #title.active #titleLogo .badge, #title.active #titleLogo .glint, #title.active #titleLogo .spark, #title.active #titleRing,
+  #title.active #titleLogo, #title.active #titleLogo .glint, #title.active #titleLogo .spark,
   #title.active #titleCar, #title.active #titleCar .wheelrot, #title.active #titleCar .tPuffs span, #titleCar.idle svg, #titleGift,
-  #title.active #titleGo, #title.active #titleGo::before, #title.active #titleProfileBtn, #title.active #tSun .rays, #title.active .tLayer,
+  #title.active #titleGo, #title.active #titleGo::before, #title.active #titleProfileBtn, #title.active .tLayer,
+  #title.active #tSky .star, #title.active #tSky .balloon, #title.active #tSky .rocket,
   #title.active #tBirds, #title.active #tBirds .wing, #title.active #tDash { animation: none !important; }
   #titleLogo .glint { display: none; }
 }
@@ -1638,47 +1646,18 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 
   <!-- title: the boot ceremony. Emblem (a star over a road, no words), the kid's car idling, one huge GO -->
   <div id="title" class="scene">
-    <!-- the moving world: filled by buildTitleWorld() (section 30), far to near -->
-    <div id="tSun" aria-hidden="true"></div>
-    <div id="tCloudsFar" class="tLayer" aria-hidden="true"></div>
+    <!-- the world panorama: filled by buildTitleWorld() (section 30), far to near -->
+    <div id="tSky" aria-hidden="true"></div>
+    <div id="tClouds" class="tLayer" aria-hidden="true"></div>
     <div id="tBirds" aria-hidden="true"></div>
-    <div id="tCloudsNear" class="tLayer" aria-hidden="true"></div>
-    <div id="tHillsFar" class="tLayer" aria-hidden="true"></div>
-    <div id="tHillsNear" class="tLayer" aria-hidden="true"></div>
+    <div id="tFar" class="tLayer" aria-hidden="true"></div>
+    <div id="tMid" class="tLayer" aria-hidden="true"></div>
     <div id="titleGround"></div>
-    <div id="tTrees" class="tLayer" aria-hidden="true"></div>
+    <div id="tHills" class="tLayer" aria-hidden="true"></div>
+    <div id="tNear" class="tLayer" aria-hidden="true"></div>
     <div id="titleRoad"><div id="tDash"></div></div>
-    <div id="titleRing" aria-hidden="true"></div>
-    <div id="titleLogo" aria-hidden="true">
-      <svg viewBox="0 0 440 250">
-        <defs><clipPath id="tBadgeClip"><rect x="120" y="14" width="260" height="196" rx="48"/></clipPath></defs>
-        <!-- speed trail off the badge's tail -->
-        <g fill="#fff">
-          <rect x="18" y="88" width="94" height="18" rx="9" opacity=".95"/>
-          <rect x="44" y="120" width="68" height="18" rx="9" opacity=".8"/>
-          <rect x="68" y="152" width="44" height="18" rx="9" opacity=".62"/>
-        </g>
-        <g class="badge">
-          <rect x="120" y="24" width="260" height="196" rx="48" fill="#b9780a"/>
-          <rect x="120" y="14" width="260" height="196" rx="48" fill="#ffb703"/>
-          <rect x="134" y="28" width="232" height="168" rx="38" fill="#f7ede2"/>
-          <path d="M178 182 L232 98 L268 98 L322 182 Z" fill="#5b5651"/>
-          <path d="M250 106 V124 M250 136 V154 M250 166 V180" stroke="#ffd66e" stroke-width="7" stroke-linecap="round"/>
-          <path d="M250 30 L266 72 L312 76 L277 106 L288 152 L250 128 L212 152 L223 106 L188 76 L234 72 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="7" stroke-linejoin="round"/>
-          <path d="M104 172 L150 172 L150 214 L104 214 L120 193 Z" fill="#b3252f"/>
-          <path d="M396 172 L350 172 L350 214 L396 214 L380 193 Z" fill="#b3252f"/>
-          <rect x="130" y="166" width="240" height="46" rx="12" fill="#e63946"/>
-          <g fill="#fff"><path d="M200 177 L204 186 L214 187 L206 193 L209 203 L200 197 L191 203 L194 193 L186 187 L196 186 Z"/><path d="M250 175 L255 186 L267 187 L258 195 L261 207 L250 200 L239 207 L242 195 L233 187 L245 186 Z"/><path d="M300 177 L304 186 L314 187 L306 193 L309 203 L300 197 L291 203 L294 193 L286 187 L296 186 Z"/></g>
-          <g clip-path="url(#tBadgeClip)"><g class="glint"><rect x="120" y="0" width="70" height="250" fill="#fff" transform="skewX(-22)"/></g></g>
-        </g>
-        <g fill="#fff">
-          <path class="spark" d="M128 40 L134 56 L150 62 L134 68 L128 84 L122 68 L106 62 L122 56 Z"/>
-          <path class="spark" style="animation-delay:.7s" d="M400 60 L405 72 L417 77 L405 82 L400 94 L395 82 L383 77 L395 72 Z"/>
-          <path class="spark" style="animation-delay:1.4s" d="M412 190 L416 200 L426 204 L416 208 L412 218 L408 208 L398 204 L408 200 Z"/>
-          <path class="spark" style="animation-delay:.35s" d="M166 230 L170 240 L180 244 L170 248 L166 258 L162 248 L152 244 L162 240 Z"/>
-        </g>
-      </svg>
-    </div>
+    <div id="tVerge" class="tLayer" aria-hidden="true"></div>
+    <div id="titleLogo" aria-hidden="true"></div>
     <button class="bigBtn" id="titleProfileBtn" aria-label="who is playing"></button>
     <button class="updateGate" id="titleUpdateBtn" aria-label="new version ready: press and hold to update">
       <svg viewBox="0 0 100 100">
@@ -2063,7 +2042,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.10.2";
+const APP_VERSION = "13.11.0";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -11153,24 +11132,94 @@ function titleIdleStop() {
   engineStop();
 }
 
-/* ---- the moving world behind the title: each layer is one 1200 px tile drawn twice so the
-   strip can slide a full tile and snap back without a seam. Nothing crosses a tile edge. ---- */
+/* ---- the world panorama behind the title: each layer is one 1200 px tile drawn twice so the strip can
+   slide a full tile and snap back without a seam. Nothing crosses a tile edge. The bands quote the twelve
+   worlds: desert (6), snow (5), volcano (9), sky kingdom (12) far; construction (1), rain city (4), candy
+   land (10), beach (7) and the deep sea's whale (11) mid; space (8) and night (3) in the dark corner; the
+   sunset's balloons (2) in the sky. ---- */
 (function buildTitleWorld() {
   const cloud = (x, y, k) => `<g transform="translate(${x},${y}) scale(${k})" fill="#fff"><ellipse cx="0" cy="0" rx="62" ry="30"/><ellipse cx="-46" cy="12" rx="40" ry="22"/><ellipse cx="48" cy="10" rx="46" ry="25"/><rect x="-80" y="6" width="160" height="30" rx="15"/></g>`;
   const hill = (x, y, rx, ry, c) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${c}"/>`;
   const pine = (x, y, k) => `<g transform="translate(${x},${y}) scale(${k})"><rect x="-7" y="-20" width="14" height="30" rx="4" fill="#8a5a3c"/><path d="M0 -96 L38 -40 L-38 -40 Z" fill="#2f8f4e"/><path d="M0 -72 L44 -12 L-44 -12 Z" fill="#3fa65a"/></g>`;
-  const puffTree = (x, y, k) => `<g transform="translate(${x},${y}) scale(${k})"><rect x="-7" y="-22" width="14" height="32" rx="4" fill="#8a5a3c"/><circle cx="0" cy="-54" r="34" fill="#49b26a"/><circle cx="-26" cy="-36" r="24" fill="#3fa65a"/><circle cx="26" cy="-36" r="24" fill="#3fa65a"/></g>`;
   const bush = (x, y, k) => `<g transform="translate(${x},${y}) scale(${k})" fill="#5cc27a"><circle cx="0" cy="-14" r="18"/><circle cx="-18" cy="-6" r="14"/><circle cx="18" cy="-6" r="14"/></g>`;
-  const flower = (x, y, c) => `<g transform="translate(${x},${y})"><circle cx="0" cy="-8" r="7" fill="${c}"/><circle cx="0" cy="-8" r="3" fill="#fff"/></g>`;
+  const flower = (x, y, c) => `<g transform="translate(${x},${y})"><rect x="-2" y="-14" width="4" height="14" fill="#3fa65a"/><circle cx="0" cy="-16" r="7" fill="${c}"/><circle cx="0" cy="-16" r="3" fill="#fff"/></g>`;
+  const cactus = (x, y, k) => `<g transform="translate(${x},${y}) scale(${k})" fill="#4caf50" stroke="#2e7d32" stroke-width="4" stroke-linejoin="round"><rect x="-12" y="-80" width="24" height="80" rx="12"/><rect x="-40" y="-60" width="18" height="34" rx="9"/><rect x="-40" y="-34" width="36" height="16" rx="8"/><rect x="22" y="-70" width="18" height="30" rx="9"/><rect x="6" y="-48" width="34" height="16" rx="8"/></g>`;
+  const fence = (x, y, n) => { let o = ""; for (let i = 0; i <= n; i++) o += `<rect x="${x + i * 40 - 5}" y="${y - 44}" width="10" height="44" rx="3" fill="#b07a3c" stroke="#7a4f24" stroke-width="3"/>`; return o + `<rect x="${x - 8}" y="${y - 36}" width="${n * 40 + 16}" height="8" rx="4" fill="#c58b48" stroke="#7a4f24" stroke-width="3"/><rect x="${x - 8}" y="${y - 18}" width="${n * 40 + 16}" height="8" rx="4" fill="#c58b48" stroke="#7a4f24" stroke-width="3"/>`; };
+  const paw = (x, y, k, c) => `<g transform="translate(${x},${y}) scale(${k})" fill="${c}"><ellipse cx="0" cy="8" rx="11" ry="9"/><circle cx="-12" cy="-6" r="5"/><circle cx="-4" cy="-12" r="5"/><circle cx="4" cy="-12" r="5"/><circle cx="12" cy="-6" r="5"/></g>`;
+  const signpost = (x, y) => `<g transform="translate(${x},${y})"><rect x="-5" y="-70" width="10" height="70" fill="#8a5a3c"/><rect x="-30" y="-98" width="60" height="44" rx="8" fill="#c58b48" stroke="#7a4f24" stroke-width="4"/>${paw(0, -74, 1.1, "#5a3b1e")}</g>`;
+  const rock = (x, y, k) => `<g transform="translate(${x},${y}) scale(${k})" fill="#9aa3ad" stroke="#6b737c" stroke-width="3"><path d="M-24 0 L-16 -18 L4 -24 L22 -10 L24 0 Z"/></g>`;
   const tile = (h, body) => `<svg viewBox="0 0 1200 ${h}" preserveAspectRatio="none">${body}</svg>`;
   const fill = (id, h, body) => { document.getElementById(id).innerHTML = tile(h, body) + tile(h, body); };
-  fill("tCloudsFar", 160, cloud(140, 70, .55) + cloud(430, 40, .4) + cloud(700, 90, .5) + cloud(1000, 50, .45));
-  fill("tCloudsNear", 190, cloud(260, 80, .95) + cloud(760, 60, .8) + cloud(1050, 120, .7));
-  fill("tHillsFar", 160, hill(180, 160, 300, 110, "#9fd8c0") + hill(560, 160, 260, 90, "#9fd8c0") + hill(900, 160, 320, 120, "#9fd8c0") + `<rect x="0" y="150" width="1200" height="10" fill="#9fd8c0"/>`);
-  fill("tHillsNear", 110, hill(120, 110, 260, 80, "#7cc96f") + hill(470, 110, 220, 60, "#7cc96f") + hill(820, 110, 300, 90, "#7cc96f") + hill(1120, 110, 180, 55, "#7cc96f") + `<rect x="0" y="100" width="1200" height="10" fill="#7cc96f"/>`);
-  fill("tTrees", 160, pine(90, 140, 1) + bush(170, 140, 1) + puffTree(300, 140, .9) + flower(380, 140, "#ff6b9d") + bush(470, 140, .8) + pine(600, 140, 1.15) + flower(690, 140, "#ffd60a") + puffTree(800, 140, 1) + bush(900, 140, 1.1) + flower(960, 140, "#ff6b9d") + pine(1060, 140, .9) + flower(1140, 140, "#ffd60a"));
-  document.getElementById("tSun").innerHTML = `<svg viewBox="0 0 240 240"><circle cx="120" cy="120" r="112" fill="#fff3b0" opacity=".35"/><g class="rays" fill="#ffe66e" opacity=".85">${[...Array(12)].map((_, i) => `<path d="M120 120 L${120 + 118 * Math.cos(i * Math.PI / 6 - .13)} ${120 + 118 * Math.sin(i * Math.PI / 6 - .13)} L${120 + 118 * Math.cos(i * Math.PI / 6 + .13)} ${120 + 118 * Math.sin(i * Math.PI / 6 + .13)} Z"/>`).join("")}</g><circle cx="120" cy="120" r="66" fill="#ffd60a" stroke="#fb8500" stroke-width="8"/></svg>`;
+  fill("tClouds", 160, cloud(140, 70, .55) + cloud(430, 40, .4) + cloud(700, 90, .5) + cloud(1000, 50, .45));
+  /* far band (tile 1200x300, ground line y=300): mesas + arch, snow peaks + waterfall, the volcano, the floating castle */
+  fill("tFar", 300,
+    `<path d="M20 300 V190 Q20 170 40 170 H120 Q140 170 140 190 V300 Z" fill="#d9703a"/><path d="M60 170 V120 Q60 104 76 104 H110 Q126 104 126 120 V170 Z" fill="#e07a3f"/>` +
+    `<path d="M170 300 V210 Q170 190 200 190 H300 Q330 190 330 210 V300 Z" fill="#c9622e"/><path d="M190 190 L210 140 H290 L310 190 Z" fill="#e07a3f"/>` +
+    `<path d="M200 300 V250 Q240 180 300 250 V300 Z" fill="#b8562a"/><path d="M225 300 V262 Q250 222 275 262 V300 Z" fill="#8fd3ff"/>` +
+    `<path d="M380 300 L470 110 L520 190 L560 90 L640 300 Z" fill="#6b8fb3"/><path d="M470 110 L448 156 L470 150 L492 160 L520 190 L500 142 Z" fill="#eef5fb"/><path d="M560 90 L540 134 L560 128 L582 140 L604 180 L580 120 Z" fill="#eef5fb"/>` +
+    `<path d="M530 300 V220 Q540 190 548 210 V300 Z" fill="#8fd3ff" opacity=".9"/><path d="M505 300 Q540 280 575 300 Z" fill="#bfe8ff"/>` +
+    `<path d="M700 300 L770 130 L830 130 L900 300 Z" fill="#5a4a42"/><path d="M770 130 L800 110 L830 130 L820 150 L800 140 L780 152 Z" fill="#ff6b1a"/><path d="M790 140 L786 220 L800 212 L808 250 L812 170 Z" fill="#ff6b1a"/><path d="M795 150 L792 200 L802 196 L806 230 L808 170 Z" fill="#ffd166"/>` +
+    `<ellipse cx="800" cy="100" rx="40" ry="18" fill="#c8c0b8" opacity=".8"/><ellipse cx="820" cy="78" rx="30" ry="14" fill="#d8d0c8" opacity=".7"/>` +
+    `<g transform="translate(1060,150)"><path d="M-110 0 Q-100 60 -40 70 Q0 90 40 70 Q100 60 110 0 Z" fill="#8c6a4f"/><ellipse cx="0" cy="0" rx="112" ry="22" fill="#6fbf73"/><rect x="-50" y="-70" width="100" height="70" rx="8" fill="#f4e9d8"/><rect x="-70" y="-100" width="30" height="100" fill="#f4e9d8"/><rect x="40" y="-100" width="30" height="100" fill="#f4e9d8"/><path d="M-72 -100 L-55 -134 L-38 -100 Z" fill="#4f7fd9"/><path d="M38 -100 L55 -134 L72 -100 Z" fill="#4f7fd9"/><path d="M-50 -70 L0 -100 L50 -70 Z" fill="#4f7fd9"/><rect x="-10" y="-40" width="20" height="40" rx="10" fill="#4f7fd9"/><path d="M-55 -134 V-156 L-38 -150 L-55 -144 Z" fill="#e63946"/></g>` +
+    `<ellipse cx="1060" cy="230" rx="60" ry="16" fill="#fff" opacity=".8"/><ellipse cx="1020" cy="238" rx="36" ry="12" fill="#fff" opacity=".7"/>`);
+  /* mid band (tile 1200x140, ground y=140): the crane, the rain city, candy land, beach palms over the sea */
+  fill("tMid", 140,
+    `<rect x="110" y="20" width="10" height="120" fill="#ffb703"/><rect x="60" y="20" width="200" height="10" fill="#ffb703"/><path d="M110 20 L130 0 L250 30" stroke="#ffb703" stroke-width="6" fill="none"/><rect x="88" y="120" width="54" height="20" fill="#e09f00"/><rect x="226" y="30" width="3" height="50" fill="#5b5651"/><rect x="214" y="80" width="26" height="18" rx="3" fill="#495057"/>` +
+    `<rect x="400" y="60" width="44" height="80" fill="#6c7a99"/><rect x="450" y="30" width="60" height="110" fill="#7d8bad"/><rect x="516" y="76" width="40" height="64" fill="#6c7a99"/>` +
+    [[408, 70], [408, 94], [428, 82], [460, 44], [484, 44], [460, 70], [484, 96], [524, 86], [524, 112]].map(([x, y]) => `<rect x="${x}" y="${y}" width="10" height="12" fill="#ffe66e"/>`).join("") +
+    `<ellipse cx="470" cy="22" rx="44" ry="16" fill="#8fa3c7"/><path d="M450 40 V56 M470 42 V60 M490 40 V56" stroke="#8fd3ff" stroke-width="4" stroke-linecap="round"/>` +
+    `<g transform="translate(660,140)"><rect x="-4" y="-90" width="8" height="90" fill="#f7ede2"/><circle cx="0" cy="-100" r="30" fill="#ff6b9d"/><path d="M-30 -100 A30 30 0 0 1 0 -130 L0 -100 Z M0 -100 L30 -100 A30 30 0 0 1 0 -70 Z" fill="#fff"/></g>` +
+    `<g transform="translate(730,140)"><rect x="-4" y="-60" width="8" height="60" fill="#f7ede2"/><circle cx="0" cy="-70" r="22" fill="#56cfe1"/><path d="M-22 -70 A22 22 0 0 1 0 -92 L0 -70 Z M0 -70 L22 -70 A22 22 0 0 1 0 -48 Z" fill="#fff"/></g>` +
+    `<rect x="880" y="112" width="320" height="28" fill="#3cc2d9"/><rect x="0" y="112" width="60" height="28" fill="#3cc2d9" opacity="0"/>` +
+    `<path d="M1000 126 Q1010 100 1040 104 Q1060 108 1050 126 Z" fill="#4a6fa5"/><path d="M1054 108 L1072 96 L1066 118 Z" fill="#4a6fa5"/><path d="M1018 100 V84 M1012 90 Q1018 76 1024 90" stroke="#bfe8ff" stroke-width="3" fill="none" stroke-linecap="round"/>` +
+    `<g transform="translate(930,140)"><path d="M0 0 Q6 -60 24 -96" stroke="#b07a3c" stroke-width="10" fill="none" stroke-linecap="round"/><g fill="#3fa65a"><path d="M24 -96 Q60 -110 84 -84 Q50 -92 24 -96 Z"/><path d="M24 -96 Q-14 -110 -36 -80 Q0 -92 24 -96 Z"/><path d="M24 -96 Q50 -70 44 -44 Q34 -74 24 -96 Z"/><path d="M24 -96 Q0 -70 -4 -44 Q12 -74 24 -96 Z"/></g></g>` +
+    `<g transform="translate(1130,140)"><path d="M0 0 Q-6 -50 -20 -80" stroke="#b07a3c" stroke-width="9" fill="none" stroke-linecap="round"/><g fill="#49b26a"><path d="M-20 -80 Q14 -96 36 -70 Q4 -78 -20 -80 Z"/><path d="M-20 -80 Q-54 -96 -74 -66 Q-40 -78 -20 -80 Z"/><path d="M-20 -80 Q2 -54 -2 -30 Q-12 -60 -20 -80 Z"/></g></g>`);
+  fill("tHills", 164, hill(120, 164, 260, 80, "#bfe59a") + hill(470, 164, 220, 60, "#bfe59a") + hill(820, 164, 300, 90, "#bfe59a") + hill(1120, 164, 180, 55, "#bfe59a") + `<rect x="0" y="154" width="1200" height="10" fill="#bfe59a"/>`);
+  /* near band (tile 1200x100, ground y=100, the road's top edge): fences, bushes, a cactus, paw signposts */
+  fill("tNear", 100, fence(40, 100, 4) + bush(250, 100, 1) + cactus(330, 100, .8) + flower(390, 100, "#ff6b9d") + signpost(470, 100) + bush(560, 100, .8) + fence(640, 100, 3) + pine(810, 100, .9) + flower(870, 100, "#ffd60a") + rock(930, 100, 1) + signpost(1020, 100) + bush(1110, 100, 1.1));
+  /* the verge below the road (tile 1200x102, ground y=70): rocks, flowers, grass tufts, short fence runs */
+  fill("tVerge", 102, fence(20, 70, 2) + flower(180, 70, "#fff") + rock(240, 70, .9) + bush(330, 70, .8) + flower(400, 70, "#ff6b9d") + fence(480, 70, 2) + flower(620, 70, "#ffd60a") + rock(700, 70, 1.1) + flower(780, 70, "#fff") + bush(860, 70, .9) + fence(940, 70, 2) + flower(1100, 70, "#ff6b9d") + rock(1160, 70, .8));
+  /* the sky: stars and a ringed planet in the dark corner, a rocket crossing it, two balloons drifting */
+  const balloon = (x, y, k, c1, c2) => `<g class="balloon" transform="translate(${x},${y}) scale(${k})"><path d="M0 -70 C40 -70 48 -20 20 10 L8 30 H-8 L-20 10 C-48 -20 -40 -70 0 -70 Z" fill="${c1}"/><path d="M0 -70 C14 -70 18 -20 8 10 L4 30 H-4 L-8 10 C-18 -20 -14 -70 0 -70 Z" fill="${c2}"/><path d="M-8 30 L-10 48 H10 L8 30" stroke="#6b4a2b" stroke-width="3" fill="none"/><rect x="-12" y="46" width="24" height="16" rx="4" fill="#b07a3c"/></g>`;
+  document.getElementById("tSky").innerHTML = `<svg viewBox="0 0 1200 340"><defs><radialGradient id="tSpaceG" gradientUnits="userSpaceOnUse" cx="1150" cy="20" r="430"><stop offset="0" stop-color="#1d2b53"/><stop offset=".45" stop-color="#2a3f7a"/><stop offset="1" stop-color="#2a3f7a" stop-opacity="0"/></radialGradient></defs><circle cx="1150" cy="20" r="430" fill="url(#tSpaceG)"/>` +
+    [[960, 30], [1010, 70], [1080, 20], [1150, 90], [1000, 130], [1130, 160], [1180, 50], [1050, 170]].map(([x, y], i) => `<path class="star" style="animation-delay:${(i * .37) % 2.4}s" d="M${x} ${y - 7} L${x + 2} ${y - 2} L${x + 7} ${y} L${x + 2} ${y + 2} L${x} ${y + 7} L${x - 2} ${y + 2} L${x - 7} ${y} L${x - 2} ${y - 2} Z" fill="#fff"/>`).join("") +
+    `<g transform="translate(1090,110)"><ellipse cx="0" cy="0" rx="64" ry="16" fill="none" stroke="#e6d4f5" stroke-width="10" transform="rotate(-18)"/><circle cx="0" cy="0" r="36" fill="#c7a0e8"/><path d="M-30 -8 Q0 -20 30 -8 M-34 8 Q0 0 34 8" stroke="#a97fd0" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M-64 6 A64 16 0 0 0 64 6" fill="none" stroke="#e6d4f5" stroke-width="10" transform="rotate(-18)"/></g>` +
+    `<circle cx="920" cy="36" r="18" fill="#fff3b0"/><circle cx="913" cy="32" r="15" fill="#2a3f7a"/>` +
+    `<g class="rocket" transform="translate(760,140)"><g transform="rotate(-30)"><path d="M-30 0 L-60 -10 L-60 10 Z" fill="#ffb703"/><path d="M-30 0 L-50 -6 L-50 6 Z" fill="#ff6b1a"/><rect x="-30" y="-10" width="50" height="20" rx="10" fill="#f4f4f4"/><path d="M20 -10 L36 0 L20 10 Z" fill="#e63946"/><circle cx="-6" cy="0" r="5" fill="#56cfe1"/><path d="M-20 -10 L-28 -20 L-8 -10 Z M-20 10 L-28 20 L-8 10 Z" fill="#e63946"/></g></g>` +
+    balloon(200, 120, .9, "#e63946", "#ffd60a") + balloon(290, 200, .6, "#4f7fd9", "#fff") + `</svg>`;
   document.getElementById("tBirds").innerHTML = `<svg viewBox="0 0 160 60" fill="none" stroke="#2b3a55" stroke-width="5" stroke-linecap="round"><g transform="translate(30,30)"><path class="wing" d="M0 0 Q-16 -14 -30 -2"/><path class="wing" d="M0 0 Q16 -14 30 -2"/></g><g transform="translate(110,14) scale(.7)"><path class="wing" d="M0 0 Q-16 -14 -30 -2"/><path class="wing" d="M0 0 Q16 -14 30 -2"/></g></svg>`;
+  /* the sign: two chains, a plank with grain and nails, a star pennant and a checkered flag, leaves, and the
+     ZOOMIES wordmark drawn as paths (the one word in the game: a brand mark, not a thing to read) */
+  const L = 'fill="url(#tGold)" stroke="#1d3557" stroke-width="12" stroke-linejoin="round" paint-order="stroke"';
+  const letters = [
+    [0, -2, `<path d="M0 0 H80 V24 L34 86 H80 V110 H0 V86 L46 24 H0 Z" ${L}/>`],
+    [94, 2, `<path fill-rule="evenodd" d="M40 0 C62 0 80 18 80 40 V70 C80 92 62 110 40 110 C18 110 0 92 0 70 V40 C0 18 18 0 40 0 Z M40 24 C30 24 22 32 22 42 V68 C22 78 30 86 40 86 C50 86 58 78 58 68 V42 C58 32 50 24 40 24 Z" ${L}/><rect x="22" y="24" width="36" height="62" rx="18" fill="#ffe9a8"/>${paw(40, 58, 1.3, "#1d3557")}`],
+    [188, -2, `<path fill-rule="evenodd" d="M40 0 C62 0 80 18 80 40 V70 C80 92 62 110 40 110 C18 110 0 92 0 70 V40 C0 18 18 0 40 0 Z M40 24 C30 24 22 32 22 42 V68 C22 78 30 86 40 86 C50 86 58 78 58 68 V42 C58 32 50 24 40 24 Z" ${L}/>`],
+    [282, 2, `<path d="M0 110 V0 H26 L42 44 L58 0 H84 V110 H60 V52 L42 94 L24 52 V110 Z" ${L}/>`],
+    [380, -2, `<path d="M0 0 H58 V24 H41 V86 H58 V110 H0 V86 H17 V24 H0 Z" ${L}/>`],
+    [452, 2, `<path d="M0 0 H80 V24 H24 V44 H70 V66 H24 V86 H80 V110 H0 Z" ${L}/>`],
+    [546, -2, `<path d="M74 24 C70 2 10 -2 10 30 C10 60 74 50 74 82 C74 112 8 112 6 86" fill="none" stroke="#1d3557" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/><path d="M74 24 C70 2 10 -2 10 30 C10 60 74 50 74 82 C74 112 8 112 6 86" fill="none" stroke="url(#tGold)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>`],
+  ].map(([x, r, d]) => `<g transform="translate(${x},0) rotate(${r} 40 55)">${d}</g>`).join("");
+  document.getElementById("titleLogo").innerHTML = `<svg viewBox="0 0 680 200">
+    <defs><linearGradient id="tGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe066"/><stop offset=".55" stop-color="#ffb703"/><stop offset="1" stop-color="#fb8500"/></linearGradient>
+    <clipPath id="tPlankClip"><rect x="30" y="30" width="620" height="150" rx="18"/></clipPath></defs>
+    <path d="M150 -40 V34 M530 -40 V34" stroke="#6b4a2b" stroke-width="6" stroke-dasharray="10 6"/>
+    <rect x="30" y="40" width="620" height="150" rx="18" fill="#7a4f24"/>
+    <rect x="30" y="30" width="620" height="150" rx="18" fill="#b07a3c"/>
+    <g stroke="#8f5f2c" stroke-width="3" opacity=".7"><path d="M60 60 H300 M340 60 H620 M50 100 H180 M520 100 H640 M70 150 H260 M400 150 H600"/></g>
+    <g fill="#5a3b1e"><circle cx="52" cy="52" r="6"/><circle cx="628" cy="52" r="6"/><circle cx="52" cy="158" r="6"/><circle cx="628" cy="158" r="6"/></g>
+    <g transform="translate(62,54) scale(.9)">${letters}</g>
+    <g clip-path="url(#tPlankClip)"><g class="glint"><rect x="30" y="0" width="80" height="200" fill="#fff" transform="skewX(-22)"/></g></g>
+    <rect x="84" y="-30" width="8" height="70" fill="#5a3b1e"/><path d="M92 -28 L170 -12 L92 6 Z" fill="#e63946"/><path d="M118 -17 L121 -10 L128 -9 L123 -4 L124 3 L118 0 L112 3 L113 -4 L108 -9 L115 -10 Z" fill="#fff"/>
+    <rect x="588" y="-30" width="8" height="70" fill="#5a3b1e"/><g transform="translate(596,-26)">${[0, 1, 2, 3].map(i => [0, 1, 2].map(j => `<rect x="${i * 14}" y="${j * 12}" width="14" height="12" fill="${(i + j) % 2 ? "#fff" : "#1d3557"}"/>`).join("")).join("")}</g>
+    <g fill="#49b26a"><ellipse class="leaf" cx="40" cy="36" rx="18" ry="9" transform="rotate(-30 40 36)"/><ellipse class="leaf" cx="60" cy="182" rx="18" ry="9" transform="rotate(25 60 182)"/><ellipse class="leaf" cx="640" cy="34" rx="18" ry="9" transform="rotate(30 640 34)"/><ellipse class="leaf" cx="620" cy="184" rx="18" ry="9" transform="rotate(-25 620 184)"/><ellipse class="leaf" cx="340" cy="186" rx="16" ry="8"/></g>
+    <g fill="#fff">
+      <path class="spark" d="M20 100 L26 116 L42 122 L26 128 L20 144 L14 128 L-2 122 L14 116 Z"/>
+      <path class="spark" style="animation-delay:.7s" d="M660 80 L665 92 L677 97 L665 102 L660 114 L655 102 L643 97 L655 92 Z"/>
+      <path class="spark" style="animation-delay:1.4s" d="M340 14 L344 24 L354 28 L344 32 L340 42 L336 32 L326 28 L336 24 Z"/>
+      <path class="spark" style="animation-delay:.35s" d="M470 190 L474 200 L484 204 L474 208 L470 218 L466 208 L456 204 L466 200 Z"/>
+    </g>
+  </svg>`;
 })();
 
 function renderTitle() {

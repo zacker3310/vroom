@@ -19,7 +19,7 @@
   <img src="https://img.shields.io/badge/version-12.9.0-6fc0df" alt="version 12.9.0">
 </p>
 
-![The title: the kid's own car rolling down a moving road under the badge, GO glowing on the right](docs/title.png)
+![The title: the ZOOMIES sign hanging over a panorama of the worlds, the kid's own car rolling on the road, the play pill glowing below](docs/title.png)
 
 ![The garage: a pirate-ship car with a fox buddy, the body strip open below](docs/garage.png)
 
