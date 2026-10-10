@@ -144,6 +144,83 @@ function check(name, ok, detail) {
   const back = await page.evaluate(() => ({ active: meta.active, wallet: progress.wallet, body: state.body }));
   check('profiles: switching back restores the first kid intact', back.active === 0 && back.wallet === 77 && back.body === 'fire', JSON.stringify(back));
 
+  /* ---- delete a profile: a trash badge on every used slot, a hold-to-erase card (parents only: a tap does nothing) ---- */
+  const p0Json = await page.evaluate(() => localStorage.getItem('vroom.v2.p0'));   /* put back after the deletes so the import checks below see the same kid */
+  await tap('#profileBtn');
+  await page.waitForTimeout(200);
+  const badges = await page.evaluate(() => {
+    const cells = [...document.querySelectorAll('.profileCell')];
+    const r = document.querySelector('.slotTrash').getBoundingClientRect();
+    return { cells: cells.length, used: cells.filter(c => !c.querySelector('.profileSlot.empty')).length,
+      badged: cells.map(c => !!c.querySelector('.slotTrash')), size: Math.min(r.width, r.height) };
+  });
+  check('delete: used slots carry a trash badge (64px+), the empty slot does not', badges.cells === 3 && badges.used === 2 && badges.badged.join() === 'true,true,false' && badges.size >= 64, JSON.stringify(badges));
+
+  /* a short tap on the hold button changes nothing */
+  await page.evaluate(() => document.querySelectorAll('.slotTrash')[1].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
+  await page.waitForTimeout(300);
+  const card = await page.evaluate(() => ({ show: deleteConfirm.classList.contains('show'), target: deleteTarget,
+    stars: document.getElementById('deleteStars').textContent.trim(), flags: document.getElementById('deleteFlags').textContent.trim() }));
+  const holdBox = await page.locator('#deleteHold').boundingBox();
+  await page.mouse.move(holdBox.x + holdBox.width / 2, holdBox.y + holdBox.height / 2);
+  await page.mouse.down(); await page.waitForTimeout(300); await page.mouse.up();
+  await page.waitForTimeout(1200);
+  const tapped = await page.evaluate(() => ({ show: deleteConfirm.classList.contains('show'), holding: deleteHold.classList.contains('holding'),
+    p1: !!localStorage.getItem('vroom.v2.p1'), avatar: meta.avatars[1], timer: deleteHoldT }));
+  check('delete: the card shows the slot (0 stars, 0 flags); a short tap on hold-to-erase keeps the save and the card', card.show && card.target === 1 && card.stars === '0' && card.flags === '0'
+    && tapped.show && !tapped.holding && tapped.p1 && !!tapped.avatar && tapped.timer === null, JSON.stringify({ card, tapped }));
+
+  /* holding through the ring erases the OTHER kid; the active kid is untouched */
+  await page.mouse.down(); await page.waitForTimeout(1500); await page.mouse.up();
+  await page.waitForTimeout(400);
+  const gone = await page.evaluate(() => ({ show: deleteConfirm.classList.contains('show'), overlay: profileOverlay.classList.contains('show'),
+    p1: localStorage.getItem('vroom.v2.p1'), avatar: meta.avatars[1], metaStored: JSON.parse(localStorage.getItem('vroom.meta')).avatars[1],
+    empty: document.querySelectorAll('.profileSlot')[1].classList.contains('empty'), badges: document.querySelectorAll('.slotTrash').length,
+    active: meta.active, wallet: progress.wallet, p0: JSON.parse(localStorage.getItem('vroom.v2.p0')).wallet }));
+  check('delete: a full hold erases the other kid (key gone, slot shows the plus, one badge left); the active kid is untouched', !gone.show && gone.overlay && gone.p1 === null && gone.avatar === null && gone.metaStored === null
+    && gone.empty && gone.badges === 1 && gone.active === 0 && gone.wallet === 77 && gone.p0 === 77, JSON.stringify(gone));
+
+  /* deleting the ACTIVE kid hops to the lowest remaining one and reloads into the garage */
+  await page.evaluate(() => {
+    localStorage.setItem('vroom.v2.p2', JSON.stringify({ build: { body: 'dump', wheels: 'normal', color: '#fdd835', extras: {} }, wallet: 33,
+      owned: { body: [], wheels: [], color: [], extras: [], buddy: [], decal: [] }, levels: { 1: { best: 2, rating: 1 } }, current: 2 }));
+    meta.avatars[2] = 'ducky'; saveMeta();
+    profileOverlay.classList.remove('show');
+  });
+  await tap('#profileBtn');
+  await page.waitForTimeout(200);
+  await page.evaluate(() => document.querySelectorAll('.slotTrash')[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
+  await page.waitForTimeout(300);
+  const activeCard = await page.evaluate(() => ({ target: deleteTarget, stars: document.getElementById('deleteStars').textContent.trim() }));
+  const holdBox2 = await page.locator('#deleteHold').boundingBox();
+  await page.mouse.move(holdBox2.x + holdBox2.width / 2, holdBox2.y + holdBox2.height / 2);
+  await page.mouse.down(); await page.waitForTimeout(1500); await page.mouse.up().catch(() => {});
+  await page.waitForTimeout(900);   /* erase + reload */
+  const hopped = await page.evaluate(() => ({ active: meta.active, avatars: meta.avatars.slice(), wallet: progress.wallet, p0: localStorage.getItem('vroom.v2.p0'),
+    p2: !!localStorage.getItem('vroom.v2.p2'), scene: [...document.querySelectorAll('.scene.active')].map(x => x.id).join(',') }));
+  check('delete: erasing the active kid switches to the other one and reloads into the garage with that wallet', activeCard.target === 0 && activeCard.stars === '77'
+    && hopped.active === 2 && hopped.avatars.join() === ',,ducky' && hopped.wallet === 33 && hopped.p0 === null && hopped.p2 && hopped.scene === 'garage', JSON.stringify({ activeCard, hopped }));
+
+  /* deleting the last kid resets to a fresh default save on slot 0 */
+  await tap('#profileBtn');
+  await page.waitForTimeout(200);
+  const lastBadges = await page.evaluate(() => document.querySelectorAll('.slotTrash').length);
+  await page.evaluate(() => document.querySelector('.slotTrash').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
+  await page.waitForTimeout(300);
+  const holdBox3 = await page.locator('#deleteHold').boundingBox();
+  await page.mouse.move(holdBox3.x + holdBox3.width / 2, holdBox3.y + holdBox3.height / 2);
+  await page.mouse.down(); await page.waitForTimeout(1500); await page.mouse.up().catch(() => {});
+  await page.waitForTimeout(900);
+  const fresh2 = await page.evaluate(() => ({ active: meta.active, avatars: meta.avatars.slice(), wallet: progress.wallet, body: state.body, levels: Object.keys(progress.levels).length,
+    keys: Object.keys(localStorage).filter(k => k.startsWith('vroom.v2.p')).join(','), scene: [...document.querySelectorAll('.scene.active')].map(x => x.id).join(',') }));
+  check('delete: erasing the last kid restarts slot 0 fresh (pup, 0 stars, default truck) in the garage', lastBadges === 1 && fresh2.active === 0 && fresh2.avatars.join() === 'pup,,'
+    && fresh2.wallet === 0 && fresh2.body === 'dump' && fresh2.levels === 0 && fresh2.keys === '' && fresh2.scene === 'garage', JSON.stringify({ lastBadges, fresh2 }));
+
+  /* put the first kid back for the import checks */
+  await page.evaluate(j => { localStorage.setItem('vroom.v2.p0', j); profileOverlay.classList.remove('show'); }, p0Json);
+  await page.reload();
+  await page.waitForTimeout(700);
+
   /* ---- import applies via confirm ---- */
   const imp = await page.evaluate(async () => {
     const code = packCompact();       /* snapshot of profile 0 */

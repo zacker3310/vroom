@@ -74,7 +74,7 @@ scrollable strip of big picture tiles; tap a tile to equip it, swipe or use the 
 
 ## For grown-ups
 
-- **Profiles.** The avatar button (top left of the garage) holds up to three kids, each with their own save. No typing, just faces.
+- **Profiles.** The avatar button (top left of the garage) holds up to three kids, each with their own save. No typing, just faces. The small red bin on a face opens a card showing that kid's stars and flags; press and hold the red button until the ring fills (about a second) to erase that save, so a stray tap can never do it, and erasing the only kid just starts them over.
 - **Save codes and QR.** The same panel shows a scan-to-open QR: point another device's camera at it and the game opens with the save ready to import (a wordless tick/cross asks first). The copy and paste buttons carry a full save code as text, and opening `https://zacker3310.github.io/vroom/#save=<code>` imports one directly.
 - **Quiet mode.** The speaker toggle in the profile panel drops every sound to car-friendly volume. It sticks.
 - **Offline and home screen.** From Safari, Share, then Add to Home Screen. It installs with its own icon, launches full-screen in landscape and runs with no connection.
@@ -114,7 +114,7 @@ python3 -m http.server 4173     # then open http://localhost:4173/
 
 There is no build. Edit `index.html`, reload.
 
-The test suite is 23 Playwright suites (424 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the race number, the title screen and daily gift, the ghost race, garage life, the map surprises, the update gate, and the fairness bots that drive all 120 levels.
+The test suite is 23 Playwright suites (429 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the race number, the title screen and daily gift, the ghost race, garage life, the map surprises, the update gate, and the fairness bots that drive all 120 levels.
 
 ```bash
 npm ci                                   # playwright-core + jsqr, test-only

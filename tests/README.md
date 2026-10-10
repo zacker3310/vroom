@@ -1,6 +1,6 @@
 # Vroom test suites
 
-Twenty-three Playwright regression suites (424 checks) that drive the real game in headless
+Twenty-three Playwright regression suites (429 checks) that drive the real game in headless
 Chromium. They are the gate for every change: CI runs them on each push and pull request.
 
 ## Run everything
@@ -34,7 +34,7 @@ built-in one, e.g. `python3 -m http.server 4173` then
 - `feel-check.cjs` — game feel: dynamics, hit-stop, choreography, iPad shell (18)
 - `worlds-check.cjs` — 12 worlds, movers, gravity, world map, premium content, the 13.3 ground painter (shoulder + field tones, road crown on all 12 worlds, ramp side walls, quad budget) (25)
 - `album-check.cjs` — sticker album: buddies, badges, photos with world backdrops + stamps, the peek card for photos and stickers, muddy flag (15)
-- `profile-check.cjs` — 3 kid profiles, save codes, QR round-trip via jsQR (15)
+- `profile-check.cjs` — 3 kid profiles, hold-to-delete a profile, save codes, QR round-trip via jsQR (20)
 - `washdecals-check.cjs` — wash mini-game and decal shop/persistence (11)
 - `parade-check.cjs` — victory parade: unlock, finale level, jackpot, champ badge (12)
 - `update-check.cjs` — new-version gate: detection, tap-proof hold-to-reload (5)
@@ -71,7 +71,7 @@ click stability check.
 | `feel-check.cjs` | 18 | game feel: body dynamics, hit-stop, celebrate pacing, iPad shell metas |
 | `worlds-check.cjs` | 25 | 12 worlds: level invariants, world hazards, movers, gravity, map, unlock chain, world bonus, golden capsule, premium shop, free-drive tour, ground painter (shoulder and field tones, crowned road on every world, ramp side walls, quad budget) |
 | `album-check.cjs` | 15 | sticker album: buddies, badges, world-backdrop photos, peek card, muddy flag |
-| `profile-check.cjs` | 15 | 3 kid profiles, save codes, scan-to-open QR decoded byte-exact with jsQR across version boundaries |
+| `profile-check.cjs` | 20 | 3 kid profiles, the trash badge and hold-to-delete card (tap does nothing, other / active / last kid erased), save codes, scan-to-open QR decoded byte-exact with jsQR across version boundaries |
 | `washdecals-check.cjs` | 11 | wash mini-game, decal shop and persistence |
 | `parade-check.cjs` | 12 | victory parade: unlock, finale level, jackpot, champion badge |
 | `update-check.cjs` | 5 | new-version gate: detection, tap-proof hold-to-reload |

@@ -131,6 +131,38 @@
   .profileSlot.activeP { outline: 7px solid #38b000; }
   .profileSlot svg { width: 96px; height: 96px; }
   .profileSlot .plus { font: 900 64px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #b08968; }
+  /* a used slot wears a small trash badge (bottom-right); it opens the delete card, never deletes by itself */
+  .profileCell { position: relative; }
+  .slotTrash {
+    position: absolute; right: -14px; bottom: -14px; width: 76px; height: 76px; padding: 0;
+    border-radius: 50%; background: #e63946; border: 5px solid #fff; z-index: 2;
+  }
+  .slotTrash svg { width: 40px; height: 40px; }
+  /* delete card: who is going (avatar, stars, flags), a big cross to keep, a press-and-hold to erase
+     (same gate as the update badge: a stray toddler tap fills nothing) */
+  #deleteConfirm {
+    position: absolute; inset: 0; z-index: 90; display: none;
+    background: rgba(2,48,71,.7); align-items: center; justify-content: center;
+  }
+  #deleteConfirm.show { display: flex; }
+  #deleteCard { display: flex; flex-direction: column; align-items: center; gap: 30px; padding: 36px 56px; }
+  #deleteWho { display: flex; align-items: center; gap: 30px; }
+  #deleteAvatar {
+    width: 132px; height: 132px; border-radius: 50%; background: #fff; border: 7px solid #023047;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #deleteAvatar svg { width: 96px; height: 96px; }
+  #deleteFacts { display: flex; flex-direction: column; gap: 14px; }
+  #deleteFacts .chip { position: static; min-width: 150px; }
+  #deleteBtns { display: flex; align-items: center; gap: 44px; }
+  #deleteNo { width: 170px; height: 170px; border-radius: 50%; background: #219ebc; border: 10px solid #bde0fe; }
+  #deleteNo svg { width: 80px; height: 80px; }
+  #deleteHold { width: 150px; height: 150px; padding: 0; border-radius: 50%; background: #e63946; border: 10px solid #fff; touch-action: none; }
+  #deleteHold svg { width: 100%; height: 100%; }
+  #deleteHold .ring { transition: stroke-dashoffset .1s linear; }
+  #deleteHold.holding { transform: scale(.94); }
+  #deleteHold.holding .lid { animation: lidLift .5s ease infinite alternate; transform-origin: 50px 36px; }
+  @keyframes lidLift { to { transform: translateY(-5px) rotate(-8deg); } }
   #saveTools { display: flex; gap: 22px; align-items: center; }
   #qrBox { width: 190px; height: 190px; background: #fff; border-radius: 12px; border: 5px solid #023047; display: flex; align-items: center; justify-content: center; }
   #qrBox canvas { image-rendering: pixelated; }
@@ -975,6 +1007,26 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 }
 .profileSlot.activeP { outline: 7px solid var(--v-accent-green); }
 .profileSlot .plus { color: var(--v-ink-soft); }
+.slotTrash {
+  background: var(--v-accent-red);
+  border: 5px solid var(--v-surface);
+  border-radius: var(--v-r-round);
+  box-shadow: 0 4px 0 var(--v-red-down);
+}
+#deleteAvatar { background: var(--v-surface); border: 7px solid var(--v-surface-line); box-shadow: 0 4px 0 var(--v-surface-down); }
+#deleteNo {
+  background: var(--v-accent-blue);
+  border: 10px solid var(--v-blue-line);
+  border-radius: var(--v-r-round);
+  box-shadow: 0 7px 0 var(--v-blue-down);
+}
+#deleteHold {
+  background: var(--v-accent-red);
+  border: 10px solid var(--v-red-line);
+  border-radius: var(--v-r-round);
+  box-shadow: 0 7px 0 var(--v-red-down);
+}
+#deleteHold.holding { box-shadow: 0 2px 0 var(--v-red-down); }
 #qrBox { border: 5px solid var(--v-surface-line); border-radius: var(--v-r-sm); }
 
 #stickerToast {
@@ -1099,7 +1151,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #celebrateHomeBtn [fill="#219ebc"] { fill: var(--v-blue-down); }
 
 /* ---- one panel style: profile, wash bay, results card, import dialog ---- */
-#profilePanel, #washCard, #resultsCard, #importCard, #numCard {
+#profilePanel, #washCard, #resultsCard, #importCard, #deleteCard, #numCard {
   background-color: var(--v-surface);
   background-image: var(--v-dots);
   background-size: var(--v-dots-size);
@@ -1109,8 +1161,9 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 }
 #importCard { display: flex; align-items: center; justify-content: center; gap: 40px; padding: 40px 56px; }
 #importConfirm.show #importCard { animation: popIn .35s cubic-bezier(.2, 1.4, .4, 1) both; }
+#deleteConfirm.show #deleteCard { animation: popIn .35s cubic-bezier(.2, 1.4, .4, 1) both; }
 #importConfirm.show #importYes, #importConfirm.show #importNo { animation: none; }
-#profileOverlay, #celebrate, #washOverlay, #importConfirm, #numOverlay, #peekOverlay { background: var(--v-scrim); }
+#profileOverlay, #celebrate, #washOverlay, #importConfirm, #deleteConfirm, #numOverlay, #peekOverlay { background: var(--v-scrim); }
 /* --- peek card: a tapped photo or sticker, big, until the next tap --- */
 #peekOverlay { position: absolute; inset: 0; z-index: 80; display: none; align-items: center; justify-content: center; cursor: pointer; }
 #peekOverlay.show { display: flex; }
@@ -1420,7 +1473,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
    accessory flutter); the functional ones (scene iris, chip pops, deny shakes, road hits) stay but short --- */
 @media (prefers-reduced-motion: reduce) {
   #updateBtn, #nextBtn, #goBtn.nudge, #gasPedal.nudge, .catTab.needs .alert, .tile.urgent, #previewLock, #priceTag:not(.deny),
-  .enter, .tile.enter, .tile.justSel.enter, #celebrate.active #resultsCard, #importConfirm.show #importCard, #numCard, #peekCard, #stickerToast.show,
+  .enter, .tile.enter, .tile.justSel.enter, #celebrate.active #resultsCard, #importConfirm.show #importCard, #deleteConfirm.show #deleteCard, #deleteHold.holding .lid, #numCard, #peekCard, #stickerToast.show,
   .confetti, .buddyBob, .buddyPop, .hoverBob, .hoverGlow, .hoverTrail, .spinner, .rearFlame, .flapWing, .boosterFlame, .antennaSway, .bubbleDrift,
   .lavaGlow, .maneWave, .lightFlashA, .lightFlashB, .jetPuff, .discoGlint, .decalShimmer, .decalStomp, .decalSpin, .decalFlicker, .decalTwinkle,
   .decalBeat, .decalCrackle .sparks, .decalPupil, .decalPupilB, .fanBounce, .prop.trophy svg, #preview.blink .vEye, #preview.bounce, #sun.cool,
@@ -1691,6 +1744,34 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     </button>
     </div>
   </div>
+  <div id="deleteConfirm">
+    <div id="deleteCard">
+      <div id="deleteWho">
+        <div id="deleteAvatar" aria-label="this player"></div>
+        <div id="deleteFacts">
+          <div class="chip" id="deleteStars" aria-label="stars this player has"></div>
+          <div class="chip" id="deleteFlags" aria-label="levels this player has beaten"></div>
+        </div>
+      </div>
+      <div id="deleteBtns">
+        <button class="bigBtn" id="deleteNo" aria-label="keep this player">
+          <svg viewBox="0 0 100 100"><path d="M26 26 L74 74 M74 26 L26 74" stroke="#fff" stroke-width="14" stroke-linecap="round"/></svg>
+        </button>
+        <button class="bigBtn" id="deleteHold" aria-label="press and hold to erase this player">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#ffffff55" stroke-width="8"/>
+            <circle class="ring" cx="50" cy="50" r="40" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"
+              stroke-dasharray="251.3" stroke-dashoffset="251.3" transform="rotate(-90 50 50)"/>
+            <g fill="#fff">
+              <path class="lid" d="M30 32 H70 V38 H30 Z M43 26 H57 V32 H43 Z"/>
+              <path d="M34 42 H66 L63 74 H37 Z"/>
+            </g>
+            <path d="M44 48 V68 M50 48 V68 M56 48 V68" stroke="#e63946" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
   <div id="iris"></div>
 </div>
 <div id="rotateOverlay" aria-label="turn the tablet sideways">
@@ -1917,7 +1998,9 @@ let meta = { active: 0, avatars: ["pup", null, null] };
     const m = JSON.parse(localStorage.getItem("vroom.meta"));
     if (m && Number.isInteger(m.active) && Array.isArray(m.avatars)) {
       meta.active = Math.min(MAX_PROFILES - 1, Math.max(0, m.active));
-      meta.avatars = [0, 1, 2].map(i => AVATAR_IDS.includes(m.avatars[i]) ? m.avatars[i] : (i === 0 ? "pup" : null));
+      meta.avatars = [0, 1, 2].map(i => AVATAR_IDS.includes(m.avatars[i]) ? m.avatars[i] : null);
+      /* a deleted slot stays empty (even slot 0); the active one always wears a face */
+      if (!meta.avatars[meta.active]) meta.avatars[meta.active] = AVATAR_IDS.find(a => !meta.avatars.includes(a)) || "pup";
     }
   } catch (e) {}
   /* migrate the single-profile era: vroom.v2 becomes profile 0 */
@@ -1992,8 +2075,28 @@ function loadState() {
   if (!owns("wheels", state.wheels)) state.wheels = "normal";
   if (!owns("color", state.color)) state.color = "#fdd835";
 }
+let saveLocked = false;   /* set once a profile is being erased: nothing may write it back before the reload */
 function save() {
+  if (saveLocked) return;
   try { localStorage.setItem(saveKey(), JSON.stringify({ build: state, ...progress })); } catch (e) {}
+}
+/* erase one kid's save (the only thing in the game that ever removes data; reached through the
+   hold-to-delete card, see the profile overlay). Other slots are never touched. Deleting the active kid
+   hops to the lowest remaining one, or, with none left, restarts slot 0 fresh; either way the game reloads
+   straight into the garage. Returns true when a reload is coming. */
+function deleteProfile(i) {
+  if (!(i >= 0 && i < MAX_PROFILES)) return false;
+  try { localStorage.removeItem("vroom.v2.p" + i); } catch (e) {}
+  meta.avatars[i] = null;
+  if (i !== meta.active) { saveMeta(); return false; }
+  saveLocked = true;
+  const next = meta.avatars.findIndex(a => !!a);
+  if (next >= 0) meta.active = next;
+  else { meta.active = 0; meta.avatars[0] = "pup"; }
+  saveMeta();
+  try { sessionStorage.setItem("vroom.toGarage", "1"); } catch (e) {}
+  setTimeout(() => location.reload(), 350);   /* let the sound land first */
+  return true;
 }
 
 /* ============ 5. AUDIO (all synthesized) ============ */
@@ -5002,9 +5105,78 @@ function renderProfiles() {
       if (i !== meta.active) switchProfile(i);
       else renderProfiles();
     });
-    slots.appendChild(slot);
+    const cell = document.createElement("div");
+    cell.className = "profileCell";
+    cell.appendChild(slot);
+    if (avatar) {   /* the trash badge: opens the delete card (the active kid's badge is the "start this kid over" path) */
+      const trash = document.createElement("button");
+      trash.className = "bigBtn slotTrash";
+      trash.setAttribute("aria-label", "erase player " + (i + 1));
+      trash.innerHTML = TRASH_ICON;
+      trash.addEventListener("pointerdown", e => { e.stopPropagation(); sfx.pop(); openDeleteConfirm(i); });
+      cell.appendChild(trash);
+    }
+    slots.appendChild(cell);
   }
 }
+/* ---- delete card: avatar + stars + beaten levels of the slot, a cross to keep, a hold-to-erase ring ----
+   Mirrors the update gate (section 31): the ring fills over DELETE_HOLD_MS, an early release cancels with a
+   pop, a full hold plays a wordless swoosh and erases. deleteHoldT / deleteHoldEnd are the test seam. */
+const TRASH_ICON = `<svg viewBox="0 0 100 100" fill="#fff"><path d="M24 30 H76 V38 H24 Z M40 22 H60 V30 H40 Z"/><path d="M30 42 H70 L66 80 H34 Z"/><path d="M42 50 V72 M50 50 V72 M58 50 V72" stroke="#ef7d6d" stroke-width="4" stroke-linecap="round"/></svg>`;
+const FLAG_ICON = `<svg viewBox="0 0 64 64"><path d="M14 6 V60" stroke="#023047" stroke-width="6" stroke-linecap="round"/><path d="M18 8 H54 L44 22 L54 36 H18 Z" fill="#fff" stroke="#023047" stroke-width="4" stroke-linejoin="round"/><path d="M18 8 H30 V15 H18 Z M30 15 H42 V22 H30 Z M18 22 H30 V29 H18 Z M30 29 H42 V36 H30 Z M42 8 H54 V15 H42 Z M42 29 H52 V36 H42 Z" fill="#023047"/></svg>`;
+const deleteConfirm = document.getElementById("deleteConfirm"), deleteHoldBtn = document.getElementById("deleteHold");
+const deleteRing = deleteHoldBtn.querySelector(".ring");
+const DELETE_HOLD_MS = 1200;
+let deleteTarget = -1, deleteHoldT = null, deleteHoldStart = 0, deleteHoldRaf = null;
+function profileFacts(i) {   /* what a parent is about to erase: the wallet and the beaten-level count */
+  if (i === meta.active) return { wallet: progress.wallet, beaten: Object.keys(progress.levels).length };
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem("vroom.v2.p" + i)); } catch (e) {}
+  return { wallet: s && Number.isFinite(s.wallet) ? Math.max(0, Math.floor(s.wallet)) : 0, beaten: s && s.levels ? Object.keys(s.levels).length : 0 };
+}
+function openDeleteConfirm(i) {
+  deleteTarget = i;
+  const f = profileFacts(i);
+  document.getElementById("deleteAvatar").innerHTML = `<svg viewBox="-6 -58 76 72">${BUDDY_SVG[meta.avatars[i] || "pup"]}</svg>`;
+  document.getElementById("deleteStars").innerHTML = starIcon + `<span>${f.wallet}</span>`;
+  document.getElementById("deleteFlags").innerHTML = FLAG_ICON + `<span>${f.beaten}</span>`;
+  deleteHoldEnd();
+  deleteConfirm.classList.add("show");
+}
+function closeDeleteConfirm() {
+  deleteHoldEnd();
+  deleteTarget = -1;
+  deleteConfirm.classList.remove("show");
+}
+function deleteHoldEnd() {
+  clearTimeout(deleteHoldT); cancelAnimationFrame(deleteHoldRaf);
+  deleteHoldT = null;
+  deleteHoldBtn.classList.remove("holding");
+  deleteRing.style.strokeDashoffset = 251.3;
+}
+deleteHoldBtn.addEventListener("pointerdown", e => {
+  e.stopPropagation();
+  if (deleteTarget < 0 || deleteHoldT) return;
+  try { deleteHoldBtn.setPointerCapture(e.pointerId); } catch (err) {}
+  sfx.pop();
+  deleteHoldBtn.classList.add("holding");
+  deleteHoldStart = performance.now();
+  (function fill() {
+    const f = Math.min(1, (performance.now() - deleteHoldStart) / DELETE_HOLD_MS);
+    deleteRing.style.strokeDashoffset = 251.3 * (1 - f);
+    if (f < 1) deleteHoldRaf = requestAnimationFrame(fill);
+  })();
+  deleteHoldT = setTimeout(() => {
+    const i = deleteTarget;
+    deleteHoldT = null;   /* the release that follows is not a cancel */
+    sfx.whoosh(); setTimeout(() => sfx.splat(), 140);
+    closeDeleteConfirm();
+    if (!deleteProfile(i)) renderProfiles();   /* another kid: the slot shows its plus again; the active kid reloads */
+  }, DELETE_HOLD_MS);
+});
+for (const ev of ["pointerup", "pointercancel", "pointerleave"]) deleteHoldBtn.addEventListener(ev, () => { if (deleteHoldT) { deleteHoldEnd(); sfx.pop(); } });
+document.getElementById("deleteNo").addEventListener("pointerdown", e => { e.stopPropagation(); sfx.pop(); closeDeleteConfirm(); });
+deleteConfirm.addEventListener("pointerdown", e => { if (e.target === deleteConfirm) { sfx.pop(); closeDeleteConfirm(); } });
 let cachedCode = "";   /* the gzip full code, built when the overlay opens so a tap on copy can hand it over at once */
 document.getElementById("profileBtn").addEventListener("pointerdown", () => {
   sfx.pop();
