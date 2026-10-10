@@ -705,6 +705,19 @@
     0% { transform: translate(0,0) scale(.5); opacity: .85; }
     100% { transform: translate(var(--dx, 0px),-34px) scale(1.9); opacity: 0; }
   }
+  /* the corkscrew cutaway (13.14): a side view over the chase cam, under the HUD chips and pedals (z 20) */
+  #loopView { position: absolute; inset: 0; display: none; pointer-events: none; overflow: hidden; z-index: 18; }
+  #loopView.on { display: block; animation: loopIn .25s ease-out; }
+  @keyframes loopIn { from { opacity: 0; transform: scale(1.06); } }
+  #loopView svg.loopScene { position: absolute; inset: 0; width: 1200px; height: 700px; }
+  #loopView .loopStar { transform-box: fill-box; transform-origin: center; }
+  #loopView .loopStar.got { animation: loopStarPop .35s ease-out forwards; }
+  @keyframes loopStarPop { 60% { transform: scale(1.8); opacity: 1; } 100% { transform: scale(2.4); opacity: 0; } }
+  #loopCar { position: absolute; left: 0; top: 0; width: 220px; transform-origin: 50% 87%; will-change: transform; }
+  #loopCar svg { width: 100%; height: auto; overflow: visible; }
+  #loopView.on #loopCar .wheelrot { animation: tWheel .4s linear infinite; }
+  #loopView .loopPuff { animation: loopPuff .5s ease-out forwards; transform-box: fill-box; transform-origin: center; }
+  @keyframes loopPuff { to { transform: translate(-60px, -10px) scale(2); opacity: 0; } }
   #speedLines { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .35s; z-index: 16; }
   #speedLines div {
     position: absolute; left: 600px; top: 290px; height: 6px; border-radius: 3px; width: 170px;
@@ -1823,6 +1836,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     <div id="seaCaustic"></div>
     <div id="weather"></div>
     </div>
+    <div id="loopView" aria-hidden="true"><div id="loopCar"></div></div>
     <div id="speedLines"><div></div><div></div><div></div><div></div><div></div><div></div></div>
     <button class="bigBtn" id="homeBtn" aria-label="back to garage">
       <svg viewBox="0 0 100 100"><path d="M50 12 L92 50 H78 V88 H22 V50 H8 Z" fill="#023047"/><rect x="40" y="58" width="20" height="30" fill="#ffb703"/></svg>
@@ -2059,7 +2073,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.13.4";
+const APP_VERSION = "13.14.0";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -6255,35 +6269,29 @@ function elevAt(x) {
   return e;
 }
 function addHill(x0, len, amp) { HILLS.push({ x0, x1: x0 + len, amp }); return x0 + len; }
-/* ---- corkscrews (13.12, the loop): stretches where the road itself twists a full turn around the hoop
-   axis (HOOP_C above the deck). rollAt(x) is the road's roll at x (0 before a twist, ±2π after it, eased
-   between). The road ahead is drawn as a real ribbon: every road point goes through rollPt(rollAt(x))
-   into world space, so the ribbon climbs the wall, goes over the top inside the hoops and comes back
-   down, and the car simply follows it: its spot on the ribbon (carRib) places and turns the car sprite
-   (upside down at the top). The camera never rolls. It stays level and follows the car part of the way
-   up (LOOP_FOLLOW), so the car visibly climbs the wall, hangs under the ribbon at the top and comes
-   back, while sky, ground, hoops and roadside stay the right way up. ---- */
-let TWISTS = [], rollCar = 0, twistLive = false;
-const LOOP_FOLLOW = 0.6;   /* how much of the car's climb the camera follows: 0 = fixed, 1 = the car never leaves y 650 */
-const LOOP_DECK = 0.55;    /* the rolled ribbon's deck alpha: a glass road, so the part on edge beside the camera is not a wall */
-let carRibDX = 0, carRibY = 0;   /* the car's ribbon spot this frame, as a shift from its flat lane spot (renderWorld) */
-const TWIST_LEN = 2200;   /* long enough that the road a car-length ahead turns gently, not in a snap */
+/* ---- corkscrews (13.14, the loop cutaway): a twist is a stretch of road with a helix of stars inside a tunnel
+   of hoops. On the chase cam the road stays flat (the 2D projector cannot draw a road leaving its plane, which
+   is what sank the rolled view of 13.4, the rolled ribbon of 13.12 and the glass road of 13.12.2). While the
+   car is inside a twist the stage cuts to a side view (#loopView, loopTick): the kid's own car runs along a
+   drawn loop, up the far side, upside down over the top and down the near side, its stars popping as the real
+   simulation collects them (every twist star counts, whatever the lane), then cuts back on the far side.
+   loopPt(u) maps progress through the twist to the side-view scene: a flat run-in, the circle, a flat run-out.
+   Reduced motion keeps the chase cam and the hoops and skips the cutaway. ---- */
+let TWISTS = [], twistLive = false;
+const TWIST_LEN = 2200;   /* long enough for a run-in, a full turn of the loop and a run-out at road speed */
 function addTwist(x0, len, dir) { TWISTS.push({ x0, x1: x0 + len, dir }); return x0 + len; }
-function rollAt(x) {
-  let r = 0;
-  for (const t of TWISTS) {
-    if (x <= t.x0) continue;
-    const u = x >= t.x1 ? 1 : (x - t.x0) / (t.x1 - t.x0);
-    r += t.dir * Math.PI * 2 * u * u * u * (u * (u * 6 - 15) + 10);   /* smootherstep: no kick at either end */
-  }
-  return r;
-}
 const inTwist = (x, pad = 0) => TWISTS.some(t => x > t.x0 - pad && x < t.x1 + pad);
-/* a vector turned by a (car space: +x right, +y up); a road point (lateral lx, height h) turned about the hoop axis */
-const rot = (a, x, y) => { const c = Math.cos(a), n = Math.sin(a); return [x * c - y * n, x * n + y * c]; };
-function rollPt(a, lx, h) { const r = rot(a, lx, (h || 0) - HOOP_C); return [r[0], r[1] + HOOP_C]; }
+const LOOP_IN = 0.29, LOOP_R = 200, LOOP_CX = 600, LOOP_CY = 330, LOOP_GY = 530;   /* run-in share, ring radius and centre, the ground line */
+const LOOP_RIDE = LOOP_R - 26;   /* the car rides the ring's inner surface (the band is 58 wide about LOOP_R) */
+function loopPt(u) {   /* [x, y, angle]: the car's contact point and heading in the side view, angle 0 = on the ground facing right */
+  if (u <= LOOP_IN) return [-140 + (LOOP_CX + 140) * (u / LOOP_IN), LOOP_GY, 0];
+  if (u >= 1 - LOOP_IN) return [LOOP_CX + (1340 - LOOP_CX) * ((u - 1 + LOOP_IN) / LOOP_IN), LOOP_GY, Math.PI * 2];   /* a full turn done: the same heading as 0, kept continuous */
+  /* a uniform turn: with LOOP_IN at 0.29 the run-in, the ring and the run-out all cover about 3700 px per unit of
+     progress, so the car neither snaps nor stalls at the joins and the helix stars spread evenly round the ring */
+  const a = Math.PI * 2 * (u - LOOP_IN) / (1 - 2 * LOOP_IN);
+  return [LOOP_CX + LOOP_RIDE * Math.sin(a), LOOP_CY + LOOP_RIDE * Math.cos(a), a];
+}
 let camWX = 0, camWY = 0;   /* the camera in the world: lateral and height over the flat ground (renderWorld) */
-let groundSpace = false;    /* proj: true while painting the flat world (ground, fields, hoops), false for the road ribbon */
 /* course authoring: every world has a road character (how hard it bends, whether it has
    hairpins, how long its straights run) and every level in a world gets a different shape
    from a fixed, hand-ordered menu: a single giant sweeper, a chicane festival, a drag strip
@@ -8063,14 +8071,9 @@ function placeSprite(p, carX) {
   }
   if (!p.vis) { p.wrap.style.display = "block"; p.vis = true; }
   const s = CAM_D / (z + CAM_D);
-  let X = p.lx, Y = p.h, rt = "";
-  if (twistLive && p.type !== "scenery") {   /* the loop: road things ride the ribbon, turned with it; the roadside stays on the ground */
-    const a = rollAt(p.x);
-    if (Math.abs(a) > 0.001) { const r = rollPt(a, X, Y); X = r[0]; Y = r[1]; rt = ` rotate(${(-a).toFixed(3)}rad)`; }
-  }
-  const sx = 600 + (X + offAt(z) - camWX) * s;
-  const sy = HORIZON + (camWY + camElev - elevAt(p.x) - Y) * s;
-  p.wrap.style.transform = `translate(${sx.toFixed(1)}px,${sy.toFixed(1)}px)${rt} scale(${(s * p.k).toFixed(4)})`;
+  const sx = 600 + (p.lx + offAt(z) - camWX) * s;
+  const sy = HORIZON + (camWY + camElev - elevAt(p.x) - p.h) * s;
+  p.wrap.style.transform = `translate(${sx.toFixed(1)}px,${sy.toFixed(1)}px) scale(${(s * p.k).toFixed(4)})`;
   /* behind a crest: cut the sprite at the crest line (in its own, pre-transform pixels; its anchor is its ground point) */
   const top = occAt(z), ly = sy - top > 1.5 ? ((top - sy) / (s * p.k)).toFixed(1) : "";
   if (ly !== p.cut) { p.cut = ly; p.wrap.style.clipPath = ly === "" ? "" : `polygon(-4000px -6000px, 4000px -6000px, 4000px ${ly}px, -4000px ${ly}px)`; }
@@ -8121,7 +8124,6 @@ let occTop = Infinity, occHid = false, occA = 0;
 function buildOcc() {
   let m = Infinity, maxE = -Infinity, prevY = Infinity, zTurn = Infinity, zCrest = 0;
   occTop = Infinity; occHid = false; occA = 0;
-  if (twistLive) { OCC.fill(Infinity); OCCH.fill(0); return; }   /* the ribbon leaves the ground: there is no "below the crest" to clip to */
   for (let i = 0; i < OCC_N; i++) {
     const z = DRAW_NEAR + i * OCC_STEP, e = elevAt(curCarX + z), y = HORIZON + (CAM_H + camElev - e) * CAM_D / (z + CAM_D);
     if (z > 0 && zTurn < Infinity && e < maxE - 8) { OCCH[i] = 1; OCC[i] = m; occHid = true; continue; }
@@ -8145,9 +8147,7 @@ function occClip(c, z, draw) {
 }
 function proj(z, lx, h) {
   const s = CAM_D / (z + CAM_D);
-  let X = lx, Y = h || 0;
-  if (twistLive && !groundSpace) { const a = rollAt(curCarX + z); if (a) { const r = rollPt(a, X, Y); X = r[0]; Y = r[1]; } }
-  return [600 + (X + offAt(z) - camWX) * s, HORIZON + (camWY + camElev - elevAt(curCarX + z) - Y) * s, s];
+  return [600 + (lx + offAt(z) - camWX) * s, HORIZON + (camWY + camElev - elevAt(curCarX + z) - (h || 0)) * s, s];
 }
 /* one ground quad as a subpath: same-colour quads share a beginPath / fill (13.3: the shoulders, the
    two rumbles, the four wheel tracks and the lane dashes each go down as one fill). roadQuadN counts
@@ -8226,6 +8226,64 @@ function fieldStrips(c, z0, z1, T) {
 /* corkscrew hoops: a ring around the road every 150 units of a twist, striped so you can watch
    it roll. Only the arc above the deck is drawn, so the road never looks cut by a hoop. */
 const HOOP_C = 330, HOOP_R = ROAD_HALF + 60, HOOP_A = Math.asin(HOOP_C / HOOP_R);
+/* ---- the corkscrew cutaway (13.14): see the twist block in section 19 ---- */
+const loopView = document.getElementById("loopView"), loopCar = document.getElementById("loopCar");
+let loopOn = false, loopT = null, loopStars = [], loopPuffAt = 0;
+const LOOP_CAR_W = 220, LOOP_CAR_H = 230 * 220 / 320 * (200 / 230);   /* the side art is 320x230 with its ground at y 200 */
+function loopOpen(t) {
+  const P = roadPal, lane = l => LOOP_RIDE - 44 - 16 * (l - 1);   /* stars float a car's height off the surface, lanes a hair apart */
+  loopStars = props.filter(p => p.type === "star" && p.x > t.x0 && p.x < t.x1).map(p => {
+    const u = (p.x - t.x0) / (t.x1 - t.x0), q = loopPt(u), r = lane(p.lane), onRing = u > LOOP_IN && u < 1 - LOOP_IN;
+    const x = onRing ? LOOP_CX + r * Math.sin(q[2]) : q[0], y = onRing ? LOOP_CY + r * Math.cos(q[2]) : q[1] - 56 - 16 * (p.lane - 1);
+    return { p, x, y, got: p.done };
+  });
+  const ring = (r, col, w, dash) => `<circle cx="${LOOP_CX}" cy="${LOOP_CY}" r="${r}" fill="none" stroke="${col}" stroke-width="${w}"${dash ? ` stroke-dasharray="${dash}"` : ""}/>`;
+  const sky = mixHex(P.haze, "#ffffff", 0.18), far = mixHex(P.haze, P.ground, 0.45);
+  const scene = `<svg class="loopScene" viewBox="0 0 1200 700">
+    <defs><linearGradient id="loopSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${P.haze}"/><stop offset="1" stop-color="${sky}"/></linearGradient></defs>
+    <rect x="0" y="0" width="1200" height="700" fill="url(#loopSky)"/>
+    <path d="M0 470 Q150 400 300 460 Q450 380 620 450 Q800 390 960 455 Q1100 410 1200 465 V560 H0 Z" fill="${far}"/>
+    <rect x="0" y="${LOOP_GY}" width="1200" height="${700 - LOOP_GY}" fill="${P.ground}"/>
+    <rect x="0" y="${LOOP_GY}" width="1200" height="44" fill="${P.road}"/>
+    <rect x="0" y="${LOOP_GY - 6}" width="1200" height="8" fill="${P.rumA}"/><rect x="0" y="${LOOP_GY + 42}" width="1200" height="8" fill="${P.rumB}"/>
+    <rect x="0" y="${LOOP_GY + 19}" width="1200" height="6" fill="${P.dash}" stroke-dasharray="0" style="mask: none"/>
+    ${ring(LOOP_R + 6, P.ground2, 70)}${ring(LOOP_R, P.road, 58)}${ring(LOOP_R + 29, P.rumA, 12)}${ring(LOOP_R + 29, P.rumB, 12, "40 40")}${ring(LOOP_R - 29, P.rumA, 12)}${ring(LOOP_R - 29, P.rumB, 12, "40 40")}
+    ${ring(LOOP_R, P.dash, 5, "22 30")}
+    <g id="loopStars">${loopStars.map((st, i) => `<g class="loopStar${st.got ? " got" : ""}" data-i="${i}" transform="translate(${(st.x - 22).toFixed(1)},${(st.y - 22).toFixed(1)})"><svg viewBox="0 0 64 64" width="44" height="44"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/></svg></g>`).join("")}</g>
+    <g id="loopPuffs"></g>
+  </svg>`;
+  loopView.querySelectorAll("svg.loopScene").forEach(e => e.remove());
+  loopView.insertAdjacentHTML("afterbegin", scene);
+  loopCar.innerHTML = vehicleSVG(state);
+  loopView.classList.add("on");
+  loopOn = true; loopT = t;
+}
+function loopClose() {
+  loopView.classList.remove("on");
+  loopView.querySelectorAll("svg.loopScene").forEach(e => e.remove());
+  loopCar.innerHTML = "";
+  loopOn = false; loopT = null; loopStars = [];
+}
+function loopTick(carX) {
+  const t = rollOK ? TWISTS.find(tw => carX > tw.x0 && carX < tw.x1) : null;
+  if (!t) { if (loopOn) loopClose(); return; }
+  if (!loopOn || loopT !== t) loopOpen(t);
+  const u = (carX - t.x0) / (t.x1 - t.x0), q = loopPt(u);
+  loopCar.style.transform = `translate(${(q[0] - LOOP_CAR_W / 2).toFixed(1)}px,${(q[1] - LOOP_CAR_H).toFixed(1)}px) rotate(${(-q[2]).toFixed(4)}rad)`;
+  const stars = loopView.querySelectorAll(".loopStar");
+  loopStars.forEach((st, i) => { if (st.p.done && !st.got) { st.got = true; if (stars[i]) stars[i].classList.add("got"); } });
+  /* exhaust puffs off the tail while it climbs, a few a second */
+  const now = performance.now();
+  if (v > 60 && now - loopPuffAt > 140) {
+    loopPuffAt = now;
+    const g = loopView.querySelector("#loopPuffs");
+    if (g) {
+      const tx = q[0] - Math.cos(q[2]) * 100, ty = q[1] + Math.sin(q[2]) * 100 - 20;   /* 100 behind the contact point along the heading */
+      g.insertAdjacentHTML("beforeend", `<circle class="loopPuff" cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="12" fill="#fff" opacity=".7"/>`);
+      while (g.childNodes.length > 8) g.firstChild.remove();
+    }
+  }
+}
 function drawHoops(c, carX) {
   for (const t of TWISTS) {
     if (t.x1 - carX < 140 || t.x0 - carX > DRAW_FAR) continue;
@@ -8236,7 +8294,6 @@ function drawHoops(c, carX) {
       c.globalAlpha = fade;
       c.lineWidth = Math.max(1.5, 30 * s);
       const SEGS = 8, a0 = -HOOP_A, a1 = Math.PI + HOOP_A;
-      groundSpace = true;   /* the hoops ring the axis in world space; the ribbon twists inside them */
       occClip(c, z, () => {
         for (let j = 0; j < SEGS; j++) {
           c.strokeStyle = j % 2 ? "#ffd60a" : roadPal.rumA;
@@ -8249,7 +8306,6 @@ function drawHoops(c, carX) {
           c.stroke();
         }
       });
-      groundSpace = false;
     }
   }
   c.globalAlpha = 1;
@@ -8266,7 +8322,6 @@ function drawTunnel(c, carX) {
   if (!col) return;
   c.strokeStyle = col;
   c.lineCap = "round";
-  groundSpace = true;   /* the ribs ring the axis in world space, like the hoops */
   for (let x = Math.ceil((carX + 100) / TUN_GAP) * TUN_GAP; x - carX < DRAW_FAR; x += TUN_GAP) {
     if (inTwist(x, 150)) continue;
     const z = x - carX, s = CAM_D / (z + CAM_D);
@@ -8283,13 +8338,12 @@ function drawTunnel(c, carX) {
       c.stroke();
     });
   }
-  groundSpace = false;
   c.globalAlpha = 1;
   c.lineCap = "butt";
 }
 function drawRoad(carX) {
   const c = rctx, P = roadPal, T = groundTones(P);
-  const nearZ = DRAW_NEAR;
+  const nearZ = DRAW_NEAR;   /* the road behind the car only matters down to the screen's bottom edge */
   const mist = occHid ? mixHex(P.haze, P.ground, 0.55) : "";   /* what hidden ground is veiled with: the haze sunk toward the ground */
   roadQuadN = 0;
   c.clearRect(-canvasOX, -canvasOY, canvasW, canvasH);
@@ -8300,10 +8354,8 @@ function drawRoad(carX) {
      so a bend keeps curving to the haze and no strip ends at the fade */
   for (let z = DRAW_FAR + 1200; z > nearZ; z -= 400) {
     const z0 = Math.max(nearZ, z - 400);
-    groundSpace = true;
     quad(c, z0, z, -7000, 7000, P.ground);
     if (z >= 2400) fieldStrips(c, z0, z, T);
-    groundSpace = false;
     if (z < 2400) continue;
     quadPair(c, z0, z, ROAD_HALF + 26, ROAD_HALF + 26 + SHOULDER_W, T.shoulder);
     quad(c, z0, z, -ROAD_HALF, ROAD_HALF, P.road);
@@ -8314,47 +8366,27 @@ function drawRoad(carX) {
      and the rumble strips */
   const first = Math.floor((carX + nearZ) / SEG);
   for (let k = Math.floor((carX + 2400) / SEG); k >= first; k--) {
+    const z0 = Math.max(nearZ, k * SEG - carX), z1 = (k + 1) * SEG - carX;
     const odd = k & 1;
-    groundSpace = true;
-    if (odd) quad(c, Math.max(nearZ, k * SEG - carX), (k + 1) * SEG - carX, -4000, 4000, P.ground2);
-    fieldStrips(c, Math.max(nearZ, k * SEG - carX), (k + 1) * SEG - carX, T);
-    groundSpace = false;
-    /* the loop (13.12.1): inside a twist the ribbon is cut in half-bands so it curves instead of kinking, loses its
-       shoulders (a bare tube of tarmac and rumble, not a wide deck turned on its side), and the stretch behind the
-       car dissolves over 120 units so the rolled near field never sweeps a giant slab across the frame */
-    const rolled = twistLive && Math.abs(rollAt(k * SEG + SEG / 2)) > 0.001, sub = rolled ? 2 : 1;
-    for (let j = 0; j < sub; j++) {
-      const z0 = Math.max(nearZ, k * SEG + j * SEG / sub - carX), z1 = k * SEG + (j + 1) * SEG / sub - carX;
-      if (z1 <= z0) continue;
-      /* corkscrew lighting (13.7): the ribbon is lit from the sky, so a band darkens as its surface turns away
-         (upside down at the top of the loop it sits at 70%); quantised so the shade memo stays small */
-      const lit = rolled ? -Math.round((1 - Math.cos(rollAt(carX + (z0 + z1) / 2))) * 0.15 * 20) / 20 : 0;
-      const L = col => lit ? shade(col, lit) : col;
-      /* the rolled ribbon is a glass road (13.12.2): its deck is drawn at LOOP_DECK alpha so the stretch standing on
-         edge beside the camera is a tinted sheet the world shows through, not a wall; the rumble edges stay solid
-         so the helix still reads. The tail behind the car dissolves on top of that */
-      const tail = rolled && z1 < 0 ? Math.max(0, 1 + z1 / 120) : 1;
-      if (!rolled) quadPair(c, z0, z1, ROAD_HALF + 26, ROAD_HALF + 26 + SHOULDER_W, T.shoulder);
-      if (rolled) c.globalAlpha = tail * LOOP_DECK;
-      quad(c, z0, z1, -ROAD_HALF, ROAD_HALF, L(P.bands ? P.bands[((k % 6) + 6) % 6] : odd ? P.road2 : P.road));
-      if (T.crown) {
-        quad(c, z0, z1, -CROWN_HALF, CROWN_HALF, L(T.crown[odd]));
-        c.fillStyle = L(T.wear[odd]);
-        c.beginPath();
-        for (const t of WEAR) { qpath(c, z0, z1, t[0], t[1]); qpath(c, z0, z1, -t[1], -t[0]); }
-        c.fill();
-      }
-      if (rolled) c.globalAlpha = tail;
-      quadPair(c, z0, z1, ROAD_HALF, ROAD_HALF + 26, odd ? P.rumA : P.rumB);
-      c.globalAlpha = 1;
+    if (odd) quad(c, z0, z1, -4000, 4000, P.ground2);
+    fieldStrips(c, z0, z1, T);
+    quadPair(c, z0, z1, ROAD_HALF + 26, ROAD_HALF + 26 + SHOULDER_W, T.shoulder);
+    quad(c, z0, z1, -ROAD_HALF, ROAD_HALF, P.bands ? P.bands[((k % 6) + 6) % 6] : odd ? P.road2 : P.road);
+    if (T.crown) {
+      quad(c, z0, z1, -CROWN_HALF, CROWN_HALF, T.crown[odd]);
+      c.fillStyle = T.wear[odd];
+      c.beginPath();
+      for (const t of WEAR) { qpath(c, z0, z1, t[0], t[1]); qpath(c, z0, z1, -t[1], -t[0]); }
+      c.fill();
     }
+    quadPair(c, z0, z1, ROAD_HALF, ROAD_HALF + 26, odd ? P.rumA : P.rumB);
   }
   /* lane dashes: 60 on, 60 off, every dash in one fill */
   c.fillStyle = P.dash;
   c.beginPath();
   for (let d = Math.floor((carX + nearZ) / 120) * 120; d < carX + 2400; d += 120) {
     const z0 = Math.max(nearZ, d - carX), z1 = d + 60 - carX;
-    if (z1 <= z0 || (twistLive && z1 < 0 && Math.abs(rollAt(d)) > 0.001)) continue;   /* no dashes on the dissolving tail */
+    if (z1 <= z0) continue;
     qpath(c, z0, z1, -LANE_W / 2 - 6, -LANE_W / 2 + 6);
     qpath(c, z0, z1, LANE_W / 2 - 6, LANE_W / 2 + 6);
   }
@@ -8409,7 +8441,6 @@ function drawRoad(carX) {
     for (let i = 0; i < OCC_N; i++) {
       if (!OCCH[i]) continue;
       const z0 = DRAW_NEAR + i * OCC_STEP;
-      groundSpace = true; qpath(c, z0, z0 + OCC_STEP, -7000, 7000); groundSpace = false;
     }
     c.fill();
     if (occTop > HORIZON + 0.5) {
@@ -8439,15 +8470,8 @@ function renderWorld() {
   const carX = pos + CAR_SCREEN_X - CAR_HIT_Z;   /* z=0 is the car's rear bumper; camX was stepped by camTick */
   CAM_D = CAM_D0 / fovK;   /* the throttle punch: a nearer camera is a wider lens; put back below so the car builder never sees it */
   curCarX = carX; camElev = elevAt(carX);
-  /* the loop: the road's roll under the car, only while it is inside a twist (never for reduced motion: hoops only).
-     The car's lane spot turned onto the ribbon is where the car draws; the level camera follows it part way */
-  twistLive = rollOK && inTwist(carX);
-  rollCar = twistLive ? rollAt(carX) : 0;
-  if (twistLive) {
-    const lx = (laneVis - 1) * LANE_W, rp = rollPt(rollCar, lx, 0);
-    carRibDX = rp[0] - lx; carRibY = rp[1];
-    camWX = camX + LOOP_FOLLOW * carRibDX; camWY = CAM_H + LOOP_FOLLOW * carRibY;
-  } else { carRibDX = 0; carRibY = 0; camWX = camX; camWY = CAM_H; }
+  twistLive = rollOK && inTwist(carX);   /* inside a corkscrew: the side-view cutaway is up (loopTick); never under reduced motion */
+  camWX = camX; camWY = CAM_H;
   buildOffsets(carX);
   buildOcc();
   drawRoad(carX);
@@ -9073,9 +9097,10 @@ const PROP_HIT = {
     /* forgiving magnet for small hands: near-lane counts, and close stars drift in.
        the magnet upgrade widens every window */
     const mag = progress.upgrades.magnet;
-    const near = Math.abs(laneVis - p.lane) <= 0.65 + mag * 0.15;
+    const inLoop = inTwist(p.x);   /* in a corkscrew the side view has no lanes: every star on the loop is the car's */
+    const near = inLoop || Math.abs(laneVis - p.lane) <= 0.65 + mag * 0.15;
     const dy = p.h - LOW_STAR_H - jumpY;   /* star height vs. car body center */
-    if (near && Math.abs(d) < 75 + mag * 20 && Math.abs(dy) < 125 + mag * 15) {
+    if (near && Math.abs(d) < 75 + mag * 20 && (inLoop || Math.abs(dy) < 125 + mag * 15)) {
       p.el.style.transform = "";
       p.done = true; p.el.classList.add("collected");   /* a quick pop (starPop keyframes), then it is gone */
       starSparks(p.el);                                 /* three little stars streak off to the HUD chip */
@@ -9400,15 +9425,8 @@ function tick(now) {
   tickYaw(dt);
   setCarView(laneViewQ(), yawStep());   /* inner flank in a side lane; nose toward the lane it is heading for */
   const cdx = carScreenX() - 600;
-  /* the loop: the car follows the ribbon. Its spot on the ribbon, less the part the level camera followed, moves it
-     up the wall and over the top; it turns with the ribbon about its own contact point (upside down at the top) */
-  const th = twistLive ? rollCar : 0;
-  let tx = cdx, ty = squat - jumpY, crot = "";
-  if (th) {
-    tx += (1 - LOOP_FOLLOW) * carRibDX; ty -= (1 - LOOP_FOLLOW) * carRibY;
-    crot = ` rotate(${(-th).toFixed(4)}rad)`;
-  }
-  carWrap.style.transform = `translate(${tx.toFixed(1)}px,${ty.toFixed(1)}px)${crot}`;
+  carWrap.style.transform = `translate(${cdx.toFixed(1)}px,${(squat - jumpY).toFixed(1)}px)`;
+  loopTick(carX);   /* the corkscrew cutaway: on while the car is inside a twist (this carX is the hit point, the one the stars pop against) */
 
   rafId = requestAnimationFrame(tick);
 }

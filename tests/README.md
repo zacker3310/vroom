@@ -1,6 +1,6 @@
 # Vroom test suites
 
-Twenty-three Playwright regression suites (457 checks) that drive the real game in headless
+Twenty-three Playwright regression suites (456 checks) that drive the real game in headless
 Chromium. They are the gate for every change: CI runs them on each push and pull request.
 
 ## Run everything
@@ -79,7 +79,7 @@ click stability check.
 | `paint-check.cjs` | 22 | pattern paints: 11 swatches on the second tray page, defs in both views, buying, v3 save code round trip, v2 legacy decode, album re-render |
 | `shop-check.cjs` | 23 | shop pack: 23-body / 14-wheel / 9-entry decal catalog, tap-forward + hold-back cycling, hover body, every body x extras x buddy x decal in both views, the mid-tier jetpack / disco / trophy rack, two-page extras tray, v3 round trip, frozen-width v2 decode |
 | `number-check.cjs` | 13 | race number: sticker-tab tile, keypad rules, 400-star change / free removal, roundel in both views beside a sticker, save-code tail, photos |
-| `course-check.cjs` | 24 | wild courses: corkscrews (roll math, helix, the loop's level camera and the car on the ribbon, reduced motion), opaque crests (the veil on the run-up, gone on the crest), hard turns + chevrons, roller hills and crest occlusion, mega ramps and hop chains, the shared launch rule, the speed-linked mixer drum |
+| `course-check.cjs` | 23 | wild courses: corkscrews (the loop maths, the helix, the side-view cutaway with every star collected lane-free, reduced motion), opaque crests (the veil on the run-up, gone on the crest), hard turns + chevrons, roller hills and crest occlusion, mega ramps and hop chains, the shared launch rule, the speed-linked mixer drum |
 | `title-check.cjs` | 17 | start screen: title scene on boot, 100 px play pill, gift badge, honk, the moving world and its reduced-motion stop, the title update gate; daily gift: once-a-day capsule above the dice, 15..40 stars or an unowned buddy, claimed state across reloads, next-day return, the `?garage` / `vroom.skipTitle` skips, reduced motion |
 | `ghost-check.cjs` | 19 | ghost race: trace recording, replay sprite follows the trace, slower keeps / faster replaces, gap chip, fade at the line, reload, save-code exclusion, malformed ghost dropped |
 | `upkeep-check.cjs` | 24 | fuel and tire wear, the combined HUD chip and its low-gauge split, dry-tank crawl, bald-tire grip, shine bonus, workbench fill-up and tire tiles, save-code tail, legacy defaults, garage column geometry |

@@ -1,9 +1,9 @@
 /* course-check: the wild courses (v12.9, T21) and the speed-linked mixer drum (T2.3).
-   Corkscrews twist the road itself a full turn through a tunnel of hoops; the car follows the ribbon under a
-   upright car (13.4) and carry stars only; hard turns get chevron boards on their
+   Corkscrews are a helix of stars through a tunnel of hoops; inside one the stage cuts to a side-view loop with the
+   kid's car on it (13.14) and every star on the loop is the car's; hard turns get chevron boards on their
    outside; roller levels run a train of big hills; mega ramps and hop chains launch by their own numbers
    through the one launch rule the fairness bots share; the chase-cam mixer drum turns with the road speed.
-   Reduced motion keeps the hoops and drops the roll. */
+   Reduced motion keeps the hoops and skips the cutaway. */
 const pw = require('playwright-core');
 const os = require('os');
 const EXE = process.env.CHROMIUM || os.homedir() + '/Library/Caches/ms-playwright/chromium-1117/chrome-mac/Chromium.app/Contents/MacOS/Chromium';
@@ -117,26 +117,28 @@ function check(name, ok, detail) {
   check('jumps: every landing zone is clear of blockers and every special flight fits its tail',
     scan.every(r => r.landClear && r.flightFits), scan.filter(r => !r.landClear || !r.flightFits).map(r => 'L' + r.n).join(','));
 
-  /* ---- 2. the roll math and the one launch rule ---- */
+  /* ---- 2. the loop maths and the one launch rule ---- */
   const math = await page.evaluate(() => {
     buildLevel(9);
-    const t = TWISTS[0], mid = (t.x0 + t.x1) / 2;
     const megaFast = rampLaunch({ x: 0, ...RAMP_KIND.mega }, 940), stdFast = rampLaunch({ x: 0, w: 250, h: 95 }, 940);
     const ramp = rampLaunch({ x: 0, w: 250, h: 95 }, 700), mega = rampLaunch({ x: 0, ...RAMP_KIND.mega }, 700), hop = rampLaunch({ x: 0, ...RAMP_KIND.hop }, 700), none = rampLaunch(null, 700);
-    let mono = true, prev = 0;
-    for (let x = t.x0; x <= t.x1; x += 25) { const r = rollAt(x) * t.dir; if (r < prev - 1e-9) mono = false; prev = r; }
-    return { a: rollAt(t.x0), b: rollAt(t.x1) * t.dir, m: rollAt(mid) * t.dir, after: rollAt(t.x1 + 900) * t.dir, mono, ramp, mega, hop, none, megaFast, stdFast };
+    let mono = true, prev = -1;
+    for (let u = 0; u <= 1.0001; u += 0.01) { const a = loopPt(u)[2]; if (a < prev - 1e-9) mono = false; prev = a; }
+    const g0 = loopPt(0), gIn = loopPt(LOOP_IN), top = loopPt(0.5), gOut = loopPt(1 - LOOP_IN), g1 = loopPt(1);
+    return { g0, gIn, top, gOut, g1, mono, ramp, mega, hop, none, megaFast, stdFast, R: LOOP_RIDE, cy: LOOP_CY, gy: LOOP_GY };
   });
-  check('roll: 0 at a twist\'s start, pi halfway, a full 2pi at its end and after, never backwards',
-    Math.abs(math.a) < 1e-9 && Math.abs(math.m - Math.PI) < 1e-6 && Math.abs(math.b - 2 * Math.PI) < 1e-9 && Math.abs(math.after - 2 * Math.PI) < 1e-9 && math.mono, JSON.stringify(math));
+  check('loop: on the ground at both ends, angle 0 at the run-in, pi (upside down at the top of the ring) halfway, 2pi at the run-out, never backwards',
+    math.g0[1] === math.gy && math.g0[2] === 0 && math.g1[1] === math.gy && Math.abs(math.gIn[2]) < 1e-9 && Math.abs(math.top[2] - Math.PI) < 1e-9
+      && Math.abs(math.top[1] - (math.cy - math.R)) < 1e-6 && Math.abs(math.gOut[2] - Math.PI * 2) < 1e-9 && Math.abs(math.g1[2] - Math.PI * 2) < 1e-9 && math.mono,
+    JSON.stringify({ g0: math.g0, gIn: math.gIn, top: math.top, gOut: math.gOut, g1: math.g1, mono: math.mono }));
   check('launch rule: standard ramp unchanged (95 high, 0.9 of the speed, any engine), mega 150 / 1.1 capped at 740 speed, kicker 45 / 0.55',
     math.ramp.y === 95 && math.ramp.vy === 630 && math.none.y === 95 && math.none.vy === 630 && math.mega.y === 150 && Math.abs(math.mega.vy - 770) < 1e-9 && math.hop.y === 45 && Math.abs(math.hop.vy - 385) < 1e-9
       && Math.abs(math.megaFast.vy - 814) < 1e-9 && Math.abs(math.stdFast.vy - 846) < 1e-9,
     JSON.stringify({ ramp: math.ramp, mega: math.mega, hop: math.hop, megaFast: math.megaFast, stdFast: math.stdFast }));
 
-  /* ---- 3. driving through a corkscrew: the loop (13.12). The view never rolls; the ribbon twists ahead and the car
-     follows it: at the midpoint it hangs upside down (rotate ~pi) well above its resting line, the camera stays level
-     and has followed it part way up (camWY above CAM_H), the road things in the twist turn with the ribbon ---- */
+  /* ---- 3. driving through a corkscrew: the cutaway (13.14). The chase cam stays flat and level; while the car is
+     inside the twist the side view is up with the kid's own car on the drawn loop (upside down at the midpoint), its
+     stars popping as the simulation collects them in every lane; it cuts away on the far side ---- */
   const roll = await page.evaluate(async () => {
     window.__cork = 0; const o = sfx.corkscrew; sfx.corkscrew = () => { window.__cork++; o(); };
     drive(9);
@@ -144,33 +146,38 @@ function check(name, ok, detail) {
     pos = t.x0 - CAR_SCREEN_X - 400; v = 0;
     await new Promise(r => setTimeout(r, 900));   /* let the scene iris finish before any screenshot */
     const env = document.getElementById('env');
-    const ty = () => { const m = /translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/.exec(carWrap.style.transform); return m ? +m[2] : 0; };
-    const before = { live: twistLive, env: env.style.transform, view: viewEl.style.transform, carRot: /rotate/.test(carWrap.style.transform), ty: ty(), camWY };
-    pos = (t.x0 + t.x1) / 2 - CAR_SCREEN_X + CAR_HIT_Z; v = 0;
+    const before = { on: loopView.classList.contains('on'), view: viewEl.style.transform, carRot: /rotate/.test(carWrap.style.transform), stars: props.filter(p => p.type === 'star' && p.x > t.x0 && p.x < t.x1).length };
+    pos = (t.x0 + t.x1) / 2 - CAR_SCREEN_X; v = 0;   /* the cutaway runs on the hit point (pos + CAR_SCREEN_X), the one the stars pop against */
     await new Promise(r => setTimeout(r, 200));
-    const star = props.find(p => p.type === 'star' && !p.done && p.x > t.x0 + (t.x1 - t.x0) * 0.75 && p.x < t.x1);
-    const car = carWrap.style.transform, m = /rotate\((-?[\d.]+)rad\)/.exec(car);
-    const mid = { live: twistLive, roll: rollCar, env: env.style.transform, view: viewEl.style.transform, star: star && star.wrap.style.transform, car, carRot: !!m, carAngle: m ? +m[1] : 0, ty: ty(), camWY };
-    pos = t.x0 + (t.x1 - t.x0) * 0.3 - CAR_SCREEN_X + CAR_HIT_Z; await new Promise(r => setTimeout(r, 150));
-    const q = /translate\((-?[\d.]+)px/.exec(carWrap.style.transform), quarter = { tx: q ? +q[1] : 0, roll: rollCar, camWX };
-    return Object.assign({ before, cork: window.__cork, canvas: [roadCanvas.width, roadCanvas.height, roadCanvas.style.width], quarter, CAM_H, follow: LOOP_FOLLOW }, mid);
+    const m = /rotate\((-?[\d.]+)rad\)/.exec(loopCar.style.transform), ty = /translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/.exec(loopCar.style.transform);
+    const chips = ['hudLevel', 'hudStars'].map(id => { const r = document.getElementById(id).getBoundingClientRect(); const st = document.getElementById('stage').getBoundingClientRect(); const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!el && document.getElementById(id).contains(el) && st.width > 0; });
+    const mid = { on: loopView.classList.contains('on'), display: getComputedStyle(loopView).display, car: !!loopCar.querySelector('svg'), carAngle: m ? +m[1] : 0, carY: ty ? +ty[2] : 0,
+      loopStars: loopStars.length, drawn: loopView.querySelectorAll('.loopStar').length, view: viewEl.style.transform, env: env.style.transform, carRot: /rotate/.test(carWrap.style.transform), hudOnTop: chips.every(Boolean), canvas: [roadCanvas.width, roadCanvas.height] };
+    return { before, mid, cork: window.__cork };
   });
-  await page.evaluate(async () => { const t = TWISTS[0]; pos = (t.x0 + t.x1) / 2 - CAR_SCREEN_X + CAR_HIT_Z; await new Promise(r => setTimeout(r, 150)); });
   await page.screenshot({ path: SHOT + 'course-corkscrew.png' });
   for (const f of [-0.25, 0.25, 0.75]) {
     await page.evaluate(async f => { const t = TWISTS[0]; pos = t.x0 + (t.x1 - t.x0) * f - CAR_SCREEN_X + CAR_HIT_Z; await new Promise(r => setTimeout(r, 120)); }, f);
     await page.screenshot({ path: SHOT + `course-corkscrew-${Math.round(f * 100)}.png` });
   }
-  check('corkscrew: level before it, live mid-twist (roll ~pi), the view and the sky never roll, the camera stays level and follows the car part way up, the canvas stays 1200x700',
-    !roll.before.live && !roll.before.carRot && roll.before.view === '' && roll.live && Math.abs(Math.abs(roll.roll) - Math.PI) < 0.05 && roll.view === '' && roll.env === '' && roll.camWY > roll.CAM_H + 300 && roll.canvas[0] === 2400 && roll.canvas[1] === 1400 && roll.canvas[2] === '', JSON.stringify({ before: roll.before, live: roll.live, roll: roll.roll, view: roll.view, camWY: roll.camWY, canvas: roll.canvas }));
-  check('corkscrew: at the top the car hangs upside down (rotate ~pi) well above its resting line; on the wall it has moved sideways with the ribbon; the stars ahead turn with it',
-    roll.carRot && Math.abs(Math.abs(roll.carAngle) - Math.PI) < 0.05 && roll.ty < roll.before.ty - 150 && Math.abs(roll.quarter.tx) > 40 && /rotate\(/.test(roll.star || ''), JSON.stringify({ car: roll.car, ty: roll.ty, beforeTy: roll.before.ty, quarter: roll.quarter, star: roll.star }));
-  const out = await page.evaluate(async () => {
+  check('corkscrew: chase cam before it (no cutaway, no roll); mid-twist the side view is up with the car on the loop upside down at the top, every twist star drawn on it, the HUD still on top, the chase cam flat and level beneath',
+    !roll.before.on && !roll.before.carRot && roll.before.view === '' && roll.mid.on && roll.mid.display !== 'none' && roll.mid.car && Math.abs(Math.abs(roll.mid.carAngle) - Math.PI) < 0.05 && roll.mid.carY < 250
+      && roll.mid.loopStars === roll.before.stars && roll.mid.drawn === roll.before.stars && roll.before.stars >= 8 && roll.mid.view === '' && roll.mid.env === '' && !roll.mid.carRot && roll.mid.hudOnTop && roll.mid.canvas[0] === 2400,
+    JSON.stringify(roll));
+  /* drive the whole twist at speed: every star on the loop is collected whatever its lane, and the view cuts back */
+  const run = await page.evaluate(async () => {
     const t = TWISTS[0];
-    pos = t.x1 + 3600 - CAR_SCREEN_X; await new Promise(r => setTimeout(r, 150));
-    return { live: twistLive, view: viewEl.style.transform, cork: window.__cork, carRot: /rotate/.test(carWrap.style.transform), camWY };
+    pos = t.x0 - CAR_SCREEN_X - 200; v = 0; targetLane = 1; laneVis = 1;
+    const before = runStars, n = props.filter(p => p.type === 'star' && p.x > t.x0 && p.x < t.x1 && !p.done).length;
+    gasKey = true;
+    const t0 = performance.now();
+    while (pos + CAR_SCREEN_X - CAR_HIT_Z < t.x1 + 300 && performance.now() - t0 < 9000) await new Promise(r => setTimeout(r, 50));
+    gasKey = false;
+    await new Promise(r => setTimeout(r, 200));
+    return { n, gained: runStars - before, left: props.filter(p => p.type === 'star' && p.x > t.x0 && p.x < t.x1 && !p.done).length, on: loopView.classList.contains('on'), scene: loopView.querySelectorAll('svg.loopScene').length, view: viewEl.style.transform, carRot: /rotate/.test(carWrap.style.transform), lanes: new Set(props.filter(p => p.type === 'star' && p.x > t.x0 && p.x < t.x1).map(p => p.lane)).size };
   });
-  check('corkscrew: a whoosh on the way in, the car squares up and the camera settles after', roll.cork >= 1 && !out.live && out.view === '' && !out.carRot && out.camWY === roll.CAM_H, JSON.stringify({ cork: roll.cork, out }));
+  check('corkscrew: a whoosh on the way in; driven through in one lane every star on the loop (laid across lanes) is collected and the cutaway is gone on the far side',
+    roll.cork >= 1 && run.n >= 8 && run.lanes >= 2 && run.gained === run.n && run.left === 0 && !run.on && run.scene === 0 && run.view === '' && !run.carRot, JSON.stringify({ cork: roll.cork, run }));
 
   /* ---- 4. hard turn: squeal at speed ---- */
   const hardTurn = await page.evaluate(async () => {
@@ -238,11 +245,11 @@ function check(name, ok, detail) {
     pos = (t.x0 + t.x1) / 2 - CAR_SCREEN_X + CAR_HIT_Z; v = 0;
     await new Promise(r => setTimeout(r, 200));
     const a = drumEls[0] && drumEls[0].style.transform;
-    return { live: twistLive, env: viewEl.style.transform, drum: a || '', carRot: /rotate/.test(carWrap.style.transform) };
+    return { live: twistLive, env: viewEl.style.transform, drum: a || '', carRot: /rotate/.test(carWrap.style.transform), cut: loopView.classList.contains('on') };
   });
   await page.screenshot({ path: SHOT + 'course-corkscrew-reduced.png' });
   await page.emulateMedia({ reducedMotion: null });
-  check('reduced motion: no roll and a still drum', !rm.live && rm.env === '' && rm.drum === '' && !rm.carRot, JSON.stringify(rm));
+  check('reduced motion: no cutaway, no roll and a still drum', !rm.live && !rm.cut && rm.env === '' && rm.drum === '' && !rm.carRot, JSON.stringify(rm));
 
   check('no page errors', errors.length === 0, errors.join(' | ').slice(0, 300));
   const passed = results.filter(r => r.ok).length;

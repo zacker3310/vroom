@@ -177,23 +177,21 @@ every board stands nearest its own turn, and the tires squeal through it above 4
 
 ### Corkscrews
 
-`TWISTS` is a list of `{x0, x1, dir}` (`TWIST_LEN = 2200`); `rollAt(x)` is the road's roll,
-`dir·2π·smootherstep`. The road itself twists: every road-space point (the tarmac bands, shoulders,
-dashes, road props, the ghost) goes through `rollPt(rollAt(x), lx, h)`, a turn about the hoop axis
-`HOOP_C` above the deck, so the ribbon ahead climbs the wall, goes over the top inside the hoops and
-comes back down. The ground plane, fields, hoops and roadside are painted in flat world space
-(`groundSpace` flag in `proj`). The car follows the ribbon (13.12, the loop): its lane spot turned by
-`rollAt(carX)` is where it draws (`carRibDX`, `carRibY`), turned about its own contact point, so it
-climbs the wall, hangs under the ribbon upside down at the top and comes back. The camera never
-rolls: it stays level and follows the car part of the way up (`LOOP_FOLLOW = 0.6` of the climb goes
-into `camWX / camWY`), so the car visibly rises on screen while sky, ground, hoops and roadside stay
-the right way up. Each road band is shaded by how far its surface has turned from the sky (`lit` in
-`drawRoad`, down to 70% upside down) so the ribbon reads as a tube. Inside a twist the ribbon is painted in
-half-bands (80 units) so it curves, without shoulders, its deck at `LOOP_DECK` (0.55) alpha with solid rumble
-edges (a glass road: the stretch standing on edge beside the camera is a tinted sheet, not a wall), and the
-stretch behind the car dissolves over 120 units. The 13.4 to 13.11 corkscrew
-rolled `#view` with the car (camera on the tube, a 1500 px overscan canvas, the car counter-rolled)
-and read as the whole world flipping; the loop keeps only the ribbon and lets the car do the turning.
+`TWISTS` is a list of `{x0, x1, dir}` (`TWIST_LEN = 2200`). On the chase cam a twist is a flat stretch
+of road with a helix of stars inside a tunnel of hoops: the 2D projector cannot draw a road that leaves
+its plane, which is what sank the rolled view (13.4), the rolled ribbon under a level camera (13.12) and
+the glass road (13.12.2). The corkscrew itself is a cutaway (13.14): while the car is inside a twist,
+`loopTick(carX)` keeps `#loopView` up over the chase cam (under the HUD chips and pedals): a side-view
+scene built by `loopOpen` from the world's palette (sky, far hills, ground, the road strip and a drawn
+ring with rumble edges and a dashed centre line) with the kid's own car (`vehicleSVG(state)`, the same
+side art as the garage and the title) placed by `loopPt(u)`, which maps progress through the twist to a
+flat run-in (`LOOP_IN`, 0.29), a full counterclockwise turn of the ring at the same pace as the straights
+(so nothing snaps at the joins and the helix spreads evenly), upside down at the top, and a flat run-out; the car rides the ring's inner surface (`LOOP_RIDE`),
+turning about its contact point, wheels spinning, puffs off the tail. The real simulation keeps running
+underneath: every twist star is drawn on the loop at its own progress and pops (`.got`) when the sim
+collects it, and inside a twist the star pickup ignores lanes (the side view has none), so a kid who
+drives through gets every star on the loop. The cutaway closes on the far side. Reduced motion keeps
+the chase cam and the hoops and never opens it (`rollOK`).
 `drawHoops()` rings the twist with
 striped hoops every 150 units (only the arc above the deck). Twists carry stars only: the helix
 (three stars a lane, `[1, 2, 1, 0]`) is laid before any formation, `put` and `spotFor` refuse

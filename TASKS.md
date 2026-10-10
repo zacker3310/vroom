@@ -257,6 +257,10 @@
 
 - [x] T35.4: A good paste closes the slot card as the preview comes up, so the tick is the only thing left to press; a bad paste still keeps the card and shakes the face. [SPID]
 
+## v13.14.0 (2026-10-10, user-directed: "what can we do to fix the damn corkscrews" -> option 1, the side-view loop cutaway)
+
+- [x] T36.1: The corkscrew cutaway. The rolled ribbon, its level-camera follow, the glass deck and the counter-roll are gone: on the chase cam a twist is flat road with its star helix in the hoop tunnel. While the car is inside one, `loopTick` keeps `#loopView` up: a side-view scene from the world's palette with a drawn loop (ring, rumble edges, centre dashes), the kid's own side-view car riding the ring's inner surface by `loopPt(u)` (flat run-in, a full turn at the pace of the straights, upside down at the top, flat run-out), wheels turning, puffs off the tail, and every twist star drawn on the loop, popping as the real simulation collects it; the star pickup ignores lanes inside a twist. Closes on the far side; reduced motion never opens it. course-check rewritten (loop maths, the cutaway mid-twist with the HUD on top, a full drive collecting every star lane-free); 24 -> 23, battery 457 -> 456. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
