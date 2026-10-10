@@ -2054,7 +2054,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.11.1";
+const APP_VERSION = "13.12.0";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -6232,16 +6232,17 @@ function elevAt(x) {
   return e;
 }
 function addHill(x0, len, amp) { HILLS.push({ x0, x1: x0 + len, amp }); return x0 + len; }
-/* ---- corkscrews: stretches where the road itself twists a full turn around the hoop axis (HOOP_C
-   above the deck). rollAt(x) is the road's roll at x (0 before a twist, ±2π after it, eased between).
-   The road ahead is drawn as a real ribbon: every road point goes through rollPt(rollAt(x)) into world
-   space (13.4). The camera rides the car around the tube (camWX / camWY: the car's spot on the rolled
-   road plus the usual offset, turned with it), the scene is rendered with the camera unrolled, and the
-   camera's own roll is one rotation of #view about the vanishing point, which is exact for a roll about
-   the forward axis. The car is counter-rolled inside the view so it stays upright at the bottom of the
-   screen while sky, ground, hoops and roadside turn around it. The ground canvas grows to a 1500 px
-   square (setOverscan) while a twist is live so the rolled frame never shows a corner. ---- */
+/* ---- corkscrews (13.12, the loop): stretches where the road itself twists a full turn around the hoop
+   axis (HOOP_C above the deck). rollAt(x) is the road's roll at x (0 before a twist, ±2π after it, eased
+   between). The road ahead is drawn as a real ribbon: every road point goes through rollPt(rollAt(x))
+   into world space, so the ribbon climbs the wall, goes over the top inside the hoops and comes back
+   down, and the car simply follows it: its spot on the ribbon (carRib) places and turns the car sprite
+   (upside down at the top). The camera never rolls. It stays level and follows the car part of the way
+   up (LOOP_FOLLOW), so the car visibly climbs the wall, hangs under the ribbon at the top and comes
+   back, while sky, ground, hoops and roadside stay the right way up. ---- */
 let TWISTS = [], rollCar = 0, twistLive = false;
+const LOOP_FOLLOW = 0.6;   /* how much of the car's climb the camera follows: 0 = fixed, 1 = the car never leaves y 650 */
+let carRibDX = 0, carRibY = 0;   /* the car's ribbon spot this frame, as a shift from its flat lane spot (renderWorld) */
 const TWIST_LEN = 2200;   /* long enough that the road a car-length ahead turns gently, not in a snap */
 function addTwist(x0, len, dir) { TWISTS.push({ x0, x1: x0 + len, dir }); return x0 + len; }
 function rollAt(x) {
@@ -6257,7 +6258,7 @@ const inTwist = (x, pad = 0) => TWISTS.some(t => x > t.x0 - pad && x < t.x1 + pa
 /* a vector turned by a (car space: +x right, +y up); a road point (lateral lx, height h) turned about the hoop axis */
 const rot = (a, x, y) => { const c = Math.cos(a), n = Math.sin(a); return [x * c - y * n, x * n + y * c]; };
 function rollPt(a, lx, h) { const r = rot(a, lx, (h || 0) - HOOP_C); return [r[0], r[1] + HOOP_C]; }
-let camWX = 0, camWY = 0;   /* the camera in the unrolled world: lateral and height over the flat ground (renderWorld) */
+let camWX = 0, camWY = 0;   /* the camera in the world: lateral and height over the flat ground (renderWorld) */
 let groundSpace = false;    /* proj: true while painting the flat world (ground, fields, hoops), false for the road ribbon */
 /* course authoring: every world has a road character (how hard it bends, whether it has
    hairpins, how long its straights run) and every level in a world gets a different shape
@@ -8027,17 +8028,16 @@ function buildScenery(len, world = 1, seed = 0) {
 /* ============ 23. ROAD: RENDER ============ */
 /* ---- projection: one sprite onto the stage ---- */
 const FLAT_PROPS = new Set(["puddle", "oil", "ice", "finish", "fan", "trophy", "scenery"]);
-const TWIST_BEHIND = -40;   /* in a corkscrew the rolled near field would swing anything behind the car into the frame, huge */
 function placeSprite(p, carX) {
   const z = p.x - carX;
-  if (z > DRAW_FAR || z < DRAW_NEAR || (twistLive && z < TWIST_BEHIND)) {
+  if (z > DRAW_FAR || z < DRAW_NEAR || occHidAt(z)) {   /* out of range, or on ground a crest ahead hides whole */
     if (p.vis) { p.wrap.style.display = "none"; p.vis = false; }
     return;
   }
   if (!p.vis) { p.wrap.style.display = "block"; p.vis = true; }
   const s = CAM_D / (z + CAM_D);
   let X = p.lx, Y = p.h, rt = "";
-  if (twistLive && p.type !== "scenery") {   /* corkscrew: road things ride the ribbon, turned with it; the roadside stays on the ground */
+  if (twistLive && p.type !== "scenery") {   /* the loop: road things ride the ribbon, turned with it; the roadside stays on the ground */
     const a = rollAt(p.x);
     if (Math.abs(a) > 0.001) { const r = rollPt(a, X, Y); X = r[0]; Y = r[1]; rt = ` rotate(${(-a).toFixed(3)}rad)`; }
   }
@@ -8080,20 +8080,39 @@ const SEG = 160;
    back to front so it needs nothing, but sprites, ramps, the finish stripe and the hoops are clipped
    to it (13.2.1: houses, stars and ramps used to float over the face of the hill in front of them). ---- */
 const OCC_STEP = 40, OCC_N = Math.ceil((DRAW_FAR + 1200 - DRAW_NEAR) / OCC_STEP) + 2, OCC = new Float64Array(OCC_N);
+/* opaque crests (13.12): the chase camera sits 360 above the road and the hills top out near 220, so every crest
+   is below the eye and, geometrically, the plain beyond shows above it; the renderer used to draw that plain in
+   full, props and all, so every hill read as glass. Now a crest well ahead of the car is a wall: once the ground
+   ahead has turned its back to the camera (zTurn, the first back-facing step past the car), everything farther
+   that lies lower than the highest crest so far is hidden (OCCH) and the strip above the visible ground is haze
+   (occTop up to the horizon, occA strong). As the car closes on the crest the haze thins (occA fades over the
+   last 280..60 units to the crest) and the far side comes through, so the view unfolds instead of popping; sprites on hidden
+   ground stay out until the haze is nearly gone (occA 0.15). A dip keeps its far side (same height as the near lip) and a
+   taller hill behind keeps its head. */
+const OCCH = new Uint8Array(OCC_N);
+let occTop = Infinity, occHid = false, occA = 0;
 function buildOcc() {
-  let m = Infinity;
-  if (twistLive) { OCC.fill(Infinity); return; }   /* the view rolls: there is no "below the crest" to clip to */
+  let m = Infinity, maxE = -Infinity, prevY = Infinity, zTurn = Infinity, zCrest = 0;
+  occTop = Infinity; occHid = false; occA = 0;
+  if (twistLive) { OCC.fill(Infinity); OCCH.fill(0); return; }   /* the ribbon leaves the ground: there is no "below the crest" to clip to */
   for (let i = 0; i < OCC_N; i++) {
-    const z = DRAW_NEAR + i * OCC_STEP;
-    OCC[i] = m;   /* strictly nearer ground only: a thing on the crest itself is never cut by that crest */
-    const y = HORIZON + (CAM_H + camElev - elevAt(curCarX + z)) * CAM_D / (z + CAM_D);
+    const z = DRAW_NEAR + i * OCC_STEP, e = elevAt(curCarX + z), y = HORIZON + (CAM_H + camElev - e) * CAM_D / (z + CAM_D);
+    if (z > 0 && zTurn < Infinity && e < maxE - 8) { OCCH[i] = 1; OCC[i] = m; occHid = true; continue; }
+    OCCH[i] = 0; OCC[i] = m;   /* strictly nearer ground only: a thing on the crest itself is never cut by that crest */
+    if (z > 0) { if (e > maxE) { maxE = e; if (zTurn === Infinity) zCrest = z; } if (y > prevY + 1e-6 && zTurn === Infinity) zTurn = z; }
+    prevY = y;
     if (y < m) m = y;
   }
+  occTop = m;
+  occA = occHid ? Math.max(0, Math.min(1, (zCrest - 60) / 220)) : 0;   /* keyed to the crest itself, not the drop past it */
+  if (occA === 0) { occHid = false; OCCH.fill(0); }
 }
+const occHidAt = z => occA > 0.15 && OCCH[Math.min(OCC_N - 1, Math.max(0, Math.floor((z - DRAW_NEAR) / OCC_STEP)))] === 1;
 const occAt = z => OCC[Math.min(OCC_N - 1, Math.max(0, Math.floor((z - DRAW_NEAR) / OCC_STEP)))];
 /* run a canvas draw clipped to what a crest in front of depth z leaves visible */
 function occClip(c, z, draw) {
   const top = occAt(z);
+  if (occHidAt(z)) return;
   if (top > 700) { draw(); return; }
   c.save(); c.beginPath(); c.rect(0, 0, 1200, top); c.clip(); draw(); c.restore();
 }
@@ -8130,6 +8149,17 @@ function quadPair(c, z0, z1, l0, l1, col) {
 }
 /* a #rrggbb tone pushed toward white (k > 0) or black (k < 0); memoised, a dozen tones a world */
 const SHADE_MEMO = new Map();
+/* a blend of two hex colours, t of the way from a to b (memoised with the shades) */
+function mixHex(a, b, t) {
+  const key = a + b + t;
+  let out = SHADE_MEMO.get(key);
+  if (out) return out;
+  const n = parseInt(a.slice(1, 7), 16), m = parseInt(b.slice(1, 7), 16);
+  const ch = sh => Math.round(((n >> sh) & 255) + (((m >> sh) & 255) - ((n >> sh) & 255)) * t).toString(16).padStart(2, "0");
+  out = "#" + ch(16) + ch(8) + ch(0);
+  SHADE_MEMO.set(key, out);
+  return out;
+}
 function shade(hex, k) {
   const key = hex + k;
   let out = SHADE_MEMO.get(key);
@@ -8199,9 +8229,8 @@ function drawHoops(c, carX) {
 }
 function drawRoad(carX) {
   const c = rctx, P = roadPal, T = groundTones(P);
-  /* the road behind the car only matters down to the screen's bottom edge (z = -64 on a straight); in a
-     corkscrew the rolled near field would sweep the road behind the camera across the frame, so stop at -80 */
-  const nearZ = twistLive ? -80 : DRAW_NEAR;
+  const nearZ = DRAW_NEAR;
+  const mist = occHid ? mixHex(P.haze, P.ground, 0.55) : "";   /* what hidden ground is veiled with: the haze sunk toward the ground */
   roadQuadN = 0;
   c.clearRect(-canvasOX, -canvasOY, canvasW, canvasH);
   c.fillStyle = P.ground;
@@ -8295,6 +8324,26 @@ function drawRoad(carX) {
     });
   }
   drawHoops(c, carX);
+  /* opaque crests: hidden ground is veiled (it only shows where it projects above the visible crest line, so one
+     veil per hidden band over the finished ground is enough), and the strip from the visible ground's top to the
+     horizon is haze. Both fade with occA as the car closes on the crest */
+  if (occHid) {
+    c.globalAlpha = occA;
+    c.fillStyle = mist;
+    c.beginPath();
+    for (let i = 0; i < OCC_N; i++) {
+      if (!OCCH[i]) continue;
+      const z0 = DRAW_NEAR + i * OCC_STEP;
+      groundSpace = true; qpath(c, z0, z0 + OCC_STEP, -7000, 7000); groundSpace = false;
+    }
+    c.fill();
+    if (occTop > HORIZON + 0.5) {
+      const hg = c.createLinearGradient(0, HORIZON, 0, occTop);
+      hg.addColorStop(0, P.haze); hg.addColorStop(1, mist);
+      c.fillStyle = hg; c.fillRect(-canvasOX, HORIZON, canvasW, occTop - HORIZON);
+    }
+    c.globalAlpha = 1;
+  }
   /* horizon haze melts the far road into the sky: a thin, half-strength veil (13.6.1: the old 46 px band at full
      strength read as a bright gap under the far hills, as if you could see through their feet) */
   const g = c.createLinearGradient(0, HORIZON, 0, HORIZON + 26);
@@ -8305,43 +8354,23 @@ function drawRoad(carX) {
   const lx = (laneVis - 1) * LANE_W, sh = Math.max(0.3, 1 - jumpY / 320), w = (carHalf + 22) * sh;
   quad(c, 4, carLen * sh, lx - w, lx + w, `rgba(0,0,0,${(0.2 * sh).toFixed(3)})`);
 }
-/* the ground canvas: 1200x700 on a straight, a 1500 px square centred on the vanishing point while the
-   view rolls (a 1200x700 frame turned about (600, 290) reaches 726 px from it) */
+/* the ground canvas: the 1200x700 stage at 2x backing (the 13.4 to 13.11 corkscrew rolled #view and grew this to a
+   1500 px square while a twist was live; the loop keeps the camera level, so neither comes back) */
 const viewEl = document.getElementById("view");
-const OVERSCAN = 1500;
-let canvasOX = 0, canvasOY = 0, canvasW = 1200, canvasH = 700, overscanOn = false, viewShown = "";
-function setOverscan(on) {
-  if (on === overscanOn) return;
-  overscanOn = on;
-  canvasW = on ? OVERSCAN : 1200; canvasH = on ? OVERSCAN : 700;
-  canvasOX = on ? (OVERSCAN - 1200) / 2 : 0; canvasOY = on ? OVERSCAN / 2 - HORIZON : 0;
-  /* 2x backing on a straight for crispness; 1x while rolling (the frame is in motion and a 1500 px square at 2x
-     is 9 M px to rasterize and upload every frame, 1x is fewer pixels than the straight road's 2400x1400) */
-  const k = on ? 1 : 2;
-  roadCanvas.width = canvasW * k; roadCanvas.height = canvasH * k;   /* resizing resets the context */
-  roadCanvas.style.width = canvasW + "px"; roadCanvas.style.height = canvasH + "px";
-  roadCanvas.style.left = -canvasOX + "px"; roadCanvas.style.top = -canvasOY + "px";
-  roadCanvas.style.transformOrigin = `${600 + canvasOX}px ${350 + canvasOY}px`;   /* the shake zoom keeps its stage origin */
-  rctx.setTransform(k, 0, 0, k, canvasOX * k, canvasOY * k);
-}
-function setViewRoll(a) {
-  const t = a ? `rotate(${(a % (Math.PI * 2)).toFixed(4)}rad)` : "";
-  if (t === viewShown) return;
-  viewShown = t; viewEl.style.transform = t;
-  setOverscan(!!a);
-}
+const canvasOX = 0, canvasOY = 0, canvasW = 1200, canvasH = 700;
 function renderWorld() {
   const carX = pos + CAR_SCREEN_X - CAR_HIT_Z;   /* z=0 is the car's rear bumper; camX was stepped by camTick */
   CAM_D = CAM_D0 / fovK;   /* the throttle punch: a nearer camera is a wider lens; put back below so the car builder never sees it */
   curCarX = carX; camElev = elevAt(carX);
-  /* corkscrew: the road's roll under the car, only while it is inside a twist (never for reduced motion: hoops only) */
+  /* the loop: the road's roll under the car, only while it is inside a twist (never for reduced motion: hoops only).
+     The car's lane spot turned onto the ribbon is where the car draws; the level camera follows it part way */
   twistLive = rollOK && inTwist(carX);
   rollCar = twistLive ? rollAt(carX) : 0;
-  if (twistLive) {   /* the camera rides the car around the tube: its spot on the rolled road plus the usual offset, turned with it */
-    const cp = rollPt(rollCar, 0, 0), co = rot(rollCar, camX, CAM_H);
-    camWX = cp[0] + co[0]; camWY = cp[1] + co[1];
-  } else { camWX = camX; camWY = CAM_H; }
-  setViewRoll(twistLive ? rollCar : 0);
+  if (twistLive) {
+    const lx = (laneVis - 1) * LANE_W, rp = rollPt(rollCar, lx, 0);
+    carRibDX = rp[0] - lx; carRibY = rp[1];
+    camWX = camX + LOOP_FOLLOW * carRibDX; camWY = CAM_H + LOOP_FOLLOW * carRibY;
+  } else { carRibDX = 0; carRibY = 0; camWX = camX; camWY = CAM_H; }
   buildOffsets(carX);
   buildOcc();
   drawRoad(carX);
@@ -9294,14 +9323,12 @@ function tick(now) {
   tickYaw(dt);
   setCarView(laneViewQ(), yawStep());   /* inner flank in a side lane; nose toward the lane it is heading for */
   const cdx = carScreenX() - 600;
-  /* corkscrew: #view is rolled by rollCar about the vanishing point, so the car is placed where that roll
-     brings it back to its own spot and counter-rolled, and stays upright at the bottom of the screen */
+  /* the loop: the car follows the ribbon. Its spot on the ribbon, less the part the level camera followed, moves it
+     up the wall and over the top; it turns with the ribbon about its own contact point (upside down at the top) */
   const th = twistLive ? rollCar : 0;
   let tx = cdx, ty = squat - jumpY, crot = "";
   if (th) {
-    const oy = carWrap.offsetTop + carWrap.offsetHeight * 0.92;   /* the wrapper's transform origin on the stage */
-    const fx = cdx, fy = oy + ty - HORIZON, cs = Math.cos(th), sn = Math.sin(th);
-    tx = fx * cs + fy * sn; ty = -fx * sn + fy * cs + HORIZON - oy;
+    tx += (1 - LOOP_FOLLOW) * carRibDX; ty -= (1 - LOOP_FOLLOW) * carRibY;
     crot = ` rotate(${(-th).toFixed(4)}rad)`;
   }
   carWrap.style.transform = `translate(${tx.toFixed(1)}px,${ty.toFixed(1)}px)${crot}`;

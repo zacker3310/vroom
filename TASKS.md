@@ -225,6 +225,11 @@
 
 - [x] T33.2: The play pill, 420x152, built like a toy button: a top-lit gradient face, an inset highlight and a shaded lower lip, the thick green base, a soft ground shadow, and a press that sinks it 8 px onto the base. The face is a white play chip on the left and PLAY on the right, the letters drawn as paths like the wordmark (CLAUDE.md records both exceptions). The gift badge rides the upper right shoulder clear of the Y. [SPID]
 
+## v13.12.0 (2026-10-10, user-directed: "rebuild the corkscrews: the car follows the road through an upside-down turn, no rolling view; and fix the see-through hills now")
+
+- [x] T34.1: The loop. The corkscrew no longer rolls the view: the camera stays level and the car follows the twisting ribbon, placed at its lane spot turned by `rollAt(carX)` (`carRibDX`, `carRibY`) and turned about its own contact point, so it climbs the wall, hangs upside down under the ribbon at the top and comes back down while sky, ground, hoops and roadside stay the right way up; the camera follows 60% of the climb (`LOOP_FOLLOW`) so the rise is visible. `setViewRoll`, `setOverscan`, the 1500 px canvas, `TWIST_BEHIND` and the counter-roll are gone. course-check 3 rewritten: no view roll, camWY above CAM_H mid-twist, the car at rotate ~pi and 264 px above its line, sideways on the wall, stars turning with the ribbon, canvas 1200x700 throughout. [SPID]
+- [x] T34.2: Opaque crests. `buildOcc` marks ground beyond a back-facing step that lies lower than the highest crest ahead (`OCCH`), `drawRoad` veils it and the strip up to the horizon with haze (`mixHex`, `occTop`, `occA`), fading over the last 280..60 units to the crest so the far side unfolds instead of popping; sprites, ramps and hoops on hidden ground stay out until the veil is under 0.15. Dips keep their far side, taller hills behind keep their head. course-check: the run-up veil (lower ground beyond the crest hidden, haze above the crest line, nothing in front clipped) and the crest (veil gone, far side back); 23 -> 24, battery 450 -> 451. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

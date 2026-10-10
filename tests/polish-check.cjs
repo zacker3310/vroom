@@ -132,8 +132,10 @@ function check(name, ok, detail) {
   /* 13.3 atmospheric perspective: the haze overlay (the sprite's own silhouette as a mask) is at step 0 up close
      and at a non-zero quantized step out near DRAW_FAR, with the world's haze colour as its fill */
   const hz = await page.evaluate(async () => {
-    buildLevel(5); pos = 0; v = 0;
-    await new Promise(r => setTimeout(r, 120));   /* a couple of frames: placeSprite sets the steps */
+    /* a spot with the far field in view: opaque crests (13.12) hide the far sprites behind a hill ahead, so step
+       forward until nothing ahead is veiled */
+    buildLevel(5); v = 0;
+    for (pos = 0; pos < 3000; pos += 300) { await new Promise(r => setTimeout(r, 120)); if (!occHid) break; }   /* a couple of frames: placeSprite sets the steps */
     const carX = pos + CAR_SCREEN_X - CAR_HIT_Z;
     const all = [...props, ...scenery].filter(p => p.vis);
     const far = all.filter(p => p.x - carX > DRAW_FAR * 0.7), near = all.filter(p => p.x - carX < DRAW_FAR * 0.3 && p.x - carX > 0);

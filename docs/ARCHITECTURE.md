@@ -178,24 +178,19 @@ every board stands nearest its own turn, and the tires squeal through it above 4
 ### Corkscrews
 
 `TWISTS` is a list of `{x0, x1, dir}` (`TWIST_LEN = 2200`); `rollAt(x)` is the road's roll,
-`dir·2π·smootherstep`. The road itself twists (13.4): every road-space point (the tarmac bands,
-shoulders, dashes, road props, the ghost) goes through `rollPt(rollAt(x), lx, h)`, a turn about the
-hoop axis `HOOP_C` above the deck, so the ribbon ahead climbs the wall, goes over the top inside the
-hoops and comes back down. The ground plane, fields, hoops and roadside are painted in flat world
-space (`groundSpace` flag in `proj`). The camera rides the car around the tube: `camWX / camWY` are
-the car's spot on the rolled road plus the usual lateral and height offset turned with it. The
-scene is rendered with the camera unrolled, and the camera's own roll is one CSS rotation of
-`#view` (sky, ground canvas, sprites and the weather layer, so rain falls in the world) about the
-vanishing point (600, 290), which is exact for a roll about the forward axis; the car is
-counter-rolled inside the view (`tick`) so it stays upright at the bottom while the world turns
-around it. While a twist is live the ground canvas becomes a 1500 px square centred on the
-vanishing point at 1x backing (`setOverscan`) so the rolled frame never shows a corner, the canvas
-near plane moves from -260 to -80 and sprites behind the car are hidden past `TWIST_BEHIND` (-40),
-because the rolled near field would otherwise sweep the road behind the camera, the ghost twin and
-roadside signs across the frame, crest occlusion is off, and each road band is shaded by how far its
-surface has turned from the sky (`lit` in `drawRoad`, down to 70% upside down) so the ribbon reads
-as a tube. The three earlier versions (12.9 rolled layers separately, 13.0 twisted only the road,
-13.2 barrel-rolled the car on a flat road) all failed because the camera did not roll with the car.
+`dir·2π·smootherstep`. The road itself twists: every road-space point (the tarmac bands, shoulders,
+dashes, road props, the ghost) goes through `rollPt(rollAt(x), lx, h)`, a turn about the hoop axis
+`HOOP_C` above the deck, so the ribbon ahead climbs the wall, goes over the top inside the hoops and
+comes back down. The ground plane, fields, hoops and roadside are painted in flat world space
+(`groundSpace` flag in `proj`). The car follows the ribbon (13.12, the loop): its lane spot turned by
+`rollAt(carX)` is where it draws (`carRibDX`, `carRibY`), turned about its own contact point, so it
+climbs the wall, hangs under the ribbon upside down at the top and comes back. The camera never
+rolls: it stays level and follows the car part of the way up (`LOOP_FOLLOW = 0.6` of the climb goes
+into `camWX / camWY`), so the car visibly rises on screen while sky, ground, hoops and roadside stay
+the right way up. Each road band is shaded by how far its surface has turned from the sky (`lit` in
+`drawRoad`, down to 70% upside down) so the ribbon reads as a tube. The 13.4 to 13.11 corkscrew
+rolled `#view` with the car (camera on the tube, a 1500 px overscan canvas, the car counter-rolled)
+and read as the whole world flipping; the loop keeps only the ribbon and lets the car do the turning.
 `drawHoops()` rings the twist with
 striped hoops every 150 units (only the arc above the deck). Twists carry stars only: the helix
 (three stars a lane, `[1, 2, 1, 0]`) is laid before any formation, `put` and `spotFor` refuse
@@ -234,33 +229,16 @@ crest line with a `clip-path` in its own pre-transform pixels, and ramps, the fi
 inside `occClip` (a canvas clip rect). A thing on the crest itself is never cut: `OCC[i]` only counts ground
 strictly nearer than its depth.
 
-## Physics
-
-`VMAX = 700`, `ACCEL = 900`, `COAST = 350`, `BRAKE = 1600` (units/s and units/s²); the engine
-upgrade adds 80 top speed per level (`vmaxEff()`), damage at 5+ takes 15% off, a low tank
-(`fuel <= 2`) 20% and a dry one 45% (the car crawls, it never stops), bald tires (`tread <= 2`)
-10%. Lane changes ease `laneVis` toward `targetLane`, at 60% rate on bald tires (`gripK()`).
-`burnUpkeep(d)` runs from `tick()` in levels only (not free drive or the parade): a unit of
-fuel per 15600 units of road (`FUEL_PER_UNIT`, about three levels), a unit of tread per
-31200, plus a sixth of a unit of tread per soaked hard hit (`HIT_TREAD`) in `applyDamage`.
-A tank lasts about 24 levels, a set of tires about 48. Both gauges are 0-8 floats shown rounded up on
-the HUD; the wrench tab in the garage wears a pulsing dot while anything is low, dinged or
-muddy, and the workbench tab grows a fill-up tile (1 star a unit, partial fills allowed) and
-a tire tile (1 star a unit, the whole set). `finishLevel` adds the shine bonus, +50% of the
-collected stars rounded up, when the truck crosses the line with no mud and zero damage. Jumps use the world's gravity: 1900 on earth (13.0, was 1500), 640 on the
-moon, 1100 in the deep sea, 900 in the sky kingdom; `flightLen(w)` interpolates ramp
-flight distance from gravity (950 units on earth, 1850 on the moon) so the level generator
-can keep landings clean. A ramp is `{x, w, h, tail}` plus an optional `kick`; `rampLaunch(rp, v)`
-is the one launch rule (leave the lip at `h`, rising at `kick·v`, default 95 and 0.9) and the
-fairness bot calls it too. `RAMP_KIND` adds the mega ramp (340 long, 150 high, kick 1.1, launch
-speed capped at 740 so an upgraded engine stays on screen) and the hop kicker (150 / 45 / 0.55);
-their clear zones come from the physics (`rampFlight`, `kindTail`) rather than the table. Collisions run in `tick()`: every live prop's `PROP_HIT[type](p, d)`
-handler is called with `d = carX − p.x` and decides its own hit window (typically a few
-dozen units around the car and within 0.65 lanes; `CAR_HIT_Z = 100` puts the contact point
-up by the hood rather than the bumper). Stars chime up a combo ladder, cones tumble,
-barrels/rocks/TNT hit-stop for 90 ms and add damage, oil spins, puddles muddy a wheel,
-capsules roll a prize. `HARD_T(type)` is the single definition of "hard" the budgets, bots
-and world packs all use.
+Opaque crests (13.12). The camera sits 360 above the road and hills top out near 220, so every crest is below
+the eye and, geometrically, the plain beyond shows above it; the renderer used to draw that plain in full, props
+and all, and every hill read as glass. `buildOcc` now also marks hidden ground (`OCCH`): once the ground ahead
+has turned its back to the camera (`zTurn`, the first step past the car whose screen y rises), anything farther
+that lies lower than the highest crest so far is hidden. `drawRoad` veils those bands and the strip from the
+visible ground's top (`occTop`) to the horizon with haze (`mixHex(haze, ground)` under a haze gradient), at
+strength `occA`, which fades from 1 to 0 over the last 280..60 units to the crest so the far side comes through
+instead of popping; `placeSprite` and `occClip` keep sprites, ramps and hoops on hidden ground out until the
+veil is under 0.15. A dip keeps its far side (same height as its near lip) and a taller hill behind keeps its
+head. In a twist nothing is hidden or clipped: the ribbon has left the ground.
 
 ### The ghost race
 
