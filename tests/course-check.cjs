@@ -50,7 +50,7 @@ function check(name, ok, detail) {
       const dist = (p, c) => p.x < c.x0 ? c.x0 - p.x : p.x > c.x1 ? p.x - c.x1 : 0;
       const owner = p => hard.reduce((m, c) => dist(p, c) < dist(p, m) ? c : m, hard[0]);
       const chevOutside = chev.every(p => Math.sign(p.lx) === -Math.sign(owner(p).k)) && hard.every(c => chev.filter(p => owner(p) === c).length >= 2);
-      const kinds = RAMPS.map(r => r.kick === 1.1 ? 'mega' : r.kick === 0.55 ? 'hop' : 'std');
+      const kinds = RAMPS.map(r => r.kick === RAMP_KIND.mega.kick ? 'mega' : r.kick === RAMP_KIND.hop.kick ? 'hop' : 'std');
       const landClear = RAMPS.every(r => !props.some(p => BLOCKER_T(p.type) && p.x > r.x - 200 && p.x < r.x + r.w + (r.tail || 420)));
       const sorted = RAMPS.slice().sort((p, q) => p.x - q.x);
       const lastLand = RAMPS.length ? Math.max(...RAMPS.map(rp => rp.x + rp.w + (rp.tail || 420))) : 0;
@@ -60,7 +60,7 @@ function check(name, ok, detail) {
       /* 13.16: lane widths and gaps */
       const widths = RAMPS.map(r => r.l1 - r.l0 + 1);
       const starOffDeck = RAMPS.some(r => props.some(p => p.type === 'star' && p.h > LOW_STAR_H && p.x > r.x + r.w && p.x < r.x + r.w + r.tail && (p.lane < r.l0 || p.lane > r.l1)));
-      const STD = { w: 250, h: 95, kick: 0.9 };
+      const STD = { w: 250, h: 95, kick: KICK_STD };
       const gaps = GAPS.map(g => {
         const full = g.l0 === 0 && g.l1 === 2;
         const own = full ? RAMPS.find(r => r.l0 === 0 && r.l1 === 2 && !r.kick && r.x + r.w < g.x && g.x - r.x - r.w <= 200) : null;
@@ -253,9 +253,9 @@ function check(name, ok, detail) {
   /* ---- 5. a mega ramp in the real physics loop ---- */
   const mega = await page.evaluate(async () => {
     let n = 0;
-    for (let k = 6; k <= 40 && !n; k++) { buildLevel(k); if (RAMPS.some(r => r.kick === 1.1)) n = k; }
+    for (let k = 6; k <= 40 && !n; k++) { buildLevel(k); if (RAMPS.some(r => r.kick === RAMP_KIND.mega.kick)) n = k; }
     drive(n);
-    const rp = RAMPS.find(r => r.kick === 1.1);
+    const rp = RAMPS.find(r => r.kick === RAMP_KIND.mega.kick);
     pos = rp.x - CAR_SCREEN_X - 120; v = 700; gasKey = true;
     let top = 0, landX = 0, flew = false;
     const t0 = performance.now();
@@ -267,8 +267,8 @@ function check(name, ok, detail) {
     gasKey = false;
     return { n, top: Math.round(top), landX: Math.round(landX), lip: rp.x + rp.w, end: rp.x + rp.w + rp.tail, flew };
   });
-  check('mega ramp: a real launch goes much higher than a standard ramp (> 250) and lands inside its clear zone',
-    mega.flew && mega.top > 250 && mega.landX > mega.lip && mega.landX <= mega.end, JSON.stringify(mega));
+  check('mega ramp: a real launch goes much higher than a standard ramp (> 180 after the 13.20 nerf) and lands inside its clear zone',
+    mega.flew && mega.top > 180 && mega.landX > mega.lip && mega.landX <= mega.end, JSON.stringify(mega));
 
   /* ---- 5b. 13.16: lane-wide decks and gaps in the real physics code ---- */
   const lanes = await page.evaluate(async () => {

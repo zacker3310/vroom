@@ -62,8 +62,8 @@ const EXE = process.env.CHROMIUM || pw.chromium.executablePath();
     drive(n); const rp = RAMPS.find(r => r.l0 === r.l1 && r.kick !== 1.1); pos = rp.x - CAR_SCREEN_X - 620; v = 0; targetLane = rp.l0; laneVis = rp.l0;
   });
   await spot('megaramp.png', () => {
-    let n = 0; for (let k = 6; k <= 40 && !n; k++) { buildLevel(k); if (RAMPS.some(r => r.kick === 1.1)) n = k; }
-    drive(n); const rp = RAMPS.find(r => r.kick === 1.1); pos = rp.x - CAR_SCREEN_X - 760; v = 0;   /* the big red one dead ahead, its star arc rising */
+    let n = 0; for (let k = 6; k <= 40 && !n; k++) { buildLevel(k); if (RAMPS.some(r => r.kick === RAMP_KIND.mega.kick)) n = k; }
+    drive(n); const rp = RAMPS.find(r => r.kick === RAMP_KIND.mega.kick); pos = rp.x - CAR_SCREEN_X - 760; v = 0;   /* the big red one dead ahead, its star arc rising */
   });
   /* results card: a shiny S-tier finish */
   await page.evaluate(async () => { showGarage(); progress.muddy = false; progress.damage = 0; drive(12); await new Promise(r => setTimeout(r, 200)); runStars = 9; runDamage = 0; renderHudStars(false); pos = LEVEL_LEN - 350; gasKey = true; });

@@ -204,7 +204,7 @@ function check(name, ok, detail) {
   });
   check('ladders: engine 60/150/350, armor 50/120/300, magnet 40/100/250, tank 50/120/300, springs 50/120/300', ladders.prices.engine === '60/150/350' && ladders.prices.armor === '50/120/300' && ladders.prices.magnet === '40/100/250' && ladders.prices.tank === '50/120/300' && ladders.prices.springs === '50/120/300', JSON.stringify(ladders.prices));
   check('tank: pip one pays 50, tank 8 -> 10 and the new space comes filled (fuel 10, nothing missing)', ladders.max0 === 8 && ladders.afterTank.max === 10 && ladders.afterTank.fuel === 10 && ladders.afterTank.wallet === 950 && ladders.afterTank.missing === 0, JSON.stringify(ladders.afterTank));
-  check('springs: launch scale 1 / 1.18 / 1.36 / 1.54 by pip; tank + springs ride the v3 tail (1, 2)', ladders.ks.join(',') === '1,1.18,1.36,1.54' && ladders.code.tank === 1 && ladders.code.springs === 2, JSON.stringify([ladders.ks, ladders.code]));
+  check('springs: launch scale 1 / 1.08 / 1.16 / 1.24 by pip (13.20); tank + springs ride the v3 tail (1, 2)', ladders.ks.join(',') === '1,1.08,1.16,1.24' && ladders.code.tank === 1 && ladders.code.springs === 2, JSON.stringify([ladders.ks, ladders.code]));
   await page.evaluate(() => { progress.upgrades.tank = 0; progress.fuel = Math.min(8, progress.fuel); renderUpkeep(); });
 
   /* ---- 11. persistence: localStorage + save code tail; older saves/codes read as full ---- */

@@ -289,6 +289,10 @@
 - [x] T39.2: The grey disc: the ghost twin drawn between the camera and the car (a flat saucer body there projects as a huge translucent disc across the road). During a race `ghostPlace` never draws the twin behind the car and fades it right out on top of the kid's car; after the finish it may still drive through the frame. ghost-check 19 -> 20. [SPID]
 - [x] T39.3: README rewritten for the game as it is: Zoomies, the title landing, chompers in three sizes, ramps in three widths, track gaps, the clean-line speed scrubs, solid hills, the paste button, the results row; new docs/gap.png and docs/narrowramp.png; counts and version badge current. [SPID]
 
+## v13.20.0 (2026-10-10, user-directed: "gravity needs majorly nerfed, the vehicles are going way too high")
+
+- [x] T40.1: Launches cut hard: the standard kick 0.9 -> 0.6 (`KICK_STD`, also the flight-star arc), mega 1.1 -> 0.75, hop 0.55 -> 0.4, the springs ladder +18% -> +8% a pip (1.24 at the top, was 1.54), the chomper's spit 470 -> 420. Flight tables, tails and landing zones unchanged (they were generous), so every landing stays clear. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

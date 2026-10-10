@@ -2095,7 +2095,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.19.0";
+const APP_VERSION = "13.20.0";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -2163,7 +2163,7 @@ const UPG = {
   springs: { prices: [50, 120, 300] }    /* higher jumps per level, same landing spot (springK) */
 };
 const fuelMax = () => FUEL_MAX + 2 * (progress.upgrades.tank || 0);
-const springK = () => 1 + 0.18 * (progress.upgrades.springs || 0);
+const springK = () => 1 + 0.08 * (progress.upgrades.springs || 0);   /* 13.20: was 0.18 a pip, which flung an upgraded car off the top of the screen */
 const MAX_DAMAGE = 9, REPAIR_RATE = 2;
 /* upkeep: one tank and one set of tires, 8 units each. A tank lasts about 24 levels (a unit per 3 levels of
    road), tires about 48 levels, and a hard hit scuffs 1/6 of a unit of tread. Running dry never strands the kid:
@@ -6921,7 +6921,7 @@ function paradeUnlocked() {
 let LEVEL_LEN = 5200, RAMPS = [], GAPS = [], props = [], scenery = [], totalStars = 0, runStars = 0, runDamage = 0, runTime = 0;
 let freeSpawnX = 0, freeThemeIdx = 0, freeSceneryX = 0, freeCourseX = 0;
 
-/* a ramp is {x, w, h, tail} plus optional kick (launch speed share, default 0.9) and deck colors, and (13.16)
+/* a ramp is {x, w, h, tail} plus optional kick (launch speed share, default KICK_STD) and deck colors, and (13.16)
    l0..l1, the lanes its deck spans: a car in any other lane drives past it on the flat (no lanes: the whole road) */
 const rampHas = (rp, lane) => rp.l0 == null || (lane >= rp.l0 && lane <= rp.l1);
 function rampOn(x, lane = Math.round(laneVis)) {
@@ -6936,7 +6936,9 @@ function rampBehind(x, lane = Math.round(laneVis)) {
   return best;
 }
 /* the one launch rule: leave the lip at the deck's height, rising at a share of the speed */
-function rampLaunch(rp, speed) { return { y: rp ? rp.h : 95, vy: Math.min(speed, rp && rp.cap || Infinity) * (rp && rp.kick || 0.9) }; }
+/* 13.20: launches nerfed hard (the standard kick was 0.9, mega 1.1, hop 0.55, springs +18% a pip): cars were flying off the top of the screen */
+const KICK_STD = 0.6;
+function rampLaunch(rp, speed) { return { y: rp ? rp.h : 95, vy: Math.min(speed, rp && rp.cap || Infinity) * (rp && rp.kick || KICK_STD) }; }
 /* one frame of ramp physics for a car on its wheels at x: on a deck in its lane jumpY follows the slope; the frame
    the deck ends under the wheels the car leaves it, off the lip by the launch rule, or off the side of a narrow deck
    (a lane change mid-ramp) as a plain drop from the deck's height. Returns the launch {rp, y, vy} or null.
@@ -7232,7 +7234,7 @@ const rampTail = w => flightLen(w) - 250;   /* beyond rp.x + rp.w: nothing on th
 /* star height that sits on the full-throttle flight path dx past the ramp start */
 function flightH(w, dx) {
   const t = Math.max(0, dx - 250) / 650, g = worldMeta(w).gravity;
-  return Math.max(LOW_STAR_H, Math.round(95 + 0.9 * 650 * t - 0.5 * g * t * t + LOW_STAR_H));
+  return Math.max(LOW_STAR_H, Math.round(95 + KICK_STD * 650 * t - 0.5 * g * t * t + LOW_STAR_H));
 }
 /* ramp widths (13.16): a third of the decks span one lane, a third two, a third the whole road, the level's rng
    deciding and the star's lane always on the deck; levels 1-2 keep every deck full so the first jumps are a sure thing */
@@ -7254,8 +7256,8 @@ function rampAt(b, x, lane, lanes) {
 /* special ramps fly by their own numbers: the clear zone past the lip comes from the physics
    (full-throttle flight on this world's gravity, plus a margin), not the standard ramp's table */
 const RAMP_KIND = {
-  mega: { w: 340, h: 150, kick: 1.1, cap: 740, edge: "#9d0208", deck: "#e63946", chev: "#f1faee" },   /* the big red one; a souped-up engine can't fling the car off the top of the screen */
-  hop:  { w: 150, h: 45, kick: 0.55, edge: "#2d6a4f", deck: "#74c69d", chev: "#f1faee" }     /* a little green kicker */
+  mega: { w: 340, h: 150, kick: 0.75, cap: 740, edge: "#9d0208", deck: "#e63946", chev: "#f1faee" },   /* the big red one; a souped-up engine can't fling the car off the top of the screen */
+  hop:  { w: 150, h: 45, kick: 0.4, edge: "#2d6a4f", deck: "#74c69d", chev: "#f1faee" }     /* a little green kicker */
 };
 function rampFlight(kind, w, speed = VMAX) {   /* units from the ramp's start to touchdown */
   const g = worldMeta(w).gravity, vy = speed * kind.kick;
@@ -7339,7 +7341,7 @@ defBeat("gap", "gap", 15, (b, x) => {   /* a hole in one or two lanes: steer rou
   b.star(gx - 150, open); b.star(gx + GAP_W / 2, open); b.star(gx + GAP_W + 150, open);
   return gx + GAP_W + 150;
 });
-const RAMP_GAP_AT = 250 + 120;   /* the hole starts this far past a full-width ramp's start (120 past its lip) */
+const RAMP_GAP_AT = 250 + 40;   /* the hole starts this far past a full-width ramp's start (40 past its lip: 13.20 shortened every flight) */
 defBeat("rampGap", "ramp", 15, (b, x) => {   /* the road ends past the lip: a full-width deck, a full-width hole, the jump clears it */
   const gx = x + 200 + RAMP_GAP_AT;
   if (!gapFits(gx, 0, 2)) return false;   /* checked before its own ramp goes down: the ramp zone test is against the others */
@@ -8473,7 +8475,7 @@ function chompSpit(t) {
   /* spat out the way the car came: a high backward arc that lands behind the spat stars, so the kid drives back
      up past them; the beast is full and dozes off (lids down, jaws at rest), and the road through it is open */
   v = 0; chompFling = CHOMP_FLING;
-  airborne = true; jumpY = 70; vy = 470 * springK();
+  airborne = true; jumpY = 70; vy = 420 * springK();
   t.p.el.classList.add("full");
   buddyReact("duck");
   chomp = null;

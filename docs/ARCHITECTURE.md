@@ -202,7 +202,7 @@ the car is held by `freezeUntil` for `CHOMP_HOLD` ms (the crash hit-stop, so not
 and a chew shake (`.chew`, off under reduced motion), then `chompDrop` takes `min(CHOMP_DROP, runStars)`
 off the run tally and puts them back on the road at `CHOMP_STAR_X` in the kid's own lane (`p.spat`, not
 counted in `totalStars`), and `chompSpit` opens the jaws, spits (cheeks puff) and launches the car in a
-high arc (`airborne`, `vy` 470 by the springs) that lands past the stars, so driving on gets them straight
+high arc (`airborne`, `vy` 420 by the springs) that lands past the stars, so driving on gets them straight
 back. The wallet never drops: only the run tally dips, and only until the kid drives on. The music riser
 runs through the bite.
 
