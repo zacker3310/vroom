@@ -2059,7 +2059,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.13.3";
+const APP_VERSION = "13.13.4";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -5867,7 +5867,8 @@ document.getElementById("deleteAvatar").addEventListener("click", e => {
   if (i < 0 || !slotCard.classList.contains("blank")) return;
   let p;
   try { p = Promise.resolve(readClipboardText()); } catch (err) { p = Promise.reject(err); }
-  p.then(text => importSaveCode(String(text || ""), i), () => receiveDeny());
+  /* a good paste raises the preview: the slot card steps aside so the tick is the only thing to press */
+  p.then(text => importSaveCode(String(text || ""), i).then(ok => { if (ok) closeDeleteConfirm(); }), () => receiveDeny());
 });
 document.getElementById("slotScan").addEventListener("pointerdown", e => {
   e.stopPropagation();

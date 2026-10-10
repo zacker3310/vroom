@@ -253,6 +253,10 @@
 
 - [x] T33.3: The play pill at 65%: 275x100 (was 420x152), its face, halo and shadows scaled with it, still well over the 76 stage px tap floor. [SPID]
 
+## v13.13.4 (2026-10-10, user-directed: "once it receives the paste the slot card should dismiss and show the preview with the green accept")
+
+- [x] T35.4: A good paste closes the slot card as the preview comes up, so the tick is the only thing left to press; a bad paste still keeps the card and shakes the face. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

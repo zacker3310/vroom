@@ -397,11 +397,11 @@ function check(name, ok, detail) {
   await page.evaluate(() => { window.readClipboardText = () => Promise.resolve('look: ' + SAVE_URL_PREFIX + packCompact() + ' sent from my phone'); });
   await clickPaste();
   await page.waitForTimeout(300);
-  const pasteGood = await page.evaluate(() => ({ confirm: document.getElementById('importConfirm').classList.contains('show'), pending: !!pendingImport, slot: pendingSlot }));
+  const pasteGood = await page.evaluate(() => ({ confirm: document.getElementById('importConfirm').classList.contains('show'), pending: !!pendingImport, slot: pendingSlot, cardGone: !deleteConfirm.classList.contains('show') }));
   await tap('#importNo');
   await page.evaluate(() => { closeDeleteConfirm(); window.readClipboardText = window.__read; });
-  check('paste: an empty slot\'s face is a >= 64px clipboard button; a clipboard without a code shakes it and opens nothing; one with a code raises the preview aimed at that slot',
-    pasteBtn.blank && pasteBtn.size >= 64 && pasteBtn.icon && /paste/.test(pasteBtn.label) && pasteBad.deny && !pasteBad.confirm && pasteBad.card && pasteGood.confirm && pasteGood.pending && pasteGood.slot === 2,
+  check('paste: an empty slot\'s face is a >= 64px clipboard button; a clipboard without a code shakes it and opens nothing; one with a code raises the preview aimed at that slot and the card steps aside',
+    pasteBtn.blank && pasteBtn.size >= 64 && pasteBtn.icon && /paste/.test(pasteBtn.label) && pasteBad.deny && !pasteBad.confirm && pasteBad.card && pasteGood.confirm && pasteGood.pending && pasteGood.slot === 2 && pasteGood.cardGone,
     JSON.stringify({ pasteBtn, pasteBad, pasteGood }));
 
   /* ---- the preview card: the incoming car, its stars and beaten levels, no warning when it brings as much
