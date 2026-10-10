@@ -2059,7 +2059,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.13.1";
+const APP_VERSION = "13.13.2";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -5854,16 +5854,17 @@ document.getElementById("slotPlay").addEventListener("pointerdown", e => {
   if (i !== meta.active) switchProfile(i);
   else { closeDeleteConfirm(); renderProfiles(); }
 });
-/* the paste button: the clipboard's text, inside the tap (iOS shows its paste bubble); a test can stub readClipboardText */
+/* the paste button: the clipboard's text, read on the click (WebKit grants clipboard access on click, not on
+   pointerdown, same as the share button; iOS then shows its paste bubble); a test can stub readClipboardText */
 const pasteIcon = `<svg viewBox="0 0 100 100"><rect x="22" y="18" width="56" height="70" rx="10" fill="#fff" stroke="#b08968" stroke-width="6"/><rect x="36" y="10" width="28" height="16" rx="5" fill="#b08968"/><path d="M50 40 V72 M34 56 H66" stroke="#b08968" stroke-width="10" stroke-linecap="round"/></svg>`;
 function readClipboardText() {
   return navigator.clipboard && navigator.clipboard.readText ? navigator.clipboard.readText() : Promise.reject(new Error("no clipboard"));
 }
-document.getElementById("deleteAvatar").addEventListener("pointerdown", e => {
+document.getElementById("deleteAvatar").addEventListener("pointerdown", e => { e.stopPropagation(); if (deleteTarget >= 0 && slotCard.classList.contains("blank")) sfx.pop(); });
+document.getElementById("deleteAvatar").addEventListener("click", e => {
   e.stopPropagation();
   const i = deleteTarget;
   if (i < 0 || !slotCard.classList.contains("blank")) return;
-  sfx.pop();
   let p;
   try { p = Promise.resolve(readClipboardText()); } catch (err) { p = Promise.reject(err); }
   p.then(text => importSaveCode(String(text || ""), i), () => receiveDeny());

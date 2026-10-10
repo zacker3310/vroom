@@ -390,11 +390,12 @@ function check(name, ok, detail) {
   await page.evaluate(() => { window.__read = readClipboardText; window.readClipboardText = () => Promise.resolve('hello, no code here'); openSlotCard(2); });
   await page.waitForTimeout(450);
   const pasteBtn = await page.evaluate(() => { const r = deleteAvatar.getBoundingClientRect(); return { blank: deleteCard.classList.contains('blank'), size: Math.min(r.width, r.height), icon: !!deleteAvatar.querySelector('svg'), label: deleteAvatar.getAttribute('aria-label') }; });
-  await tap('#deleteAvatar');
+  const clickPaste = () => page.evaluate(() => { deleteAvatar.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 9 })); deleteAvatar.dispatchEvent(new MouseEvent('click', { bubbles: true })); });   /* the read runs on the click: WebKit's clipboard gate */
+  await clickPaste();
   await page.waitForTimeout(250);
   const pasteBad = await page.evaluate(() => ({ deny: deleteAvatar.classList.contains('deny'), confirm: document.getElementById('importConfirm').classList.contains('show'), card: deleteConfirm.classList.contains('show') }));
   await page.evaluate(() => { window.readClipboardText = () => Promise.resolve('look: ' + SAVE_URL_PREFIX + packCompact() + ' sent from my phone'); });
-  await tap('#deleteAvatar');
+  await clickPaste();
   await page.waitForTimeout(300);
   const pasteGood = await page.evaluate(() => ({ confirm: document.getElementById('importConfirm').classList.contains('show'), pending: !!pendingImport, slot: pendingSlot }));
   await tap('#importNo');

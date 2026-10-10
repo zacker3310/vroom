@@ -245,6 +245,10 @@
 
 - [x] T35.2: The paste button. An empty slot's face on the slot card is a raised clipboard-with-plus button: a tap reads the clipboard inside the gesture (`readClipboardText`, a test seam) and hands the text to `importSaveCode(text, slot)`, so a pasted code raises the usual preview aimed at that slot; anything that is not a code shakes the face (`receiveDeny` picks the face on a blank card). profile-check 32 -> 33, battery 456 -> 457. [SPID]
 
+## v13.13.2 (2026-10-10, user-directed: "the copy paste isn't working")
+
+- [x] T35.3: The paste read moved from pointerdown to click: WebKit only grants clipboard access (and shows the iOS paste bubble) inside a click's activation, the same gate the share button already uses; pointerdown keeps the pop. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
