@@ -181,6 +181,10 @@
 
 - [x] T29.1: Corkscrew polish. Sprites behind the car are hidden while the view rolls (`TWIST_BEHIND` -40: the ghost twin and roadside signs used to be rolled and magnified into the bottom of the frame); the ribbon is lit from the sky, each band shaded by how far its surface has turned (70% upside down) so the tube reads as a tube; `#weather` moved inside `#view` so the rain falls in the world and rolls with it. course-check's weather assertion updated. 23 suites, 424/424.
 
+## v13.7.1 (2026-10-10, user-directed: "I want to be able to delete the game saves")
+
+- [x] T30.1: Hold-to-delete a kid's save. A trash badge on each used profile slot opens a confirm card (avatar, star wallet, beaten levels, a big cross) with a 1.2 s hold button and fill ring on the update gate's pattern, so a tap cannot trigger it. `deleteProfile` removes the save key and clears the avatar; deleting the active kid hops to the lowest used slot or restarts slot 0 fresh and reloads to the garage. profile-check 20. 23 suites, 429/429.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
