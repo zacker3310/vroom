@@ -53,6 +53,20 @@ function check(name, ok, detail) {
     stored.has && Math.abs(stored.t - stored.run) < 0.05 && stored.n >= 6 && stored.mod === 0 && stored.ints && stored.lanes[0] === 100 && stored.lanes[stored.lanes.length - 1] === 200
       && stored.mono && stored.lastPos > 0, JSON.stringify(stored));
   check('first run: no ghost to beat = plain medal, no ghost check on the time chip', !stored.newBest && !stored.win, JSON.stringify({ newBest: stored.newBest, win: stored.win }));
+  /* 13.9: the results row reads AGAIN (big, blue, the ghost to beat bobbing over it), garage, home, NEXT (big, green) */
+  await page.waitForTimeout(4200);   /* the card pops at 0.7 s, the tally and stars take a few more: measure the row once it is up */
+  const row = await page.evaluate(() => {
+    const ids = [...document.querySelectorAll('#celebrateRow .bigBtn')].map(b => b.id);
+    const sz = id => { const r = document.getElementById(id).getBoundingClientRect(); return Math.round(Math.min(r.width, r.height)); };
+    const tease = document.getElementById('ghostTease'), g = progress.levels[1].ghost;
+    return { ids: ids.join(','), again: sz('replayBtn'), next: sz('nextBtn'), garage: sz('garageBtn'), home: sz('celebrateHomeBtn'),
+      teaseShown: tease.classList.contains('show') && getComputedStyle(tease).display !== 'none', none: tease.classList.contains('none'),
+      medal: !!tease.querySelector('.gMedal svg'), tier: timeTier(1, g.t), medalText: (tease.querySelector('.gMedal') || {}).textContent || '' };
+  });
+  check('results row: again, garage, home, next in that order; again and next the big ones; the ghost to beat bobs over again wearing its medal',
+    row.ids === 'replayBtn,garageBtn,celebrateHomeBtn,nextBtn' && row.again >= 160 && row.next >= 160 && row.again > row.garage && row.garage >= 110 && row.home >= 110
+    && row.teaseShown && !row.none && row.medal && row.medalText.trim() === row.tier, JSON.stringify(row));
+  await page.screenshot({ path: SHOT + 'g-results-row.png' });
   const ghostA = stored.t;
 
   /* ---- 2. replay: the twin spawns, follows the trace (lane 2 at a known time, moving ahead in depth), the chip reads behind ---- */
@@ -155,6 +169,11 @@ function check(name, ok, detail) {
   check('load: malformed ghosts (bad t, length not x3, non-numeric) are dropped, the level itself stays; a level with no ghost drives with no twin and no chip',
     dropped.g1 === undefined && dropped.g2 === undefined && dropped.g3 === undefined && dropped.kept && !dropped.chipOn && dropped.sprite === null && dropped.trace === null, JSON.stringify(dropped));
 
+  /* the orange garage button goes straight to the workbench tab (it works from any scene: showGarage + openTab) */
+  await page.evaluate(() => document.getElementById('garageBtn').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 9 })));
+  await page.waitForTimeout(300);
+  const bench = await page.evaluate(() => ({ scene: [...document.querySelectorAll('.scene.active')].map(x => x.id).join(','), cat: curCat, tabSel: document.querySelector('.catTab.sel') && document.querySelector('.catTab.sel').dataset.cat }));
+  check('results row: the garage button lands on the workbench tab', bench.scene === 'garage' && bench.cat === 'work' && bench.tabSel === 'work', JSON.stringify(bench));
   check('no console errors', errors.length === 0, errors.join(' | ').slice(0, 300));
 
   await browser.close();

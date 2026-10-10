@@ -199,6 +199,10 @@
 
 - [x] T30.5: The slot card. A tap on any face opens one card (`openSlotCard`): the kid, their car (`carOfSave`), stars and flags, play (switch; hidden for the active kid; starts a new kid on an empty slot), scan a save into this slot (`importSaveCode(code, slot)`, `pendingSlot`; `importYes` writes that slot, gives an empty slot a free face and makes it active), close, and the hold-to-erase ring. The trash badges and the panel's scan button are gone; the panel is the QR, share and sound. profile-check 32. 23 suites, 441/441.
 
+## v13.9.0 (2026-10-10, user-directed: "more button options on the end-of-race menu")
+
+- [x] T31.1: The results row. Again (big, pulsing, blue, far left) with the ghost to beat bobbing over it (`renderGhostTease`: the ghost icon wearing the medal its stored time earns on this road; the parade, which has no ghost, shows a slashed one), garage (orange, `showGarage` + `openTab("work")`: straight to wash, repair, fuel and tires), home (red), next race (big, pulsing, green). New `--v-accent-orange` tokens. ghost-check 19, parade-check updated. 23 suites, 443/443.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

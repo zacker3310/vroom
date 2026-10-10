@@ -102,9 +102,10 @@ function check(name, ok, detail) {
   await page.waitForTimeout(4200);
   const card = await page.evaluate(() => ({
     trophyOnCard: document.getElementById('celebrateTime').innerHTML.includes('M22 4'),
-    nextHidden: getComputedStyle(document.getElementById('nextBtn')).display === 'none'
+    nextHidden: getComputedStyle(document.getElementById('nextBtn')).display === 'none',
+    noGhost: document.getElementById('ghostTease').classList.contains('none') && !!document.querySelector('#ghostTease .gSlash')
   }));
-  check('parade: celebrate card shows the trophy, no next level', card.trophyOnCard && card.nextHidden, JSON.stringify(card));
+  check('parade: celebrate card shows the trophy, no next level, a slashed ghost over again (no ghost on the parade)', card.trophyOnCard && card.nextHidden && card.noGhost, JSON.stringify(card));
   await page.screenshot({ path: SHOT + 'pd-finale.png' });
 
   /* ---- replay pays the warm 10, not 100 ---- */
