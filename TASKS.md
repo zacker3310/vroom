@@ -213,6 +213,10 @@
 
 - [x] T32.4: The ghost to beat now taunts from the left of AGAIN instead of hiding under the results card: `ghostTauntIcon` (eyes on the button, one winking, tongue out, an arm waving it over) on a `teaseTaunt` wobble that leans in toward the button, with `tongueWag` and `armWave` on their own loops, the medal hanging below. The parade's slashed ghost stays calm and half-faded. All of it is in the reduced-motion list. [SPID]
 
+## v13.10.2 (2026-10-10, user-directed: "the house swap, make it a map icon")
+
+- [x] T32.5: The results row's red button is the level map: the wrench already lands in the garage, so the two buttons pointed at the same room. It wears the map pictogram (the garage's own, in white with red-down ink) and calls `showMap()`; polish-check's mid-tally exit now expects the map. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

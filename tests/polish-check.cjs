@@ -179,9 +179,9 @@ function check(name, ok, detail) {
   const clean = await page.evaluate(() => ({
     fly: document.querySelectorAll('.flyStar').length,
     celebrating: roadScene.classList.contains('celebrating'),
-    garage: garageScene.classList.contains('active')
+    map: mapScene.classList.contains('active')   /* the red button is the map since 13.10.2 */
   }));
-  check('celebrate: exiting mid-tally cleans flyStars + class', clean.fly === 0 && !clean.celebrating && clean.garage, JSON.stringify(clean));
+  check('celebrate: exiting mid-tally (red = map) cleans flyStars + class', clean.fly === 0 && !clean.celebrating && clean.map, JSON.stringify(clean));
 
   /* ---- reduced motion: decorative keyframes off, confetti spawns nothing, the iris stays (short) ---- */
   await page.emulateMedia({ reducedMotion: 'reduce' });
