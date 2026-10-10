@@ -262,9 +262,9 @@ function check(name, ok, detail) {
     document.querySelectorAll('.profileSlot')[1].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
   });
   await page.waitForTimeout(200);
-  const blankCard = await page.evaluate(() => ({ show: deleteConfirm.classList.contains('show'), blank: deleteCard.classList.contains('blank'), plus: !!document.querySelector('#deleteAvatar .plus'),
+  const blankCard = await page.evaluate(() => ({ show: deleteConfirm.classList.contains('show'), blank: deleteCard.classList.contains('blank'), plus: !!document.querySelector('#deleteAvatar svg'),
     holdHidden: getComputedStyle(deleteHold).display === 'none', play: getComputedStyle(slotPlay).display !== 'none' }));
-  check('slot card: an empty face opens a card with a plus, play and no erase ring', blankCard.show && blankCard.blank && blankCard.plus && blankCard.holdHidden && blankCard.play, JSON.stringify(blankCard));
+  check('slot card: an empty face opens a card with a clipboard button, play and no erase ring', blankCard.show && blankCard.blank && blankCard.plus && blankCard.holdHidden && blankCard.play, JSON.stringify(blankCard));
   await tap('#slotPlay');
   await page.waitForTimeout(700);   /* switch triggers reload */
   const fresh = await page.evaluate(() => ({ active: meta.active, wallet: progress.wallet, avatar: meta.avatars[1] }));
@@ -384,6 +384,24 @@ function check(name, ok, detail) {
   check('receive: the slot card scans a save into the chosen slot (scan hidden without a camera), a dismissed scan keeps the panel, a scanned URL raises the preview aimed at that slot',
     noCam.hidden && noCam.share && cam.shown && cam.big && scanCancel.overlay && !scanCancel.card && !scanCancel.confirm && scanned.overlay && scanned.confirm && scanned.pending && scanned.slot === 2,
     JSON.stringify({ noCam, cam, scanCancel, scanned }));
+
+  /* ---- the paste button (13.13.1): an empty slot's face is a raised clipboard; a tap reads the clipboard and raises
+     the preview aimed at that slot when it holds a code, shakes the face when it does not ---- */
+  await page.evaluate(() => { window.__read = readClipboardText; window.readClipboardText = () => Promise.resolve('hello, no code here'); openSlotCard(2); });
+  await page.waitForTimeout(450);
+  const pasteBtn = await page.evaluate(() => { const r = deleteAvatar.getBoundingClientRect(); return { blank: deleteCard.classList.contains('blank'), size: Math.min(r.width, r.height), icon: !!deleteAvatar.querySelector('svg'), label: deleteAvatar.getAttribute('aria-label') }; });
+  await tap('#deleteAvatar');
+  await page.waitForTimeout(250);
+  const pasteBad = await page.evaluate(() => ({ deny: deleteAvatar.classList.contains('deny'), confirm: document.getElementById('importConfirm').classList.contains('show'), card: deleteConfirm.classList.contains('show') }));
+  await page.evaluate(() => { window.readClipboardText = () => Promise.resolve('look: ' + SAVE_URL_PREFIX + packCompact() + ' sent from my phone'); });
+  await tap('#deleteAvatar');
+  await page.waitForTimeout(300);
+  const pasteGood = await page.evaluate(() => ({ confirm: document.getElementById('importConfirm').classList.contains('show'), pending: !!pendingImport, slot: pendingSlot }));
+  await tap('#importNo');
+  await page.evaluate(() => { closeDeleteConfirm(); window.readClipboardText = window.__read; });
+  check('paste: an empty slot\'s face is a >= 64px clipboard button; a clipboard without a code shakes it and opens nothing; one with a code raises the preview aimed at that slot',
+    pasteBtn.blank && pasteBtn.size >= 64 && pasteBtn.icon && /paste/.test(pasteBtn.label) && pasteBad.deny && !pasteBad.confirm && pasteBad.card && pasteGood.confirm && pasteGood.pending && pasteGood.slot === 2,
+    JSON.stringify({ pasteBtn, pasteBad, pasteGood }));
 
   /* ---- the preview card: the incoming car, its stars and beaten levels, no warning when it brings as much
      as the profile has; the triangle when the profile here has beaten MORE; the avatar from a full code ---- */

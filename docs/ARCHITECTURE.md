@@ -388,7 +388,9 @@ always inside the tap (WebKit grants neither after an await), with the gzip code
 panel opens and a synchronous plain code as the fallback. Receiving goes through the slot card (13.8.2): a
 tap on any face opens `openSlotCard(i)` with that save's car (`carOfSave`), wallet and flags, a play
 button (`switchProfile`, hidden for the active kid, creates the kid on an empty slot), a scan button
-and the hold-to-erase ring. The scan button calls `scanSaveQR()`, section 17b: a viewfinder with `BarcodeDetector` where a
+and the hold-to-erase ring; on an empty slot the face itself is a paste button (`readClipboardText()`, the
+clipboard read inside the tap so iOS shows its paste bubble, then `importSaveCode` aimed at that slot, a shake on
+anything that is not a code). The scan button calls `scanSaveQR()`, section 17b: a viewfinder with `BarcodeDetector` where a
 browser has it and `qrDecodeImage`, a pure-JS decoder for the game's own byte-mode ECC-L v1 to v10
 symbols, since WebKit never shipped the native detector; a picture picker reads a screenshot of a QR.
 Both paths end in `importSaveCode(code, slot)` (`pendingSlot`: the card's slot, or the active one for a link), which decodes (`decodeSaveCode` picks the `VROOM`

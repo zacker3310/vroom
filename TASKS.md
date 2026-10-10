@@ -241,6 +241,10 @@
 
 - [x] T35.1: Deep sea rebuild. The glass tunnel is drawn (`drawTunnel`: pale ribs every 320 units in world space, clipped to crests, fading far, never inside a corkscrew twist); the hard navy band is a water column that runs down into the seabed (`#road.w11` gradient landing on the haze at `HORIZON`, `hazeH`/`hazeA` deepen the canvas veil); a caustic light dapple drifts over the seabed (`#seaCaustic`, transform-only, soft-light, masked at the horizon, still under reduced motion); a slow whale silhouette crosses the far water, the light shafts sway and there are more bubbles; four new roadside pieces (sea star cluster, sunken rowing boat, diver's helmet with a crab, anemone with a clownfish); the palette is a cool sandy-teal seabed with a greyer sand road, white and light-blue rumbles, a dune shoulder and no field strips; the roller level's train is long low swells (`WORLD_META[11].roller`). worlds-check +5 (30).
 
+## v13.13.1 (2026-10-10, user-directed: "need to be able to paste a save file on the plus button")
+
+- [x] T35.2: The paste button. An empty slot's face on the slot card is a raised clipboard-with-plus button: a tap reads the clipboard inside the gesture (`readClipboardText`, a test seam) and hands the text to `importSaveCode(text, slot)`, so a pasted code raises the usual preview aimed at that slot; anything that is not a code shakes the face (`receiveDeny` picks the face on a blank card). profile-check 32 -> 33, battery 456 -> 457. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

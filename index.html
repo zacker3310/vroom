@@ -151,7 +151,11 @@
   #deleteFacts .chip { position: static; min-width: 150px; }
   #slotCar { width: 210px; height: 150px; display: flex; align-items: flex-end; justify-content: center; }
   #slotCar svg { width: 210px; height: auto; }
-  #deleteAvatar .plus { font: 900 72px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #b08968; }
+  /* an empty slot's face is the paste button (13.13.1): a clipboard with a plus, raised like a button, reads the
+     clipboard on a tap and raises the import preview when it holds a save code */
+  #deleteCard.blank #deleteAvatar { cursor: pointer; touch-action: none; box-shadow: 0 6px 0 #d9b98a; border-color: #d9b98a; transition: transform .08s, box-shadow .08s; }
+  #deleteCard.blank #deleteAvatar:active, #deleteCard.blank #deleteAvatar.pressed { transform: translateY(4px); box-shadow: 0 2px 0 #d9b98a; }
+  #deleteAvatar.deny { animation: denyShake .4s ease; }
   #deleteCard.blank #slotCar, #deleteCard.blank #deleteFacts, #deleteCard.blank #deleteHold { display: none; }
   #deleteCard.here #slotPlay { display: none; }
   #deleteCard.noCam #slotScan { display: none; }
@@ -1950,7 +1954,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
   <div id="deleteConfirm">
     <div id="deleteCard">
       <div id="deleteWho">
-        <div id="deleteAvatar" aria-label="this player"></div>
+        <div id="deleteAvatar" aria-label="this player" role="button"></div>
         <div id="slotCar" aria-label="this player's car"></div>
         <div id="deleteFacts">
           <div class="chip" id="deleteStars" aria-label="stars this player has"></div>
@@ -2055,7 +2059,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.13.0";
+const APP_VERSION = "13.13.1";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -5147,7 +5151,8 @@ async function decodeSaveCode(code) {
 let pendingImport = null;
 /* a code that will not decode: the receive button shakes and the deny plays, nothing else */
 function receiveDeny() {
-  restartAnim(document.getElementById(deleteConfirm.classList.contains("show") ? "slotScan" : "profileBtn"), "deny");
+  const onCard = deleteConfirm.classList.contains("show");
+  restartAnim(document.getElementById(onCard ? (slotCard.classList.contains("blank") ? "deleteAvatar" : "slotScan") : "profileBtn"), "deny");
   sfx.deny();
 }
 /* ---- the import preview: what the incoming save holds, drawn wordlessly ----
@@ -5829,7 +5834,8 @@ const slotCard = document.getElementById("deleteCard");
 function openSlotCard(i) {
   deleteTarget = i;
   const avatar = meta.avatars[i], f = avatar ? profileFacts(i) : null;
-  document.getElementById("deleteAvatar").innerHTML = avatar ? `<svg viewBox="-6 -58 76 72">${BUDDY_SVG[avatar]}</svg>` : `<span class="plus">+</span>`;
+  document.getElementById("deleteAvatar").innerHTML = avatar ? `<svg viewBox="-6 -58 76 72">${BUDDY_SVG[avatar]}</svg>` : pasteIcon;
+  document.getElementById("deleteAvatar").setAttribute("aria-label", avatar ? "this player" : "paste a save code into this player");
   document.getElementById("slotCar").innerHTML = f ? carOfSave(f.build, f.data) : "";
   document.getElementById("deleteStars").innerHTML = f ? starIcon + `<span>${f.wallet}</span>` : "";
   document.getElementById("deleteFlags").innerHTML = f ? FLAG_ICON + `<span>${f.beaten}</span>` : "";
@@ -5847,6 +5853,20 @@ document.getElementById("slotPlay").addEventListener("pointerdown", e => {
   if (!meta.avatars[i]) { meta.avatars[i] = AVATAR_IDS.find(a => !meta.avatars.includes(a)) || "pup"; saveMeta(); }
   if (i !== meta.active) switchProfile(i);
   else { closeDeleteConfirm(); renderProfiles(); }
+});
+/* the paste button: the clipboard's text, inside the tap (iOS shows its paste bubble); a test can stub readClipboardText */
+const pasteIcon = `<svg viewBox="0 0 100 100"><rect x="22" y="18" width="56" height="70" rx="10" fill="#fff" stroke="#b08968" stroke-width="6"/><rect x="36" y="10" width="28" height="16" rx="5" fill="#b08968"/><path d="M50 40 V72 M34 56 H66" stroke="#b08968" stroke-width="10" stroke-linecap="round"/></svg>`;
+function readClipboardText() {
+  return navigator.clipboard && navigator.clipboard.readText ? navigator.clipboard.readText() : Promise.reject(new Error("no clipboard"));
+}
+document.getElementById("deleteAvatar").addEventListener("pointerdown", e => {
+  e.stopPropagation();
+  const i = deleteTarget;
+  if (i < 0 || !slotCard.classList.contains("blank")) return;
+  sfx.pop();
+  let p;
+  try { p = Promise.resolve(readClipboardText()); } catch (err) { p = Promise.reject(err); }
+  p.then(text => importSaveCode(String(text || ""), i), () => receiveDeny());
 });
 document.getElementById("slotScan").addEventListener("pointerdown", e => {
   e.stopPropagation();
