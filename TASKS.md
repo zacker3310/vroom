@@ -249,6 +249,10 @@
 
 - [x] T35.3: The paste read moved from pointerdown to click: WebKit only grants clipboard access (and shows the iOS paste bubble) inside a click's activation, the same gate the share button already uses; pointerdown keeps the pop. [SPID]
 
+## v13.13.3 (2026-10-10, user-directed: "play button needs to be like 35% smaller")
+
+- [x] T33.3: The play pill at 65%: 275x100 (was 420x152), its face, halo and shadows scaled with it, still well over the 76 stage px tap floor. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
