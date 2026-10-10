@@ -221,6 +221,80 @@ function check(name, ok, detail) {
   await page.reload();
   await page.waitForTimeout(700);
 
+  /* ---- the receiver sheet: one button on the RECEIVE half opens it; it offers the clipboard, the paste box,
+     and the camera scan only when the scanner section answers canScanQR(); a scan that resolves to a code
+     feeds the same import flow, a dismissed scan (null) leaves the sheet up ---- */
+  await tap('#profileBtn');
+  await page.waitForTimeout(200);
+  await tap('#receiveBtn');
+  await page.waitForTimeout(200);
+  const sheet1 = await page.evaluate(() => ({
+    shown: receiveSheet.classList.contains('show'), clip: !clipBtn.hidden, scanHidden: scanBtn.hidden,
+    big: Math.min(receiveBtn.getBoundingClientRect().width, clipBtn.getBoundingClientRect().width, pasteBox.getBoundingClientRect().height) >= 64
+  }));
+  await tap('#receiveClose');
+  await page.evaluate(() => { window.canScanQR = () => true; window.scanSaveQR = () => Promise.resolve(null); });
+  await tap('#receiveBtn');
+  await page.waitForTimeout(100);
+  const sheet2 = await page.evaluate(() => ({ closed1: true, scanShown: !scanBtn.hidden }));
+  await tap('#scanBtn');
+  await page.waitForTimeout(200);
+  const scanCancel = await page.evaluate(() => ({ sheet: receiveSheet.classList.contains('show'), confirm: document.getElementById('importConfirm').classList.contains('show') }));
+  await page.evaluate(() => { window.scanSaveQR = () => Promise.resolve(SAVE_URL_PREFIX + packCompact()); });
+  await tap('#scanBtn');
+  await page.waitForTimeout(300);
+  const scanned = await page.evaluate(() => ({
+    sheet: receiveSheet.classList.contains('show'), overlay: profileOverlay.classList.contains('show'),
+    confirm: document.getElementById('importConfirm').classList.contains('show'), pending: !!pendingImport
+  }));
+  await tap('#importNo');
+  await page.evaluate(() => { delete window.canScanQR; delete window.scanSaveQR; });
+  check('receive: the sheet opens with clipboard + paste box (scan only when canScanQR says so); a cancelled scan keeps the sheet, a scanned URL raises the preview',
+    sheet1.shown && sheet1.clip && sheet1.scanHidden && sheet1.big && sheet2.scanShown && scanCancel.sheet && !scanCancel.confirm
+    && !scanned.sheet && !scanned.overlay && scanned.confirm && scanned.pending, JSON.stringify({ sheet1, sheet2, scanCancel, scanned }));
+
+  /* ---- the paste box: a code wrapped in message text lands through a paste event ---- */
+  await tap('#profileBtn');
+  await page.waitForTimeout(200);
+  await tap('#receiveBtn');
+  await page.waitForTimeout(100);
+  await page.evaluate(() => {
+    const dt = new DataTransfer(); dt.setData('text', 'look at my car!! ' + packCompact() + ' (sent from Vroom)');
+    pasteTarget.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true }));
+  });
+  await page.waitForTimeout(300);
+  const pasted = await page.evaluate(() => ({
+    sheet: receiveSheet.classList.contains('show'), overlay: profileOverlay.classList.contains('show'),
+    confirm: document.getElementById('importConfirm').classList.contains('show'), box: pasteTarget.value
+  }));
+  check('receive: the paste box imports a wrapped code (sheet + panel close, preview up)', !pasted.sheet && !pasted.overlay && pasted.confirm && pasted.box === '', JSON.stringify(pasted));
+
+  /* ---- the preview card: the incoming car, its stars and beaten levels, no warning when it brings as much
+     as the profile has; the triangle when the profile here has beaten MORE; the avatar from a full code ---- */
+  const prev1 = await page.evaluate(() => ({
+    car: !!document.querySelector('#importCar svg'), stars: document.getElementById('importStars').textContent.trim(),
+    levels: document.getElementById('importLevels').textContent.trim(), warn: document.getElementById('importWarn').classList.contains('show'),
+    avatar: document.getElementById('importAvatar').innerHTML === ''
+  }));
+  await tap('#importNo');
+  const prev2 = await page.evaluate(async () => {
+    const code = packCompact();                                   /* one beaten level */
+    progress.levels[2] = { best: 2, rating: 1, tier: 'B' }; progress.levels[3] = { best: 2, rating: 1, tier: 'B' }; save();
+    const ok = await importSaveCode(code);                        /* the profile now has three: the triangle shows */
+    const warn = document.getElementById('importWarn').classList.contains('show');
+    document.getElementById('importNo').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    const full = await exportFullCode();                          /* a full code carries the kid's avatar */
+    const ok2 = await importSaveCode(full);
+    const avatar = !!document.querySelector('#importAvatar svg');
+    const warn2 = document.getElementById('importWarn').classList.contains('show');
+    document.getElementById('importNo').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    delete progress.levels[2]; delete progress.levels[3]; save();
+    return { ok, warn, ok2, avatar, warn2 };
+  });
+  check('preview: the card shows the incoming car, 77 stars, 1 flag; the warning triangle only when the profile here has beaten more levels; the avatar rides in a full code',
+    prev1.car && prev1.stars === '77' && prev1.levels === '1' && !prev1.warn && prev1.avatar && prev2.ok && prev2.warn && prev2.ok2 && prev2.avatar && !prev2.warn2,
+    JSON.stringify({ prev1, prev2 }));
+
   /* ---- import applies via confirm ---- */
   const imp = await page.evaluate(async () => {
     const code = packCompact();       /* snapshot of profile 0 */
@@ -232,17 +306,18 @@ function check(name, ok, detail) {
   check('import: valid code raises the confirm overlay', imp.confirm);
   await page.evaluate(() => document.getElementById('importYes').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
   await page.waitForTimeout(700);   /* applies + reloads */
-  const applied = await page.evaluate(() => ({ wallet: progress.wallet, dino: progress.owned.buddy.includes('dino') }));
+  const applied = await page.evaluate(() => ({ wallet: progress.wallet, dino: progress.owned.buddy.includes('dino'), welcome: welcomeShown, flag: sessionStorage.getItem('vroom.welcome'), garage: garageScene.classList.contains('active') }));
   check('import: accepted code restores wallet + buddies', applied.wallet === 77 && applied.dino, JSON.stringify(applied));
+  check('import: the welcome pop fires once in the garage after a confirmed import', applied.welcome === true && applied.flag === null && applied.garage, JSON.stringify(applied));
 
   /* garbage code is rejected without the overlay */
   const garbage = await page.evaluate(async () => {
     const ok = await importSaveCode('VROOM1.!!!notbase64!!!');
     const ok2 = await importSaveCode('hello');
     const ok3 = await importSaveCode('VROOM1.' + b64url.enc(new Uint8Array([1, 2, 3])));   /* truncated: valid version byte, short payload */
-    return { ok, ok2, ok3, confirm: document.getElementById('importConfirm').classList.contains('show') };
+    return { ok, ok2, ok3, confirm: document.getElementById('importConfirm').classList.contains('show'), shake: receiveBtn.classList.contains('deny') };
   });
-  check('import: garbage + truncated codes rejected, no overlay', !garbage.ok && !garbage.ok2 && !garbage.ok3 && !garbage.confirm, JSON.stringify(garbage));
+  check('import: garbage + truncated codes rejected, no overlay, the receive button shakes', !garbage.ok && !garbage.ok2 && !garbage.ok3 && !garbage.confirm && garbage.shake, JSON.stringify(garbage));
 
   /* ---- the export button (13.4.1): on a touch device or a home-screen app the code goes out through the share
      sheet, elsewhere through the clipboard, both asked for synchronously inside the tap (iOS drops a clipboard or
@@ -264,10 +339,10 @@ function check(name, ok, detail) {
     const t3 = await sendSaveCode();   /* a desktop: the clipboard */
     navigator.clipboard.writeText = w;
     const wrapped = await decodeSaveCode('look at my car!! ' + calls.share[0].text + ' (sent from Vroom)');
-    return { t1, t2, t3, shared: calls.share.length, sharedPrefix: (calls.share[0].text || '').slice(0, 7), sent1, clip: calls.clip.length, clipPrefix: (calls.clip[0] || '').slice(0, 7), wrapped: !!(wrapped && wrapped.owned), synced: exportCodeSync().startsWith('VROOM3.') };
+    return { t1, t2, t3, shared: calls.share.length, sharedPrefix: (calls.share[0].text || '').slice(0, 7), sharedUrl: calls.share[0].url === SAVE_URL_PREFIX + calls.share[0].text, sent1, clip: calls.clip.length, clipPrefix: (calls.clip[0] || '').slice(0, 7), wrapped: !!(wrapped && wrapped.owned), synced: exportCodeSync().startsWith('VROOM3.') };
   });
-  check('export: share sheet on a home-screen app (code built in the tap), a dismissed sheet is not a failure, clipboard on a desktop, the check shows, a code pasted back inside other text still decodes',
-    exp.t1 === 'share' && exp.t2 === 'cancel' && exp.t3 === 'clipboard' && exp.shared === 1 && exp.sharedPrefix === 'VROOM3.' && exp.sent1 && exp.clip === 1 && exp.clipPrefix === 'VROOM3.' && exp.wrapped && exp.synced, JSON.stringify(exp));
+  check('export: share sheet on a home-screen app (code built in the tap, the hosted link + the code), a dismissed sheet is not a failure, clipboard on a desktop, the check shows, a code pasted back inside other text still decodes',
+    exp.t1 === 'share' && exp.t2 === 'cancel' && exp.t3 === 'clipboard' && exp.shared === 1 && exp.sharedPrefix === 'VROOM3.' && exp.sharedUrl && exp.sent1 && exp.clip === 1 && exp.clipPrefix === 'VROOM3.' && exp.wrapped && exp.synced, JSON.stringify(exp));
 
   /* ---- hash import: scanning a QR that opened the hosted game ---- */
   const hashCode = await page.evaluate(() => packCompact());
@@ -276,9 +351,9 @@ function check(name, ok, detail) {
   await page.waitForTimeout(500);
   const hashImp = await page.evaluate(() => ({
     confirm: document.getElementById('importConfirm').classList.contains('show'),
-    hashCleared: !location.hash
+    hashCleared: !location.hash, car: !!document.querySelector('#importCar svg')
   }));
-  check('import: #save= URL offers the confirm on boot', hashImp.confirm && hashImp.hashCleared, JSON.stringify(hashImp));
+  check('import: #save= URL offers the confirm (with the preview) on boot', hashImp.confirm && hashImp.hashCleared && hashImp.car, JSON.stringify(hashImp));
 
   /* a mangled %-escape in the hash must not halt boot (listeners after the import block still attach) */
   await page.goto('about:blank');
