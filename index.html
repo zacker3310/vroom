@@ -654,15 +654,21 @@
   #celebrateHomeBtn { background: #e63946; }
   #garageBtn svg, #celebrateHomeBtn svg { width: 64px; height: 64px; }
   #nextBtn { background: #38b000; margin-left: 10px; }
-  /* the ghost to beat bobs over AGAIN wearing the medal its time earns; on the parade there is no ghost: a slashed one */
-  #ghostTease { position: absolute; left: 50%; top: -104px; width: 100px; height: 100px; margin-left: -50px; display: none; pointer-events: none; animation: teaseBob 1.6s ease-in-out infinite; }
+  /* the ghost to beat taunts from the left of AGAIN (13.10.1): wobbling and leaning in, tongue out, one arm
+     waving "come on", wearing the medal its time earns; on the parade there is no ghost: a slashed one, still */
+  #ghostTease { position: absolute; left: -152px; top: 14px; width: 120px; height: 120px; display: none; pointer-events: none; animation: teaseTaunt 1.5s ease-in-out infinite; transform-origin: 50% 90%; }
   #ghostTease.show { display: block; }
-  #ghostTease .gIcon, #ghostTease .gIcon svg { position: absolute; inset: 0; width: 100px; height: 100px; }
+  #ghostTease .gIcon, #ghostTease .gIcon svg { position: absolute; inset: 0; width: 120px; height: 120px; overflow: visible; }
+  #ghostTease .gTongue { transform-box: fill-box; transform-origin: center top; animation: tongueWag .32s ease-in-out infinite alternate; }
+  #ghostTease .gWave { transform-box: fill-box; transform-origin: left center; animation: armWave .55s ease-in-out infinite alternate; }
   #ghostTease .gMedal, #ghostTease .gMedal svg { position: absolute; width: 54px; height: 54px; }
-  #ghostTease .gMedal { left: 50%; bottom: -8px; margin-left: -27px; }
-  #ghostTease .gSlash { position: absolute; inset: 0; width: 100px; height: 100px; }
+  #ghostTease .gMedal { left: 50%; bottom: -16px; margin-left: -27px; }
+  #ghostTease .gSlash { position: absolute; inset: 0; width: 120px; height: 120px; }
   #ghostTease.none { opacity: .5; animation: none; }
-  @keyframes teaseBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+  #ghostTease.none .gTongue, #ghostTease.none .gWave { animation: none; }
+  @keyframes teaseTaunt { 0%, 100% { transform: translate(0, 0) rotate(-9deg); } 25% { transform: translate(10px, -10px) rotate(9deg); } 50% { transform: translate(18px, -4px) rotate(-5deg); } 75% { transform: translate(8px, -14px) rotate(11deg); } }
+  @keyframes tongueWag { from { transform: scaleY(.55) rotate(-8deg); } to { transform: scaleY(1.15) rotate(10deg); } }
+  @keyframes armWave { from { transform: rotate(-28deg); } to { transform: rotate(34deg); } }
   @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.09); } }
   .confetti {
     position: absolute; top: -30px; width: 16px; height: 16px; z-index: 29;
@@ -1611,7 +1617,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* --- reduced motion: decorative keyframes off (pulses, nudges, pop-ins, confetti, idle bobs, shimmers,
    accessory flutter); the functional ones (scene iris, chip pops, deny shakes, road hits) stay but short --- */
 @media (prefers-reduced-motion: reduce) {
-  .updateGate, #nextBtn, #replayBtn, #ghostTease, #goBtn.nudge, #gasPedal.nudge, .catTab.needs .alert, .tile.urgent, #previewLock, #priceTag:not(.deny),
+  .updateGate, #nextBtn, #replayBtn, #ghostTease, #ghostTease .gTongue, #ghostTease .gWave, #goBtn.nudge, #gasPedal.nudge, .catTab.needs .alert, .tile.urgent, #previewLock, #priceTag:not(.deny),
   .enter, .tile.enter, .tile.justSel.enter, #celebrate.active #resultsCard, #importConfirm.show #importCard, #deleteConfirm.show #deleteCard, #deleteHold.holding .lid, #numCard, #peekCard, #stickerToast.show,
   .confetti, .buddyBob, .buddyPop, .hoverBob, .hoverGlow, .hoverTrail, .spinner, .rearFlame, .flapWing, .boosterFlame, .antennaSway, .bubbleDrift,
   .lavaGlow, .maneWave, .lightFlashA, .lightFlashB, .jetPuff, .discoGlint, .decalShimmer, .decalStomp, .decalSpin, .decalFlicker, .decalTwinkle,
@@ -2056,7 +2062,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.10.0";
+const APP_VERSION = "13.10.1";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -5965,7 +5971,7 @@ function renderGhostTease(g) {
   tease.classList.add("show");
   tease.classList.toggle("none", !g);
   tease.innerHTML = g
-    ? `<span class="gIcon">${ghostIcon}</span><span class="gMedal">${medalSVG(timeTier(level, g.t))}</span>`
+    ? `<span class="gIcon">${ghostTauntIcon}</span><span class="gMedal">${medalSVG(timeTier(level, g.t))}</span>`
     : `<span class="gIcon">${ghostIcon}</span><svg class="gSlash" viewBox="0 0 100 100"><path d="M18 84 L82 16" stroke="#e63946" stroke-width="11" stroke-linecap="round"/></svg>`;
 }
 document.getElementById("replayBtn").addEventListener("pointerdown", e => { e.stopPropagation(); sfx.pop(); drive(lastPlayed); });
@@ -8381,6 +8387,8 @@ let ghostTrace = null;      /* the stored { t, p } being replayed */
 let ghostSprite = null;     /* its sprite (see makeSprite); not in props, so no PROP_HIT / mover ever sees it */
 let ghostT = 0, ghostGapIdx = 0, ghostGapShown = "";
 const hudGhost = document.getElementById("hudGhost");
+/* the taunting ghost (13.10.1): eyes on the AGAIN button to its right, one eye winking, tongue out, an arm waving it over */
+const ghostTauntIcon = `<svg viewBox="0 0 64 64"><path d="M12 60 V30 A20 20 0 0 1 52 30 V60 L45 52 L38 60 L32 52 L26 60 L19 52 Z" fill="#fff" stroke="#023047" stroke-width="5" stroke-linejoin="round"/><circle cx="28" cy="30" r="4" fill="#023047"/><path d="M38 30 L48 30" stroke="#023047" stroke-width="4" stroke-linecap="round"/><path d="M22 23 L31 25 M38 24 L47 22" stroke="#023047" stroke-width="3.5" stroke-linecap="round"/><path d="M30 40 Q38 46 46 40" stroke="#023047" stroke-width="4" fill="none" stroke-linecap="round"/><g class="gTongue"><path d="M36 42 Q40 56 48 50 Q50 44 44 41 Z" fill="#ff6b9d" stroke="#023047" stroke-width="3" stroke-linejoin="round"/></g><g class="gWave"><path d="M52 38 Q62 32 64 22" stroke="#023047" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M52 38 Q62 32 64 22" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/></g></svg>`;
 const ghostIcon = `<svg viewBox="0 0 64 64"><path d="M12 60 V30 A20 20 0 0 1 52 30 V60 L45 52 L38 60 L32 52 L26 60 L19 52 Z" fill="#fff" stroke="#023047" stroke-width="5" stroke-linejoin="round"/><circle cx="25" cy="30" r="4" fill="#023047"/><circle cx="39" cy="30" r="4" fill="#023047"/></svg>`;
 const ghostCheckIcon = `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="#38b000"/><path d="M18 33 L28 43 L47 22" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 function ghostValid(g) {

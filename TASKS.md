@@ -209,6 +209,10 @@
 - [x] T32.2: The title as a moving world (section 30). Ten parallax strips built once by `buildTitleWorld()` (two cloud layers, two hill bands, a tree line, each a 1200 px tile drawn twice and slid a full tile per loop so there is no seam), a sun with turning rays, two birds crossing, the road dashes streaming at 437 px/s with the car's `.wheelrot` groups turning to match, exhaust puffs off the tail, a shadow on the tire line (`placeTitleGround()` measures `--tGround` per body, tracks and hover rings included). Entrance: the gold-rimmed badge slams in behind a shock ring and then floats with a glint sweep and four twinkles; the car drives in from off-stage; GO pops last and keeps a halo ring rolling outward with a gloss cap. Every keyframe is scoped to `#title.active` so nothing runs behind the garage, and all of it is off under `prefers-reduced-motion`. [SPID]
 - [x] T32.3: The update gate on the title. `#titleUpdateBtn` beside the avatar shares `.updateGate` with the garage button; `checkForUpdate` arms both and the hold logic fills whichever ring is held (`updateHeld`). update-check 5 -> 8, title-check 13 -> 17, battery 443 -> 450. [SPID]
 
+## v13.10.1 (2026-10-10, user-directed: "move the hovering ghost out to the left and have him taunting")
+
+- [x] T32.4: The ghost to beat now taunts from the left of AGAIN instead of hiding under the results card: `ghostTauntIcon` (eyes on the button, one winking, tongue out, an arm waving it over) on a `teaseTaunt` wobble that leans in toward the button, with `tongueWag` and `armWave` on their own loops, the medal hanging below. The parade's slashed ghost stays calm and half-faded. All of it is in the reduced-motion list. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
