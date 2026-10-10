@@ -104,6 +104,136 @@ function check(name, ok, detail) {
     check('qr: v1-v10 boundary sweep decodes, 272 rejects', sweep.length === 0, JSON.stringify(sweep));
   }
 
+  /* ---- the in-app scanner (section 17b): headless Chromium has no camera, so the camera is a canvas stream and the
+     detector a stub; the pure-JS decoder is exercised for real on QRs drawn by qrEncode ---- */
+  const scanA = await page.evaluate(() => {
+    const md = navigator.mediaDevices;
+    const isFn = typeof canScanQR === 'function', withCam = canScanQR();
+    Object.defineProperty(navigator, 'mediaDevices', { value: undefined, configurable: true });
+    const withoutCam = canScanQR();
+    Object.defineProperty(navigator, 'mediaDevices', { value: md, configurable: true });
+    return { isFn, withCam, withoutCam, bool: typeof withCam === 'boolean' && typeof withoutCam === 'boolean', restored: canScanQR() === withCam };
+  });
+  check('scan: canScanQR() is a boolean, true with a camera API on localhost, false without navigator.mediaDevices',
+    scanA.isFn && scanA.bool && scanA.withCam === true && scanA.withoutCam === false && scanA.restored, JSON.stringify(scanA));
+
+  /* a fake camera: a canvas stream showing the game's own QR; the detector stub reads it only once armed, long enough to screenshot the viewfinder */
+  await page.evaluate(() => {
+    const cv = document.createElement('canvas'); cv.width = 640; cv.height = 480;
+    const c2 = cv.getContext('2d'); let f = 0;
+    const qr = document.getElementById('qrCanvas');
+    window.__scanPaint = setInterval(() => {
+      f++;
+      const g = c2.createLinearGradient(0, 0, 640, 480); g.addColorStop(0, '#9a8c7a'); g.addColorStop(1, '#5c5048');
+      c2.fillStyle = g; c2.fillRect(0, 0, 640, 480);
+      c2.fillStyle = '#fff'; c2.fillRect(190, 110, 260, 260);
+      if (window.__scanShowQR) c2.drawImage(qr, 200 + Math.sin(f / 9) * 4, 120, 240, 240);
+      else { c2.strokeStyle = '#6b5b4e'; c2.lineWidth = 14; c2.beginPath(); c2.moveTo(230, 300); c2.quadraticCurveTo(320, 120 + Math.sin(f / 7) * 30, 410, 300); c2.stroke(); }
+    }, 40);
+    window.__scanStopped = 0;
+    window.__gum = navigator.mediaDevices.getUserMedia;
+    window.__BD = window.BarcodeDetector;
+    window.__scanExpected = SAVE_URL_PREFIX + packCompact();
+    navigator.mediaDevices.getUserMedia = c => {   /* a fresh stream per call: the scanner stops its tracks when it closes */
+      window.__scanConstraints = c;
+      const stream = cv.captureStream(15);
+      for (const t of stream.getTracks()) { const s = t.stop.bind(t); t.stop = () => { window.__scanStopped++; s(); }; }
+      return Promise.resolve(stream);
+    };
+    window.__detects = 0; window.__scanArmed = false; window.__scanShowQR = false;   /* a scribble in view first, so the viewfinder stays up for the screenshot */
+    window.BarcodeDetector = class { detect() { window.__detects++; return Promise.resolve(window.__scanArmed ? [{ rawValue: window.__scanExpected }] : []); } };
+    window.__scanPromise = scanSaveQR();
+  });
+  await page.waitForTimeout(700);
+  const scanUI = await page.evaluate(() => {
+    const ov = document.getElementById('scanOverlay'), r = s => document.querySelector(s).getBoundingClientRect();
+    const v = document.getElementById('scanVideo');
+    return { shown: getComputedStyle(ov).display === 'flex', close: r('#scanCloseBtn'), pick: r('#scanPickBtn'), video: r('#scanVideo'),
+      playing: v.readyState >= 2 && !v.paused, fit: getComputedStyle(v).objectFit, detects: window.__detects, facing: JSON.stringify(window.__scanConstraints.video.facingMode) };
+  });
+  await page.screenshot({ path: SHOT + 'p-scan.png' });
+  check('scan: viewfinder shows the live stream (object-fit cover, rear camera asked for), frames are being read, cross and picker are 64px+ tap targets',
+    scanUI.shown && scanUI.playing && scanUI.fit === 'cover' && scanUI.detects >= 2 && scanUI.facing.includes('environment')
+    && scanUI.close.width >= 64 && scanUI.close.height >= 64 && scanUI.pick.width >= 64 && scanUI.pick.height >= 64 && scanUI.video.width > 400, JSON.stringify(scanUI));
+  const scanB = await page.evaluate(async () => {
+    window.__scanArmed = true;
+    const text = await window.__scanPromise;
+    await new Promise(r => setTimeout(r, 100));
+    const ov = document.getElementById('scanOverlay');
+    return { match: text === window.__scanExpected, removed: getComputedStyle(ov).display === 'none' && !ov.classList.contains('got'), stopped: window.__scanStopped, srcCleared: !document.getElementById('scanVideo').srcObject };
+  });
+  check('scan: a read QR resolves scanSaveQR() with the raw value, removes the overlay, stops every track', scanB.match && scanB.removed && scanB.stopped >= 1 && scanB.srcCleared, JSON.stringify(scanB));
+
+  /* cancel: the cross resolves null and tears down */
+  const scanC = await page.evaluate(async () => {
+    window.__scanArmed = false; window.__scanStopped = 0;
+    const p = scanSaveQR();
+    await new Promise(r => setTimeout(r, 200));
+    const shown = getComputedStyle(scanOverlay).display === 'flex';
+    scanCloseBtn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    const text = await p;
+    return { shown, nul: text === null, removed: getComputedStyle(scanOverlay).display === 'none', stopped: window.__scanStopped };
+  });
+  check('scan: the cross resolves null, overlay gone, tracks stopped', scanC.shown && scanC.nul && scanC.removed && scanC.stopped >= 1, JSON.stringify(scanC));
+
+  /* the pure-JS decoder on live video: no BarcodeDetector at all, the QR comes into view, the frame loop reads it */
+  const scanL = await page.evaluate(async () => {
+    window.BarcodeDetector = undefined; window.__scanStopped = 0;
+    const p = scanSaveQR();
+    await new Promise(r => setTimeout(r, 300));
+    const stillOpen = getComputedStyle(scanOverlay).display === 'flex';   /* a scribble is not a QR */
+    window.__scanShowQR = true;
+    const t0 = Date.now();
+    const text = await Promise.race([p, new Promise(r => setTimeout(() => r('timeout'), 4000))]);
+    const ms = Date.now() - t0;
+    if (text === 'timeout') scanCloseBtn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 100));
+    return { stillOpen, match: text === window.__scanExpected, ms, removed: getComputedStyle(scanOverlay).display === 'none', stopped: window.__scanStopped };
+  });
+  check('scan: with no BarcodeDetector the pure-JS decoder reads the QR off the live video within a second or two', scanL.stillOpen && scanL.match && scanL.ms < 2500 && scanL.removed && scanL.stopped >= 1, JSON.stringify(scanL));
+
+  /* a refused camera: deny-shake, the viewfinder stays in picture mode; the picker then feeds a PNG of the game's own QR through the pure-JS decoder */
+  const scanD = await page.evaluate(async () => {
+    navigator.mediaDevices.getUserMedia = () => Promise.reject(Object.assign(new Error('nope'), { name: 'NotAllowedError' }));
+    const p = scanSaveQR();
+    await new Promise(r => setTimeout(r, 200));
+    const denied = scanOverlay.classList.contains('deny'), noCam = scanOverlay.classList.contains('noCam'), open = getComputedStyle(scanOverlay).display === 'flex';
+    const blob = await new Promise(r => document.getElementById('qrCanvas').toBlob(r, 'image/png'));
+    const dt = new DataTransfer(); dt.items.add(new File([blob], 'qr.png', { type: 'image/png' }));
+    const input = document.getElementById('scanPick'); input.files = dt.files; input.dispatchEvent(new Event('change', { bubbles: true }));
+    const text = await p;
+    return { denied, noCam, open, match: text === window.__scanExpected, removed: getComputedStyle(scanOverlay).display === 'none' };
+  });
+  check('scan: refused camera shakes + stays open in picture mode; a picked PNG of the QR decodes with the pure-JS decoder', scanD.denied && scanD.noCam && scanD.open && scanD.match && scanD.removed, JSON.stringify(scanD));
+
+  /* the decoder alone: qrEncode output drawn to a canvas at several sizes, all four rotations, and inside a camera-sized frame */
+  const scanE = await page.evaluate(() => {
+    clearInterval(window.__scanPaint);
+    navigator.mediaDevices.getUserMedia = window.__gum; window.BarcodeDetector = window.__BD;
+    const draw = (M, scale, rot, W, H) => {
+      const cv = document.createElement('canvas'); cv.width = W || M.length * scale + 24; cv.height = H || cv.width;
+      const ctx = cv.getContext('2d'); ctx.fillStyle = '#ddd'; ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.save(); ctx.translate(cv.width / 2, cv.height / 2); ctx.rotate(rot * Math.PI / 2);
+      const n = M.length * scale, o = -n / 2;
+      ctx.fillStyle = '#fff'; ctx.fillRect(o - 8, o - 8, n + 16, n + 16); ctx.fillStyle = '#111';
+      M.forEach((row, r) => row.forEach((v, c) => { if (v) ctx.fillRect(o + c * scale, o + r * scale, scale, scale); }));
+      ctx.restore();
+      return qrDecodeImage(ctx.getImageData(0, 0, cv.width, cv.height));
+    };
+    const bad = [];
+    const texts = { 1: 'VROOM1.abc', 5: SAVE_URL_PREFIX + 'A'.repeat(60), 10: SAVE_URL_PREFIX + 'Bq'.repeat(100) };
+    for (const [v, text] of Object.entries(texts)) {
+      const M = qrEncode(text);
+      if ((M.length - 17) / 4 !== Number(v)) bad.push('v' + v + ' size');
+      for (const scale of [3, 5, 9]) if (draw(M, scale, 0) !== text) bad.push('v' + v + ' x' + scale);
+      for (const rot of [1, 2, 3]) if (draw(M, 4, rot) !== text) bad.push('v' + v + ' rot' + rot * 90);
+      if (draw(M, 4, 0, 640, 480) !== text) bad.push('v' + v + ' frame');
+    }
+    if (qrDecodeImage(new ImageData(320, 240)) !== null) bad.push('blank');
+    return bad;
+  });
+  check('scan: pure-JS decoder round-trips qrEncode at v1, v5, v10, three scales, 90/180/270 degrees, inside a 640x480 frame; blank frame is null', scanE.length === 0, JSON.stringify(scanE));
+
   /* ---- compact code round-trip fidelity ---- */
   const compact = await page.evaluate(async () => {
     const code = packCompact();
@@ -226,6 +356,7 @@ function check(name, ok, detail) {
      feeds the same import flow, a dismissed scan (null) leaves the sheet up ---- */
   await tap('#profileBtn');
   await page.waitForTimeout(200);
+  await page.evaluate(() => { window.__canScan = canScanQR; window.canScanQR = () => false; });   /* no scanner: the scan button must hide */
   await tap('#receiveBtn');
   await page.waitForTimeout(200);
   const sheet1 = await page.evaluate(() => ({
@@ -233,7 +364,7 @@ function check(name, ok, detail) {
     big: Math.min(receiveBtn.getBoundingClientRect().width, clipBtn.getBoundingClientRect().width, pasteBox.getBoundingClientRect().height) >= 64
   }));
   await tap('#receiveClose');
-  await page.evaluate(() => { window.canScanQR = () => true; window.scanSaveQR = () => Promise.resolve(null); });
+  await page.evaluate(() => { window.__scan = scanSaveQR; window.canScanQR = () => true; window.scanSaveQR = () => Promise.resolve(null); });
   await tap('#receiveBtn');
   await page.waitForTimeout(100);
   const sheet2 = await page.evaluate(() => ({ closed1: true, scanShown: !scanBtn.hidden }));
@@ -249,6 +380,7 @@ function check(name, ok, detail) {
   }));
   await tap('#importNo');
   await page.evaluate(() => { delete window.canScanQR; delete window.scanSaveQR; });
+  await page.evaluate(() => { window.canScanQR = window.__canScan; window.scanSaveQR = window.__scan; });   /* the real scanner back for its own checks */
   check('receive: the sheet opens with clipboard + paste box (scan only when canScanQR says so); a cancelled scan keeps the sheet, a scanned URL raises the preview',
     sheet1.shown && sheet1.clip && sheet1.scanHidden && sheet1.big && sheet2.scanShown && scanCancel.sheet && !scanCancel.confirm
     && !scanned.sheet && !scanned.overlay && scanned.confirm && scanned.pending, JSON.stringify({ sheet1, sheet2, scanCancel, scanned }));

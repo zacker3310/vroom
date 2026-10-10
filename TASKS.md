@@ -185,6 +185,12 @@
 
 - [x] T30.1: Hold-to-delete a kid's save. A trash badge on each used profile slot opens a confirm card (avatar, star wallet, beaten levels, a big cross) with a 1.2 s hold button and fill ring on the update gate's pattern, so a tap cannot trigger it. `deleteProfile` removes the save key and clears the avatar; deleting the active kid hops to the lowest used slot or restarts slot 0 fresh and reloads to the garage. profile-check 20. 23 suites, 429/429.
 
+## v13.8.0 (2026-10-10, user-directed: "the copy / share / paste is so clunky, overhaul it")
+
+- [x] T30.2: Save transfer in two taps. The profile panel's save tools are a SEND half (the QR at 230 px plus one share button handing the share sheet the hosted link and the plain code, the clipboard on a desktop) and a RECEIVE half (one button opening a sheet: camera scan, clipboard, and a paste box for browsers that keep the clipboard to themselves). Every incoming save shows a wordless preview (the car, stars, beaten levels, the kid's avatar, a warning triangle when the profile here has beaten more) before the tick; the loaded car honks in with confetti after the reload. `exportJSON` now carries the avatar.
+- [x] T30.3: In-app QR scanner (section 17b). `scanSaveQR()` opens a viewfinder (rear camera, brackets, scan line, cross, a picture picker that also reads a screenshot of a QR) and resolves the raw text; BarcodeDetector when a browser has it, otherwise a pure-JS decoder for the game's own QRs (byte mode, ECC L, v1 to v10: finder location, homography sampling, format BCH, Reed-Solomon) since WebKit never shipped the native one. A scanned code lands in the home-screen app's own storage, which the iOS camera could not do. A refused camera keeps the picker open.
+- Three worktree agents, squash-merged with the hold-to-delete round. profile-check 31. 23 suites, 440/440.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

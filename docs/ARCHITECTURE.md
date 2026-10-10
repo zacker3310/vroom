@@ -381,6 +381,25 @@ Three code formats share the `VROOMn.` prefix plus base64url:
 - **`VROOM2.`** the full save as gzip JSON (`CompressionStream`), for the copy/paste buttons.
 - **`VROOM3.`** the full save as plain JSON, the fallback where `CompressionStream` is missing.
 
+
+### Moving a save (13.8)
+
+The profile panel is a send half and a receive half. `sendSaveCode()` hands the share sheet the
+hosted link (`SAVE_URL_PREFIX + code`) and the plain code, or writes the clipboard on a desktop,
+always inside the tap (WebKit grants neither after an await), with the gzip code pre-built when the
+panel opens and a synchronous plain code as the fallback. `openReceiveSheet()` offers a camera scan
+(`scanSaveQR()`, section 17b: a viewfinder with `BarcodeDetector` where a browser has it and
+`qrDecodeImage`, a pure-JS decoder for the game's own byte-mode ECC-L v1 to v10 symbols, since WebKit
+never shipped the native detector; a picture picker reads a screenshot of a QR), the clipboard, and a
+paste box. Every path ends in `importSaveCode`, which decodes (`decodeSaveCode` picks the `VROOM`
+token out of any surrounding text) and shows the preview card: the incoming car via `vehicleSVG`,
+its wallet, its beaten levels, the avatar a full code carries, and a warning triangle when the
+profile here has beaten more. Scanning inside the app matters on iOS: a Home Screen app has its own
+storage, so a QR read by the camera app opens Safari and lands the save in the wrong place.
+Profiles can be erased from the same panel: a trash badge opens a card with the kid's wallet and
+levels, and a 1.2 s hold with a fill ring (`deleteProfile`) removes the save key and avatar; erasing
+the active kid hops to the lowest used slot or restarts slot 0 fresh.
+
 ### Compact layout, version 3 (current)
 
 MSB-first bit fields, in order:

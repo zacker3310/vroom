@@ -1210,6 +1210,43 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #deleteConfirm.show #deleteCard { animation: popIn .35s cubic-bezier(.2, 1.4, .4, 1) both; }
 #importConfirm.show #importYes, #importConfirm.show #importNo { animation: none; }
 #profileOverlay, #celebrate, #washOverlay, #importConfirm, #deleteConfirm, #receiveSheet, #numOverlay, #peekOverlay { background: var(--v-scrim); }
+/* --- in-app QR scanner: a viewfinder over the scrim, corner brackets, a sweeping line, a cross, a picture picker --- */
+#scanOverlay { position: absolute; inset: 0; z-index: 88; display: none; align-items: center; justify-content: center; background: var(--v-scrim); }
+#scanOverlay.show { display: flex; }
+#scanOverlay.deny { animation: denyShake .4s ease; }
+#scanFrame {
+  position: relative; width: 760px; height: 560px; overflow: hidden; background: var(--v-ink-strong);
+  border: 8px solid var(--v-wood); border-radius: var(--v-r-xl); box-shadow: 0 8px 0 rgba(74, 53, 35, .25);
+  animation: popIn .35s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+#scanVideo { display: block; width: 100%; height: 100%; object-fit: cover; }
+#scanOverlay.noCam #scanVideo { display: none; }
+#scanNoCam { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; }
+#scanOverlay.noCam #scanNoCam { display: flex; }
+#scanNoCam svg { width: 220px; height: 220px; opacity: .8; }
+#scanReticle { position: absolute; inset: 70px 170px; pointer-events: none; }
+#scanReticle i { position: absolute; width: 76px; height: 76px; border: 10px solid var(--v-accent-yellow); filter: drop-shadow(0 3px 0 rgba(74, 53, 35, .35)); }
+#scanReticle i:nth-child(1) { left: 0; top: 0; border-right: 0; border-bottom: 0; border-top-left-radius: 24px; }
+#scanReticle i:nth-child(2) { right: 0; top: 0; border-left: 0; border-bottom: 0; border-top-right-radius: 24px; }
+#scanReticle i:nth-child(3) { left: 0; bottom: 0; border-right: 0; border-top: 0; border-bottom-left-radius: 24px; }
+#scanReticle i:nth-child(4) { right: 0; bottom: 0; border-left: 0; border-top: 0; border-bottom-right-radius: 24px; }
+#scanOverlay.got #scanReticle i { border-color: var(--v-accent-green); animation: scanGot .35s ease; }
+@keyframes scanGot { 40% { transform: scale(1.14); } }
+#scanOverlay.got #scanFrame::after { content: ""; position: absolute; inset: 0; background: var(--v-accent-green); opacity: 0; animation: scanFlash .38s ease; }
+@keyframes scanFlash { 30% { opacity: .45; } 100% { opacity: 0; } }
+.scanLine {
+  position: absolute; left: 30px; right: 30px; top: 10px; height: 10px; border-radius: 5px;
+  background: var(--v-accent-yellow); box-shadow: 0 0 22px 4px rgba(255, 214, 110, .55); opacity: .75;
+  animation: scanSweep 2.4s ease-in-out infinite alternate;
+}
+@keyframes scanSweep { 0% { top: 10px; opacity: .3; } 50% { opacity: .85; } 100% { top: calc(100% - 20px); opacity: .3; } }
+#scanOverlay.noCam .scanLine, #scanOverlay.got .scanLine { display: none; }
+#scanCloseBtn { position: absolute; top: 26px; right: 26px; width: 100px; height: 100px; border-radius: var(--v-r-round); background: var(--v-accent-red); border: 8px solid #fff; box-shadow: 0 6px 0 var(--v-red-down); }
+#scanCloseBtn svg { width: 56px; height: 56px; }
+#scanPickBtn { position: absolute; bottom: 26px; right: 26px; width: 120px; height: 120px; border-radius: var(--v-r-lg); background: var(--v-accent-blue); border: 8px solid #fff; box-shadow: 0 6px 0 var(--v-blue-down); cursor: pointer; }
+#scanPickBtn svg { width: 72px; height: 72px; pointer-events: none; }
+#scanPickBtn input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+#scanOverlay.noCam #scanPickBtn { transform: scale(1.25); transform-origin: bottom right; }
 /* --- peek card: a tapped photo or sticker, big, until the next tap --- */
 #peekOverlay { position: absolute; inset: 0; z-index: 80; display: none; align-items: center; justify-content: center; cursor: pointer; }
 #peekOverlay.show { display: flex; }
@@ -1527,6 +1564,8 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
   #rotateOverlay svg, #diceBtn.rolling, #title.active #titleLogo, #title.active #titleCar, #title.active #titleGo, #titleCar.idle svg, #titleGift, #giftBtn,
   .prop.ghost, #celebrateTime .ghostWin svg, #celebrateTime.newBest .medal svg { animation: none !important; }
   #iris.go { animation-duration: .2s; }
+  .scanLine { animation: none !important; top: 50% !important; opacity: .5; }
+  #scanFrame { animation: none !important; }
   #strip, .scene, .tile, .chip, #previewLock, #priceTag { transition-duration: .1s !important; }
 }
 </style>
@@ -1858,6 +1897,20 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
       </div>
     </div>
   </div>
+  <div id="scanOverlay" aria-label="point the camera at a save code">
+    <div id="scanFrame">
+      <video id="scanVideo" autoplay muted playsinline aria-label="camera view"></video>
+      <div id="scanNoCam" aria-label="no camera: choose a picture instead"><svg viewBox="0 0 100 100"><rect x="12" y="30" width="76" height="52" rx="10" fill="none" stroke="#fff8ec" stroke-width="6"/><path d="M36 30 L42 18 H58 L64 30" fill="none" stroke="#fff8ec" stroke-width="6" stroke-linejoin="round"/><circle cx="50" cy="56" r="14" fill="none" stroke="#fff8ec" stroke-width="6"/><path d="M18 88 L82 14" stroke="#ef7d6d" stroke-width="8" stroke-linecap="round"/></svg></div>
+      <div id="scanReticle"><i></i><i></i><i></i><i></i><b class="scanLine"></b></div>
+    </div>
+    <button class="bigBtn" id="scanCloseBtn" aria-label="stop scanning">
+      <svg viewBox="0 0 100 100"><path d="M26 26 L74 74 M74 26 L26 74" stroke="#fff" stroke-width="14" stroke-linecap="round"/></svg>
+    </button>
+    <label class="bigBtn" id="scanPickBtn" aria-label="choose a picture of a save code">
+      <input id="scanPick" type="file" accept="image/*" aria-label="choose a picture of a save code">
+      <svg viewBox="0 0 100 100"><rect x="12" y="18" width="76" height="64" rx="10" fill="#fff"/><circle cx="34" cy="38" r="8" fill="#ffd66e"/><path d="M12 74 L38 50 L54 64 L66 54 L88 74 V72 Q88 82 78 82 H22 Q12 82 12 72 Z" fill="#74c465"/></svg>
+    </label>
+  </div>
   <div id="iris"></div>
 </div>
 <div id="rotateOverlay" aria-label="turn the tablet sideways">
@@ -1890,6 +1943,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     15. SCENE SWITCHING           showScene / showGarage / showMap / showAlbum
     16. SCENE: STICKER ALBUM      buddies, badges, finish-line photos
     17. PROFILES + SAVE CODES     3 kids, compact + full save codes, QR encoder, import flow
+    17b. QR SCANNER              in-app scan of a save QR: viewfinder overlay, BarcodeDetector or a pure-JS decoder
     18. SCENE: LEVEL MAP          world tabs, the winding road of 10 level nodes
     19. ROAD: CAMERA + COURSE     chase-cam constants, curvature, hills, per-world road shapes
     20. ROAD: CHASE-CAM VEHICLE   CAR3D block models + rear anchor contract, tires, vehicleRearSVG
@@ -1916,7 +1970,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.7.1";
+const APP_VERSION = "13.8.0";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -5210,6 +5264,409 @@ function qrEncode(text) {
   for (let i = 0; i < 7; i++) M[size - 1 - i][8] = fbit(14 - i);   /* 7 bits — (size-8,8) is the dark module */
   return M;
 }
+
+/* ============ 17b. QR SCANNER ============ */
+/* ---- QR decoder: the mirror of qrEncode, for the in-app scanner ----
+   Reads byte-mode, ECC level L, versions 1-10 (every QR this game makes) out of an ImageData:
+   adaptive-threshold binarise, locate the three finder patterns (1:1:3:1:1 runs, cross-checked),
+   order them by geometry (so any rotation works), find the bottom-right alignment pattern, sample the
+   module grid through a perspective transform, read the format info (BCH, any mask), unmask, unzigzag,
+   de-interleave the blocks, Reed-Solomon correct each one over GF(256), then parse the byte stream.
+   Returns the decoded text, or null. Pure JS, no network, no dependencies. */
+const QR_BLOCKS = [null, [19], [34], [55], [80], [108], [68, 68], [78, 78], [97, 97], [116, 116], [68, 68, 69, 69]];
+const QR_ECPB = [0, 7, 10, 15, 20, 26, 18, 20, 24, 30, 18];
+const QR_ALIGN = [null, [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34], [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50]];
+const QR_GF = (() => {   /* GF(256) tables, poly 0x11d, shared by the Reed-Solomon corrector */
+  const exp = new Uint8Array(512), log = new Uint8Array(256);
+  for (let i = 0, x = 1; i < 255; i++) { exp[i] = x; log[x] = i; x <<= 1; if (x & 256) x ^= 0x11d; }
+  for (let i = 255; i < 512; i++) exp[i] = exp[i - 255];
+  return { exp, log, mul: (a, b) => (a && b) ? exp[log[a] + log[b]] : 0 };
+})();
+
+/* 1 = dark. Block-local threshold so a phone photo with a shadow across it still splits cleanly. */
+function qrBinarize(img) {
+  const W = img.width, H = img.height, d = img.data, gray = new Uint8Array(W * H);
+  for (let i = 0, p = 0; i < gray.length; i++, p += 4) gray[i] = (d[p] * 77 + d[p + 1] * 151 + d[p + 2] * 28) >> 8;
+  const B = 8, bw = Math.ceil(W / B), bh = Math.ceil(H / B), thr = new Float32Array(bw * bh);
+  let gLo = 255, gHi = 0;
+  for (let i = 0; i < gray.length; i += 7) { if (gray[i] < gLo) gLo = gray[i]; if (gray[i] > gHi) gHi = gray[i]; }
+  const flatRange = Math.max(24, (gHi - gLo) * 0.3);
+  for (let by = 0; by < bh; by++) for (let bx = 0; bx < bw; bx++) {
+    let sum = 0, n = 0, lo = 255, hi = 0;
+    for (let y = by * B; y < Math.min(H, by * B + B); y++) for (let x = bx * B; x < Math.min(W, bx * B + B); x++) {
+      const g = gray[y * W + x]; sum += g; n++; if (g < lo) lo = g; if (g > hi) hi = g;
+    }
+    let t = sum / n;
+    if (hi - lo < flatRange) {   /* a flat block is light, unless it is darker than the threshold its neighbours settled on */
+      t = lo / 2;
+      if (by && bx) { const nb = (thr[(by - 1) * bw + bx] + 2 * thr[by * bw + bx - 1] + thr[(by - 1) * bw + bx - 1]) / 4; if (lo < nb) t = nb; }
+    }
+    thr[by * bw + bx] = t;
+  }
+  const bin = new Uint8Array(W * H);
+  for (let by = 0; by < bh; by++) for (let bx = 0; bx < bw; bx++) {
+    let t = 0, n = 0;
+    for (let yy = Math.max(0, by - 2); yy <= Math.min(bh - 1, by + 2); yy++)
+      for (let xx = Math.max(0, bx - 2); xx <= Math.min(bw - 1, bx + 2); xx++) { t += thr[yy * bw + xx]; n++; }
+    t /= n;
+    for (let y = by * B; y < Math.min(H, by * B + B); y++) for (let x = bx * B; x < Math.min(W, bx * B + B); x++) bin[y * W + x] = gray[y * W + x] < t ? 1 : 0;
+  }
+  return { bin, W, H };
+}
+
+/* five run lengths centred on a dark pixel at (cx,cy): dark, light, dark, light, dark walked outward,
+   so a finder reads 1:1:3:1:1 and an alignment pattern (ring, gap, core, gap, ring) through their centres */
+function qrRuns(bm, cx, cy, vertical) {
+  const { bin, W, H } = bm, len = vertical ? H : W, c0 = vertical ? cy : cx;
+  const at = i => vertical ? bin[i * W + cx] : bin[cy * W + i];
+  if (!at(c0)) return null;
+  const runs = [0, 0, 1, 0, 0];
+  let i = c0 - 1;
+  for (let k = 2; k >= 0; k--) { const col = k === 1 ? 0 : 1; while (i >= 0 && at(i) === col) { runs[k]++; i--; } if (k && i < 0) return null; }
+  const start = i + 1;
+  i = c0 + 1;
+  for (let k = 2; k < 5; k++) { const col = k === 3 ? 0 : 1; while (i < len && at(i) === col) { runs[k]++; i++; } if (k < 4 && i >= len) return null; }
+  return { runs, start, end: i };
+}
+/* module size when the runs fit the pattern within tolerance, else 0; a 0 in the pattern means that run
+   only has to exist (an alignment pattern's outer ring merges with whatever data modules touch it) */
+function qrRatioOK(runs, pat) {
+  if (runs.some(r => r <= 0)) return 0;
+  let total = 0, units = 0;
+  for (let k = 0; k < 5; k++) if (pat[k]) { total += runs[k]; units += pat[k]; }
+  const m = total / units;
+  if (m < 1) return 0;
+  for (let k = 0; k < 5; k++) {
+    if (!pat[k]) { if (runs[k] < m * 0.5) return 0; continue; }
+    if (Math.abs(runs[k] - m * pat[k]) > Math.max(0.8, 0.5 * m * pat[k])) return 0;
+  }
+  return m;
+}
+/* a candidate at (cx, cy): re-centre on the vertical then horizontal axis; returns {x, y, m} or null */
+function qrCrossCheck(bm, cx, cy, pat) {
+  const mid = r => r.start + r.runs[0] + r.runs[1] + (r.runs[2] - 1) / 2;   /* centre of the middle run */
+  let r = qrRuns(bm, cx, cy, true);
+  if (!r || !qrRatioOK(r.runs, pat)) return null;
+  const y = mid(r);
+  r = qrRuns(bm, cx, Math.round(y), false);
+  if (!r || !qrRatioOK(r.runs, pat)) return null;
+  const x = mid(r), m = qrRatioOK(r.runs, pat);
+  r = qrRuns(bm, Math.round(x), Math.round(y), true);
+  if (!r || !qrRatioOK(r.runs, pat)) return null;
+  return { x, y, m: (m + qrRatioOK(r.runs, pat)) / 2 };
+}
+const QR_FINDER = [1, 1, 3, 1, 1], QR_ALIGNPAT = [0, 1, 1, 1, 0];
+/* sweep every row for a 1:1:3:1:1 run; cross-check; cluster; return the three strongest */
+function qrFindFinders(bm) {
+  const { bin, W, H } = bm, found = [];
+  const add = c => {
+    for (const f of found) if (Math.abs(f.x - c.x) < f.m * 3 && Math.abs(f.y - c.y) < f.m * 3) {
+      f.x = (f.x * f.n + c.x) / (f.n + 1); f.y = (f.y * f.n + c.y) / (f.n + 1); f.m = (f.m * f.n + c.m) / (f.n + 1); f.n++; return;
+    }
+    found.push({ x: c.x, y: c.y, m: c.m, n: 1 });
+  };
+  const step = Math.max(1, Math.floor(H / 400));
+  for (let y = 0; y < H; y += step) {
+    const runs = [], starts = [];
+    let x = 0;
+    while (x < W) { const col = bin[y * W + x], s = x; while (x < W && bin[y * W + x] === col) x++; if (col || runs.length) { runs.push(x - s); starts.push(s); } }
+    for (let k = 0; k + 4 < runs.length; k += 2) {
+      const win = runs.slice(k, k + 5), m = qrRatioOK(win, QR_FINDER);
+      if (!m) continue;
+      const cx = starts[k + 2] + (win[2] >> 1), c = qrCrossCheck(bm, cx, y, QR_FINDER);
+      if (c) add(c);
+    }
+  }
+  found.sort((a, b) => b.n - a.n);
+  if (found.length < 3) return null;
+  /* among the strong ones prefer a trio of similar module size */
+  const top = found.slice(0, 6);
+  let best = null, bestScore = Infinity;
+  for (let i = 0; i < top.length; i++) for (let j = i + 1; j < top.length; j++) for (let k = j + 1; k < top.length; k++) {
+    const ms = [top[i].m, top[j].m, top[k].m], spread = (Math.max(...ms) - Math.min(...ms)) / Math.min(...ms);
+    const score = spread - (top[i].n + top[j].n + top[k].n) * 0.01;
+    if (score < bestScore) { bestScore = score; best = [top[i], top[j], top[k]]; }
+  }
+  return best;
+}
+/* homography helpers: unit square -> quad, and quad -> quad (Heckbert) */
+function qrSqToQuad(q) {
+  const [[x0, y0], [x1, y1], [x2, y2], [x3, y3]] = q;
+  const dx3 = x0 - x1 + x2 - x3, dy3 = y0 - y1 + y2 - y3;
+  if (Math.abs(dx3) < 1e-9 && Math.abs(dy3) < 1e-9) return [x1 - x0, x3 - x0, x0, y1 - y0, y3 - y0, y0, 0, 0, 1];
+  const dx1 = x1 - x2, dx2 = x3 - x2, dy1 = y1 - y2, dy2 = y3 - y2, den = dx1 * dy2 - dx2 * dy1;
+  const g = (dx3 * dy2 - dx2 * dy3) / den, h = (dx1 * dy3 - dx3 * dy1) / den;
+  return [x1 - x0 + g * x1, x3 - x0 + h * x3, x0, y1 - y0 + g * y1, y3 - y0 + h * y3, y0, g, h, 1];
+}
+function qrQuadToQuad(src, dst) {
+  const a = qrSqToQuad(src), b = qrSqToQuad(dst);
+  /* inverse(a) via the adjugate (scale is irrelevant), then b * adj(a) */
+  const ai = [a[4] * a[8] - a[5] * a[7], a[2] * a[7] - a[1] * a[8], a[1] * a[5] - a[2] * a[4],
+    a[5] * a[6] - a[3] * a[8], a[0] * a[8] - a[2] * a[6], a[2] * a[3] - a[0] * a[5],
+    a[3] * a[7] - a[4] * a[6], a[1] * a[6] - a[0] * a[7], a[0] * a[4] - a[1] * a[3]];
+  const m = new Array(9);
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) m[r * 3 + c] = b[r * 3] * ai[c] + b[r * 3 + 1] * ai[3 + c] + b[r * 3 + 2] * ai[6 + c];
+  return (x, y) => { const w = m[6] * x + m[7] * y + m[8]; return [(m[0] * x + m[1] * y + m[2]) / w, (m[3] * x + m[4] * y + m[5]) / w]; };
+}
+/* Reed-Solomon: syndromes, Berlekamp-Massey, Chien search, Forney; fixes up to ecLen/2 byte errors in place */
+function qrRSFix(cw, ecLen) {
+  const { exp, log, mul } = QR_GF, n = cw.length, S = new Array(ecLen).fill(0);
+  let clean = true;
+  for (let i = 0; i < ecLen; i++) { let s = 0; for (let j = 0; j < n; j++) s = mul(s, exp[i]) ^ cw[j]; S[i] = s; if (s) clean = false; }
+  if (clean) return true;
+  let sigma = [1], prev = [1], L = 0, mdeg = 1, bInv = 1;
+  for (let i = 0; i < ecLen; i++) {
+    let delta = S[i];
+    for (let j = 1; j <= L; j++) delta ^= mul(sigma[j], S[i - j]);
+    if (!delta) { mdeg++; continue; }
+    const next = sigma.slice(), scale = mul(delta, bInv);
+    while (next.length < prev.length + mdeg) next.push(0);
+    for (let j = 0; j < prev.length; j++) next[j + mdeg] ^= mul(scale, prev[j]);
+    if (2 * L <= i) { L = i + 1 - L; prev = sigma; bInv = exp[255 - log[delta]]; mdeg = 1; } else mdeg++;
+    sigma = next;
+  }
+  while (sigma.length > L + 1) sigma.pop();
+  if (L > ecLen / 2) return false;
+  const pos = [];   /* Chien: a root at alpha^-deg means an error at degree deg, i.e. index n-1-deg */
+  for (let deg = 0; deg < n; deg++) {
+    let v = 0;
+    for (let j = 0; j < sigma.length; j++) v ^= mul(sigma[j], exp[(255 - deg) * j % 255]);
+    if (!v) pos.push(deg);
+  }
+  if (pos.length !== L) return false;
+  const omega = new Array(ecLen).fill(0);   /* omega = S * sigma mod x^ecLen */
+  for (let i = 0; i < ecLen; i++) for (let j = 0; j < sigma.length && j <= i; j++) omega[i] ^= mul(S[i - j], sigma[j]);
+  for (const deg of pos) {
+    let num = 0, den = 0;
+    for (let i = 0; i < ecLen; i++) num ^= mul(omega[i], exp[(255 - deg) * i % 255]);
+    for (let j = 1; j < sigma.length; j += 2) den ^= mul(sigma[j], exp[(255 - deg) * (j - 1) % 255]);
+    if (!den) return false;
+    cw[n - 1 - deg] ^= mul(mul(exp[deg], num), exp[255 - log[den]]);
+  }
+  for (let i = 0; i < ecLen; i++) { let s = 0; for (let j = 0; j < n; j++) s = mul(s, exp[i]) ^ cw[j]; if (s) return false; }
+  return true;
+}
+/* the module grid is sampled: read format, unmask, unzigzag, de-interleave, correct, parse */
+function qrReadGrid(grid, ver) {
+  const size = grid.length;
+  const bit = (r, c) => grid[r][c];
+  let f1 = 0, f2 = 0;
+  for (let i = 0; i <= 5; i++) { f1 |= bit(8, i) << (14 - i); f1 |= bit(i, 8) << i; }
+  f1 |= bit(8, 7) << 8; f1 |= bit(8, 8) << 7; f1 |= bit(7, 8) << 6;
+  for (let i = 0; i < 8; i++) f2 |= bit(8, size - 1 - i) << i;
+  for (let i = 0; i < 7; i++) f2 |= bit(size - 1 - i, 8) << (14 - i);
+  let fmt = -1, bestD = 4;
+  for (let d = 0; d < 32; d++) {
+    let rem = d << 10;
+    for (let i = 14; i >= 10; i--) if ((rem >> i) & 1) rem ^= 0x537 << (i - 10);
+    const code = ((d << 10) | rem) ^ 0x5412;
+    for (const f of [f1, f2]) { let h = 0, x = code ^ f; while (x) { h += x & 1; x >>= 1; } if (h < bestD) { bestD = h; fmt = d; } }
+  }
+  if (fmt < 0 || (fmt >> 3) !== 1) return null;   /* ECC level L only: the only kind this game makes */
+  const mask = fmt & 7;
+  const masks = [(r, c) => (r + c) % 2, r => r % 2, (r, c) => c % 3, (r, c) => (r + c) % 3,
+    (r, c) => ((r >> 1) + Math.floor(c / 3)) % 2, (r, c) => (r * c) % 2 + (r * c) % 3,
+    (r, c) => ((r * c) % 2 + (r * c) % 3) % 2, (r, c) => ((r + c) % 2 + (r * c) % 3) % 2][mask];
+  /* function-pattern map, same regions the encoder reserves */
+  const fn = Array.from({ length: size }, () => new Uint8Array(size));
+  const mark = (r0, c0, h, w) => { for (let r = r0; r < r0 + h; r++) for (let c = c0; c < c0 + w; c++) if (r >= 0 && c >= 0 && r < size && c < size) fn[r][c] = 1; };
+  mark(0, 0, 9, 9); mark(0, size - 8, 9, 8); mark(size - 8, 0, 8, 9);
+  for (const ar of QR_ALIGN[ver]) for (const ac of QR_ALIGN[ver]) {
+    if ((ar <= 8 && ac <= 8) || (ar <= 8 && ac >= size - 9) || (ar >= size - 9 && ac <= 8)) continue;
+    mark(ar - 2, ac - 2, 5, 5);
+  }
+  mark(6, 0, 1, size); mark(0, 6, size, 1);
+  if (ver >= 7) { mark(size - 11, 0, 3, 6); mark(0, size - 11, 6, 3); }
+  const nBlocks = QR_BLOCKS[ver].length, ecLen = QR_ECPB[ver];
+  const total = QR_BLOCKS[ver].reduce((a, b) => a + b, 0) + ecLen * nBlocks;
+  const all = new Uint8Array(total);
+  let idx = 0, upward = true;
+  for (let col = size - 1; col > 0; col -= 2) {
+    if (col === 6) col--;
+    for (let i = 0; i < size; i++) {
+      const r = upward ? size - 1 - i : i;
+      for (const c of [col, col - 1]) {
+        if (fn[r][c]) continue;
+        if (idx < total * 8) { const b = bit(r, c) ^ (masks(r, c) === 0 ? 1 : 0); all[idx >> 3] |= b << (7 - (idx & 7)); }
+        idx++;
+      }
+    }
+    upward = !upward;
+  }
+  /* de-interleave: data by column across blocks, then ec */
+  const lens = QR_BLOCKS[ver], maxD = Math.max(...lens), blocks = lens.map(() => []);
+  let p = 0;
+  for (let i = 0; i < maxD; i++) for (let b = 0; b < nBlocks; b++) if (i < lens[b]) blocks[b].push(all[p++]);
+  for (let i = 0; i < ecLen; i++) for (let b = 0; b < nBlocks; b++) blocks[b].push(all[p++]);
+  const data = [];
+  for (let b = 0; b < nBlocks; b++) { if (!qrRSFix(blocks[b], ecLen)) return null; data.push(...blocks[b].slice(0, lens[b])); }
+  let bp = 0;
+  const take = n => { let v = 0; for (let i = 0; i < n; i++, bp++) v = (v << 1) | ((data[bp >> 3] >> (7 - (bp & 7))) & 1); return v; };
+  if (take(4) !== 4) return null;
+  const count = take(ver >= 10 ? 16 : 8);
+  if (count * 8 > data.length * 8 - bp) return null;
+  const bytes = new Uint8Array(count);
+  for (let i = 0; i < count; i++) bytes[i] = take(8);
+  return new TextDecoder().decode(bytes);
+}
+function qrDecodeImage(img) {
+  const bm = qrBinarize(img);
+  const trio = qrFindFinders(bm);
+  if (!trio) return null;
+  /* top-left is the corner off the longest side; the cross product tells top-right from bottom-left */
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  const sides = [[0, 1, 2], [1, 2, 0], [0, 2, 1]].map(([a, b, c]) => ({ d: dist(trio[a], trio[b]), c }));
+  sides.sort((a, b) => b.d - a.d);
+  const TL = trio[sides[0].c], others = trio.filter(f => f !== TL);
+  const cross = (others[0].x - TL.x) * (others[1].y - TL.y) - (others[0].y - TL.y) * (others[1].x - TL.x);
+  const [TR, BL] = cross > 0 ? others : [others[1], others[0]];
+  const m = (TL.m + TR.m + BL.m) / 3;
+  const dimEst = (dist(TL, TR) + dist(TL, BL)) / (2 * m) + 7;
+  const vers = [], v0 = Math.round((dimEst - 17) / 4);
+  for (const v of [v0, v0 - 1, v0 + 1, v0 - 2, v0 + 2]) if (v >= 1 && v <= 10 && !vers.includes(v)) vers.push(v);
+  for (const ver of vers) {
+    const size = 17 + 4 * ver, n = size - 7;
+    const affine = (mx, my) => [TL.x + (mx - 3.5) / n * (TR.x - TL.x) + (my - 3.5) / n * (BL.x - TL.x),
+      TL.y + (mx - 3.5) / n * (TR.y - TL.y) + (my - 3.5) / n * (BL.y - TL.y)];
+    /* fourth corner candidates: the bottom-right alignment pattern (v2+), searched around where the affine
+       guess puts it, nearest first (data modules can mimic its 1:1:1:1:1 too, so each is tried and the
+       format + Reed-Solomon check arbitrates); last resort the affine guess of the symbol corner itself */
+    const fourths = [];
+    if (ver >= 2) {
+      const [gx, gy] = affine(size - 6.5, size - 6.5), R = Math.ceil(m * 6), step = Math.max(1, Math.round(m / 2));
+      for (let dy = -R; dy <= R; dy += step) for (let dx = -R; dx <= R; dx += step) {
+        const x = Math.round(gx + dx), y = Math.round(gy + dy);
+        if (x < 0 || y < 0 || x >= bm.W || y >= bm.H) continue;
+        const c = qrCrossCheck(bm, x, y, QR_ALIGNPAT);
+        if (!c || Math.abs(c.m - m) > m * 0.6) continue;
+        if (fourths.some(f => Math.abs(f.x - c.x) < m && Math.abs(f.y - c.y) < m)) continue;
+        fourths.push({ x: c.x, y: c.y, mod: size - 6.5, d: Math.hypot(c.x - gx, c.y - gy) });
+      }
+      fourths.sort((a, b) => a.d - b.d).splice(3);
+    }
+    const [ax, ay] = affine(size - 3.5, size - 3.5);
+    fourths.push({ x: ax, y: ay, mod: size - 3.5 });
+    for (const f of fourths) {
+      const map = qrQuadToQuad([[3.5, 3.5], [size - 3.5, 3.5], [f.mod, f.mod], [3.5, size - 3.5]],
+        [[TL.x, TL.y], [TR.x, TR.y], [f.x, f.y], [BL.x, BL.y]]);
+      const grid = [];
+      for (let r = 0; r < size; r++) {
+        const row = new Uint8Array(size);
+        for (let c = 0; c < size; c++) {
+          const [x, y] = map(c + 0.5, r + 0.5), xi = Math.round(x), yi = Math.round(y);
+          row[c] = (xi >= 0 && yi >= 0 && xi < bm.W && yi < bm.H) ? bm.bin[yi * bm.W + xi] : 0;
+        }
+        grid.push(row);
+      }
+      const text = qrReadGrid(grid, ver);
+      if (text !== null) return text;
+    }
+  }
+  return null;
+}
+
+/* ---- the in-app scanner ----
+   A save QR scanned with the iPad's camera app opens Safari, whose storage is not the home-screen app's, so
+   the import lands in the wrong place. Scanning inside the app keeps it here. BarcodeDetector does the reading
+   where the platform really has it (Chrome on Android and macOS); WebKit keeps it behind an experimental flag
+   and iOS 18 broke it even with the flag on, so the decoder above reads the frames everywhere else. The
+   viewfinder also takes a picture from the photo library (a screenshot of a QR from another device, or a
+   camera shot on a device whose camera permission was refused). */
+let qrDetectorOK = false, qrDetectorProbed = null;   /* resolved at boot so canScanQR() is accurate by the time a parent opens the overlay */
+(async () => {
+  try {
+    qrDetectorProbed = window.BarcodeDetector || null;
+    if (qrDetectorProbed && qrDetectorProbed.getSupportedFormats) qrDetectorOK = (await qrDetectorProbed.getSupportedFormats()).includes("qr_code");
+  } catch (e) { qrDetectorOK = false; }
+})();
+function canScanQR() {
+  /* the decoder is always on hand, so the question is only whether a camera can be asked for */
+  return !!(window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+}
+let scanClose = null, scanPickFile = null;   /* the live scan's handlers; the buttons are wired once */
+document.getElementById("scanCloseBtn").addEventListener("pointerdown", () => { sfx.pop(); if (scanClose) scanClose(); });
+document.getElementById("scanOverlay").addEventListener("pointerdown", e => { if (e.target === e.currentTarget && scanClose) { sfx.pop(); scanClose(); } });
+document.getElementById("scanPick").addEventListener("change", e => { const f = e.target.files && e.target.files[0]; if (f && scanPickFile) scanPickFile(f); });
+/* opens the viewfinder, starts the rear camera, reads frames at ~8 Hz; resolves with the raw QR text (a URL or
+   a bare code: the caller digs out the VROOM token) after a chime and a green flash, or null on the cross.
+   A refused camera shakes the overlay and leaves it open in picture mode, so the picker still works. */
+function scanSaveQR() {
+  return new Promise(resolve => {
+    const ov = document.getElementById("scanOverlay"), video = document.getElementById("scanVideo"), pick = document.getElementById("scanPick");
+    const work = document.createElement("canvas"), wctx = work.getContext("2d", { willReadFrequently: true });
+    let stream = null, timer = 0, done = false, busy = false, det = null;
+    try {
+      const BD = window.BarcodeDetector;
+      if (BD && (qrDetectorOK || BD !== qrDetectorProbed)) det = new BD({ formats: ["qr_code"] });
+    } catch (e) { det = null; }
+    const stop = () => {
+      clearInterval(timer);
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      stream = null;
+      video.srcObject = null;
+    };
+    const finish = text => {
+      if (done) return;
+      done = true; scanClose = null; scanPickFile = null;
+      stop();
+      ov.classList.remove("show", "noCam", "got", "deny");
+      pick.value = "";
+      resolve(text);
+    };
+    const found = text => {
+      if (done || ov.classList.contains("got")) return;
+      clearInterval(timer);
+      ov.classList.add("got");
+      sfx.chime();
+      setTimeout(() => finish(text), reducedMotion() ? 120 : 380);
+    };
+    const deny = () => { ov.classList.remove("deny"); void ov.offsetWidth; ov.classList.add("deny"); sfx.deny(); };
+    /* src: the video, an ImageBitmap or a canvas; BarcodeDetector first when there is one, then the decoder */
+    const decode = async src => {
+      if (det) {
+        try { const r = await det.detect(src); if (r && r.length && r[0].rawValue) return r[0].rawValue; } catch (e) { det = null; }
+      }
+      const w = src.videoWidth || src.width, h = src.videoHeight || src.height;
+      if (!w || !h) return null;
+      const k = Math.min(1, 800 / Math.max(w, h));   /* 800 px on the long side keeps a frame under 10 ms */
+      work.width = Math.round(w * k); work.height = Math.round(h * k);
+      wctx.drawImage(src, 0, 0, work.width, work.height);
+      return qrDecodeImage(wctx.getImageData(0, 0, work.width, work.height));
+    };
+    scanClose = () => finish(null);
+    scanPickFile = async file => {
+      let text = null;
+      try {
+        const bmp = await createImageBitmap(file);
+        text = await decode(bmp);
+        bmp.close();
+      } catch (e) { text = null; }
+      pick.value = "";
+      if (done) return;
+      if (text) found(text); else deny();
+    };
+    ov.classList.remove("noCam", "got", "deny");
+    ov.classList.add("show");
+    if (!canScanQR()) { ov.classList.add("noCam"); return; }
+    video.muted = true;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })
+      .then(s => {
+        if (done) { s.getTracks().forEach(t => t.stop()); return; }
+        stream = s;
+        video.srcObject = s;
+        const p = video.play(); if (p && p.catch) p.catch(() => {});
+        timer = setInterval(async () => {
+          if (busy || done || video.readyState < 2) return;
+          busy = true;
+          try { const t = await decode(video); if (t) found(t); } catch (e) { /* a bad frame: the next one comes in 125 ms */ }
+          busy = false;
+        }, 125);
+      })
+      .catch(() => { if (done) return; deny(); ov.classList.add("noCam"); });
+  });
+}
+
+/* ============ 17. PROFILES + SAVE CODES, continued ============ */
 /* the QR carries the full hosted URL, so scanning it with a camera opens the
    game with the save ready to import; falls back to the bare code if ever too big */
 const SAVE_URL_PREFIX = "https://zacker3310.github.io/vroom/#save=";
@@ -5368,7 +5825,6 @@ copyCodeBtn.addEventListener("pointerdown", () => sfx.pop());
    scan (only when the camera scanner section is in: canScanQR / scanSaveQR), the clipboard (read inside the tap,
    as iOS demands), and a paste box for browsers that will not hand the clipboard over: a focused textarea under
    a paste pictogram, so a long-press or ctrl+V lands the code */
-/* global canScanQR, scanSaveQR */   /* the camera scanner section defines both; this flow only asks after typeof */
 const receiveSheet = document.getElementById("receiveSheet");
 const receiveBtn = document.getElementById("receiveBtn");
 const scanBtn = document.getElementById("scanBtn");
