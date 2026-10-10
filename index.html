@@ -495,6 +495,8 @@
   #carWrap.wobble svg { animation: carWobble .55s ease; }
   @keyframes carWobble { 20% { transform: rotate(-7deg); } 40% { transform: rotate(6deg); } 60% { transform: rotate(-4deg); } 80% { transform: rotate(2deg); } }
   #carWrap.spin svg { animation: spinOut .65s ease; }
+  #carWrap.drop svg { animation: carDrop .5s cubic-bezier(.3,.6,.3,1); }   /* into a gap and out again (13.16) */
+  @keyframes carDrop { 30% { transform: translateY(38px) rotate(-3deg); } 65% { transform: translateY(-8px) rotate(2deg); } }
   @keyframes spinOut { to { transform: perspective(900px) rotateY(360deg); } }
   .dmgSmoke circle { animation: puffUp 1.3s ease-in infinite; transform-box: fill-box; }
   @keyframes puffUp {
@@ -731,6 +733,9 @@
   .prop.chomper.spit .jaw { transform: translateY(90px); transition-duration: .1s; }
   .prop.chomper.spit .cheeks { animation: cheekPuff .5s ease-out; transform-box: fill-box; transform-origin: center; }
   @keyframes cheekPuff { 0% { transform: scale(1.5); opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
+  .prop.chomper.full .lidL, .prop.chomper.full .lidR { transform: scaleY(1); }
+  .prop.chomper.full .jaw { transform: translateY(0); }
+  .prop.chomper.full .body { animation-duration: 4s; }
   .prop.chomper .body { animation: chomperBreathe 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center bottom; }
   @keyframes chomperBreathe { 50% { transform: scale(1.015, .985); } }
   @media (prefers-reduced-motion: reduce) { #chompView.chew, #chompView.chew .uvula, .prop.chomper .body, .prop.chomper.bite .body { animation: none !important; } }
@@ -2094,7 +2099,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.17.0";
+const APP_VERSION = "13.18.1";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -6301,7 +6306,9 @@ function addHill(x0, len, amp) { HILLS.push({ x0, x1: x0 + len, amp }); return x
    high arc that lands past them, so the kid grabs their stars straight back. The wallet never drops: only the
    run tally dips, and only until the kid drives on. CHOMPS is the stretch list; the mouth sits CHOMP_MOUTH in. ---- */
 let CHOMPS = [];
-const CHOMP_LEN = 1500, CHOMP_MOUTH = 620, CHOMP_DROP = 3, CHOMP_STAR_X = [700, 840, 980];   /* stretch, mouth offset, stars spat, where they land */
+const CHOMP_LEN = 1500, CHOMP_MOUTH = 620, CHOMP_DROP = 3, CHOMP_STAR_X = [230, 370, 510];   /* stretch, mouth offset, stars spat, where they land (before the mouth: the beast spits the way you came) */
+const CHOMP_DMG = 3, CHOMP_FLING = -900;   /* the bite's damage; the spit throws the car back at this speed (px/s, backwards) */
+let chompFling = 0;   /* the backward throw in progress: pos runs on it while the car is in the air */
 /* sizes (13.16): a chomper fills one lane, two or all three (l0..l1, inclusive lane indexes). chompLanes deals
    [l0, l1] from the level's own seed (a separate mulberry32 off the level number, so the road itself never
    moves) and never hands a level the same size twice, so a two-monster level is always two different beasts */
@@ -6915,23 +6922,54 @@ function paradeUnlocked() {
   for (let n = 1; n <= MAX_LEVEL; n++) if (!progress.levels[n]) return false;
   return true;
 }
-let LEVEL_LEN = 5200, RAMPS = [], props = [], scenery = [], totalStars = 0, runStars = 0, runDamage = 0, runTime = 0;
+let LEVEL_LEN = 5200, RAMPS = [], GAPS = [], props = [], scenery = [], totalStars = 0, runStars = 0, runDamage = 0, runTime = 0;
 let freeSpawnX = 0, freeThemeIdx = 0, freeSceneryX = 0, freeCourseX = 0;
 
-/* a ramp is {x, w, h, tail} plus optional kick (launch speed share, default 0.9) and deck colors */
-function rampOn(x) {
-  for (const rp of RAMPS) { const d = x - rp.x; if (d >= 0 && d <= rp.w) return rp; }
+/* a ramp is {x, w, h, tail} plus optional kick (launch speed share, default 0.9) and deck colors, and (13.16)
+   l0..l1, the lanes its deck spans: a car in any other lane drives past it on the flat (no lanes: the whole road) */
+const rampHas = (rp, lane) => rp.l0 == null || (lane >= rp.l0 && lane <= rp.l1);
+function rampOn(x, lane = Math.round(laneVis)) {
+  for (const rp of RAMPS) { const d = x - rp.x; if (d >= 0 && d <= rp.w && rampHas(rp, lane)) return rp; }
   return null;
 }
-function rampElev(x) { const rp = rampOn(x); return rp ? (x - rp.x) / rp.w * rp.h : 0; }
-/* the ramp whose lip the car just left (the one launch rule reads it) */
-function rampBehind(x) {
+function rampElev(x, lane) { const rp = rampOn(x, lane); return rp ? (x - rp.x) / rp.w * rp.h : 0; }
+/* the ramp whose lip the car just left (the one launch rule reads it): in its lane, the lip within 120 behind */
+function rampBehind(x, lane = Math.round(laneVis)) {
   let best = null;
-  for (const rp of RAMPS) if (rp.x + rp.w <= x && (!best || rp.x > best.x)) best = rp;
+  for (const rp of RAMPS) if (rp.x + rp.w <= x && x - rp.x - rp.w <= 120 && rampHas(rp, lane) && (!best || rp.x > best.x)) best = rp;
   return best;
 }
 /* the one launch rule: leave the lip at the deck's height, rising at a share of the speed */
 function rampLaunch(rp, speed) { return { y: rp ? rp.h : 95, vy: Math.min(speed, rp && rp.cap || Infinity) * (rp && rp.kick || 0.9) }; }
+/* one frame of ramp physics for a car on its wheels at x: on a deck in its lane jumpY follows the slope; the frame
+   the deck ends under the wheels the car leaves it, off the lip by the launch rule, or off the side of a narrow deck
+   (a lane change mid-ramp) as a plain drop from the deck's height. Returns the launch {rp, y, vy} or null.
+   The game loop and the fairness bots both roll through here */
+function rampRoll(x, lane) {
+  const wasOn = jumpY > 0, h = rampElev(x, lane);
+  if (wasOn && h === 0) {
+    const rp = rampBehind(x, lane);
+    return rp ? { rp, ...rampLaunch(rp, v) } : { rp: null, y: jumpY, vy: 0 };
+  }
+  jumpY = h;
+  return null;
+}
+/* a gap (13.16) is {x, w, l0, l1}: the road is gone for w units across lanes l0..l1 */
+const GAP_W = 220;
+const gapHas = (g, lane) => lane >= g.l0 && lane <= g.l1;
+function gapOn(x, lane) { for (const g of GAPS) if (x >= g.x && x <= g.x + g.w && gapHas(g, lane)) return g; return null; }
+const inGapZone = (x, pad = 0) => GAPS.some(g => x > g.x - pad && x < g.x + g.w + pad);
+const inRampZone = x => RAMPS.some(rp => x > rp.x - 200 && x < rp.x + rp.w + (rp.tail || 420));
+/* driving into a gap: a soft hit, never a fail. On the ground in a gap's lane the car drops in and bounces out
+   (a thud, the drop animation, a third of its speed kept), no damage, no stars lost, one drop per gap per run */
+function gapTick(carX) {
+  if (airborne || jumpY >= 40) return;
+  const g = gapOn(carX, Math.round(laneVis));
+  if (!g || g.hit) return;
+  g.hit = true; v *= 0.35; sfx.thud();
+  restartAnim(carWrap, "drop", "wobble", "spin");
+  startShake(1);
+}
 
 /* a sprite: an outer .sprite wrapper the projector moves/scales (anchor = its 0,0),
    holding the .prop element whose own transforms/animations stay free for gags */
@@ -7012,7 +7050,7 @@ function addProp(type, x, lane, h, svg, xOff, yOff) {
 function clearWorld() {
   for (const p of props) p.wrap.remove();
   for (const p of scenery) p.wrap.remove();
-  props = []; scenery = []; RAMPS = []; CHOMPS = []; totalStars = 0;
+  props = []; scenery = []; RAMPS = []; GAPS = []; CHOMPS = []; totalStars = 0;
 }
 
 /* ---- BEAT SEQUENCER: a level is a seeded sequence of formations ----
@@ -7200,10 +7238,19 @@ function flightH(w, dx) {
   const t = Math.max(0, dx - 250) / 650, g = worldMeta(w).gravity;
   return Math.max(LOW_STAR_H, Math.round(95 + 0.9 * 650 * t - 0.5 * g * t * t + LOW_STAR_H));
 }
-function rampAt(b, x, lane) {
+/* ramp widths (13.16): a third of the decks span one lane, a third two, a third the whole road, the level's rng
+   deciding and the star's lane always on the deck; levels 1-2 keep every deck full so the first jumps are a sure thing */
+function rampLanes(b, lane) {
+  const r = b.n <= 2 ? 1 : b.rng();
+  if (r < 1 / 3) return [lane, lane];
+  if (r < 2 / 3) { const l0 = lane === 2 || (lane === 1 && b.rng() < 0.5) ? lane - 1 : lane; return [l0, l0 + 1]; }
+  return [0, 2];
+}
+function rampAt(b, x, lane, lanes) {
   const rx = x + 200;
-  RAMPS.push({ x: rx, w: 250, h: 95, tail: rampTail(b.w) });
   if (lane == null) lane = Math.floor(b.rng() * 3);
+  const [l0, l1] = lanes || rampLanes(b, lane);
+  RAMPS.push({ x: rx, w: 250, h: 95, tail: rampTail(b.w), l0, l1 });
   addProp("star", rx + 460, lane, b.w === 8 ? flightH(8, 460) : HIGH_STAR_H, starSVG, -32, -32); totalStars++;
   b.last = lane;
   return { rx, lane };
@@ -7224,8 +7271,8 @@ function arcH(kind, w, dx) {
   const t = Math.max(0, dx - kind.w) / 650, g = worldMeta(w).gravity;
   return Math.max(LOW_STAR_H, Math.round(kind.h + 650 * kind.kick * t - 0.5 * g * t * t + LOW_STAR_H));
 }
-function specialRamp(b, rx, kind) {
-  const rp = { x: rx, ...kind, tail: kindTail(kind, b.w) };
+function specialRamp(b, rx, kind, lanes) {
+  const rp = { x: rx, ...kind, tail: kindTail(kind, b.w), l0: lanes[0], l1: lanes[1] };
   RAMPS.push(rp);
   return rx + rp.w + rp.tail;   /* where the ground is safe again */
 }
@@ -7257,21 +7304,53 @@ defBeat("rampShower", "ramp", 10, (b, x) => {   /* land into a burst of stars */
   return sx + 300;
 });
 defBeat("megaRamp", "ramp", 6, (b, x) => {   /* the big one: a tall red kicker, a long flight along a rainbow of stars */
-  const lane = b.pickLane(x), K = RAMP_KIND.mega, rx = x + 200;
+  const lane = b.pickLane(x), K = RAMP_KIND.mega, rx = x + 200, lanes = rampLanes(b, lane);
   b.star(x + 20, lane); b.star(x + 140, lane);
-  const end = specialRamp(b, rx, K), fly = end - rx - 150;
+  const end = specialRamp(b, rx, K, lanes), fly = end - rx - 150;
   for (const f of [0.38, 0.52, 0.66, 0.8]) b.high(rx + K.w + (fly - K.w) * f, lane, arcH(K, b.w, K.w + (fly - K.w) * f));
   return end;
 });
 defBeat("hopChain", "ramp", 3, (b, x) => {   /* three little kickers in a row: hop, hop, hop, a star over each */
-  const lane = b.pickLane(x), K = RAMP_KIND.hop;
+  const lane = b.pickLane(x), K = RAMP_KIND.hop, lanes = rampLanes(b, lane);
   let rx = x + 200;
   for (let i = 0; i < 3; i++) {
-    const end = specialRamp(b, rx, K), apex = K.w + 650 * K.kick / worldMeta(b.w).gravity * 650;
+    const end = specialRamp(b, rx, K, lanes), apex = K.w + 650 * K.kick / worldMeta(b.w).gravity * 650;
     b.high(rx + apex, lane, arcH(K, b.w, apex));
     rx = end + 60;
   }
   return rx - 60;
+});
+
+/* ---- gap beats (13.16): the road ends for GAP_W units. A one- or two-lane gap is steered around, stars showing
+   the way through the open lane; a full-width gap comes 120 past the lip of a full-width ramp: a launch at three
+   quarters of top speed or more clears it (a slower one drops in and bounces out, no worse than that), and from
+   the run-up the far half of the hole shows over the lip (a lip hides h * (z + CAM_D) / CAM_H of road past it). No gap in the first 600 or last 700 units, in a chomper or a ramp
+   zone, within 300 of a blocker, or within 900 of another gap, and three a level at most ---- */
+const blockerNear = (gx, pad) => props.some(p => BLOCKER_T(p.type) && p.x > gx - pad && p.x < gx + GAP_W + pad);
+const starUnder = (gx, l0, l1) => props.some(p => p.type === "star" && p.h === LOW_STAR_H && p.lane >= l0 && p.lane <= l1 && p.x >= gx - 40 && p.x <= gx + GAP_W + 40);
+function gapFits(gx, l0, l1) {
+  return GAPS.length < 3 && gx >= 600 && gx + GAP_W <= LEVEL_LEN - 700 && !inChomp(gx, 150) && !inChomp(gx + GAP_W, 150) && !inRampZone(gx) && !inRampZone(gx + GAP_W)
+    && !GAPS.some(g => Math.abs(g.x - gx) < 900) && !blockerNear(gx, 300) && !starUnder(gx, l0, l1);   /* a star already there would lure the kid in */
+}
+defBeat("gap", "gap", 15, (b, x) => {   /* a hole in one or two lanes: steer round it along the stars */
+  const lane = b.pickLane(x + 160), two = b.rng() < 0.45;
+  const l0 = two ? (lane === 2 || (lane === 1 && b.rng() < 0.5) ? lane - 1 : lane) : lane, l1 = two ? l0 + 1 : l0;
+  let gx = Math.round(x + 160);
+  while ((blockerNear(gx, 300) || starUnder(gx, l0, l1)) && gx < x + 700) gx += 40;   /* the formation before leaves its last blockers and stars behind: roll on past them */
+  if (!gapFits(gx, l0, l1)) return false;
+  GAPS.push({ x: gx, w: GAP_W, l0, l1 });
+  const open = l0 > 0 && l1 < 2 ? (b.last !== 1 ? b.last : b.rng() < 0.5 ? 0 : 2) : l0 > 0 ? l0 - 1 : l1 + 1;   /* the way round */
+  b.star(gx - 150, open); b.star(gx + GAP_W / 2, open); b.star(gx + GAP_W + 150, open);
+  return gx + GAP_W + 150;
+});
+const RAMP_GAP_AT = 250 + 120;   /* the hole starts this far past a full-width ramp's start (120 past its lip) */
+defBeat("rampGap", "ramp", 15, (b, x) => {   /* the road ends past the lip: a full-width deck, a full-width hole, the jump clears it */
+  const gx = x + 200 + RAMP_GAP_AT;
+  if (!gapFits(gx, 0, 2)) return false;   /* checked before its own ramp goes down: the ramp zone test is against the others */
+  const r = rampAt(b, x, null, [0, 2]);
+  GAPS.push({ x: gx, w: GAP_W, l0: 0, l1: 2 });
+  moonArc(b, r);
+  return r.rx + flightLen(b.w);
 });
 
 /* ---- world beats (worlds 5-8 bring their own cast) ---- */
@@ -7370,7 +7449,6 @@ function buildLevel(n) {
   const finale = n % WORLD_SIZE === 0;
   buildCourse(n, mulberry32(n * 104729 + 7), LEVEL_LEN);
   const endX = LEVEL_LEN - 600;
-  const inRampZone = x => RAMPS.some(rp => x > rp.x - 200 && x < rp.x + rp.w + (rp.tail || 420));
   const hardLanesNear = x => { const s = new Set(); for (const p of props) if (HARD_T(p.type) && Math.abs(p.x - x) < 240) s.add(p.lane); return s; };
   const laneFree = (x, lane, gap) => !props.some(p => p.lane === lane && p.type !== "finish" && Math.abs(p.x - x) < gap);
 
@@ -7387,13 +7465,13 @@ function buildLevel(n) {
     /* a ground item; refuses ramp zones, 3-lane walls and stacking on another prop */
     put(t, x, lane) {
       x = Math.round(x); lane = Math.max(0, Math.min(2, lane));
-      if (x < 300 || x > endX || inRampZone(x) || inChomp(x, 150) || !laneFree(x, lane, 100)) return false;   /* a chomper carries its trail only */
+      if (x < 300 || x > endX || inRampZone(x) || inChomp(x, 150) || inGapZone(x, 300) || !laneFree(x, lane, 100)) return false;   /* a chomper carries its trail only; nothing within 300 of a gap */
       if (HARD_T(t)) { const s = hardLanesNear(x); s.add(lane); if (s.size >= 3) return false; }
       addItem(t, x, lane); return true;
     },
     star(x, lane) {
       x = Math.round(x); lane = Math.max(0, Math.min(2, lane));
-      if (x < 300 || x > endX || inRampZone(x) || chompClear(x) || chompOff(x, lane) || !laneFree(x, lane, 70)) return false;
+      if (x < 300 || x > endX || inRampZone(x) || chompClear(x) || chompOff(x, lane) || gapOn(x, lane) || !laneFree(x, lane, 70)) return false;   /* never a star over a hole */
       addItem("star", x, lane); this.last = lane; return true;
     },
     high(x, lane, h) { if (x > LEVEL_LEN - 200 || chompClear(x) || chompOff(x, lane) || !laneFree(x, lane, 70)) return false; addProp("star", Math.round(x), lane, h || HIGH_STAR_H, starSVG, -32, -32); totalStars++; this.last = lane; return true; },
@@ -7440,6 +7518,11 @@ function buildLevel(n) {
     const wb = Object.values(BEATS).filter(bt => bt.kind === "world" + w);
     for (const bt of wb) if (!rhythm.includes(bt)) rhythm.splice(1 + Math.floor(rng() * (rhythm.length - 1)), 0, bt);
   }
+  /* gaps (13.16): from level 15 the road itself opens up, on cue like the ramps: one hole a level in the first half,
+     a second in the back half on some levels past 40, each at a seeded target the loop reaches between formations */
+  const gapXs = [];
+  if (n >= 15) { gapXs.push(LEVEL_LEN * (0.2 + rng() * 0.3)); if (n > 40 && rng() < 0.4) gapXs.push(LEVEL_LEN * (0.55 + rng() * 0.25)); }
+  let gi = 0, gapTries = 0;
   /* ramps: 1-4 (one more on a finale), on cue at evenly spread targets */
   let nRamps = 1 + (n > 8 ? 1 : 0) + (n > 20 ? 1 : 0) + (n > 50 ? 1 : 0) + (finale && n > 20 ? 1 : 0);
   if (w === 8) nRamps = Math.min(nRamps, finale ? 4 : 3);   /* moon flights are long: fewer, bigger jumps */
@@ -7451,7 +7534,10 @@ function buildLevel(n) {
   const run = bt => {
     /* straight off a landing into a wall of barrels is a trap: obstacle formations get a run-up after a ramp */
     if (beats.length && (BEATS[beats[beats.length - 1]] || {}).kind === "ramp" && bt.kind !== "star" && bt.kind !== "rhythm") x += 350;
-    beats.push(bt.name); x = bt.fn(b, x) + gap + Math.floor(rng() * 120);
+    beats.push(bt.name);
+    const nx = bt.fn(b, x);
+    if (nx === false) { beats.pop(); return; }   /* a beat that found no room (a gap beat) leaves no trace */
+    x = nx + gap + Math.floor(rng() * 120);
     for (const t of CHOMPS) if (!t.seen && t.x0 < x) { t.seen = true; beats.push("chomper"); }   /* a long formation ran right through one */
   };
   /* a ramp beat is measured by what it actually placed: one whose ramps (run-up to touchdown) would cross a
@@ -7459,17 +7545,19 @@ function buildLevel(n) {
      Returns null when it stays, else { twist } (the chomper it would cross) or { long: true } */
   const lastIsRamp = () => (BEATS[beats[beats.length - 1]] || {}).kind === "ramp";
   const tryRamp = bt => {
-    const nR = RAMPS.length, nP = props.length, nB = beats.length, x0b = x, last0 = b.last, seen0 = CHOMPS.map(t => t.seen);
+    const nR = RAMPS.length, nG = GAPS.length, nP = props.length, nB = beats.length, x0b = x, last0 = b.last, seen0 = CHOMPS.map(t => t.seen);
     run(bt);
+    if (beats.length === nB) return { skip: true };   /* the beat found no room and placed nothing */
     const mine = RAMPS.slice(nR);
     const twist = CHOMPS.find(t => mine.some(rp => rp.x - 250 < t.x1 + 150 && rp.x + rp.w + rp.tail > t.x0 - 150));
     const long = mine.some(rp => rp.x + rp.w + rp.tail > landLimit);
-    if (!twist && !long) return null;
-    RAMPS.length = nR;
+    const overGap = mine.some(rp => GAPS.slice(0, nG).some(g => g.x + g.w > rp.x - 200 && g.x < rp.x + rp.w + rp.tail));   /* a hole laid earlier under its deck or flight (13.16) */
+    if (!twist && !long && !overGap) return null;
+    RAMPS.length = nR; GAPS.length = nG;
     for (const p of props.splice(nP)) { p.wrap.remove(); if (p.type === "star") totalStars--; }
     beats.length = nB; x = x0b; b.last = last0;
     CHOMPS.forEach((t, i) => { t.seen = seen0[i]; });
-    return twist ? { twist } : { long: true };
+    return twist ? { twist } : long ? { long: true } : { gap: true };
   };
   let noRoom = false;   /* a standard ramp no longer fits before the flags: the fallback below has the last word */
   if (rhythm[0].kind !== "star") run(BEATS.trailStraight);   /* every road opens with stars, never a wall */
@@ -7489,12 +7577,18 @@ function buildLevel(n) {
     /* a formation that would start within 700 of a chomper waits until after it (the gap is the run-up) */
     const tw = CHOMPS.find(t => !t.seen && t.x1 > x && t.x0 < x + 700);
     if (tw) { tw.seen = true; beats.push("chomper"); x = Math.max(x, tw.x1 + 200); continue; }
+    if (gi < gapXs.length && x >= gapXs[gi] - 300) {   /* a gap on cue; one that finds no room tries again a formation later, three times at most */
+      const nB = beats.length;
+      run(BEATS.gap);
+      if (beats.length > nB || ++gapTries >= 3) { gi++; gapTries = 0; }
+      if (beats.length > nB) continue;
+    }
     const lastChance = x + 200 + flightLen(w) + 700 > loopEnd;   /* one more formation and the ramp wouldn't fit */
     if (ri < nRamps && !noRoom && (x >= rampXs[ri] - 450 || lastChance)) {   /* a different ramp beat from the last one */
       let rb = pick(rampPool); if (rampPool.length > 1 && beats[beats.length - 1] === rb.name) rb = rampPool[(rampPool.indexOf(rb) + 1) % rampPool.length];
       let res = tryRamp(rb);
-      if (res && res.long && rb !== BEATS.ramp) res = tryRamp(BEATS.ramp);   /* a mega ramp or a hop chain too long for what's left: a plain ramp */
-      if (res && res.long) { noRoom = true; continue; }
+      if (res && (res.long || res.skip) && rb !== BEATS.ramp) res = tryRamp(BEATS.ramp);   /* a mega ramp or a hop chain too long for what's left, or a ramp gap with no room: a plain ramp */
+      if (res && (res.long || res.gap)) { noRoom = true; continue; }
       if (res) {   /* never a jump inside a chomper: fly after it */
         const tw = res.twist;
         x = Math.max(x, tw.x1 + 300); if (!tw.seen) { tw.seen = true; beats.push("chomper"); }
@@ -7507,32 +7601,47 @@ function buildLevel(n) {
   /* never a level without its jump — but land well before the flags, so the gantry never
      looks planted on the ramp lip and the car is on its wheels at the finish */
   /* a forced ramp never lands on another ramp's run-up or flight */
-  const rampClash = rx => RAMPS.some(rp => rx - 250 < rp.x + rp.w + (rp.tail || 420) && rx + 250 + rampTail(w) > rp.x - 250);
+  const rampClash = rx => RAMPS.some(rp => rx - 250 < rp.x + rp.w + (rp.tail || 420) && rx + 250 + rampTail(w) > rp.x - 250)
+    || GAPS.some(g => rx - 200 < g.x + g.w && rx + 250 + rampTail(w) > g.x);   /* or over a hole (13.16) */
   while (ri < nRamps) {
     x = Math.min(x, loopEnd - 200 - flightLen(w) - (lastIsRamp() ? 350 : 0));   /* run() adds a 350 run-up after a ramp */
     if (RAMPS.length && rampClash(x + (lastIsRamp() ? 350 : 0) + 200)) break;   /* enough jumps already: skip the one that won't fit */
-    const c = tryRamp(BEATS.ramp);
+    let c = tryRamp(BEATS.ramp);
+    if (c && c.gap && !RAMPS.length) {   /* the only jump beats a hole: the gap goes, the ramp stays (its boards are not laid yet) */
+      const rx = x + (lastIsRamp() ? 350 : 0) + 200;
+      GAPS = GAPS.filter(g => !(rx - 200 < g.x + g.w && rx + 250 + rampTail(w) > g.x));
+      c = tryRamp(BEATS.ramp);
+    }
     if (c && RAMPS.length) break;
     if (c && c.twist) {   /* the only jump: before the chomper if it fits there, else after it */
       const before = c.twist.x0 - 450 - flightLen(w);
       x = before >= 1000 ? before : Math.min(c.twist.x1 + 300, loopEnd - 200 - flightLen(w));
+      const rx = x + 200;
+      GAPS = GAPS.filter(g => !(rx - 200 < g.x + g.w && rx + 250 + rampTail(w) > g.x));   /* the only jump beats a hole here too (13.16) */
       run(BEATS.ramp);
     }
     ri++;
+  }
+  /* a level that lost its hole to the forced jump tries again on the road left past it, a few spots along */
+  for (let k = 0; k < 6 && gapXs.length && !GAPS.length; k++) {
+    const nB = beats.length;
+    run(BEATS.gap);
+    if (beats.length === nB) { const t = CHOMPS.find(t => x + 160 > t.x0 - 150 && x + 160 < t.x1 + 150); x = t ? t.x1 + 160 : x + 500; }   /* past the chomper it sat in, or 500 on */
   }
   if (finale) { x = Math.max(x, showerX); run(BEATS.starShower); }   /* grand finale: a star shower right before the flags */
 
   /* ---- guarantees: ingredients, budgets, and nothing where the car flies ---- */
   const removeProp = p => { p.wrap.remove(); props.splice(props.indexOf(p), 1); if (p.type === "star") totalStars--; };
-  for (const p of props.slice()) if (BLOCKER_T(p.type) && (inRampZone(p.x) || inChomp(p.x, 150))) removeProp(p);
+  for (const p of props.slice()) if (BLOCKER_T(p.type) && (inRampZone(p.x) || inChomp(p.x, 150) || inGapZone(p.x, 300))) removeProp(p);
   const count = f => props.filter(f).length;
   /* drop one item into a free pocket: clear lane, no other ground item right beside it */
   const spotFor = (t, want) => {
     for (let tries = 0; tries < 160; tries++) {
       const sx = 1100 + Math.floor(rng() * (endX - 1100)), lane = want == null ? Math.floor(rng() * 3) : want;
-      if (inRampZone(sx) || !laneFree(sx, lane, 130) || (t !== "star" && inChomp(sx, 150)) || chompClear(sx) || chompOff(sx, lane)) continue;
+      if (inRampZone(sx) || !laneFree(sx, lane, 130) || (t !== "star" && (inChomp(sx, 150) || inGapZone(sx, 300))) || chompClear(sx) || chompOff(sx, lane) || gapOn(sx, lane)) continue;
       if (props.some(p => BLOCKER_T(p.type) && Math.abs(p.x - sx) < 110)) continue;
       if (HARD_T(t) && RAMPS.some(rp => rp.x > sx && rp.x < sx + (tries < 120 ? 700 : 300))) continue;   /* the run-up to a ramp stays clean (its last 300 always) */
+      if (HARD_T(t) && tries < 120 && RAMPS.some(rp => sx > rp.x + rp.w + (rp.tail || 420) && sx < rp.x + rp.w + (rp.tail || 420) + 350)) continue;   /* and the 350 past a landing: straight off a touchdown into a barrel is a trap (13.16) */
       /* a stray barrel inside a star trail is a trap: the first 80 tries stay clear of any star */
       /* a stray barrel inside a star trail is a trap: stay clear of stars, and when the road is
          too busy for that, at least never in the lane a trail is running through */
@@ -8019,6 +8128,18 @@ const inArchZone = x => RAMPS.some(rp => x > rp.x - 300 && x < rp.x + rp.w + Mat
 const chevronSVG = right => `<svg width="96" height="150" viewBox="0 0 96 150"><rect x="42" y="70" width="12" height="80" rx="4" fill="#6c757d"/>` +
   `<rect x="4" y="4" width="88" height="76" rx="12" fill="#e63946" stroke="#f1faee" stroke-width="6"/>` +
   `<g transform="${right ? "" : "translate(96,0) scale(-1,1)"}"><path d="M22 20 L44 42 L22 64 M48 20 L70 42 L48 64" stroke="#f1faee" stroke-width="11" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`;
+/* gap boards (13.16): an amber and black hazard board on each verge at a gap's near rim, tall enough to show over
+   a ramp lip that hides the hole itself */
+const gapBoardSVG = `<svg width="96" height="150" viewBox="0 0 96 150"><rect x="42" y="70" width="12" height="80" rx="4" fill="#6c757d"/>` +
+  `<rect x="4" y="4" width="88" height="76" rx="12" fill="#ffd166" stroke="#f1faee" stroke-width="6"/>` +
+  `<path d="M18 62 L50 20 M42 68 L78 22 M66 70 L86 44" stroke="#1d1a1f" stroke-width="12" stroke-linecap="round"/></svg>`;
+function addGapBoards() {
+  for (const g of GAPS) for (const side of [-1, 1]) {
+    const p = makeSprite("scenery", g.x - 30, side * (ROAD_HALF + 70), 0, gapBoardSVG, side < 0 ? -96 : 0, -150, 1.1, 96);
+    p.gapBoard = true;
+    scenery.push(p);
+  }
+}
 function addChevrons() {
   const hard = COURSE.filter(c => c.hard).sort((a, b) => a.x0 - b.x0);
   hard.forEach((c, i) => {
@@ -8086,6 +8207,7 @@ function buildScenery(len, world = 1, seed = 0) {
   }
   freeSceneryX = x; freeArchX = x;
   addChevrons();
+  addGapBoards();
   /* night sky pinpricks, built once */
   const sky = document.getElementById("skyStars");
   if (!sky.childElementCount) {
@@ -8329,7 +8451,8 @@ function chompStart(t, now) {
   t.p.el.classList.remove("open"); t.p.el.classList.add("bite");
   chompView.classList.add("on");
   requestAnimationFrame(() => chompView.classList.add("shut"));
-  v = 0; airborne = false; jumpY = 0; vy = 0;
+  v = 0; airborne = false; jumpY = 0; vy = 0; chompFling = 0;
+  applyDamage(CHOMP_DMG); shakeCar(CHOMP_DMG);   /* a bite is a crash and a half (its own hit-stop is shorter: set the hold after it) */
   freezeUntil = now + CHOMP_HOLD;
   gagTimer(() => { chompView.classList.add("chew"); sfx.munch(); }, 260);
   gagTimer(() => { sfx.munch(); chompDrop(t); }, 520);
@@ -8351,8 +8474,11 @@ function chompSpit(t) {
   t.p.el.classList.remove("bite"); t.p.el.classList.add("spit");
   gagTimer(() => t.p.el.classList.remove("spit"), 600);
   sfx.spit();
-  v = Math.max(v, 560);
-  airborne = true; jumpY = 70; vy = 470 * springK();   /* a high arc that lands past the spat stars */
+  /* spat out the way the car came: a high backward arc that lands behind the spat stars, so the kid drives back
+     up past them; the beast is full and dozes off (lids down, jaws at rest), and the road through it is open */
+  v = 0; chompFling = CHOMP_FLING;
+  airborne = true; jumpY = 70; vy = 470 * springK();
+  t.p.el.classList.add("full");
   buddyReact("duck");
   chomp = null;
 }
@@ -8454,24 +8580,52 @@ function drawRoad(carX) {
      covers most of whichever wall faces away, so once the road is offset the face toward the
      camera is the one that shows), then the sloped deck up to the lip with its chevrons. All of it
      is clipped to the crest in front. */
+  /* gaps (13.16): a hole in the tarmac across the lanes it spans, a hazard-striped rim round it (the rumble tones
+     alternating in 60-unit cells), the far wall catching a little light so the hole reads as deep */
+  for (const g of GAPS) {
+    const z0 = g.x - carX, z1 = z0 + g.w;
+    if (z1 < nearZ || z0 > DRAW_FAR) continue;
+    const L0 = laneX(g.l0) - LANE_W / 2, L1 = laneX(g.l1) + LANE_W / 2, zz0 = Math.max(nearZ, z0), RIM = 22;
+    occClip(c, zz0, () => {
+      quad(c, zz0, z1, L0, L1, "#1d1a1f");
+      if (z1 - 36 > zz0) quad(c, z1 - 36, z1, L0 + 12, L1 - 12, "#2d2833");
+      const cells = Math.round((L1 - L0) / 60), cw = (L1 - L0) / cells, rows = Math.round(g.w / 55), rh = g.w / rows;
+      for (let tone = 0; tone < 2; tone++) {
+        c.fillStyle = tone ? P.rumB : P.rumA;
+        c.beginPath();
+        for (let i = tone; i < cells; i += 2) {   /* near and far rims */
+          if (z0 > zz0) qpath(c, Math.max(zz0, z0 - RIM), z0, L0 + i * cw, L0 + (i + 1) * cw);
+          qpath(c, z1, z1 + RIM, L0 + i * cw, L0 + (i + 1) * cw);
+        }
+        for (let i = tone; i < rows; i += 2) {   /* side rims */
+          const za = Math.max(zz0, z0 + i * rh), zb = z0 + (i + 1) * rh;
+          if (zb <= za) continue;
+          qpath(c, za, zb, L0 - RIM, L0); qpath(c, za, zb, L1, L1 + RIM);
+        }
+        c.fill();
+      }
+    });
+  }
   for (const rp of RAMPS) {
     const z0 = rp.x - carX, z1 = z0 + rp.w;
     if (z1 < nearZ || z0 > DRAW_FAR) continue;
     const zz0 = Math.max(nearZ, z0), hh0 = (zz0 - z0) / rp.w * rp.h, edge = rp.edge || "#b08968";
+    /* the deck spans the ramp's lanes (13.16): the whole road, two lanes or one */
+    const L0 = rp.l0 == null ? -ROAD_HALF : laneX(rp.l0) - LANE_W / 2, L1 = rp.l1 == null ? ROAD_HALF : laneX(rp.l1) + LANE_W / 2;
     occClip(c, zz0, () => {
       /* the lip hides the road for h * (z1 + CAM_D) / CAM_H past it; the shadow reaches a little beyond that */
-      quad(c, z1, z1 + rp.h * (z1 + CAM_D) / CAM_H + rp.h * 0.5 + 30, -ROAD_HALF, ROAD_HALF, "rgba(0,0,0,0.26)");
+      quad(c, z1, z1 + rp.h * (z1 + CAM_D) / CAM_H + rp.h * 0.5 + 30, L0, L1, "rgba(0,0,0,0.26)");
       c.fillStyle = shade(edge, -0.32);
       c.beginPath();
-      wallPath(c, zz0, z1, -ROAD_HALF - 26, -ROAD_HALF, hh0, rp.h);
-      wallPath(c, zz0, z1, ROAD_HALF + 26, ROAD_HALF, hh0, rp.h);
+      wallPath(c, zz0, z1, L0 - 26, L0, hh0, rp.h);
+      wallPath(c, zz0, z1, L1 + 26, L1, hh0, rp.h);
       c.fill();
-      quad(c, zz0, z1, -ROAD_HALF, ROAD_HALF, edge, hh0, rp.h);
-      quad(c, zz0, z1, -ROAD_HALF + 10, ROAD_HALF - 10, rp.deck || "#e9c46a", hh0, rp.h);
+      quad(c, zz0, z1, L0, L1, edge, hh0, rp.h);
+      quad(c, zz0, z1, L0 + 10, L1 - 10, rp.deck || "#e9c46a", hh0, rp.h);
       for (const f of [0.3, 0.6, 0.9]) {
         const za = z0 + rp.w * f - 14, zb = za + 14;
         if (za < zz0) continue;
-        quad(c, za, zb, -ROAD_HALF + 30, ROAD_HALF - 30, rp.chev || "#e76f51", rp.h * (za - z0) / rp.w, rp.h * (zb - z0) / rp.w);
+        quad(c, za, zb, L0 + 30, L1 - 30, rp.chev || "#e76f51", rp.h * (za - z0) / rp.w, rp.h * (zb - z0) / rp.w);
       }
     });
   }
@@ -8754,7 +8908,7 @@ function setCarView(q, ys = 0) {
 }
 function startDrive() {
   stopDrive();
-  pos = 0; v = 0; jumpY = 0; vy = 0; airborne = false; finished = false;
+  pos = 0; v = 0; jumpY = 0; vy = 0; airborne = false; finished = false; chompFling = 0; chomp = null;
   gasKey = false; brakeKey = false;
   targetLane = 1; laneVis = 1; carYaw = 0; runStars = 0; runDamage = 0; runTime = 0; idleT = 0; nearFinish = false;
   bodyTilt = 0; prevV = 0; freezeUntil = 0; starCombo = 0; lastStarT = 0; lastShownTime = -1;
@@ -9144,6 +9298,7 @@ const PROP_HIT = {
     /* forgiving magnet for small hands: near-lane counts, and close stars drift in.
        the magnet upgrade widens every window */
     const mag = progress.upgrades.magnet;
+    if (p.spat && chompFling) return;   /* a spat star is not caught on the way out of the mouth: drive back up for it */
     const near = Math.abs(laneVis - p.lane) <= 0.65 + mag * 0.15;
     const dy = p.h - LOW_STAR_H - jumpY;   /* star height vs. car body center */
     if (near && Math.abs(d) < 75 + mag * 20 && Math.abs(dy) < 125 + mag * 15) {
@@ -9354,6 +9509,7 @@ function tick(now) {
       v = Math.max(0, v - BRAKE * dt);
     } else if (gas) v = Math.min(vmaxEff(), v + ACCEL * dt);
     else v = Math.max(0, v - COAST * dt);
+    if (chompFling) { v = 0; pos += chompFling * dt; }   /* in the beast's throw: no gas until the tires are back down */
     pos += v * dt;
     burnUpkeep(v * dt, now);
   } else v = 0;
@@ -9414,6 +9570,7 @@ function tick(now) {
       const fall = -vy;   /* touchdown speed, px/s */
       jumpY = 0; airborne = false; sfx.clank();
       v *= LAND_SCRUB;   /* the tires bite on touchdown: a jump costs a little speed */
+      chompFling = 0;
       /* landing: suspension squash + a kick of dust; the body squats by the fall (recovers through bodyTilt's ease, ~120 ms)
          and the camera dips with it */
       const svg = carWrap.querySelector("svg");
@@ -9423,14 +9580,10 @@ function tick(now) {
       spawnDust();
     }
   } else {
-    const wasOn = jumpY > 0;
-    const onRamp = rampElev(carX);
-    jumpY = onRamp;
-    if (wasOn && onRamp === 0) {
-      const L = rampLaunch(rampBehind(carX), v);   /* each ramp kind kicks by its own numbers */
+    const L = rampRoll(carX);   /* on a deck in the car's lane; off its lip each ramp kind kicks by its own numbers */
+    if (L) {
       airborne = true; vy = L.vy * springK(); jumpY = L.y;
-      sfx.whee();                                   /* every launch gets its whee */
-      award("jump");
+      if (L.rp) { sfx.whee(); award("jump"); }   /* every launch gets its whee; a slide off a deck's side is just a drop */
     }
   }
 
@@ -9439,6 +9592,7 @@ function tick(now) {
     if (p.done) continue;
     PROP_HIT[p.type](p, carX - p.x);
   }
+  gapTick(carX);   /* the hazard pass: a hole under the car's lane (13.16) */
 
   /* wheels */
   wheelAngle = (wheelAngle + v * dt * 0.045) % 7;   /* tread bands are 7 apart */

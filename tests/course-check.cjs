@@ -4,7 +4,10 @@
    all three, the trail in the monster's lanes only, a car in another lane drives past unbitten; hard turns get chevron boards on their
    outside; roller levels run a train of big hills; mega ramps and hop chains launch by their own numbers
    through the one launch rule the fairness bots share; the chase-cam mixer drum turns with the road speed.
-   Reduced motion keeps the bite and drops the chew shake. */
+   Reduced motion keeps the bite and drops the chew shake.
+   13.16: ramp decks come in one-, two- and three-lane widths (a car beside a narrow deck drives past on the flat) and
+   the road has gaps: holes across one, two or all three lanes, the full-width one behind a full-width ramp whose
+   launch clears it, a drop into any of them a soft hit that never damages. */
 const pw = require('playwright-core');
 const os = require('os');
 const EXE = process.env.CHROMIUM || os.homedir() + '/Library/Caches/ms-playwright/chromium-1117/chrome-mac/Chromium.app/Contents/MacOS/Chromium';
@@ -54,8 +57,27 @@ function check(name, ok, detail) {
       const rampsApart = sorted.every((p, i) => !i || p.x >= sorted[i - 1].x + sorted[i - 1].w + (sorted[i - 1].tail || 420));
       const rampInTwist = RAMPS.some(rp => CHOMPS.some(t => rp.x - 250 < t.x1 + 150 && rp.x + rp.w + (rp.tail || 420) > t.x0 - 150));
       const flightFits = RAMPS.filter(r => r.kick).every(r => rampFlight(r, worldOf(n)) <= r.w + r.tail);
+      /* 13.16: lane widths and gaps */
+      const widths = RAMPS.map(r => r.l1 - r.l0 + 1);
+      const starOffDeck = RAMPS.some(r => props.some(p => p.type === 'star' && p.h > LOW_STAR_H && p.x > r.x + r.w && p.x < r.x + r.w + r.tail && (p.lane < r.l0 || p.lane > r.l1)));
+      const STD = { w: 250, h: 95, kick: 0.9 };
+      const gaps = GAPS.map(g => {
+        const full = g.l0 === 0 && g.l1 === 2;
+        const own = full ? RAMPS.find(r => r.l0 === 0 && r.l1 === 2 && !r.kick && r.x + r.w < g.x && g.x - r.x - r.w <= 200) : null;
+        return { x: g.x, w: g.w, l0: g.l0, l1: g.l1, full,
+          ramp: !!own, clears: !!own && own.x + rampFlight(STD, worldOf(n), 0.75 * VMAX) >= g.x + g.w,
+          inBounds: g.x >= 600 && g.x + g.w <= LEVEL_LEN - 700,
+          inChomp: inChomp(g.x, 150) || inChomp(g.x + g.w, 150),
+          inZone: RAMPS.some(r => r !== own && g.x + g.w > r.x - 200 && g.x < r.x + r.w + (r.tail || 420)),
+          blocker: props.some(p => BLOCKER_T(p.type) && p.x > g.x - 300 && p.x < g.x + g.w + 300),
+          star: props.some(p => p.type === 'star' && p.h === LOW_STAR_H && p.x >= g.x && p.x <= g.x + g.w && p.lane >= g.l0 && p.lane <= g.l1),
+          boards: scenery.filter(p => p.gapBoard && p.x === g.x - 30).length };
+      });
+      const gapsSorted = GAPS.slice().sort((a, b) => a.x - b.x);
+      const gapsApart = gapsSorted.every((g, i) => !i || g.x - gapsSorted[i - 1].x >= 900);
       out.push({ n, shape: (WORLD_ROAD[worldOf(n)] || WORLD_ROAD[8]).order[(n - 1) % 10], tw, hard: hard.length, chevOutside, chev: chev.length,
         bigHills: HILLS.filter(h => Math.abs(h.amp) >= 110).length, kinds, landClear, flightFits, rampInTwist, rampsApart, lastLand, len: LEVEL_LEN, beats: lastBeats.slice(),
+        widths, starOffDeck, gaps, gapsApart,
         archInTwist: scenery.some(p => !p.chevron && !p.chomper && p.lx === 0 && inChomp(p.x, 300)) });
     }
     return out;
@@ -122,6 +144,24 @@ function check(name, ok, detail) {
     scan.every(r => r.lastLand <= r.len - 600), scan.filter(r => r.lastLand > r.len - 600).map(r => `L${r.n}:${r.lastLand}/${r.len}`).join(' '));
   check('jumps: every landing zone is clear of blockers and every special flight fits its tail',
     scan.every(r => r.landClear && r.flightFits), scan.filter(r => !r.landClear || !r.flightFits).map(r => 'L' + r.n).join(','));
+  /* ---- 1b. 13.16: ramp widths and gaps across the 120 levels ---- */
+  const widths = scan.flatMap(r => r.widths), share = k => widths.filter(w => w === k).length / widths.length;
+  check('ramps (13.16): decks come in one-, two- and three-lane widths, each about a third of all ramps (levels 1-2 full width), every deck 1..3 lanes',
+    widths.every(w => w >= 1 && w <= 3) && [1, 2, 3].every(k => share(k) >= 0.22 && share(k) <= 0.45) && scan.slice(0, 2).every(r => r.widths.every(w => w === 3)),
+    [1, 2, 3].map(k => k + ':' + widths.filter(w => w === k).length).join(' ') + ' of ' + widths.length);
+  check('ramps (13.16): every high star over a ramp\'s flight sits in one of the deck\'s lanes', scan.every(r => !r.starOffDeck), scan.filter(r => r.starOffDeck).map(r => 'L' + r.n).join(','));
+  const gapLvls = scan.filter(r => r.gaps.length), allGaps = scan.flatMap(r => r.gaps);
+  check('gaps (13.16): none before level 15, one to three on every level from 15, holes of one, two and three lanes all appear, each its own beat',
+    scan.slice(0, 14).every(r => !r.gaps.length) && scan.slice(14).every(r => r.gaps.length >= 1 && r.gaps.length <= 3) &&
+      [1, 2, 3].every(k => allGaps.filter(g => g.l1 - g.l0 + 1 === k).length >= 20) &&
+      gapLvls.every(r => r.gaps.filter(g => !g.full).length <= r.beats.filter(b => b === 'gap').length && r.gaps.filter(g => g.full).length <= r.beats.filter(b => b === 'rampGap').length),
+    'levels ' + gapLvls.length + ', gaps ' + allGaps.length + ' (' + [1, 2, 3].map(k => k + ':' + allGaps.filter(g => g.l1 - g.l0 + 1 === k).length).join(' ') + '), first L' + (gapLvls[0] || {}).n);
+  check('gaps (13.16): never in the first 600 or last 700 units, in a chomper or a ramp zone, within 300 of a blocker or 900 of another gap, never under a low star, a hazard board on each verge',
+    allGaps.every(g => g.inBounds && !g.inChomp && !g.inZone && !g.blocker && !g.star && g.boards === 2) && scan.every(r => r.gapsApart),
+    scan.filter(r => !r.gapsApart || r.gaps.some(g => !g.inBounds || g.inChomp || g.inZone || g.blocker || g.star || g.boards !== 2)).map(r => 'L' + r.n + JSON.stringify(r.gaps.map(g => [g.inBounds, g.inChomp, g.inZone, g.blocker, g.star, g.boards]))).join(' '));
+  check('gaps (13.16): every full-width gap lies just past a full-width standard ramp whose launch at three quarters of top speed clears it',
+    allGaps.filter(g => g.full).length >= 20 && allGaps.filter(g => g.full).every(g => g.ramp && g.clears),
+    scan.filter(r => r.gaps.some(g => g.full && !(g.ramp && g.clears))).map(r => 'L' + r.n).join(',') || allGaps.filter(g => g.full).length + ' full-width gaps');
 
   /* ---- 2. the chomp numbers and the one launch rule ---- */
   const math = await page.evaluate(() => {
@@ -130,7 +170,7 @@ function check(name, ok, detail) {
     const ramp = rampLaunch({ x: 0, w: 250, h: 95 }, 700), mega = rampLaunch({ x: 0, ...RAMP_KIND.mega }, 700), hop = rampLaunch({ x: 0, ...RAMP_KIND.hop }, 700), none = rampLaunch(null, 700);
     return { len: CHOMP_LEN, mouth: CHOMP_MOUTH, drop: CHOMP_DROP, starX: CHOMP_STAR_X, ramp, mega, hop, none, megaFast, stdFast };
   });
-  check('chomp: the spat stars land past the mouth and inside the stretch, three of them at most', math.starX.length === math.drop && math.drop === 3 && math.starX.every((x, i) => x > math.mouth + 60 && x < math.len && (!i || x > math.starX[i - 1] + 100)), JSON.stringify(math));
+  check('chomp: the spat stars land before the mouth, inside the stretch, three of them at most', math.starX.length === math.drop && math.drop === 3 && math.starX.every((x, i) => x > 0 && x < math.mouth - 20 && (!i || x > math.starX[i - 1] + 100)), JSON.stringify(math));
   /* ---- 3. driving into a chomper (13.15): the jaws open on approach; at the mouth the stage goes into the mouth
      (#chompView shut), the car is held, the chew tosses up to three run stars onto the road ahead in the kid's lane,
      the spit launches the car over them, and driving on gets them straight back ---- */
@@ -169,27 +209,30 @@ function check(name, ok, detail) {
     const near = { open: t.p.el.classList.contains('open'), growl: window.__growl, on: chompView.classList.contains('on') };
     /* drive in at speed from just before the trail */
     pos = t.x0 - 100 - CAR_SCREEN_X; targetLane = t.l0; laneVis = t.l0; gasKey = true;
-    const t0 = performance.now(); let shut = null, held = null, dropped = null;
+    const t0 = performance.now(); let shut = null, held = null, dropped = null, flung = null; const dmg0 = progress.damage;
     while (performance.now() - t0 < 7000) {
       await new Promise(r => setTimeout(r, 40));
       if (!shut && chompView.classList.contains('shut')) shut = { pos, runStars, v, bite: !!chomp, display: getComputedStyle(chompView).display, hudOnTop: (() => { const r = hudStars.getBoundingClientRect(); const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!el && hudStars.contains(el); })() };
       if (shut && !held && chompView.classList.contains('chew')) held = { pos, moved: Math.abs(pos - shut.pos) };
-      if (shut && !dropped && props.some(p => p.spat)) dropped = { runStars, spat: props.filter(p => p.spat).map(p => [p.x - t.x0, p.lane, p.h]) };
+      if (shut && !dropped && props.some(p => p.spat)) dropped = { runStars, spat: props.filter(p => p.spat).map(p => [p.x - t.x0, p.lane, p.h]), damage: progress.damage - dmg0 };
+      if (dropped && !flung && airborne && chompFling < 0) flung = { pos, back: chompFling, air: airborne };
+      if (flung && !flung.landed && !airborne && !chompFling) flung.landed = { pos, backBy: flung.pos - pos };
       if (dropped && pos + CAR_SCREEN_X > t.x1 + 200) break;
     }
     gasKey = false;
     await new Promise(r => setTimeout(r, 300));
-    return { far, near, shut, held, dropped, lane: t.l0, after: { on: chompView.classList.contains('on'), runStars, spatLeft: props.filter(p => p.spat && !p.done).length, spit: window.__spit, ate: t.ate, open: t.p.el.classList.contains('open') } };
+    return { far, near, shut, held, dropped, flung, lane: t.l0, after: { full: t.p.el.classList.contains('full'), on: chompView.classList.contains('on'), runStars, spatLeft: props.filter(p => p.spat && !p.done).length, spit: window.__spit, ate: t.ate, open: t.p.el.classList.contains('open') } };
   });
   await page.evaluate(async () => { const t = CHOMPS[0]; t.ate = false; t.p.el.classList.remove('spit', 'bite'); pos = t.x0 + CHOMP_MOUTH - 700 - CAR_SCREEN_X; v = 0; await new Promise(r => setTimeout(r, 150)); });
   await page.screenshot({ path: SHOT + 'course-chomper.png' });
   check('chomper: the jaws open (with a growl) once the car is within 1100, not before; at the mouth the stage goes into the mouth under the HUD and the car is held still through the chew',
     !bite.far.open && bite.far.growl === 0 && bite.near.open && bite.near.growl === 1 && !bite.near.on && !!bite.shut && bite.shut.bite && bite.shut.v === 0 && bite.shut.display !== 'none' && bite.shut.hudOnTop && !!bite.held && bite.held.moved < 3,
     JSON.stringify({ far: bite.far, near: bite.near, shut: bite.shut, held: bite.held }));
-  check('chomper: the chew tosses min(3, run stars) onto the road ahead in the kid\'s lane, the spit sends the car flying out, and driving on gets every star back with the jaws at rest',
-    !!bite.dropped && bite.dropped.spat.length === Math.min(3, bite.shut.runStars) && bite.dropped.spat.length >= 1 && bite.dropped.runStars === bite.shut.runStars - bite.dropped.spat.length
-      && bite.dropped.spat.every(([x, lane]) => x > math.mouth && x < math.len && lane === bite.lane) && bite.after.spit === 1 && bite.after.spatLeft === 0 && bite.after.runStars >= bite.shut.runStars && !bite.after.on && bite.after.ate && !bite.after.open,
-    JSON.stringify({ shut: bite.shut, dropped: bite.dropped, after: bite.after }));
+  check('chomper: the bite does 3 damage; the chew tosses min(3, run stars) back onto the road the car came up, in its lane; the spit throws the car backwards through the air and it lands well behind; the beast dozes off and driving back up gets every star',
+    !!bite.dropped && bite.dropped.damage === 3 && bite.dropped.spat.length === Math.min(3, bite.shut.runStars) && bite.dropped.spat.length >= 1 && bite.dropped.runStars === bite.shut.runStars - bite.dropped.spat.length
+      && bite.dropped.spat.every(([x, lane]) => x > 0 && x < math.mouth && lane === bite.lane) && !!bite.flung && bite.flung.back < 0 && !!bite.flung.landed && bite.flung.landed.backBy > 250
+      && bite.after.spit === 1 && bite.after.spatLeft === 0 && bite.after.runStars >= bite.shut.runStars && !bite.after.on && bite.after.ate && bite.after.full && !bite.after.open,
+    JSON.stringify({ shut: bite.shut, dropped: bite.dropped, flung: bite.flung, after: bite.after }));
 
   /* ---- 4. hard turn: squeal at speed ---- */
   const hardTurn = await page.evaluate(async () => {
@@ -226,6 +269,43 @@ function check(name, ok, detail) {
   });
   check('mega ramp: a real launch goes much higher than a standard ramp (> 250) and lands inside its clear zone',
     mega.flew && mega.top > 250 && mega.landX > mega.lip && mega.landX <= mega.end, JSON.stringify(mega));
+
+  /* ---- 5b. 13.16: lane-wide decks and gaps in the real physics code ---- */
+  const lanes = await page.evaluate(async () => {
+    let n = 0, rp = null;
+    for (let k = 3; k <= 60 && !rp; k++) { buildLevel(k); rp = RAMPS.find(r => r.l0 === r.l1 && !r.kick); if (rp) n = k; }
+    drive(n);
+    await new Promise(r => setTimeout(r, 200));
+    const roll = lane => {   /* the bots' own loop: rampRoll each frame from 200 before the deck to well past the lip */
+      pos = rp.x - 200 - CAR_SCREEN_X; v = 650; targetLane = lane; laneVis = lane; airborne = false; jumpY = 0;
+      let launched = false, top = 0, onDeck = 0; const dt = 1 / 60;
+      for (let i = 0; i < 80; i++) {
+        pos += v * dt; const carX = pos + CAR_SCREEN_X;
+        if (airborne) { vy -= gravityNow() * dt; jumpY += vy * dt; if (jumpY <= 0) { jumpY = 0; airborne = false; } top = Math.max(top, jumpY); }
+        else { const L = rampRoll(carX); if (jumpY > 0) onDeck++; if (L) { airborne = true; vy = L.vy; jumpY = L.y; launched = launched || !!L.rp; } }
+      }
+      return { launched, top: Math.round(top), onDeck };
+    };
+    const on = roll(rp.l0), off = roll(rp.l0 === 1 ? 0 : 1);
+    /* a gap: drive into a one-lane hole in its lane, then past it in the open lane */
+    let g = null, gn = 0;
+    for (let k = 15; k <= 60 && !g; k++) { buildLevel(k); g = GAPS.find(q => q.l0 === q.l1); if (g) gn = k; }
+    drive(gn); g = GAPS.find(q => q.l0 === q.l1); progress.damage = 0; runStars = 5;   /* drive() rebuilds the level: take the live gap */
+    const into = lane => {
+      pos = g.x - 120 - CAR_SCREEN_X; v = 600; targetLane = lane; laneVis = lane; airborne = false; jumpY = 0; g.hit = false;
+      carWrap.classList.remove('drop');
+      const dt = 1 / 60, v0 = v;
+      for (let i = 0; i < 60; i++) { pos += v * dt; gapTick(pos + CAR_SCREEN_X); }
+      return { hit: g.hit, v0, v1: Math.round(v), drop: carWrap.classList.contains('drop') };
+    };
+    const inHole = into(g.l0), beside = into(g.l0 === 1 ? 0 : 1);
+    return { n, lane: rp.l0, on, off, gn, inHole, beside, damage: progress.damage, stars: runStars };
+  });
+  check('ramps (13.16, physics): a car on a single-lane deck climbs it and launches off the lip; one in the lane beside it rolls past on the flat',
+    lanes.on.launched && lanes.on.top > 100 && lanes.on.onDeck > 5 && !lanes.off.launched && lanes.off.top === 0 && lanes.off.onDeck === 0, JSON.stringify(lanes));
+  check('gaps (13.16, physics): driving into a hole in its lane is a soft hit: the car drops and keeps about a third of its speed, no damage, no stars lost; the lane beside it is untouched',
+    lanes.inHole.hit && lanes.inHole.drop && lanes.inHole.v1 <= Math.round(lanes.inHole.v0 * 0.35) + 1 && lanes.inHole.v1 > 100 && !lanes.beside.hit && lanes.beside.v1 === lanes.beside.v0 && lanes.damage === 0 && lanes.stars === 5,
+    JSON.stringify(lanes));
 
   /* ---- 6. T2.3: the mixer drum turns with the road speed ---- */
   const drum = await page.evaluate(async () => {

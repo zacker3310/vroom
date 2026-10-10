@@ -274,6 +274,15 @@
 
 - [x] T38.2: Chompers in three sizes. Every `CHOMPS` entry carries `l0..l1`, the lanes it covers: a small monster in a single lane, a middling one over two, the giant across all three (`chompLanes`, dealt from a seed off the level number so the roads never moved, never the same size twice on one level; 11/10/12 across the 120 levels). `addChomper` scales the one piece of art by the sprite's `k` (`CHOMP_K`) and centres it on its lanes; only the full one is an arch. The star trail runs in the monster's lanes only (alternating under two, a single file under one) after the opening run's stars in the run-in make way, and `chompOff` keeps other stars out of the run-in's other lanes. `chompTick` bites only with the car's lane inside `l0..l1`; in another lane the car drives past and `chompMiss` snaps the jaws shut behind it with a munch, no hold, no stars. course-check 20 -> 23 (size mix, trail lanes and placement, the drive-past), battery 453 -> 456. [SPID]
 
+## v13.18.0 (2026-10-10, user-directed: "I need a variety": set pieces in single-, two- and three-lane sizes, plus gaps in the track)
+
+- [x] T38.3: Ramps in three widths. Every ramp carries `l0..l1` (`rampLanes`: a third one lane, a third two, a third the whole road, seeded per level, levels 1-2 full); the deck, walls, chevrons and lip shadow draw over those lanes only; `rampOn` / `rampElev` / `rampBehind` read the car's lane so a car beside a narrow deck drives past on the flat and only one on it climbs and launches; `rampRoll` is the one frame step the loop and the fairness bots share (a lane change off the side of a deck is a plain drop, no kick); the flight star and the mega / hop arcs sit in the deck's lanes. [SPID]
+- [x] T38.4: Track gaps. `GAPS` of `{x, w: 220, l0, l1}`: a dark hole with a hazard rim in the rumble tones on the road canvas, a board on each verge. The `gap` beat (one or two lanes, stars round it) goes in on cue from level 15 (a second past 40), the `rampGap` ramp beat lays a full-width hole 120 past a full-width ramp's lip that a three-quarter-speed launch clears. Placement: never the first 600 or last 700, a chomper, a ramp zone, within 300 of a blocker or 900 of another gap, three a level; blockers keep 300 clear, low stars never float over a hole, hard props also stay out of the 350 past a landing. Driving in (`gapTick`, the hazard pass) is a soft hit: a thud, the drop, a third of the speed kept, no damage, no stars lost. The smart bot dodges holes like barrels; both bots roll through `rampRoll` and `gapTick`. course-check 20 -> 27 (460 checks). [SPID]
+
+## v13.18.1 (2026-10-10, user-directed: "running into the chomper needs to cause massive damage and he has to spit you back out the way you came")
+
+- [x] T38.5: The bite does 3 damage with the crash shake; the spat stars land before the mouth in the kid's lane and the spit throws the car backwards through the air (`chompFling`) to land behind them; the beast dozes off full and the road through it is open, so the kid drives back up and collects. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

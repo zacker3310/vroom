@@ -206,6 +206,12 @@ high arc (`airborne`, `vy` 470 by the springs) that lands past the stars, so dri
 back. The wallet never drops: only the run tally dips, and only until the kid drives on. The music riser
 runs through the bite.
 
+The bite hurts and throws you back (13.18): `chompStart` applies `CHOMP_DMG` (3) with the crash shake before
+setting the hold, the spat stars go down at `CHOMP_STAR_X` before the mouth in the kid's lane, and `chompSpit`
+throws the car backwards (`chompFling`, `CHOMP_FLING` px/s applied to `pos` while airborne, gas dead until
+touchdown) in a high arc that lands behind them; the beast is then `.full` (lids down, jaws at rest) and
+never bites again, so the kid drives back up through it, collecting the stars on the way.
+
 ### A clean line is faster
 
 `LANE_SCRUB` (0.94 per lane crossed, in `setLane`, only above 100 px/s) and `LAND_SCRUB` (0.85 on every
@@ -223,14 +229,40 @@ the road at the car (`camElev = elevAt(carX)`), so a crest ahead lifts the far r
 the sky and a dip hides it. World amplitudes: 0 for construction, rain and beach; 70 sunset;
 40 night and deep sea; 110 snow; 80 desert; 130 moon; 120 volcano and sky; 60 candy.
 
+### Ramps and gaps (13.16)
+
+A ramp is `{x, w, h, tail, l0, l1}` plus the special kinds' `kick`, `cap` and deck colours. `l0..l1` are the
+lanes its deck spans: a third of all decks are one lane wide, a third two, a third the whole road (`rampLanes`,
+rolled from the level's rng per ramp; levels 1-2 keep every deck full so the first jumps are sure), and the high
+star over the flight (`rampAt`, `rx + 460`) always sits in one of the deck's lanes, as do the mega ramp's rainbow
+and a hop chain's three kickers. The physics reads the car's lane: `rampOn(x, lane)` and `rampElev` only see a
+deck that covers `Math.round(laneVis)`, so a car in the lane beside a narrow deck drives past on the flat;
+`rampRoll(x)` is the one frame step the game loop and the fairness bots share (on a deck `jumpY` follows the
+slope; the frame the deck ends under the wheels the car leaves it, off the lip through `rampLaunch` on
+`rampBehind`, the deck in its lane whose lip is within 120 behind, or off the side of a narrow deck after a lane
+change mid-ramp as a plain drop with no kick, no whee). `drawRoad` draws the deck, its two side walls, chevrons
+and lip shadow between `laneX(l0) - LANE_W/2` and `laneX(l1) + LANE_W/2`; a ramp without lanes (free drive, the
+parade) is the whole road.
+
+A gap is `{x, w: 220, l0, l1}` in `GAPS`: the road is gone for 220 units across one, two or all three lanes.
+Driving onto one on the ground in its lane (`gapTick`, in the hazard pass after the props) is a soft hit and
+never a fail: `v *= 0.35`, a thud, the `drop` animation on the car and a small shake, no damage, no stars lost,
+one drop per gap per run (`g.hit`). A full-width gap always comes 120 past the lip of a full-width standard ramp
+(the `rampGap` beat, `RAMP_GAP_AT`): a launch at three quarters of top speed or more clears it, a slower one
+drops in and bounces out. One- and two-lane gaps (the `gap` beat) are steered round, three stars in the open lane
+showing the way. `drawRoad` paints each hole as a dark pit (`#1d1a1f`, a lighter far wall) with a hazard rim of
+the world's two rumble tones in 60-unit cells, inside `occClip`; `addGapBoards` stands an amber and black board on
+each verge at the near rim so a hole hidden behind a ramp lip is still announced.
+
 ### The ground plane
 
 `drawRoad(carX)` repaints `#roadCanvas` (2x backing store) every frame: sky haze at the
 horizon, grass bands alternating every `SEG = 160` units, lateral field strips in two extra
 tones (`fields` extents mirrored both sides: crop rows on the farm, dune ridges, drifts, lava
 cracks), a dirt shoulder outside each rumble strip, asphalt with a crown highlight down the
-centre and faint wheel-track wear in the outer lanes, lane dashes, sloped ramps with a
-camera-facing side wall and a lip shadow, the checkered finish stripe with a near edge, and the
+centre and faint wheel-track wear in the outer lanes, lane dashes, the gaps' dark holes with their striped rims,
+sloped ramps (over the lanes their deck spans) with a camera-facing side wall and a lip shadow, the checkered
+finish stripe with a near edge, and the
 ground shadow under a jumping car, all as `quad()`s (batched into one fill per tone where they
 share a colour; `roadQuadN` counts subpaths, budget 700) of four `proj()`ed corners with the
 world's `ROAD_PAL[w]` palette. `groundTones(P)` derives the new keys (`shoulder`, `field`,
@@ -277,10 +309,11 @@ registers one; `fn(b, x)` places props from `x` using the beat context `b` (safe
 `put`, `star`, `high`, `capsule`; lane helpers `inside`/`outside` read `curvAt` so star trails
 hug the inside of a bend and obstacles crowd the outside; `pickLane` gives the middle lane a
 30% share so a toddler who never steers still finds stars) and returns where it ended.
-40 beats ship: 8 star beats (`trailStraight`, `snake`, `rainbow`, `arc`, `doubleRow`,
+42 beats ship: 8 star beats (`trailStraight`, `snake`, `rainbow`, `arc`, `doubleRow`,
 `starGate`, `starShower`, `stairway`), 6 obstacle beats (`slalom`, `gate`, `closingWalls`,
 `coneForest`, `bowling`, `minefield`), 4 rhythm beats (`capsuleAlley`, `puddleParty`,
-`oilSlalom`, `breather`), 6 ramp beats (`ramp`, `rampArc`, `rampStairway`, `rampShower`, `megaRamp`, `hopChain`) and
+`oilSlalom`, `breather`), 7 ramp beats (`ramp`, `rampArc`, `rampStairway`, `rampShower`, `megaRamp`, `hopChain`,
+`rampGap`), the `gap` beat (a hole across one or two lanes, 13.16) and
 two per world for worlds 5-12 (`snowmanChoir`, `icePatch`, `cactusCanyon`, `tumbleweeds`,
 `crabCrossing`, `sandcastles`, `craterField`, `alienWelcome`, `lavaHop`, `geyserRow`,
 `gumdropGarden`, `donutRoll`, `jellyBloom`, `crabCourt`, `stormFront`, `kiteFestival`).
@@ -299,8 +332,19 @@ two per world for worlds 5-12 (`snowmanChoir`, `icePatch`, `cactusCanyon`, `tumb
 4. **Ramps.** 1-4 (one more on a finale, capped at 3/4 on the moon) at evenly spread target
    x's, each a different ramp beat from the last. Every road opens with stars, never a wall;
    an obstacle beat straight after a ramp gets a 350-unit run-up; nothing sits in the first
-   1000 units; a finale reserves its last 560 for `starShower`.
-5. **Guarantee passes.** Remove blockers from ramp zones (the ramp, its tail and 200 before).
+   1000 units; a finale reserves its last 560 for `starShower`. Each deck's width comes from
+   `rampLanes` (one, two or three lanes, a third each); a `rampGap` lays its full-width hole
+   120 past its lip, and `tryRamp` takes back a ramp whose deck or flight would cover a hole
+   laid earlier (the forced last jump wins over the hole instead).
+5. **Gaps (13.16).** From level 15, on cue like the ramps: one `gap` beat at a seeded target in
+   the first half of the road (20-50%), a second in the back half (55-80%) on two fifths of the
+   levels past 40; a beat that finds no room tries again a formation later, three times at most,
+   and a level whose only jump took its hole tries once more past the flight. `gapFits` refuses
+   the first 600 and last 700 units, a chomper stretch, a ramp zone, anything within 300 of a
+   blocker, anything within 900 of another gap, a low star already under it, and a fourth gap; `put` keeps blockers 300 clear
+   of a hole and `star` never floats a low star over one.
+6. **Guarantee passes.** Remove blockers from ramp zones (the ramp, its tail and 200 before) and
+   from the 300 round a gap; hard props also stay out of the 350 past a landing.
    Ensure ingredients: a puddle from level 2, a capsule from 3, oil and a barrel from 5, TNT
    from 12 (swapped in for a barrel), both world hazards, at most 2 capsules. Enforce the hard
    budget `minHard(n) = floor(1 + min(n,50)·0.3)` .. `maxHard(n) = floor(2 + n·0.45)` by

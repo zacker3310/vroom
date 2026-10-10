@@ -1,6 +1,6 @@
 /* fairness-check: two headless bots drive every level through the real collision code.
    "smart" steers one lane at a time toward the nearest star ahead (≤900) and away from hard
-   obstacles (≤500), never more than one lane change per 350 units; it must finish every
+   obstacles and gaps in the road (≤500), never more than one lane change per 350 units; it must finish every
    level, grab ≥45% of the stars and take ≤4 hard hits. "lazy toddler" sits in the middle
    lane with the gas floored and never steers; it must finish every level (nothing may block
    the road for good) and still find ≥15% of the stars on levels 1-20.
@@ -38,8 +38,10 @@ function check(name, ok, detail) {
       pos = 0; v = 0; jumpY = 0; vy = 0; airborne = false; finished = false;
       targetLane = 1; laneVis = 1; runStars = 0; runDamage = 0; runTime = 0;
       const dt = 1 / 60;
-      let t = 0, hits = 0, lastChange = -1e9, changes = 0; const hitLog = [];
-      const hardAhead = (lane, carX, far) => props.some(p => !p.done && HARD(p.type) && p.lane === lane && p.x - carX > -40 && p.x - carX < far);
+      let t = 0, hits = 0, lastChange = -1e9, changes = 0, drops = 0; const hitLog = [];
+      /* a gap in the road (13.16) is dodged like a hard prop; the full-width one is jumped from the ramp before it */
+      const gapAhead = (lane, carX, far) => GAPS.some(g => gapHas(g, lane) && g.x - carX > -40 && g.x - carX < far);
+      const hardAhead = (lane, carX, far) => gapAhead(lane, carX, far) || props.some(p => !p.done && HARD(p.type) && p.lane === lane && p.x - carX > -40 && p.x - carX < far);
       while (!finished && t < 150) {
         v = Math.min(vmaxEff(), v + ACCEL * dt); pos += v * dt; t += dt;
         const carX = pos + CAR_SCREEN_X;
@@ -47,7 +49,7 @@ function check(name, ok, detail) {
           let want = targetLane;
           if (hardAhead(targetLane, carX, 500)) {
             /* the clearest adjacent lane: furthest first hard obstacle, stars break ties */
-            const clear = l => { let d = 1e9; for (const p of props) if (!p.done && HARD(p.type) && p.lane === l && p.x - carX > -40) d = Math.min(d, p.x - carX); return Math.min(d, 900); };
+            const clear = l => { let d = 1e9; for (const p of props) if (!p.done && HARD(p.type) && p.lane === l && p.x - carX > -40) d = Math.min(d, p.x - carX); for (const g of GAPS) if (gapHas(g, l) && g.x - carX > -40) d = Math.min(d, g.x - carX); return Math.min(d, 900); };
             const score = l => clear(l) * 10 + props.filter(p => !p.done && p.type === 'star' && p.lane === l && p.x - carX > 0 && p.x - carX < 900).length;
             const opts = [targetLane - 1, targetLane + 1].filter(l => l >= 0 && l <= 2).sort((a, b) => score(b) - score(a));
             if (opts.length && clear(opts[0]) > clear(targetLane)) want = opts[0];
@@ -68,9 +70,8 @@ function check(name, ok, detail) {
           vy -= gravityNow() * dt; jumpY += vy * dt;
           if (jumpY <= 0) { jumpY = 0; airborne = false; }
         } else {
-          const wasOn = jumpY > 0, onRamp = rampElev(carX);
-          jumpY = onRamp;
-          if (wasOn && onRamp === 0) { const L = rampLaunch(rampBehind(carX), v); airborne = true; vy = L.vy; jumpY = L.y; }   /* the game's own launch rule: mega ramps and kickers fly by their own numbers */
+          const L = rampRoll(carX);   /* the game's own ramp rule: a deck only in the car's lane, mega ramps and kickers fly by their own numbers */
+          if (L) { airborne = true; vy = L.vy; jumpY = L.y; }
         }
         for (const p of props) {
           if (p.done) continue;
@@ -78,9 +79,12 @@ function check(name, ok, detail) {
           PROP_HIT[p.type](p, carX - p.x);
           if (wasHard && p.done) { hits++; hitLog.push(p.type + '@' + p.x + (RAMPS.some(rp => p.x > rp.x - 200 && p.x < rp.x + rp.w + (rp.tail || 420)) ? '(rampzone)' : '') + ' jy' + Math.round(jumpY)); }
         }
+        const hitGaps = GAPS.filter(g => g.hit).length;
+        gapTick(carX);   /* the game's own gap pass: a drop into a hole is a soft hit, counted apart from the hard ones */
+        if (GAPS.filter(g => g.hit).length > hitGaps) drops++;
       }
       const got = props.filter(p => p.type === 'star' && p.done).length;   /* star props only (capsules add bonus stars to runStars) */
-      return { n, finished, t: Math.round(t * 10) / 10, stars: got, total: totalStars, pct: Math.round(100 * got / totalStars), hits, changes, hitLog };
+      return { n, finished, t: Math.round(t * 10) / 10, stars: got, total: totalStars, pct: Math.round(100 * got / totalStars), hits, drops, changes, hitLog };
     };
     const out = { smart: [], lazy: [] };
     for (let n = 1; n <= MAX_LEVEL; n++) { out.smart.push(sim(n, true)); out.lazy.push(sim(n, false)); }
@@ -88,10 +92,10 @@ function check(name, ok, detail) {
   });
 
   if (table) {
-    console.log(' L   smart: fin   t  stars  pct hits chg | lazy: fin   t  stars  pct hits');
+    console.log(' L   smart: fin   t  stars  pct hits drp chg | lazy: fin   t  stars  pct hits drp');
     for (let i = 0; i < runs.smart.length; i++) {
       const s = runs.smart[i], l = runs.lazy[i];
-      console.log(`L${String(s.n).padStart(2)}        ${s.finished ? ' ok' : 'NO '} ${String(s.t).padStart(5)} ${String(s.stars).padStart(3)}/${String(s.total).padEnd(3)} ${String(s.pct).padStart(3)}% ${String(s.hits).padStart(3)} ${String(s.changes).padStart(3)} |      ${l.finished ? ' ok' : 'NO '} ${String(l.t).padStart(5)} ${String(l.stars).padStart(3)}/${String(l.total).padEnd(3)} ${String(l.pct).padStart(3)}% ${String(l.hits).padStart(3)}`);
+      console.log(`L${String(s.n).padStart(2)}        ${s.finished ? ' ok' : 'NO '} ${String(s.t).padStart(5)} ${String(s.stars).padStart(3)}/${String(s.total).padEnd(3)} ${String(s.pct).padStart(3)}% ${String(s.hits).padStart(3)} ${String(s.drops).padStart(3)} ${String(s.changes).padStart(3)} |      ${l.finished ? ' ok' : 'NO '} ${String(l.t).padStart(5)} ${String(l.stars).padStart(3)}/${String(l.total).padEnd(3)} ${String(l.pct).padStart(3)}% ${String(l.hits).padStart(3)} ${String(l.drops).padStart(3)}`);
     }
   }
   if (process.argv.includes('--hits')) for (const r of runs.smart) if (r.hits) console.log('L' + r.n + ' smart hits: ' + r.hitLog.join(', '));

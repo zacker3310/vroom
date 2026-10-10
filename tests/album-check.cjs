@@ -68,6 +68,7 @@ function check(name, ok, detail) {
   /* ---- badges: first jump via real ramp physics ---- */
   const jumpBadge = await page.evaluate(async () => {
     const rp = RAMPS[0];
+    targetLane = laneVis = rp.l0;   /* 13.16: decks can be one lane wide, so take the ramp's lane */
     pos = rp.x - 300 - 60; v = 650; gasKey = true;
     const t0 = performance.now();
     while (!airborne && performance.now() - t0 < 2000) await new Promise(r => setTimeout(r, 30));
