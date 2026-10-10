@@ -266,6 +266,10 @@
 - [x] T37.1: The chomper replaces the corkscrew on every world. A purple monster sits across the road with its mouth for an archway (`addChomper`, arch-style scenery); a trail of stars leads in and the stretch past the mouth stays clear (`chompClear`). The jaws open with a growl within 1100; at the mouth the bite: `#chompView` clips shut over the stage under the HUD, the car is held by the crash hit-stop for 900 ms, munch sounds and a chew shake, `chompDrop` tosses min(3, run stars) back onto the road ahead in the kid's lane (`p.spat`), then `chompSpit` opens the jaws with a ptooey and launches the car in a high arc over them. The wallet never drops (CLAUDE.md records the wrinkle). The loop cutaway, the hoops and every rolled-ribbon remnant are gone; `sfx.growl/gulp/munch/spit` replace the swirl. course-check rewritten (23 -> 20), worlds-check ribs probe moved to CHOMPS, docs/chomper.png replaces corkscrew.png. [SPID]
 - [x] T33.4: The play pill at 240x88, lifted to 566 so its base and shadow sit inside the stage, centred on the verge row. [SPID]
 
+## v13.16.0 (2026-10-10, user-directed: "jumps and turning should slow you down, especially against a ghost")
+
+- [x] T38.1: A clean line is faster. `LANE_SCRUB` 0.94 per lane crossed on every lane change above 100 px/s, `LAND_SCRUB` 0.85 on every touchdown, so a swerving, jumping run no longer matches the ghost that did not; medal curve untouched. feel-check 18 -> 19. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

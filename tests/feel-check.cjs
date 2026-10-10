@@ -261,6 +261,22 @@ function check(name, ok, detail) {
   });
   check('feel: medal curve forgiving early, upgrade-tuned late', curve.l1stockS && curve.l30stockS !== 'S' && curve.l30upgS, JSON.stringify(curve));
 
+  /* ---- a clean line is faster (13.16): lane changes and landings scrub speed, so a swerving, jumping run differs from the ghost ---- */
+  const scrub = await page.evaluate(async () => {
+    drive(2); await new Promise(r => setTimeout(r, 300));
+    v = 600; targetLane = 1; laneVis = 1; setLane(2); const one = v;
+    v = 600; targetLane = 0; laneVis = 0; setLane(2); const two = v;
+    v = 600; targetLane = 1; laneVis = 1; setLane(1); const same = v;
+    v = 50; targetLane = 1; setLane(0); const slow = v;
+    /* a landing: put the car just above the ground falling, let one frame run */
+    v = 600; airborne = true; jumpY = 1; vy = -300; gasKey = false;
+    await new Promise(r => setTimeout(r, 60));
+    return { one, two, same, slow, landed: !airborne, vLand: v, LANE_SCRUB, LAND_SCRUB };
+  });
+  check('feel: a lane change scrubs 6% of the speed per lane crossed (none when parked or staying put), a landing scrubs 15%',
+    Math.abs(scrub.one - 600 * scrub.LANE_SCRUB) < 1 && Math.abs(scrub.two - 600 * scrub.LANE_SCRUB * scrub.LANE_SCRUB) < 1 && scrub.same === 600 && scrub.slow === 50
+      && scrub.landed && scrub.vLand < 600 * scrub.LAND_SCRUB + 2 && scrub.vLand > 600 * scrub.LAND_SCRUB * 0.9, JSON.stringify(scrub));
+
   /* ---- damage chip off the victory screen ---- */
   const chips = await page.evaluate(() => ({
     damageShown: getComputedStyle(document.getElementById('celebrateDamage')).display,

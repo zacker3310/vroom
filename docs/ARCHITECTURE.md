@@ -195,6 +195,13 @@ high arc (`airborne`, `vy` 470 by the springs) that lands past the stars, so dri
 back. The wallet never drops: only the run tally dips, and only until the kid drives on. The music riser
 runs through the bite.
 
+### A clean line is faster
+
+`LANE_SCRUB` (0.94 per lane crossed, in `setLane`, only above 100 px/s) and `LAND_SCRUB` (0.85 on every
+touchdown, in the landing block of `tick`) take a little speed off every swerve and every jump, so two runs
+of the same level with different lines finish at different times and the ghost race means something. The
+medal curve (`timeTier`) is unchanged: it was tuned with slack for a stock car, and a tidy run still makes S.
+
 ### Hills
 
 `HILLS` is a list of `{x0, x1, amp}`; `elevAt(x)` sums `amp·(1 − cos(2π·t))/2` over the hills
