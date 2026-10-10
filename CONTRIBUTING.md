@@ -1,6 +1,6 @@
-# Contributing to Vroom
+# Contributing to Zoomies
 
-Thanks for wanting to help. Vroom is small on purpose: one `index.html`, no dependencies,
+Thanks for wanting to help. Zoomies (the repo is still `vroom`) is small on purpose: one `index.html`, no dependencies,
 no build. Most contributions are content (a world, a body, a paint) or a fix to something
 the test suite caught. This page covers how to run the game and its tests, the rules that
 are not negotiable, and the pack anchors that make adding content a contained change.

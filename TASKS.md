@@ -203,6 +203,12 @@
 
 - [x] T31.1: The results row. Again (big, pulsing, blue, far left) with the ghost to beat bobbing over it (`renderGhostTease`: the ghost icon wearing the medal its stored time earns on this road; the parade, which has no ghost, shows a slashed one), garage (orange, `showGarage` + `openTab("work")`: straight to wash, repair, fuel and tires), home (red), next race (big, pulsing, green). New `--v-accent-orange` tokens. ghost-check 19, parade-check updated. 23 suites, 443/443.
 
+## v13.10.0 (2026-10-10, user-directed: "rename the game, make the title screen AAA, hold-to-update out on the title too")
+
+- [x] T32.1: The name: Zoomies. `<title>`, the apple-mobile-web-app-title meta, `manifest.webmanifest` (name + short_name), the share-sheet title (`GAME_NAME`), `package.json`, README and doc headings. Storage keys (`vroom.*`), save-code prefixes (`VROOM1/2/3.`) and the repo URL stay as they are so every existing save and link keeps working. [SPID]
+- [x] T32.2: The title as a moving world (section 30). Ten parallax strips built once by `buildTitleWorld()` (two cloud layers, two hill bands, a tree line, each a 1200 px tile drawn twice and slid a full tile per loop so there is no seam), a sun with turning rays, two birds crossing, the road dashes streaming at 437 px/s with the car's `.wheelrot` groups turning to match, exhaust puffs off the tail, a shadow on the tire line (`placeTitleGround()` measures `--tGround` per body, tracks and hover rings included). Entrance: the gold-rimmed badge slams in behind a shock ring and then floats with a glint sweep and four twinkles; the car drives in from off-stage; GO pops last and keeps a halo ring rolling outward with a gloss cap. Every keyframe is scoped to `#title.active` so nothing runs behind the garage, and all of it is off under `prefers-reduced-motion`. [SPID]
+- [x] T32.3: The update gate on the title. `#titleUpdateBtn` beside the avatar shares `.updateGate` with the garage button; `checkForUpdate` arms both and the hold logic fills whichever ring is held (`updateHeld`). update-check 5 -> 8, title-check 13 -> 17, battery 443 -> 450. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

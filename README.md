@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/icons/icon-192.png" width="96" height="96" alt="Vroom icon: a toy dump truck with a star badge">
+  <img src="docs/icons/icon-192.png" width="96" height="96" alt="Zoomies icon: a toy dump truck with a star badge">
 </p>
 
-<h1 align="center">Vroom</h1>
+<h1 align="center">Zoomies</h1>
 
 <p align="center">
   A build-a-car driving game for a 3 to 5 year old. One HTML file, zero dependencies, works offline, made for an iPad in a car seat.
@@ -18,6 +18,8 @@
   <img src="https://img.shields.io/badge/one%20file-index.html-ffd66e" alt="one file">
   <img src="https://img.shields.io/badge/version-12.9.0-6fc0df" alt="version 12.9.0">
 </p>
+
+![The title: the kid's own car rolling down a moving road under the badge, GO glowing on the right](docs/title.png)
 
 ![The garage: a pirate-ship car with a fox buddy, the body strip open below](docs/garage.png)
 
@@ -114,7 +116,7 @@ python3 -m http.server 4173     # then open http://localhost:4173/
 
 There is no build. Edit `index.html`, reload.
 
-The test suite is 23 Playwright suites (443 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the race number, the title screen and daily gift, the ghost race, garage life, the map surprises, the update gate, and the fairness bots that drive all 120 levels.
+The test suite is 23 Playwright suites (450 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the race number, the title screen and daily gift, the ghost race, garage life, the map surprises, the update gate, and the fairness bots that drive all 120 levels.
 
 ```bash
 npm ci                                   # playwright-core + jsqr, test-only

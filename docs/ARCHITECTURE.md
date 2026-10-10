@@ -1,4 +1,4 @@
-# Vroom architecture
+# Zoomies architecture
 
 A tour of how one `index.html` becomes a twelve-world driving game. Everything referenced
 here is in that file; search for the quoted identifiers. Numbers are the shipped values as of
@@ -7,7 +7,7 @@ here is in that file; search for the quoted identifiers. Numbers are the shipped
 ## Layout of the file
 
 ```
-<head>      metas, manifest + icon links, <title>
+<head>      metas, manifest + icon links, <title> (the game's name lives here, in the apple-mobile-web-app-title meta, in manifest.webmanifest and in GAME_NAME; storage keys and save-code prefixes stay "vroom")
 <style>     ~1100 lines: scenes, chips, Toybox design tokens (:root), per-world themes
 <body>
   #stage    1200x700, six scenes: #title #garage #map #road #album #celebrate, plus overlays
@@ -461,12 +461,28 @@ phone camera opens the hosted game with the save queued; `importSaveCode` then r
 wordless tick/cross confirm. `profile-check.cjs` decodes the rendered canvas with jsQR and
 checks the payload byte-exact, and exercises every version boundary.
 
+## The title scene
+
+Section 30. `buildTitleWorld()` fills five parallax strips once at boot (two cloud layers, two
+hill bands, a tree line): each is a 1200 px SVG tile drawn twice inside a 2400 px `.tLayer`,
+and a `tScroll` keyframe slides the strip exactly one tile per loop, so the wrap is seamless as
+long as no shape crosses a tile edge. The road dashes are a 140 px repeating gradient slid one
+period per loop (`tDash`, 0.32 s, about 437 px/s), and the car's `.wheelrot` groups turn at the
+matching rate (`tWheel`, 0.5 s per revolution for a 70 px tire). `placeTitleGround()` measures
+the tire line after the scene is up and writes it to `--tGround` on `#titleCar`, which the
+shadow and the exhaust puffs hang off (tracks and hover rings use their art's lowest point).
+The entrance is pure CSS: the badge slams in (`tSlam`) behind a shock ring (`tRing`), the car
+drives in from off-stage (`tDrive`), GO pops last and then pulses with a halo (`tGoPulse`,
+`tHalo`). Every keyframe is scoped to `#title.active`, so the garage never pays for it, and the
+reduced-motion block turns all of it off and hides the glint.
+
 ## The update gate
 
 At boot the page concatenates the text of its first `<style>` and `<script>` and hashes it
 with FNV-1a (`bootHash`). `checkForUpdate()` fetches `location.pathname + "?v=" + Date.now()`
 with `cache: "no-store"`, parses the response with `DOMParser`, hashes the same two blocks and
-shows `#updateBtn` when they differ. It runs 2.5 s after boot, on `visibilitychange` back to
+arms both gates (`updateGates`: `#titleUpdateBtn` on the title and `#updateBtn` in the garage,
+one `.updateGate` style) when they differ. It runs 2.5 s after boot, on `visibilitychange` back to
 visible and every 10 minutes, rate-limited to one check per 30 s, never on `file:`, and any
 network error is swallowed (offline in the car keeps playing). The badge needs a 1.6 s hold
 (`UPDATE_HOLD_MS`, a ring fills) before it saves and navigates to a cache-busting URL, so a

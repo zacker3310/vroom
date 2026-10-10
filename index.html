@@ -6,14 +6,14 @@
 <meta name="description" content="A build-a-car driving game for a 3 to 5 year old. One file, no reading, nothing to lose.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Vroom">
+<meta name="apple-mobile-web-app-title" content="Zoomies">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#2f241a">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z' fill='%23ffd60a'/%3E%3C/svg%3E">
 <link rel="icon" type="image/png" sizes="192x192" href="docs/icons/icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="docs/icons/apple-touch-icon.png">
-<title>Vroom</title>
+<title>Zoomies</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #1a2634; touch-action: none; }
@@ -102,17 +102,17 @@
   #profileBtn svg { width: 74px; height: 74px; }
   /* new version gate: appears only when the hosted game changed; hold to reload
      (a press-and-hold so a stray toddler tap can't restart the app) */
-  #updateBtn {
+  .updateGate {
     position: absolute; left: 136px; top: 24px; width: 96px; height: 96px; padding: 0;
     border-radius: 50%; background: #74c465; border: 6px solid #fff; z-index: 20;
     box-shadow: 0 6px 0 #438a3b; display: none; touch-action: none;
     animation: pulse 1.4s ease infinite;
   }
-  #updateBtn.show { display: block; }
-  #updateBtn svg { width: 100%; height: 100%; }
-  #updateBtn .ring { transition: stroke-dashoffset .1s linear; }
-  #updateBtn.holding { animation: none; transform: scale(.94); }
-  #updateBtn.holding .arrows { animation: spin 1s linear infinite; transform-origin: 50px 50px; }
+  .updateGate.show { display: block; }
+  .updateGate svg { width: 100%; height: 100%; }
+  .updateGate .ring { transition: stroke-dashoffset .1s linear; }
+  .updateGate.holding { animation: none; transform: scale(.94); }
+  .updateGate.holding .arrows { animation: spin 1s linear infinite; transform-origin: 50px 50px; }
   #profileOverlay {
     position: absolute; inset: 0; z-index: 80; display: none;
     background: rgba(2,48,71,.6); align-items: center; justify-content: center;
@@ -1175,7 +1175,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #qrBox { border-radius: var(--v-r-md); }
 
 /* update gate: green on green like the GO family, not a white ring */
-#updateBtn { border-color: var(--v-green-line); }
+.updateGate { border-color: var(--v-green-line); }
 
 
 /* copy / paste glyphs: old sky-blue strokes and cold gray -> toybox blue ink */
@@ -1478,54 +1478,124 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 #quietBtn svg { width: 60px; height: 60px; }
 #quietBtn.on { background: var(--v-mute); border-color: var(--v-mute-line); box-shadow: 0 6px 0 var(--v-mute-down); }
 
-/* ============ TITLE SCENE + DAILY GIFT (T17.2) ============ */
-/* three seconds of ceremony before the garage: a wordless emblem, the kid's own car idling on a
-   little road, one huge green GO. Pop-ins are skipped under prefers-reduced-motion. */
-#title { background: linear-gradient(#8ecae6 0%, #bde0fe 54%, #9bd27a 54%, #6fa85a 100%); }
+/* ============ TITLE SCENE + DAILY GIFT (T17.2, v13.10 premium pass) ============ */
+/* The boot ceremony as a moving world. A sun with turning rays, two cloud layers, two hill bands,
+   a tree line and the road dashes all stream left at parallax speeds, so the kid's car (which
+   drives in from the left with its wheels turning and exhaust puffing) reads as rolling down the
+   road while it idles. The emblem slams in behind a shock ring and keeps a glint sweeping over it,
+   stars twinkle around it, birds cross the sky, and GO throws a halo. Every layer is a 2400 px
+   strip of two identical 1200 px tiles moved by a transform, scoped to #title.active so nothing
+   runs behind the garage, and all of it is off under prefers-reduced-motion (the car sits in
+   place, the emblem and GO simply appear). */
+#title { background: linear-gradient(#4fc3f7 0%, #9bdcfa 42%, #d6f1fd 58%, #d6f1fd 100%); overflow: hidden; }
+#titleGround { position: absolute; left: 0; right: 0; top: 452px; bottom: 0; background: linear-gradient(#a5d97f 0%, #8cc968 28%, #6fa85a 100%); }
+.tLayer { position: absolute; left: 0; width: 2400px; pointer-events: none; }
+.tLayer svg { position: absolute; left: 0; top: 0; width: 1200px; height: 100%; overflow: visible; }
+.tLayer svg + svg { left: 1200px; }
+#tSun { position: absolute; left: 850px; top: 30px; width: 240px; height: 240px; pointer-events: none; }
+#tSun svg { width: 100%; height: 100%; overflow: visible; }
+#tSun .rays { transform-origin: 120px 120px; }
+#tCloudsFar { top: 48px; height: 160px; opacity: .8; }
+#tCloudsNear { top: 128px; height: 190px; }
+#tHillsFar { top: 300px; height: 160px; }
+#tHillsNear { top: 352px; height: 110px; }
+#tTrees { top: 356px; height: 160px; }
+#tBirds { position: absolute; left: 0; top: 70px; width: 160px; height: 60px; pointer-events: none; opacity: 0; }
+#tBirds svg { width: 100%; height: 100%; overflow: visible; }
+#tBirds .wing { transform-box: fill-box; transform-origin: center bottom; }
+#title.active #tSun .rays { animation: spin 60s linear infinite; }
+#title.active #tCloudsFar { animation: tScroll 110s linear infinite; }
+#title.active #tCloudsNear { animation: tScroll 64s linear infinite; }
+#title.active #tHillsFar { animation: tScroll 46s linear infinite; }
+#title.active #tHillsNear { animation: tScroll 22s linear infinite; }
+#title.active #tTrees { animation: tScroll 7.5s linear infinite; }
+#title.active #tBirds { animation: tBird 26s linear 4s infinite; }
+#title.active #tBirds .wing { animation: tFlap .42s ease-in-out infinite alternate; }
+@keyframes tScroll { to { transform: translateX(-1200px); } }
+@keyframes tBird { 0% { transform: translate(1260px, 40px); opacity: 0; } 4% { opacity: 1; } 50% { transform: translate(560px, -30px); } 96% { opacity: 1; } 100% { transform: translate(-220px, 20px); opacity: 0; } }
+@keyframes tFlap { from { transform: scaleY(1); } to { transform: scaleY(-.6); } }
+/* the road: a static slab with a dash strip streaming under the car (one 140 px dash cycle per loop, seamless) */
 #titleRoad {
-  position: absolute; left: 0; right: 0; top: 508px; height: 150px;
+  position: absolute; left: 0; right: 0; top: 508px; height: 150px; overflow: hidden;
   background: #5b5651; border-top: 10px solid #efe6d6; border-bottom: 10px solid #efe6d6;
 }
-#titleRoad::after {
-  content: ""; position: absolute; left: 0; right: 0; top: 60px; height: 12px;
+#tDash {
+  position: absolute; left: 0; top: 60px; width: 1400px; height: 12px;
   background: repeating-linear-gradient(90deg, #ffd66e 0 70px, transparent 70px 140px);
 }
-#titleLogo { position: absolute; left: 50%; top: 22px; width: 300px; height: 220px; transform: translateX(-50%); pointer-events: none; }
+#title.active #tDash { animation: tDash .32s linear infinite; }
+@keyframes tDash { to { transform: translateX(-140px); } }
+/* the emblem: a gold-rimmed badge that slams in behind a shock ring, then floats with a glint sweeping across */
+#titleLogo { position: absolute; left: 50%; top: 14px; width: 440px; height: 250px; margin-left: -220px; pointer-events: none; z-index: 3; }
 #titleLogo svg { width: 100%; height: 100%; overflow: visible; }
-#titleCar {
-  position: absolute; left: 330px; top: 236px; width: 560px; cursor: pointer; touch-action: none;
-}
-#titleCar svg { width: 100%; height: auto; overflow: visible; }
+#titleLogo .glint { opacity: 0; }
+#titleLogo .spark { transform-box: fill-box; transform-origin: center; opacity: 0; }
+#titleRing { position: absolute; left: 50%; top: 24px; width: 300px; height: 210px; margin-left: -150px; border-radius: 56px; border: 10px solid #fff; opacity: 0; pointer-events: none; z-index: 2; }
+#title.active #titleLogo { animation: tSlam .75s cubic-bezier(.2, 1.25, .4, 1) .15s backwards; }
+#title.active #titleLogo .badge { animation: tFloat 3.4s ease-in-out 1s infinite; }
+#title.active #titleLogo .glint { animation: tGlint 4.2s ease-in-out 1.4s infinite; }
+#title.active #titleLogo .spark { animation: tTwinkle 2.1s ease-in-out infinite; }
+#title.active #titleRing { animation: tRing .7s ease-out .55s both; }
+@keyframes tSlam { 0% { transform: scale(2.6) translateY(-40px); opacity: 0; } 50% { transform: scale(.94) translateY(4px); opacity: 1; } 100% { transform: scale(1) translateY(0); } }
+@keyframes tFloat { 50% { transform: translateY(7px); } }
+@keyframes tGlint { 0%, 30% { transform: translateX(-300px); opacity: 0; } 32% { opacity: .55; } 62%, 100% { transform: translateX(420px); opacity: 0; } }
+@keyframes tTwinkle { 0%, 100% { transform: scale(.15) rotate(0deg); opacity: 0; } 50% { transform: scale(1) rotate(90deg); opacity: 1; } }
+@keyframes tRing { 0% { transform: scale(.55); opacity: .9; } 100% { transform: scale(1.5); opacity: 0; } }
+/* the car: drives in from off-stage, wheels turning the whole time it is on the title, exhaust puffing from the tail */
+#titleCar { position: absolute; left: 330px; top: 236px; width: 560px; cursor: pointer; touch-action: none; z-index: 4; }
+#titleCar svg { width: 100%; height: auto; overflow: visible; position: relative; z-index: 1; }
+/* --tGround: the gap from the box's bottom edge to the tire line, measured by placeTitleGround() */
+#titleCar .tShadow { position: absolute; left: 24px; right: 24px; bottom: calc(var(--tGround, 40px) - 14px); height: 28px; border-radius: 50%; background: rgba(40, 30, 20, .22); }
+#titleCar .tPuffs { position: absolute; left: -6px; bottom: calc(var(--tGround, 40px) + 22px); width: 40px; height: 40px; }
+#titleCar .tPuffs span { position: absolute; left: 0; top: 0; width: 34px; height: 34px; border-radius: 50%; background: #fff; opacity: 0; }
+#titleCar .tPuffs span:nth-child(2) { animation-delay: .45s !important; }
+#titleCar .tPuffs span:nth-child(3) { animation-delay: .9s !important; }
+#title.active #titleCar { animation: tDrive 1.35s cubic-bezier(.2, .85, .3, 1) .3s backwards; }
+#title.active #titleCar .wheelrot { animation: tWheel .5s linear infinite; }
+#title.active #titleCar .tPuffs span { animation: tPuff 1.35s ease-out 1.6s infinite; }
 #titleCar.idle svg { animation: titleIdle .24s ease-in-out infinite; }
 @keyframes titleIdle { 50% { transform: translateY(1.6px); } }
-#titleCar.bounce { animation: bounce .45s ease; }
+#title.active #titleCar.bounce { animation: tBounce .45s ease; }
 #titleCar.blink .vEye { animation: eyeBlink .5s ease; }
+@keyframes tDrive { 0% { transform: translateX(-1000px); } 100% { transform: translateX(0); } }
+@keyframes tWheel { to { transform: rotate(360deg); } }
+@keyframes tPuff { 0% { transform: translate(0, 0) scale(.3); opacity: .6; } 100% { transform: translate(-96px, -54px) scale(1.5); opacity: 0; } }
+@keyframes tBounce { 0% { transform: scale(1); } 30% { transform: scale(1.06, .9); } 60% { transform: scale(.96, 1.05); } 100% { transform: scale(1); } }
 #titleProfileBtn {
   position: absolute; left: 24px; top: 24px; width: 96px; height: 96px; z-index: 20;
   border-radius: 50%; background: var(--v-surface); border: 6px solid var(--v-surface-line); box-shadow: 0 6px 0 var(--v-surface-down);
 }
 #titleProfileBtn svg { width: 74px; height: 74px; }
+/* GO: the one huge green button, with a gloss and a halo ring that keeps rolling outward */
 #titleGo {
-  position: absolute; left: 930px; top: 400px; width: 210px; height: 210px; border-radius: 50%;
+  position: absolute; left: 930px; top: 400px; width: 210px; height: 210px; border-radius: 50%; overflow: visible;
   background: var(--v-accent-green); border: 10px solid var(--v-green-line); box-shadow: 0 8px 0 var(--v-green-down); z-index: 10;
 }
-#titleGo svg { width: 108px; height: 108px; }
+#titleGo svg { width: 108px; height: 108px; position: relative; z-index: 1; }
+#titleGo::before { content: ""; position: absolute; inset: -12px; border-radius: 50%; border: 8px solid var(--v-accent-green); opacity: 0; pointer-events: none; }
+#titleGo::after { content: ""; position: absolute; left: 18%; top: 8%; width: 64%; height: 30%; border-radius: 50%; background: rgba(255, 255, 255, .26); pointer-events: none; }
 #titleGo:active, #titleGo.pressed { box-shadow: 0 2px 0 var(--v-green-down); }
+#title.active #titleGo { animation: popIn .5s cubic-bezier(.2, 1.6, .4, 1) 1.4s backwards, tGoPulse 1.7s ease-in-out 1.9s infinite; }
+#title.active #titleGo::before { animation: tHalo 1.7s ease-out 1.9s infinite; }
+#title.active #titleGo:active, #title.active #titleGo.pressed { animation: none; }
+@keyframes tGoPulse { 50% { transform: scale(1.05); } }
+@keyframes tHalo { 0% { transform: scale(.88); opacity: .75; } 100% { transform: scale(1.32); opacity: 0; } }
 /* the gift badge: a small capsule riding the GO button's shoulder while today's gift is unclaimed */
 #titleGift {
-  position: absolute; right: -10px; top: -10px; width: 64px; height: 64px; border-radius: 50%;
+  position: absolute; right: -10px; top: -10px; width: 64px; height: 64px; border-radius: 50%; z-index: 2;
   background: var(--v-surface); border: 5px solid var(--v-yellow-line); box-shadow: 0 4px 0 var(--v-yellow-down);
   display: none; align-items: center; justify-content: center; animation: pulse 1.1s ease infinite;
 }
 #titleGift.show { display: flex; }
 #titleGift svg { width: 38px; height: 42px; }
-/* entrance choreography */
-#title.active #titleLogo { animation: popIn .5s cubic-bezier(.2, 1.6, .4, 1) backwards; }
-#title.active #titleCar { animation: popIn .5s cubic-bezier(.2, 1.6, .4, 1) .18s backwards; }
-#title.active #titleGo { animation: popIn .5s cubic-bezier(.2, 1.6, .4, 1) .5s backwards; }
-#title.active #titleCar.bounce { animation: bounce .45s ease; }
+#title.active #titleProfileBtn { animation: popIn .5s cubic-bezier(.2, 1.6, .4, 1) backwards; }
+#title.active #titleUpdateBtn.show { animation: pulse 1.4s ease infinite; }
 @media (prefers-reduced-motion: reduce) {
-  #title.active #titleLogo, #title.active #titleCar, #title.active #titleGo, #titleCar.idle svg, #titleGift { animation: none; }
+  #title.active #titleLogo, #title.active #titleLogo .badge, #title.active #titleLogo .glint, #title.active #titleLogo .spark, #title.active #titleRing,
+  #title.active #titleCar, #title.active #titleCar .wheelrot, #title.active #titleCar .tPuffs span, #titleCar.idle svg, #titleGift,
+  #title.active #titleGo, #title.active #titleGo::before, #title.active #titleProfileBtn, #title.active #tSun .rays, #title.active .tLayer,
+  #title.active #tBirds, #title.active #tBirds .wing, #title.active #tDash { animation: none !important; }
+  #titleLogo .glint { display: none; }
 }
 
 /* the daily gift capsule on the garage's right wall, above the dice; pulses until opened */
@@ -1541,7 +1611,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* --- reduced motion: decorative keyframes off (pulses, nudges, pop-ins, confetti, idle bobs, shimmers,
    accessory flutter); the functional ones (scene iris, chip pops, deny shakes, road hits) stay but short --- */
 @media (prefers-reduced-motion: reduce) {
-  #updateBtn, #nextBtn, #replayBtn, #ghostTease, #goBtn.nudge, #gasPedal.nudge, .catTab.needs .alert, .tile.urgent, #previewLock, #priceTag:not(.deny),
+  .updateGate, #nextBtn, #replayBtn, #ghostTease, #goBtn.nudge, #gasPedal.nudge, .catTab.needs .alert, .tile.urgent, #previewLock, #priceTag:not(.deny),
   .enter, .tile.enter, .tile.justSel.enter, #celebrate.active #resultsCard, #importConfirm.show #importCard, #deleteConfirm.show #deleteCard, #deleteHold.holding .lid, #numCard, #peekCard, #stickerToast.show,
   .confetti, .buddyBob, .buddyPop, .hoverBob, .hoverGlow, .hoverTrail, .spinner, .rearFlame, .flapWing, .boosterFlame, .antennaSway, .bubbleDrift,
   .lavaGlow, .maneWave, .lightFlashA, .lightFlashB, .jetPuff, .discoGlint, .decalShimmer, .decalStomp, .decalSpin, .decalFlicker, .decalTwinkle,
@@ -1561,17 +1631,59 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 
   <!-- title: the boot ceremony. Emblem (a star over a road, no words), the kid's car idling, one huge GO -->
   <div id="title" class="scene">
-    <div id="titleRoad"></div>
+    <!-- the moving world: filled by buildTitleWorld() (section 30), far to near -->
+    <div id="tSun" aria-hidden="true"></div>
+    <div id="tCloudsFar" class="tLayer" aria-hidden="true"></div>
+    <div id="tBirds" aria-hidden="true"></div>
+    <div id="tCloudsNear" class="tLayer" aria-hidden="true"></div>
+    <div id="tHillsFar" class="tLayer" aria-hidden="true"></div>
+    <div id="tHillsNear" class="tLayer" aria-hidden="true"></div>
+    <div id="titleGround"></div>
+    <div id="tTrees" class="tLayer" aria-hidden="true"></div>
+    <div id="titleRoad"><div id="tDash"></div></div>
+    <div id="titleRing" aria-hidden="true"></div>
     <div id="titleLogo" aria-hidden="true">
-      <svg viewBox="0 0 300 220">
-        <rect x="10" y="18" width="280" height="194" rx="44" fill="#9a7250"/>
-        <rect x="10" y="10" width="280" height="194" rx="44" fill="#f7ede2" stroke="#d9b98a" stroke-width="6"/>
-        <path d="M60 184 L120 96 L180 96 L240 184 Z" fill="#5b5651"/>
-        <path d="M150 104 V124 M150 136 V156 M150 166 V182" stroke="#ffd66e" stroke-width="7" stroke-linecap="round"/>
-        <path d="M150 28 L166 70 L212 74 L177 104 L188 150 L150 126 L112 150 L123 104 L88 74 L134 70 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="7" stroke-linejoin="round"/>
+      <svg viewBox="0 0 440 250">
+        <defs><clipPath id="tBadgeClip"><rect x="120" y="14" width="260" height="196" rx="48"/></clipPath></defs>
+        <!-- speed trail off the badge's tail -->
+        <g fill="#fff">
+          <rect x="18" y="88" width="94" height="18" rx="9" opacity=".95"/>
+          <rect x="44" y="120" width="68" height="18" rx="9" opacity=".8"/>
+          <rect x="68" y="152" width="44" height="18" rx="9" opacity=".62"/>
+        </g>
+        <g class="badge">
+          <rect x="120" y="24" width="260" height="196" rx="48" fill="#b9780a"/>
+          <rect x="120" y="14" width="260" height="196" rx="48" fill="#ffb703"/>
+          <rect x="134" y="28" width="232" height="168" rx="38" fill="#f7ede2"/>
+          <path d="M178 182 L232 98 L268 98 L322 182 Z" fill="#5b5651"/>
+          <path d="M250 106 V124 M250 136 V154 M250 166 V180" stroke="#ffd66e" stroke-width="7" stroke-linecap="round"/>
+          <path d="M250 30 L266 72 L312 76 L277 106 L288 152 L250 128 L212 152 L223 106 L188 76 L234 72 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="7" stroke-linejoin="round"/>
+          <path d="M104 172 L150 172 L150 214 L104 214 L120 193 Z" fill="#b3252f"/>
+          <path d="M396 172 L350 172 L350 214 L396 214 L380 193 Z" fill="#b3252f"/>
+          <rect x="130" y="166" width="240" height="46" rx="12" fill="#e63946"/>
+          <g fill="#fff"><path d="M200 177 L204 186 L214 187 L206 193 L209 203 L200 197 L191 203 L194 193 L186 187 L196 186 Z"/><path d="M250 175 L255 186 L267 187 L258 195 L261 207 L250 200 L239 207 L242 195 L233 187 L245 186 Z"/><path d="M300 177 L304 186 L314 187 L306 193 L309 203 L300 197 L291 203 L294 193 L286 187 L296 186 Z"/></g>
+          <g clip-path="url(#tBadgeClip)"><g class="glint"><rect x="120" y="0" width="70" height="250" fill="#fff" transform="skewX(-22)"/></g></g>
+        </g>
+        <g fill="#fff">
+          <path class="spark" d="M128 40 L134 56 L150 62 L134 68 L128 84 L122 68 L106 62 L122 56 Z"/>
+          <path class="spark" style="animation-delay:.7s" d="M400 60 L405 72 L417 77 L405 82 L400 94 L395 82 L383 77 L395 72 Z"/>
+          <path class="spark" style="animation-delay:1.4s" d="M412 190 L416 200 L426 204 L416 208 L412 218 L408 208 L398 204 L408 200 Z"/>
+          <path class="spark" style="animation-delay:.35s" d="M166 230 L170 240 L180 244 L170 248 L166 258 L162 248 L152 244 L162 240 Z"/>
+        </g>
       </svg>
     </div>
     <button class="bigBtn" id="titleProfileBtn" aria-label="who is playing"></button>
+    <button class="updateGate" id="titleUpdateBtn" aria-label="new version ready: press and hold to update">
+      <svg viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="40" fill="none" stroke="#ffffff55" stroke-width="8"/>
+        <circle class="ring" cx="50" cy="50" r="40" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"
+          stroke-dasharray="251.3" stroke-dashoffset="251.3" transform="rotate(-90 50 50)"/>
+        <g class="arrows" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round">
+          <path d="M30 44 A21 21 0 0 1 68 38"/><path d="M70 56 A21 21 0 0 1 32 62"/>
+        </g>
+        <path d="M60 30 L72 38 L60 46 Z M40 54 L28 62 L40 70 Z" fill="#fff"/>
+      </svg>
+    </button>
     <div id="titleCar" aria-label="your car: tap to honk"></div>
     <button class="bigBtn" id="titleGo" aria-label="start: to the garage">
       <svg viewBox="0 0 100 100"><path d="M30 18 L82 50 L30 82 Z" fill="#fff"/></svg>
@@ -1584,7 +1696,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     <div id="garageFloor"></div>
     <!-- top bar: who is playing (left) | album + star wallet (right); the speaker lives in the grown-ups overlay -->
     <button class="bigBtn" id="profileBtn" aria-label="who is playing"></button>
-    <button id="updateBtn" aria-label="new version ready: press and hold to update">
+    <button class="updateGate" id="updateBtn" aria-label="new version ready: press and hold to update">
       <svg viewBox="0 0 100 100">
         <circle cx="50" cy="50" r="40" fill="none" stroke="#ffffff55" stroke-width="8"/>
         <circle class="ring" cx="50" cy="50" r="40" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"
@@ -1944,7 +2056,10 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.9.0";
+const APP_VERSION = "13.10.0";
+/* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
+   manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
+const GAME_NAME = "Zoomies";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -5808,8 +5923,8 @@ function sendSaveCode() {
   const code = cachedCode || exportCodeSync();
   if (preferShare()) {
     /* the hosted link opens the game with the save ready to load; the plain code rides along as text for apps that drop the url */
-    let payload = { title: "Vroom", text: code, url: SAVE_URL_PREFIX + code };
-    try { if (navigator.canShare && !navigator.canShare(payload)) payload = { title: "Vroom", text: code }; } catch (e) { payload = { title: "Vroom", text: code }; }
+    let payload = { title: GAME_NAME, text: code, url: SAVE_URL_PREFIX + code };
+    try { if (navigator.canShare && !navigator.canShare(payload)) payload = { title: GAME_NAME, text: code }; } catch (e) { payload = { title: GAME_NAME, text: code }; }
     return navigator.share(payload).then(() => { codeSent(); return "share"; }, err => {
       if (err && err.name === "AbortError") return "cancel";   /* the sheet was dismissed: no deny for that */
       return copyToClipboard(code);
@@ -11028,14 +11143,46 @@ function titleIdleStop() {
   engineStop();
 }
 
+/* ---- the moving world behind the title: each layer is one 1200 px tile drawn twice so the
+   strip can slide a full tile and snap back without a seam. Nothing crosses a tile edge. ---- */
+(function buildTitleWorld() {
+  const cloud = (x, y, k) => `<g transform="translate(${x},${y}) scale(${k})" fill="#fff"><ellipse cx="0" cy="0" rx="62" ry="30"/><ellipse cx="-46" cy="12" rx="40" ry="22"/><ellipse cx="48" cy="10" rx="46" ry="25"/><rect x="-80" y="6" width="160" height="30" rx="15"/></g>`;
+  const hill = (x, y, rx, ry, c) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${c}"/>`;
+  const pine = (x, y, k) => `<g transform="translate(${x},${y}) scale(${k})"><rect x="-7" y="-20" width="14" height="30" rx="4" fill="#8a5a3c"/><path d="M0 -96 L38 -40 L-38 -40 Z" fill="#2f8f4e"/><path d="M0 -72 L44 -12 L-44 -12 Z" fill="#3fa65a"/></g>`;
+  const puffTree = (x, y, k) => `<g transform="translate(${x},${y}) scale(${k})"><rect x="-7" y="-22" width="14" height="32" rx="4" fill="#8a5a3c"/><circle cx="0" cy="-54" r="34" fill="#49b26a"/><circle cx="-26" cy="-36" r="24" fill="#3fa65a"/><circle cx="26" cy="-36" r="24" fill="#3fa65a"/></g>`;
+  const bush = (x, y, k) => `<g transform="translate(${x},${y}) scale(${k})" fill="#5cc27a"><circle cx="0" cy="-14" r="18"/><circle cx="-18" cy="-6" r="14"/><circle cx="18" cy="-6" r="14"/></g>`;
+  const flower = (x, y, c) => `<g transform="translate(${x},${y})"><circle cx="0" cy="-8" r="7" fill="${c}"/><circle cx="0" cy="-8" r="3" fill="#fff"/></g>`;
+  const tile = (h, body) => `<svg viewBox="0 0 1200 ${h}" preserveAspectRatio="none">${body}</svg>`;
+  const fill = (id, h, body) => { document.getElementById(id).innerHTML = tile(h, body) + tile(h, body); };
+  fill("tCloudsFar", 160, cloud(140, 70, .55) + cloud(430, 40, .4) + cloud(700, 90, .5) + cloud(1000, 50, .45));
+  fill("tCloudsNear", 190, cloud(260, 80, .95) + cloud(760, 60, .8) + cloud(1050, 120, .7));
+  fill("tHillsFar", 160, hill(180, 160, 300, 110, "#9fd8c0") + hill(560, 160, 260, 90, "#9fd8c0") + hill(900, 160, 320, 120, "#9fd8c0") + `<rect x="0" y="150" width="1200" height="10" fill="#9fd8c0"/>`);
+  fill("tHillsNear", 110, hill(120, 110, 260, 80, "#7cc96f") + hill(470, 110, 220, 60, "#7cc96f") + hill(820, 110, 300, 90, "#7cc96f") + hill(1120, 110, 180, 55, "#7cc96f") + `<rect x="0" y="100" width="1200" height="10" fill="#7cc96f"/>`);
+  fill("tTrees", 160, pine(90, 140, 1) + bush(170, 140, 1) + puffTree(300, 140, .9) + flower(380, 140, "#ff6b9d") + bush(470, 140, .8) + pine(600, 140, 1.15) + flower(690, 140, "#ffd60a") + puffTree(800, 140, 1) + bush(900, 140, 1.1) + flower(960, 140, "#ff6b9d") + pine(1060, 140, .9) + flower(1140, 140, "#ffd60a"));
+  document.getElementById("tSun").innerHTML = `<svg viewBox="0 0 240 240"><circle cx="120" cy="120" r="112" fill="#fff3b0" opacity=".35"/><g class="rays" fill="#ffe66e" opacity=".85">${[...Array(12)].map((_, i) => `<path d="M120 120 L${120 + 118 * Math.cos(i * Math.PI / 6 - .13)} ${120 + 118 * Math.sin(i * Math.PI / 6 - .13)} L${120 + 118 * Math.cos(i * Math.PI / 6 + .13)} ${120 + 118 * Math.sin(i * Math.PI / 6 + .13)} Z"/>`).join("")}</g><circle cx="120" cy="120" r="66" fill="#ffd60a" stroke="#fb8500" stroke-width="8"/></svg>`;
+  document.getElementById("tBirds").innerHTML = `<svg viewBox="0 0 160 60" fill="none" stroke="#2b3a55" stroke-width="5" stroke-linecap="round"><g transform="translate(30,30)"><path class="wing" d="M0 0 Q-16 -14 -30 -2"/><path class="wing" d="M0 0 Q16 -14 30 -2"/></g><g transform="translate(110,14) scale(.7)"><path class="wing" d="M0 0 Q-16 -14 -30 -2"/><path class="wing" d="M0 0 Q16 -14 30 -2"/></g></svg>`;
+})();
+
 function renderTitle() {
-  titleCar.innerHTML = vehicleSVG(state);
+  titleCar.innerHTML = `<div class="tShadow"></div>` + vehicleSVG(state) + `<div class="tPuffs"><span></span><span></span><span></span></div>`;
   titleCar.classList.add("idle");
   const avatar = meta.avatars[meta.active] || "pup";
   titleProfileBtn.innerHTML = `<svg viewBox="-6 -58 76 72">${BUDDY_SVG[avatar]}</svg>`;
   renderGift();
 }
-function showTitle() { renderTitle(); showScene(titleScene); }
+/* the shadow and the exhaust hang off the tire line, which differs per body (tracks and hover rings have
+   no tires: their art's lowest point stands in); measured once the scene is on screen, in stage px */
+function placeTitleGround() {
+  const svg = titleCar.querySelector("svg");
+  if (!svg || !titleScene.classList.contains("active")) return;
+  const k = stage.getBoundingClientRect().width / 1200 || 1;
+  const box = titleCar.getBoundingClientRect(), wheels = [...titleCar.querySelectorAll(".wheelrot")];
+  let line = box.bottom;
+  if (wheels.length) line = Math.max(...wheels.map(w => w.getBoundingClientRect().bottom));
+  else { try { const bb = svg.getBBox(), r = svg.getBoundingClientRect(); line = r.top + (bb.y + bb.height) * r.height / 230; } catch (e) {} }
+  titleCar.style.setProperty("--tGround", Math.round((box.bottom - line) / k) + "px");
+}
+function showTitle() { renderTitle(); showScene(titleScene); requestAnimationFrame(placeTitleGround); }
 function skipTitle() {
   if (/[?&]garage\b/.test(location.search)) return true;
   try {
@@ -11089,37 +11236,43 @@ async function checkForUpdate() {
     const doc = new DOMParser().parseFromString(await res.text(), "text/html");
     const st = doc.querySelector("style"), sc = doc.querySelector("script");
     if (!st || !sc) return;
-    if (codeHash(st.textContent + sc.textContent) !== bootHash) updateBtn.classList.add("show");
+    if (codeHash(st.textContent + sc.textContent) !== bootHash) updateGates.forEach(b => b.classList.add("show"));
   } catch (e) { /* offline in the car: keep playing what we have */ }
 }
+/* the gate sits on both the title and the garage (same button, same hold); whichever is held fills its own ring */
 const UPDATE_HOLD_MS = 1600;
-let updateHoldT = null, updateHoldStart = 0, updateHoldRaf = null;
-const updateRing = updateBtn.querySelector(".ring");
+const updateGates = [document.getElementById("titleUpdateBtn"), updateBtn];
+let updateHoldT = null, updateHoldStart = 0, updateHoldRaf = null, updateHeld = null;
 function updateHoldEnd() {
   clearTimeout(updateHoldT); cancelAnimationFrame(updateHoldRaf);
   updateHoldT = null;
-  updateBtn.classList.remove("holding");
-  updateRing.style.strokeDashoffset = 251.3;
+  if (updateHeld) { updateHeld.classList.remove("holding"); updateHeld.querySelector(".ring").style.strokeDashoffset = 251.3; }
+  updateHeld = null;
 }
-updateBtn.addEventListener("pointerdown", e => {
-  e.stopPropagation();
-  try { updateBtn.setPointerCapture(e.pointerId); } catch (err) {}
-  sfx.pop();
-  updateBtn.classList.add("holding");
-  updateHoldStart = performance.now();
-  (function fill() {
-    const f = Math.min(1, (performance.now() - updateHoldStart) / UPDATE_HOLD_MS);
-    updateRing.style.strokeDashoffset = 251.3 * (1 - f);
-    if (f < 1) updateHoldRaf = requestAnimationFrame(fill);
-  })();
-  updateHoldT = setTimeout(() => {
-    save();
-    sfx.tada();
-    /* cache-busting navigation so Safari can't hand back the old page */
-    setTimeout(() => location.replace(location.pathname + "?v=" + Date.now() + location.hash), 350);
-  }, UPDATE_HOLD_MS);
-});
-for (const ev of ["pointerup", "pointercancel", "pointerleave"]) updateBtn.addEventListener(ev, () => { if (updateHoldT) updateHoldEnd(); });
+for (const gate of updateGates) {
+  const ring = gate.querySelector(".ring");
+  gate.addEventListener("pointerdown", e => {
+    e.stopPropagation();
+    if (updateHoldT) updateHoldEnd();
+    try { gate.setPointerCapture(e.pointerId); } catch (err) {}
+    sfx.pop();
+    updateHeld = gate;
+    gate.classList.add("holding");
+    updateHoldStart = performance.now();
+    (function fill() {
+      const f = Math.min(1, (performance.now() - updateHoldStart) / UPDATE_HOLD_MS);
+      ring.style.strokeDashoffset = 251.3 * (1 - f);
+      if (f < 1) updateHoldRaf = requestAnimationFrame(fill);
+    })();
+    updateHoldT = setTimeout(() => {
+      save();
+      sfx.tada();
+      /* cache-busting navigation so Safari can't hand back the old page */
+      setTimeout(() => location.replace(location.pathname + "?v=" + Date.now() + location.hash), 350);
+    }, UPDATE_HOLD_MS);
+  });
+  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) gate.addEventListener(ev, () => { if (updateHoldT && updateHeld === gate) updateHoldEnd(); });
+}
 setTimeout(checkForUpdate, 2500);
 setInterval(checkForUpdate, 10 * 60 * 1000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) checkForUpdate(); });

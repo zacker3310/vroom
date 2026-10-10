@@ -1,6 +1,6 @@
-# Vroom: notes for Claude Code
+# Zoomies (repo `vroom`): notes for Claude Code
 
-Vroom is a one-file kids' driving game: `index.html` holds all CSS, markup and JS (a 30-section
+Zoomies is a one-file kids' driving game: `index.html` holds all CSS, markup and JS (a 30-section
 table of contents sits at the top of the script). No build, no dependencies, no network. Read
 `CONTRIBUTING.md` for the non-negotiable rules and the content-pack anchors, and
 `docs/ARCHITECTURE.md` for how the pieces fit. `SPEC.md` is the design spec; `TASKS.md` the log.

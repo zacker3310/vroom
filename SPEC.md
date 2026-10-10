@@ -1,4 +1,4 @@
-# Vroom
+# Zoomies (repo: vroom)
 
 Build-a-car garage game for a 3-5 year old. Browser, single `index.html`, no dependencies, no build step.
 

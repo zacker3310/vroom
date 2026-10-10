@@ -27,6 +27,9 @@ const EXE = process.env.CHROMIUM || pw.chromium.executablePath();
     save(); renderWallets(false); renderPreview(); renderUpkeep(); openTab('body', false);
   });
   await page.waitForTimeout(700); await page.screenshot({ path: OUT + 'garage.png' });
+  /* the title: the car has driven in, the emblem has landed, the world is rolling */
+  await page.evaluate(() => showTitle()); await page.waitForTimeout(2600); await page.screenshot({ path: OUT + 'title.png' });
+  await page.evaluate(() => showGarage()); await page.waitForTimeout(300);
   await page.evaluate(() => showMap()); await page.waitForTimeout(800); await page.screenshot({ path: OUT + 'map.png' });
   await page.evaluate(() => showAlbum()); await page.waitForTimeout(900); await page.screenshot({ path: OUT + 'album.png' });
   const road = async (lvl, file, lane, ms) => {
@@ -56,6 +59,6 @@ const EXE = process.env.CHROMIUM || pw.chromium.executablePath();
   await page.evaluate(async () => { showGarage(); progress.muddy = false; progress.damage = 0; drive(12); await new Promise(r => setTimeout(r, 200)); runStars = 9; runDamage = 0; renderHudStars(false); pos = LEVEL_LEN - 350; gasKey = true; });
   await page.waitForTimeout(3600); await page.evaluate(() => { gasKey = false; });
   await page.screenshot({ path: OUT + 'celebrate.png' });
-  console.log('wrote 11 screenshots to', OUT, errs.length ? '\nerrors: ' + errs.join('\n') : '');
+  console.log('wrote 12 screenshots to', OUT, errs.length ? '\nerrors: ' + errs.join('\n') : '');
   await b.close();
 })();

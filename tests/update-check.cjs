@@ -46,6 +46,26 @@ function check(name, ok, detail) {
   await page.mouse.up().catch(() => {});
   await page.waitForTimeout(800);
   check('update: press-and-hold reloads the new version', reloadedWithBust && page.url().includes('?v='), page.url());
+
+  /* ---- the same gate on the title scene (v13.10): boot without ?garage, the probe finds the new version, the title's
+     own button shows, a tap does nothing, a hold reloads ---- */
+  reloadedWithBust = false;
+  await page.goto(URL.replace(/[?&]garage\b/, ''));
+  await page.waitForTimeout(3200);
+  const onTitle = await page.evaluate(() => ({ active: [...document.querySelectorAll('.scene.active')].map(s => s.id).join(','),
+    show: titleUpdateBtn.classList.contains('show'), display: getComputedStyle(titleUpdateBtn).display, garageToo: updateBtn.classList.contains('show') }));
+  check('title gate: the title scene shows its own gate when a new version is deployed (and the garage one is armed too)', onTitle.active === 'title' && onTitle.show && onTitle.display !== 'none' && onTitle.garageToo, JSON.stringify(onTitle));
+  const tb = await page.locator('#titleUpdateBtn').boundingBox();
+  await page.mouse.move(tb.x + tb.width / 2, tb.y + tb.height / 2);
+  await page.mouse.down(); await page.waitForTimeout(300); await page.mouse.up();
+  await page.waitForTimeout(1800);
+  const stillTitle = await page.evaluate(() => document.getElementById('title').classList.contains('active') && !document.getElementById('titleUpdateBtn').classList.contains('holding'));
+  check('title gate: a quick tap does not reload and lets go of the ring', !reloadedWithBust && stillTitle);
+  await page.mouse.down();
+  await page.waitForTimeout(2300);
+  await page.mouse.up().catch(() => {});
+  await page.waitForTimeout(800);
+  check('title gate: press-and-hold on the title reloads the new version', reloadedWithBust && page.url().includes('?v='), page.url());
   check('update: no page errors', errors.length === 0, errors.join(' | '));
 
   await browser.close();
