@@ -293,6 +293,10 @@
 
 - [x] T40.1: Launches cut hard: the standard kick 0.9 -> 0.6 (`KICK_STD`, also the flight-star arc), mega 1.1 -> 0.75, hop 0.55 -> 0.4, the springs ladder +18% -> +8% a pip (1.24 at the top, was 1.54), the chomper's spit 470 -> 420. Flight tables, tails and landing zones unchanged (they were generous), so every landing stays clear. [SPID]
 
+## v13.24.0 (2026-10-10, user-directed: "the sign needs to be shrunk a bit so we can see the whole thing")
+
+- [x] T44.1: The whole ZOOMIES sign is on the stage. The chains and flags were drawn above the SVG's top edge, so they could never show. The sign is 560 wide (was 680), its canvas runs 50 units higher, and a wooden rail at the top is what the chains hang from; rail, chains, both flags and the plank now sit inside the sky band above the skyline. docs/title.png regenerated. [SPID]
+
 ## v13.23.0 (2026-10-10, user-directed: "I have absolutely no clue what's going on here, make it the best damn album for a AAA Nintendo style game")
 
 - [x] T43.1: The album is a scrapbook. Three framed, taped pages that pop in one after the other, each with a pictogram tab (paw, rosette, camera) and a found/total count that turns green when complete. The photo wall replaces the "last six finishes" strip (six replays of level 2 made six identical polaroids): 13 frames in a fixed order, one per world and a gold one for the parade. `keepPhoto` offers each finish to its world's frame, which only ever gets better (medal, then stars; the newest of equals). Empty frames show the world's icon as a ghost and deny a tap. Photo backdrops gain a sun or moon, a hill band and the road's dashes. Anything new since the last visit wears a pulsing gold star for that visit (`progress.albumSeen`, localStorage only). Older saves collapse to one photo per world on load. The stale 96 px buddy override and two duplicate CSS blocks are gone; every slot is 80 px or more. album-check 15 -> 20. [SPID]
