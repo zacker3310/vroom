@@ -144,7 +144,7 @@ function check(name, ok, detail) {
   /* during a race the twin is never drawn between the camera and the car (13.19: a flat saucer body there was a grey disc across the road) */
   const behind = await page.evaluate(async () => {
     drive(1); await new Promise(r => setTimeout(r, 300));
-    ghostT = ghostTrace.t * 0.5; v = 0; pos = ghostAt(ghostT)[0] + 100;   /* the car 100 past the twin: the twin is just behind */
+    ghostT = ghostTrace.t * 0.5; v = 0; pos = ghostAt(ghostT)[0] + 300;   /* the car 300 past the twin: its clock keeps rolling for the wait (~80 units at race pace), so it stays well behind the -30 line */
     await new Promise(r => setTimeout(r, 120));
     const z0 = ghostSprite.x - curCarX, hid = !ghostSprite.vis;
     pos = ghostAt(ghostT)[0] - 400; await new Promise(r => setTimeout(r, 120));   /* 400 ahead: drawn at full strength */
