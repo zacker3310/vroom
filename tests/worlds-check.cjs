@@ -272,7 +272,7 @@ function check(name, ok, detail) {
      set, the cool palette with a dune shoulder and no field strips, and the roller's long low swells ---- */
   const sea = await page.evaluate(async () => {
     const park = async (n, x) => { drive(n); v = 0; gasKey = false; pos = x; await new Promise(r => setTimeout(r, 150)); renderWorld(); };
-    const ribsWanted = () => { const carX = pos + CAR_SCREEN_X - CAR_HIT_Z; let want = 0; for (let x = Math.ceil((carX + 100) / TUN_GAP) * TUN_GAP; x - carX < DRAW_FAR; x += TUN_GAP) if (!inTwist(x, 150)) want++; return want; };
+    const ribsWanted = () => { const carX = pos + CAR_SCREEN_X - CAR_HIT_Z; let want = 0; for (let x = Math.ceil((carX + 100) / TUN_GAP) * TUN_GAP; x - carX < DRAW_FAR; x += TUN_GAP) if (!inChomp(x, 150)) want++; return want; };
     const out = {};
     await park(101, 600);
     out.ribsOpen = tunnelRibN; out.ribsOpenWant = ribsWanted();
@@ -286,9 +286,9 @@ function check(name, ok, detail) {
     out.set = WORLD_SET.w11.length;
     out.pieces = ['#c9772a', 'M14 -96 Q30 -14 70 -8', 'M98 -70 Q124 -98 150 -70', 'stroke-linejoin="round"/><circle'].map(s => WORLD_SET.w11.some(p => p.svg.includes(s)));
     stopDrive();
-    /* inside level 104's first corkscrew: the ribs that would fall within the twist are skipped, the hoops own it */
+    /* inside level 104's first chomper: the ribs that would fall within its stretch are skipped, the monster owns it */
     await park(104, 0);
-    const t = TWISTS[0];
+    const t = CHOMPS[0];
     pos = t.x0 + 400; renderWorld();
     out.ribsTwist = tunnelRibN; out.ribsTwistWant = ribsWanted(); out.twistLen = t.x1 - t.x0;
     stopDrive();

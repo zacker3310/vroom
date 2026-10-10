@@ -8,7 +8,7 @@ table of contents sits at the top of the script). No build, no dependencies, no 
 ## Rules that the suite and the user both enforce
 
 - Zero on-screen words: numerals and symbols only, pictograms for everything. `aria-label`s are fine. The exceptions are the ZOOMIES wordmark on the title sign and the PLAY label on its one button, both drawn as SVG paths (never `<text>`): a brand mark and a label, not things to read.
-- No fail states. Stars only go up. Obstacles stop and ding, never end a run. Dry fuel crawls, it never strands.
+- No fail states. Stars only go up. Obstacles stop and ding, never end a run. Dry fuel crawls, it never strands. The one wrinkle is the chomper: it tosses up to three of the run's stars back onto the road ahead (the run tally dips until the kid drives on); the wallet never drops.
 - Every tap target is at least 64 px rendered at 1024x768 (so 76 stage px or more).
 - Toybox look: the `--v-*` tokens in `:root`, flat `0 6px 0` shadows, big radii, `var(--v-font)`. Navy is game art, never chrome.
 - Save data is forever: `CODE_*`, `BODY_ORDER`, `WHEEL_ORDER`, `COLORS`, `DECAL_ORDER`, `BUDDY_ORDER`, `BADGES` are append-only. New save fields go on the end of the v3 tail with a `pos + n <= bytes.length * 8` guard, and in `loadState()` with a default for older saves.

@@ -168,39 +168,32 @@ world bend 15% harder (`k·(0.85 + 0.3·i/9)`). Bends stay out of the first 950 
 units.
 
 v12.9 added four wilder shapes, two or three per world's order: `switchback` (alternating
-hard turns), `zigzag` (sharp kinks on a straight), `corkscrew` (one twist, two rolling opposite
+hard turns), `zigzag` (sharp kinks on a straight), `chomper` (one monster, two
 ways from world 3) and `roller` (a train of big short hills whatever the world's own hill
 setting); finales from world 2 add a twist to their `tour`. A **hard turn** is a stretch at
 `CURVE.hard = 0.00075` (anything at `HARD_K` or sharper): `addChevrons()` stands red boards with
 white chevrons on its outside verge, splitting the road at the midpoint between close kinks so
 every board stands nearest its own turn, and the tires squeal through it above 450.
 
-### Corkscrews
+### Chompers
 
-`TWISTS` is a list of `{x0, x1, dir}` (`TWIST_LEN = 2200`). On the chase cam a twist is a flat stretch
-of road with a helix of stars inside a tunnel of hoops: the 2D projector cannot draw a road that leaves
-its plane, which is what sank the rolled view (13.4), the rolled ribbon under a level camera (13.12) and
-the glass road (13.12.2). The corkscrew itself is a cutaway (13.14): while the car is inside a twist,
-`loopTick(carX)` keeps `#loopView` up over the chase cam (under the HUD chips and pedals): a side-view
-scene built by `loopOpen` from the world's palette (sky, far hills, ground, the road strip and a drawn
-ring with rumble edges and a dashed centre line) with the kid's own car (`vehicleSVG(state)`, the same
-side art as the garage and the title) placed by `loopPt(u)`, which maps progress through the twist to a
-flat run-in (`LOOP_IN`, 0.29), a full counterclockwise turn of the ring at the same pace as the straights
-(so nothing snaps at the joins and the helix spreads evenly), upside down at the top, and a flat run-out; the car rides the ring's inner surface (`LOOP_RIDE`),
-turning about its contact point, wheels spinning, puffs off the tail. The real simulation keeps running
-underneath: every twist star is drawn on the loop at its own progress and pops (`.got`) when the sim
-collects it, and inside a twist the star pickup ignores lanes (the side view has none), so a kid who
-drives through gets every star on the loop. The cutaway closes on the far side. Reduced motion keeps
-the chase cam and the hoops and never opens it (`rollOK`).
-`drawHoops()` rings the twist with
-striped hoops every 150 units (only the arc above the deck). Twists carry stars only: the helix
-(three stars a lane, `[1, 2, 1, 0]`) is laid before any formation, `put` and `spotFor` refuse
-blockers within 150, overhead arches stay 700 away, and a ramp beat whose run-up-to-touchdown
-would cross one is taken back whole (`tryRamp`) and flown after it. `tryRamp` also takes back any ramp beat
-that would touch down past `landLimit` (the last 600 before the flags, or a finale's star shower), retrying
-it as a plain ramp; when not even that fits, the rest of the road is star trails, never new hazards.
-World 1's corkscrew is level 9: a shorter road cannot hold a 2200 twist and a jump. Reduced motion keeps the
-hoops and drops the roll (`rollOK`).
+`CHOMPS` is a list of `{x0, x1, dir}` stretches (`CHOMP_LEN = 1500`), the "chomper" shape in every world's
+`WORLD_ROAD` order (one per world, two from world 3, one in every finale from world 2). The corkscrew they
+replace went through four renderers (13.4 rolled the view, 13.12 rolled the ribbon under a level camera,
+13.12.2 made it glass, 13.14 cut to a side view) and never read right: the 2D projector cannot draw a road
+leaving its plane. A chomper is a set piece the projector can draw. `addChomper` sits a monster across the
+road at `x0 + CHOMP_MOUTH` as arch-style scenery (`p.chomper`, no blob); a trail of stars (`b.star`, lanes
+1 0 1 2) leads in, and from the mouth to the end of the stretch nothing is placed (`chompClear`, honoured
+by `b.star`, `b.high` and `spotFor`), so the spit has a clear landing. `chompTick` toggles `.open` (jaw
+drops, lids lower, a growl once) while the car is within 1100, and at the mouth `chompStart` runs the
+bite: `#chompView` (dark mouth, two tooth rows, a uvula, under the HUD at z 18) clips shut over the stage,
+the car is held by `freezeUntil` for `CHOMP_HOLD` ms (the crash hit-stop, so nothing moves), munch sounds
+and a chew shake (`.chew`, off under reduced motion), then `chompDrop` takes `min(CHOMP_DROP, runStars)`
+off the run tally and puts them back on the road at `CHOMP_STAR_X` in the kid's own lane (`p.spat`, not
+counted in `totalStars`), and `chompSpit` opens the jaws, spits (cheeks puff) and launches the car in a
+high arc (`airborne`, `vy` 470 by the springs) that lands past the stars, so driving on gets them straight
+back. The wallet never drops: only the run tally dips, and only until the kid drives on. The music riser
+runs through the bite.
 
 ### Hills
 
@@ -324,7 +317,7 @@ strength) so the far reef silhouettes, the haze and the sandy-teal seabed melt t
 line. The palette's `tunnel` key switches on `drawTunnel`: a pale rib every `TUN_GAP` (320)
 units from z 100 to `DRAW_FAR`, each one stroke in `groundSpace` about the road's axis
 (`TUN_R`, `TUN_C`), clipped by `occClip` and fading with the far fade, never within
-`inTwist(x, 150)` because the corkscrew's hoops own those stretches (`tunnelRibN` counts them
+`inChomp(x, 150)` because the chomper owns those stretches (`tunnelRibN` counts them
 for the suite). `#seaCaustic`, a div inside `#view` shown only under `.w11`, is the light
 dapple on the seabed: a tilted repeating radial-gradient plane drifting by `transform` alone,
 masked out toward the horizon, blended `soft-light`, still under `prefers-reduced-motion`.
@@ -356,7 +349,7 @@ Music: `MUSIC[w]` is a per-world bed (bpm, root, bass / arp / percussion step st
 jingle's note vocabulary) scheduled with lookahead on the audio clock (`musicPump` every
 `MUSIC_PUMP_MS`, `MUSIC_LOOKAHEAD` ahead, first note after the jingle). The bass always plays;
 the arp and percussion fade in above about 60% speed; a riser sweeps while airborne or in a
-corkscrew; the bed ducks to `MUSIC_DUCK` at the finish, stops in `worldAudioStop`, and is silent
+chomper's mouth; the bed ducks to `MUSIC_DUCK` at the finish, stops in `worldAudioStop`, and is silent
 in quiet mode. Ambience beds drop to `AMB_UNDER_MUSIC` while it plays. The `MIX` comment in the
 audio section documents every gain stage.
 

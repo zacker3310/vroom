@@ -423,7 +423,7 @@
   .cloud::after { width: 45%; height: 130%; right: 12%; bottom: 30%; }
   #skyStars { display: none; position: absolute; inset: 0; }
   #env { position: absolute; inset: 0; pointer-events: none; }
-  /* the view: sky, ground and sprites in one layer a corkscrew rolls about the vanishing point (13.4) */
+  /* the view: sky, ground canvas, sprites and weather in one layer */
   #view { position: absolute; inset: 0; transform-origin: 600px 290px; }
   .drum { transform-box: fill-box; transform-origin: center; }
   #road.night #skyStars { display: block; }
@@ -705,20 +705,36 @@
     0% { transform: translate(0,0) scale(.5); opacity: .85; }
     100% { transform: translate(var(--dx, 0px),-34px) scale(1.9); opacity: 0; }
   }
-  /* the corkscrew cutaway (13.14): a side view over the chase cam, under the HUD chips and pedals (z 20) */
-  #loopView { position: absolute; inset: 0; display: none; pointer-events: none; overflow: hidden; z-index: 18; }
-  #loopView.on { display: block; animation: loopIn .25s ease-out; }
-  @keyframes loopIn { from { opacity: 0; transform: scale(1.06); } }
-  #loopView svg.loopScene { position: absolute; inset: 0; width: 1200px; height: 700px; }
-  #loopView .loopStar { transform-box: fill-box; transform-origin: center; }
-  #loopView .loopStar.got { animation: loopStarPop .35s ease-out forwards; }
-  @keyframes loopStarPop { 60% { transform: scale(1.8); opacity: 1; } 100% { transform: scale(2.4); opacity: 0; } }
-  #loopCar { position: absolute; left: 0; top: 0; width: 220px; transform-origin: 50% 87%; will-change: transform; }
-  #loopCar svg { width: 100%; height: auto; overflow: visible; }
-  #loopView.on #loopCar .wheelrot { animation: tWheel .4s linear infinite; }
-  #loopView .loopPuff { animation: loopPuff .5s ease-out forwards; transform-box: fill-box; transform-origin: center; }
-  @keyframes loopPuff { to { transform: translate(-60px, -10px) scale(2); opacity: 0; } }
-  #speedLines { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .35s; z-index: 16; }
+  /* the chomper's jaws (13.15): the stage goes into the mouth, under the HUD chips and pedals (z 20) */
+  #chompView { position: absolute; inset: 0; display: none; pointer-events: none; overflow: hidden; z-index: 18; background: #2a0b3b; clip-path: inset(50% 0 50% 0); transition: clip-path .22s ease-in; }
+  #chompView.on { display: block; }
+  #chompView.shut { clip-path: inset(0 0 0 0); }
+  #chompView .teeth { position: absolute; left: 0; width: 1200px; height: 150px; }
+  #chompView .teeth.top { top: 0; }
+  #chompView .teeth.bot { bottom: 0; transform: scaleY(-1); }
+  #chompView .teeth svg { width: 100%; height: 100%; }
+  #chompView .gum { position: absolute; left: 0; width: 1200px; height: 90px; background: #e5527d; }
+  #chompView .gum.top { top: -40px; } #chompView .gum.bot { bottom: -40px; }
+  #chompView .uvula { position: absolute; left: 570px; top: 90px; width: 60px; height: 110px; border-radius: 30px; background: #c93b6a; transform-origin: 50% 0; }
+  #chompView.chew { animation: chompChew .22s ease-in-out infinite; }
+  #chompView.chew .uvula { animation: uvulaSwing .3s ease-in-out infinite alternate; }
+  @keyframes chompChew { 0%, 100% { transform: translate(0, 0) scale(1); } 30% { transform: translate(-8px, 10px) scale(1.02); } 65% { transform: translate(8px, -6px) scale(.99); } }
+  @keyframes uvulaSwing { from { transform: rotate(-16deg); } to { transform: rotate(16deg); } }
+  /* the monster itself: breathing while it waits, jaw dropping as the car comes, a snap, then the ptooey */
+  .prop.chomper .jaw { transform-box: fill-box; transform-origin: center top; transition: transform .4s cubic-bezier(.2, 1.4, .4, 1); }
+  .prop.chomper .lidL, .prop.chomper .lidR { transform-box: fill-box; transform-origin: center bottom; transition: transform .3s ease; }
+  .prop.chomper.open .jaw { transform: translateY(70px); }
+  .prop.chomper.open .lidL, .prop.chomper.open .lidR { transform: scaleY(.55); }
+  .prop.chomper.bite .jaw { transform: translateY(-14px); transition-duration: .12s; }
+  .prop.chomper.bite .body { animation: chomperChew .22s ease-in-out infinite; transform-box: fill-box; transform-origin: center bottom; }
+  @keyframes chomperChew { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.04, .94); } }
+  .prop.chomper.spit .jaw { transform: translateY(90px); transition-duration: .1s; }
+  .prop.chomper.spit .cheeks { animation: cheekPuff .5s ease-out; transform-box: fill-box; transform-origin: center; }
+  @keyframes cheekPuff { 0% { transform: scale(1.5); opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
+  .prop.chomper .body { animation: chomperBreathe 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center bottom; }
+  @keyframes chomperBreathe { 50% { transform: scale(1.015, .985); } }
+  @media (prefers-reduced-motion: reduce) { #chompView.chew, #chompView.chew .uvula, .prop.chomper .body, .prop.chomper.bite .body { animation: none !important; } }
+  #speedLines { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .35s; z-index: 16; }  #speedLines { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .35s; z-index: 16; }
   #speedLines div {
     position: absolute; left: 600px; top: 290px; height: 6px; border-radius: 3px; width: 170px;
     background: #ffffff99; transform-origin: 0 50%; animation: streak .34s linear infinite;
@@ -1600,13 +1616,13 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* PLAY: one huge green pill at the bottom, built like a toy button: a lit top edge, a shaded lower lip, a thick
    base and a ground shadow; it sinks onto its base when pressed. The face is a white play chip and PLAY. */
 #titleGo {
-  position: absolute; left: 463px; top: 586px; width: 275px; height: 100px; border-radius: 50px; overflow: visible; z-index: 10;
+  position: absolute; left: 480px; top: 566px; width: 240px; height: 88px; border-radius: 44px; overflow: visible; z-index: 10;
   background: linear-gradient(#9be283 0%, #6fcf5a 45%, #4fb542 100%); border: 10px solid var(--v-green-line);
   box-shadow: 0 8px 0 var(--v-green-down), 0 8px 0 2px rgba(0, 0, 0, .08), 0 14px 0 rgba(0, 0, 0, .16),
     inset 0 5px 0 rgba(255, 255, 255, .45), inset 0 -8px 0 rgba(0, 0, 0, .14);
   transition: transform .08s, box-shadow .08s;
 }
-#titleGo svg { width: 255px; height: 80px; position: relative; z-index: 1; overflow: visible; }
+#titleGo svg { width: 220px; height: 68px; position: relative; z-index: 1; overflow: visible; }
 #titleGo::before { content: ""; position: absolute; inset: -12px; border-radius: 64px; border: 8px solid var(--v-accent-green); opacity: 0; pointer-events: none; }
 #titleGo::after { content: ""; position: absolute; left: 6%; top: 7%; width: 88%; height: 26%; border-radius: 50%; background: rgba(255, 255, 255, .22); pointer-events: none; }
 #titleGo:active, #titleGo.pressed {
@@ -1620,7 +1636,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 @keyframes tHalo { 0% { transform: scale(.92); opacity: .75; } 100% { transform: scale(1.22); opacity: 0; } }
 /* the gift badge: a small capsule riding the play pill's shoulder while today's gift is unclaimed */
 #titleGift {
-  position: absolute; right: -40px; top: -36px; width: 64px; height: 64px; border-radius: 50%; z-index: 2;
+  position: absolute; right: -38px; top: -34px; width: 64px; height: 64px; border-radius: 50%; z-index: 2;
   background: var(--v-surface); border: 5px solid var(--v-yellow-line); box-shadow: 0 4px 0 var(--v-yellow-down);
   display: none; align-items: center; justify-content: center; animation: pulse 1.1s ease infinite;
 }
@@ -1836,7 +1852,12 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     <div id="seaCaustic"></div>
     <div id="weather"></div>
     </div>
-    <div id="loopView" aria-hidden="true"><div id="loopCar"></div></div>
+    <div id="chompView" aria-hidden="true">
+      <div class="gum top"></div><div class="gum bot"></div>
+      <div class="teeth top"><svg viewBox="0 0 1200 150" preserveAspectRatio="none"></svg></div>
+      <div class="uvula"></div>
+      <div class="teeth bot"><svg viewBox="0 0 1200 150" preserveAspectRatio="none"></svg></div>
+    </div>
     <div id="speedLines"><div></div><div></div><div></div><div></div><div></div><div></div></div>
     <button class="bigBtn" id="homeBtn" aria-label="back to garage">
       <svg viewBox="0 0 100 100"><path d="M50 12 L92 50 H78 V88 H22 V50 H8 Z" fill="#023047"/><rect x="40" y="58" width="20" height="30" fill="#ffb703"/></svg>
@@ -2073,7 +2094,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.14.0";
+const APP_VERSION = "13.15.0";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -2422,7 +2443,10 @@ const sfx = {
     o.connect(og).connect(out); o.start(t); o.stop(t + 0.24);
   },
   whee()   { [523, 659, 784, 1047].forEach((f, i) => tone("sine", f, f, 0.14, 0.22, i * 0.07)); },
-  corkscrew() { tone("sine", 260, 1040, 1.1, 0.16); tone("triangle", 390, 1560, 1.1, 0.07, 0.06); noiseBurst(0.9, 1800, 0.07); },
+  growl() { tone("sawtooth", 95, 70, 0.7, 0.1); tone("sine", 60, 48, 0.8, 0.14); noiseBurst(0.5, 500, 0.06); },   /* the chomper's mouth opens */
+  gulp() { tone("sine", 420, 110, 0.35, 0.16); noiseBurst(0.18, 900, 0.1, 0.05); },                                  /* the car goes in */
+  munch() { noiseBurst(0.07, 2600, 0.22); tone("square", 150, 95, 0.1, 0.09); tone("sine", 70, 60, 0.12, 0.12); },    /* a chew */
+  spit() { noiseBurst(0.22, 3200, 0.16); tone("sine", 320, 1300, 0.32, 0.14); tone("triangle", 200, 900, 0.3, 0.07, 0.04); },   /* ptooey */
   almost() { [660, 880, 1100].forEach((f, i) => tone("sine", f, f, 0.1, 0.15, i * 0.09)); },
   splash() { noiseBurst(0.35, 900, 0.35); },
   deny()   { tone("triangle", 220, 160, 0.18, 0.3); tone("triangle", 180, 120, 0.22, 0.3, 0.18); },
@@ -6100,7 +6124,7 @@ function renderMap() {
    World coords: x = distance along the road (unchanged from the side-scroller, so all the
    level/physics/collision logic still speaks x), lx = lateral offset, h = height. */
 const farLayer = document.getElementById("farLayer");
-let rollOK = true;   /* startDrive: false when the device asks for reduced motion (corkscrews keep their hoops, lose the roll) */
+let rollOK = true;   /* startDrive: false when the device asks for reduced motion (camera springs and the chew shake sit still) */
 const worldEl = document.getElementById("world");
 const roadCanvas = document.getElementById("roadCanvas");
 const rctx = roadCanvas.getContext("2d");
@@ -6269,28 +6293,18 @@ function elevAt(x) {
   return e;
 }
 function addHill(x0, len, amp) { HILLS.push({ x0, x1: x0 + len, amp }); return x0 + len; }
-/* ---- corkscrews (13.14, the loop cutaway): a twist is a stretch of road with a helix of stars inside a tunnel
-   of hoops. On the chase cam the road stays flat (the 2D projector cannot draw a road leaving its plane, which
-   is what sank the rolled view of 13.4, the rolled ribbon of 13.12 and the glass road of 13.12.2). While the
-   car is inside a twist the stage cuts to a side view (#loopView, loopTick): the kid's own car runs along a
-   drawn loop, up the far side, upside down over the top and down the near side, its stars popping as the real
-   simulation collects them (every twist star counts, whatever the lane), then cuts back on the far side.
-   loopPt(u) maps progress through the twist to the side-view scene: a flat run-in, the circle, a flat run-out.
-   Reduced motion keeps the chase cam and the hoops and skips the cutaway. ---- */
-let TWISTS = [], twistLive = false;
-const TWIST_LEN = 2200;   /* long enough for a run-in, a full turn of the loop and a run-out at road speed */
-function addTwist(x0, len, dir) { TWISTS.push({ x0, x1: x0 + len, dir }); return x0 + len; }
-const inTwist = (x, pad = 0) => TWISTS.some(t => x > t.x0 - pad && x < t.x1 + pad);
-const LOOP_IN = 0.29, LOOP_R = 200, LOOP_CX = 600, LOOP_CY = 330, LOOP_GY = 530;   /* run-in share, ring radius and centre, the ground line */
-const LOOP_RIDE = LOOP_R - 26;   /* the car rides the ring's inner surface (the band is 58 wide about LOOP_R) */
-function loopPt(u) {   /* [x, y, angle]: the car's contact point and heading in the side view, angle 0 = on the ground facing right */
-  if (u <= LOOP_IN) return [-140 + (LOOP_CX + 140) * (u / LOOP_IN), LOOP_GY, 0];
-  if (u >= 1 - LOOP_IN) return [LOOP_CX + (1340 - LOOP_CX) * ((u - 1 + LOOP_IN) / LOOP_IN), LOOP_GY, Math.PI * 2];   /* a full turn done: the same heading as 0, kept continuous */
-  /* a uniform turn: with LOOP_IN at 0.29 the run-in, the ring and the run-out all cover about 3700 px per unit of
-     progress, so the car neither snaps nor stalls at the joins and the helix stars spread evenly round the ring */
-  const a = Math.PI * 2 * (u - LOOP_IN) / (1 - 2 * LOOP_IN);
-  return [LOOP_CX + LOOP_RIDE * Math.sin(a), LOOP_CY + LOOP_RIDE * Math.cos(a), a];
-}
+/* ---- chompers (13.15): the corkscrew is gone (four renderers never made a road leaving its plane look right
+   on a 2D projector, and the side-view cutaway read as a cartoon). In its place, every "chomper" stretch is a
+   chomper: a big friendly monster sitting across the road with its mouth for an archway. A trail of stars leads
+   in; the mouth gapes as the car comes; the car drives in, the jaws shut over the stage (#chompView), the beast
+   chews (shake, munch), spits a few of the run's stars out onto the road ahead and then spits the car out in a
+   high arc that lands past them, so the kid grabs their stars straight back. The wallet never drops: only the
+   run tally dips, and only until the kid drives on. CHOMPS is the stretch list; the mouth sits CHOMP_MOUTH in. ---- */
+let CHOMPS = [];
+const CHOMP_LEN = 1500, CHOMP_MOUTH = 620, CHOMP_DROP = 3, CHOMP_STAR_X = [700, 840, 980];   /* stretch, mouth offset, stars spat, where they land */
+function addChomp(x0, len, dir) { CHOMPS.push({ x0, x1: x0 + len, dir }); return x0 + len; }
+const inChomp = (x, pad = 0) => CHOMPS.some(t => x > t.x0 - pad && x < t.x1 + pad);
+const chompClear = x => CHOMPS.some(t => x > t.x0 + CHOMP_MOUTH - 180 && x < t.x1 + 150);   /* from the mouth to the end: kept empty for the spit */
 let camWX = 0, camWY = 0;   /* the camera in the world: lateral and height over the flat ground (renderWorld) */
 /* course authoring: every world has a road character (how hard it bends, whether it has
    hairpins, how long its straights run) and every level in a world gets a different shape
@@ -6302,17 +6316,17 @@ function addBend(x0, len, k) { COURSE.push({ x0, x1: x0 + len, k }); return x0 +
 const WORLD_ROAD = {
   /*  k: base curvature, hp: hairpin strength (0 = none in this world), len/gap: bend length and
       straight multipliers, order: the ten level shapes */
-  1: { k: CURVE.gentle * 0.8,  hp: 0,   len: 1.0, gap: 1.0, order: ["sweeper", "bookends", "esses", "twin", "roller", "wiggle", "drag", "esses", "corkscrew", "tour"] },   /* the corkscrew waits for level 9: shorter roads can't fit it and a jump */      /* construction: wide and forgiving */
-  2: { k: CURVE.gentle * 1.3,  hp: 0,   len: 1.3, gap: 1.2, order: ["esses", "sweeper", "twin", "spiral", "bookends", "esses", "corkscrew", "roller", "wiggle", "tour"] },      /* farm: long lazy sweepers over hills */
-  3: { k: CURVE.medium,        hp: 0.8, len: 0.8, gap: 0.8, order: ["chicanes", "esses", "hairpins", "zigzag", "twin", "switchback", "spiral", "corkscrew", "esses", "tour"] },    /* night: twisty mountain road */
-  4: { k: CURVE.gentle * 1.15, hp: 0,   len: 1.7, gap: 1.6, order: ["drag", "bookends", "sweeper", "roller", "esses", "corkscrew", "sweeper", "bookends", "zigzag", "tour"] },       /* rain: highway, long straights, wide curves */
-  5: { k: CURVE.medium * 1.1,  hp: 1.0, len: 0.9, gap: 0.9, order: ["hairpins", "zigzag", "chicanes", "spiral", "switchback", "esses", "drag", "corkscrew", "hairpins", "tour"] }, /* snow: the mountain pass, switchbacks */
-  6: { k: CURVE.medium * 0.9,  hp: 0.9, len: 1.4, gap: 1.5, order: ["drag", "sweeper", "bookends", "chicanes", "roller", "switchback", "hairpins", "sweeper", "corkscrew", "tour"] },    /* desert: drag strips and one giant sweeper */
-  7: { k: CURVE.medium,        hp: 0.7, len: 1.1, gap: 1.0, order: ["esses", "twin", "sweeper", "zigzag", "corkscrew", "spiral", "hairpins", "roller", "twin", "tour"] },        /* beach: rhythmic coast road */
-  8: { k: CURVE.tight * 0.9,   hp: 1.1, len: 0.8, gap: 0.7, order: ["chicanes", "wiggle", "hairpins", "roller", "chicanes", "corkscrew", "zigzag", "hairpins", "chicanes", "tour"] } /* moon: wild */
+  1: { k: CURVE.gentle * 0.8,  hp: 0,   len: 1.0, gap: 1.0, order: ["sweeper", "bookends", "esses", "twin", "roller", "wiggle", "drag", "esses", "chomper", "tour"] },   /* the corkscrew waits for level 9: shorter roads can't fit it and a jump */      /* construction: wide and forgiving */
+  2: { k: CURVE.gentle * 1.3,  hp: 0,   len: 1.3, gap: 1.2, order: ["esses", "sweeper", "twin", "spiral", "bookends", "esses", "chomper", "roller", "wiggle", "tour"] },      /* farm: long lazy sweepers over hills */
+  3: { k: CURVE.medium,        hp: 0.8, len: 0.8, gap: 0.8, order: ["chicanes", "esses", "hairpins", "zigzag", "twin", "switchback", "spiral", "chomper", "esses", "tour"] },    /* night: twisty mountain road */
+  4: { k: CURVE.gentle * 1.15, hp: 0,   len: 1.7, gap: 1.6, order: ["drag", "bookends", "sweeper", "roller", "esses", "chomper", "sweeper", "bookends", "zigzag", "tour"] },       /* rain: highway, long straights, wide curves */
+  5: { k: CURVE.medium * 1.1,  hp: 1.0, len: 0.9, gap: 0.9, order: ["hairpins", "zigzag", "chicanes", "spiral", "switchback", "esses", "drag", "chomper", "hairpins", "tour"] }, /* snow: the mountain pass, switchbacks */
+  6: { k: CURVE.medium * 0.9,  hp: 0.9, len: 1.4, gap: 1.5, order: ["drag", "sweeper", "bookends", "chicanes", "roller", "switchback", "hairpins", "sweeper", "chomper", "tour"] },    /* desert: drag strips and one giant sweeper */
+  7: { k: CURVE.medium,        hp: 0.7, len: 1.1, gap: 1.0, order: ["esses", "twin", "sweeper", "zigzag", "chomper", "spiral", "hairpins", "roller", "twin", "tour"] },        /* beach: rhythmic coast road */
+  8: { k: CURVE.tight * 0.9,   hp: 1.1, len: 0.8, gap: 0.7, order: ["chicanes", "wiggle", "hairpins", "roller", "chicanes", "chomper", "zigzag", "hairpins", "chicanes", "tour"] } /* moon: wild */
 };
 function buildCourse(n, rng, len) {
-  COURSE = []; TWISTS = [];
+  COURSE = []; CHOMPS = [];
   const w = worldOf(n), i = (n - 1) % WORLD_SIZE, P = WORLD_ROAD[w] || WORLD_ROAD[8];
   const k = P.k * (0.85 + 0.3 * i / 9);                      /* later levels in a world bend a little harder */
   const hk = P.hp ? CURVE.tight * 1.15 * P.hp : k * 1.7;     /* no hairpins in this world: a firm sweep instead */
@@ -6325,10 +6339,10 @@ function buildCourse(n, rng, len) {
   const hairpin = (x, d) => bend(x, Lm(560), d * hk);
   const chicane = (x, d) => { let e = bend(x, Lm(260), d * k * 1.4); e = bend(e + 60, Lm(260), -d * k * 1.4); return bend(e + 60, Lm(260), d * k * 1.4); };
   const span = x1 - x0;
-  /* the wild stuff: hard turns (chevron boards, tire squeal), corkscrews, a roller-coaster hill train */
+  /* the wild stuff: hard turns (chevron boards, tire squeal), chompers, a roller-coaster hill train */
   const kh = CURVE.hard * (0.85 + 0.3 * i / 9);
   const hardTurn = (x, d) => bend(x, Lm(300), d * kh);
-  const twist = (x, d) => x + TWIST_LEN > x1 ? x : addTwist(x, TWIST_LEN, d);
+  const chomp = (x, d) => x + CHOMP_LEN > x1 ? x : addChomp(x, CHOMP_LEN, d);
   let roller = false;
   const T = {
     sweeper() { sweep(x0 + span * 0.12, span * 0.76, dir); },                                  /* one giant bend */
@@ -6340,19 +6354,19 @@ function buildCourse(n, rng, len) {
     spiral() { let x = x0 + Gm(200); for (let j = 0; j < 3 && x < x1 - 400; j++) x = bend(x, Lm(700), dir * k * (0.7 + 0.3 * j)) + Gm(260); }, /* same way, tightening */
     chicanes() { for (let x = x0 + Gm(150), j = 0; x < x1 - 500 && j < 5; dir = -dir, j++) x = chicane(x, dir) + Gm(420); },   /* chicane festival */
     hairpins() { const x = hairpin(x0 + span * 0.15, dir); hairpin(Math.max(x + Gm(900), x1 - span * 0.15 - Lm(560)), -dir); }, /* two hairpins, straight between */
-    tour() {   /* the finale: a sweeper, a chicane, a hairpin, a corkscrew (world 2 on) and esses, back to back */
+    tour() {   /* the finale: a sweeper, a chicane, a hairpin, a chomper (world 2 on) and esses, back to back */
       let x = sweep(x0, Lm(900), dir) + Gm(200);
       x = chicane(x, -dir) + Gm(200);
       x = hairpin(x, dir) + Gm(260);
-      if (w >= 2) x = twist(x, dir) + Gm(300);
+      if (w >= 2) x = chomp(x, dir) + Gm(300);
       for (; x < x1 - 400; dir = -dir) x = sweep(x, Lm(700), -dir) + Gm(180);
     },
     switchback() { for (let x = x0 + Gm(250), j = 0; x < x1 - 400 && j < 5; dir = -dir, j++) x = hardTurn(x, dir) + Gm(520); },   /* hard left, hard right, all the way up */
     zigzag() { for (let x = x0 + Gm(200), j = 0; x < x1 - 300 && j < 8; dir = -dir, j++) x = bend(x, Math.max(220, Lm(220)), dir * kh * 0.9) + Gm(380); },   /* sharp kinks on a straight road (never shorter than a bend can be) */
-    corkscrew() {   /* a sweeper into one corkscrew (two from world 3, rolling opposite ways), esses after */
+    chomper() {   /* a sweeper into one chomper (two from world 3), esses after */
       let x = span > 4000 ? sweep(x0, Lm(600), dir) + Gm(300) : x0 + 200;   /* a short level goes straight into it */
-      x = twist(x, dir) + Gm(400);
-      if (w >= 3) x = twist(x, -dir) + Gm(400);
+      x = chomp(x, dir) + Gm(400);
+      if (w >= 3) x = chomp(x, -dir) + Gm(400);
       for (; x < x1 - 400; dir = -dir) x = sweep(x, Lm(650), dir) + Gm(220);
     },
     roller() {   /* a roller coaster: a train of big short hills, a few flicks between them */
@@ -6983,7 +6997,7 @@ function addProp(type, x, lane, h, svg, xOff, yOff) {
 function clearWorld() {
   for (const p of props) p.wrap.remove();
   for (const p of scenery) p.wrap.remove();
-  props = []; scenery = []; RAMPS = []; TWISTS = []; totalStars = 0;
+  props = []; scenery = []; RAMPS = []; CHOMPS = []; totalStars = 0;
 }
 
 /* ---- BEAT SEQUENCER: a level is a seeded sequence of formations ----
@@ -7358,16 +7372,16 @@ function buildLevel(n) {
     /* a ground item; refuses ramp zones, 3-lane walls and stacking on another prop */
     put(t, x, lane) {
       x = Math.round(x); lane = Math.max(0, Math.min(2, lane));
-      if (x < 300 || x > endX || inRampZone(x) || inTwist(x, 150) || !laneFree(x, lane, 100)) return false;   /* a corkscrew carries stars only */
+      if (x < 300 || x > endX || inRampZone(x) || inChomp(x, 150) || !laneFree(x, lane, 100)) return false;   /* a chomper carries its trail only */
       if (HARD_T(t)) { const s = hardLanesNear(x); s.add(lane); if (s.size >= 3) return false; }
       addItem(t, x, lane); return true;
     },
     star(x, lane) {
       x = Math.round(x); lane = Math.max(0, Math.min(2, lane));
-      if (x < 300 || x > endX || inRampZone(x) || !laneFree(x, lane, 70)) return false;
+      if (x < 300 || x > endX || inRampZone(x) || chompClear(x) || !laneFree(x, lane, 70)) return false;
       addItem("star", x, lane); this.last = lane; return true;
     },
-    high(x, lane, h) { if (x > LEVEL_LEN - 200 || !laneFree(x, lane, 70)) return false; addProp("star", Math.round(x), lane, h || HIGH_STAR_H, starSVG, -32, -32); totalStars++; this.last = lane; return true; },
+    high(x, lane, h) { if (x > LEVEL_LEN - 200 || chompClear(x) || !laneFree(x, lane, 70)) return false; addProp("star", Math.round(x), lane, h || HIGH_STAR_H, starSVG, -32, -32); totalStars++; this.last = lane; return true; },
     capsule(x, lane) { return this.put("capsule", x, lane); },
     /* casting: what plays a hard / soft / slick part in this world and level */
     hard() {
@@ -7423,23 +7437,23 @@ function buildLevel(n) {
     /* straight off a landing into a wall of barrels is a trap: obstacle formations get a run-up after a ramp */
     if (beats.length && (BEATS[beats[beats.length - 1]] || {}).kind === "ramp" && bt.kind !== "star" && bt.kind !== "rhythm") x += 350;
     beats.push(bt.name); x = bt.fn(b, x) + gap + Math.floor(rng() * 120);
-    for (const t of TWISTS) if (!t.seen && t.x0 < x) { t.seen = true; beats.push("corkscrew"); }   /* a long formation ran right through one */
+    for (const t of CHOMPS) if (!t.seen && t.x0 < x) { t.seen = true; beats.push("chomper"); }   /* a long formation ran right through one */
   };
   /* a ramp beat is measured by what it actually placed: one whose ramps (run-up to touchdown) would cross a
-     corkscrew, or touch down past the end of the formation road, is taken back whole.
-     Returns null when it stays, else { twist } or { long: true } */
+     chomper, or touch down past the end of the formation road, is taken back whole.
+     Returns null when it stays, else { twist } (the chomper it would cross) or { long: true } */
   const lastIsRamp = () => (BEATS[beats[beats.length - 1]] || {}).kind === "ramp";
   const tryRamp = bt => {
-    const nR = RAMPS.length, nP = props.length, nB = beats.length, x0b = x, last0 = b.last, seen0 = TWISTS.map(t => t.seen);
+    const nR = RAMPS.length, nP = props.length, nB = beats.length, x0b = x, last0 = b.last, seen0 = CHOMPS.map(t => t.seen);
     run(bt);
     const mine = RAMPS.slice(nR);
-    const twist = TWISTS.find(t => mine.some(rp => rp.x - 250 < t.x1 + 150 && rp.x + rp.w + rp.tail > t.x0 - 150));
+    const twist = CHOMPS.find(t => mine.some(rp => rp.x - 250 < t.x1 + 150 && rp.x + rp.w + rp.tail > t.x0 - 150));
     const long = mine.some(rp => rp.x + rp.w + rp.tail > landLimit);
     if (!twist && !long) return null;
     RAMPS.length = nR;
     for (const p of props.splice(nP)) { p.wrap.remove(); if (p.type === "star") totalStars--; }
     beats.length = nB; x = x0b; b.last = last0;
-    TWISTS.forEach((t, i) => { t.seen = seen0[i]; });
+    CHOMPS.forEach((t, i) => { t.seen = seen0[i]; });
     return twist ? { twist } : { long: true };
   };
   let noRoom = false;   /* a standard ramp no longer fits before the flags: the fallback below has the last word */
@@ -7447,22 +7461,22 @@ function buildLevel(n) {
   /* a finale keeps its last 560 units for the star shower; ramps must have landed by then */
   const showerX = finale ? endX - 560 : Infinity, loopEnd = finale ? showerX - 200 : endX - 350;
   const landLimit = finale ? showerX : endX;   /* every ramp touches down by here: never past the flags, never into a finale's shower */
-  /* a corkscrew is its own beat: a helix of stars (lane 1, 2, 1, 0...) the car rolls through, laid first so no
-     formation (or a ramp flying over it) can crowd it out */
-  for (const t of TWISTS) for (let sx = t.x0 + 60, j = 0; sx < t.x1 - 60; sx += 125, j++) b.star(sx, [1, 2, 1, 0][Math.floor(j / 3) % 4]);   /* three stars a lane: small hands keep up */
+  /* a chomper is its own beat: a trail of stars (lane 1, 0, 1, 2...) leads to the mouth, laid first so no
+     formation (or a ramp flying over it) can crowd it out; the road past the mouth is kept clear for the spit */
+  for (const t of CHOMPS) for (let sx = t.x0 + 40, j = 0; sx < t.x0 + CHOMP_MOUTH - 180; sx += 80, j++) b.star(sx, [1, 0, 1, 2][j % 4]);
   while (x < loopEnd && guard++ < 60) {
-    /* a formation that would start within 700 of a corkscrew waits until after it (the gap is the run-up) */
-    const tw = TWISTS.find(t => !t.seen && t.x1 > x && t.x0 < x + 700);
-    if (tw) { tw.seen = true; beats.push("corkscrew"); x = Math.max(x, tw.x1 + 200); continue; }
+    /* a formation that would start within 700 of a chomper waits until after it (the gap is the run-up) */
+    const tw = CHOMPS.find(t => !t.seen && t.x1 > x && t.x0 < x + 700);
+    if (tw) { tw.seen = true; beats.push("chomper"); x = Math.max(x, tw.x1 + 200); continue; }
     const lastChance = x + 200 + flightLen(w) + 700 > loopEnd;   /* one more formation and the ramp wouldn't fit */
     if (ri < nRamps && !noRoom && (x >= rampXs[ri] - 450 || lastChance)) {   /* a different ramp beat from the last one */
       let rb = pick(rampPool); if (rampPool.length > 1 && beats[beats.length - 1] === rb.name) rb = rampPool[(rampPool.indexOf(rb) + 1) % rampPool.length];
       let res = tryRamp(rb);
       if (res && res.long && rb !== BEATS.ramp) res = tryRamp(BEATS.ramp);   /* a mega ramp or a hop chain too long for what's left: a plain ramp */
       if (res && res.long) { noRoom = true; continue; }
-      if (res) {   /* never a jump inside a corkscrew: fly after it */
+      if (res) {   /* never a jump inside a chomper: fly after it */
         const tw = res.twist;
-        x = Math.max(x, tw.x1 + 300); if (!tw.seen) { tw.seen = true; beats.push("corkscrew"); }
+        x = Math.max(x, tw.x1 + 300); if (!tw.seen) { tw.seen = true; beats.push("chomper"); }
         continue;
       }
       ri++; continue;
@@ -7478,7 +7492,7 @@ function buildLevel(n) {
     if (RAMPS.length && rampClash(x + (lastIsRamp() ? 350 : 0) + 200)) break;   /* enough jumps already: skip the one that won't fit */
     const c = tryRamp(BEATS.ramp);
     if (c && RAMPS.length) break;
-    if (c && c.twist) {   /* the only jump: before the corkscrew if it fits there, else after it */
+    if (c && c.twist) {   /* the only jump: before the chomper if it fits there, else after it */
       const before = c.twist.x0 - 450 - flightLen(w);
       x = before >= 1000 ? before : Math.min(c.twist.x1 + 300, loopEnd - 200 - flightLen(w));
       run(BEATS.ramp);
@@ -7489,13 +7503,13 @@ function buildLevel(n) {
 
   /* ---- guarantees: ingredients, budgets, and nothing where the car flies ---- */
   const removeProp = p => { p.wrap.remove(); props.splice(props.indexOf(p), 1); if (p.type === "star") totalStars--; };
-  for (const p of props.slice()) if (BLOCKER_T(p.type) && (inRampZone(p.x) || inTwist(p.x, 150))) removeProp(p);
+  for (const p of props.slice()) if (BLOCKER_T(p.type) && (inRampZone(p.x) || inChomp(p.x, 150))) removeProp(p);
   const count = f => props.filter(f).length;
   /* drop one item into a free pocket: clear lane, no other ground item right beside it */
   const spotFor = (t, want) => {
     for (let tries = 0; tries < 160; tries++) {
       const sx = 1100 + Math.floor(rng() * (endX - 1100)), lane = want == null ? Math.floor(rng() * 3) : want;
-      if (inRampZone(sx) || !laneFree(sx, lane, 130) || (t !== "star" && inTwist(sx, 150))) continue;
+      if (inRampZone(sx) || !laneFree(sx, lane, 130) || (t !== "star" && inChomp(sx, 150)) || chompClear(sx)) continue;
       if (props.some(p => BLOCKER_T(p.type) && Math.abs(p.x - sx) < 110)) continue;
       if (HARD_T(t) && RAMPS.some(rp => rp.x > sx && rp.x < sx + (tries < 120 ? 700 : 300))) continue;   /* the run-up to a ramp stays clean (its last 300 always) */
       /* a stray barrel inside a star trail is a trap: the first 80 tries stay clear of any star */
@@ -7551,6 +7565,7 @@ function buildLevel(n) {
   lastBeats = beats;
 
   buildScenery(LEVEL_LEN + 1600, w, n);
+  for (const t of CHOMPS) addChomper(t);   /* the monsters sit on the road after the roadside is laid */
   applyTheme(w);
   scheduleEvents(n, w);   /* seeded live sky events for this level */
 }
@@ -7978,7 +7993,7 @@ const WORLD_LANDMARK = {
 const SCENERY_STEP = 450;
 /* a ramp lip hides the ground ~900 units behind it from the low chase cam, so an arch
    just past a ramp looks like it grows out of the deck: keep them well clear */
-const inArchZone = x => RAMPS.some(rp => x > rp.x - 300 && x < rp.x + rp.w + Math.max(1000, rp.tail || 0)) || inTwist(x, 700);
+const inArchZone = x => RAMPS.some(rp => x > rp.x - 300 && x < rp.x + rp.w + Math.max(1000, rp.tail || 0)) || inChomp(x, 700);
 /* hard-turn boards: red with white chevrons pointing the way the road goes, on the outside of the turn */
 const chevronSVG = right => `<svg width="96" height="150" viewBox="0 0 96 150"><rect x="42" y="70" width="12" height="80" rx="4" fill="#6c757d"/>` +
   `<rect x="4" y="4" width="88" height="76" rx="12" fill="#e63946" stroke="#f1faee" stroke-width="6"/>` +
@@ -8223,97 +8238,93 @@ function fieldStrips(c, z0, z1, T) {
   for (const f of T.fields) { qpath(c, z0, z1, f[0], f[1]); qpath(c, z0, z1, -f[1], -f[0]); }
   c.fill();
 }
-/* corkscrew hoops: a ring around the road every 150 units of a twist, striped so you can watch
-   it roll. Only the arc above the deck is drawn, so the road never looks cut by a hoop. */
-const HOOP_C = 330, HOOP_R = ROAD_HALF + 60, HOOP_A = Math.asin(HOOP_C / HOOP_R);
-/* ---- the corkscrew cutaway (13.14): see the twist block in section 19 ---- */
-const loopView = document.getElementById("loopView"), loopCar = document.getElementById("loopCar");
-let loopOn = false, loopT = null, loopStars = [], loopPuffAt = 0;
-const LOOP_CAR_W = 220, LOOP_CAR_H = 230 * 220 / 320 * (200 / 230);   /* the side art is 320x230 with its ground at y 200 */
-function loopOpen(t) {
-  const P = roadPal, lane = l => LOOP_RIDE - 44 - 16 * (l - 1);   /* stars float a car's height off the surface, lanes a hair apart */
-  loopStars = props.filter(p => p.type === "star" && p.x > t.x0 && p.x < t.x1).map(p => {
-    const u = (p.x - t.x0) / (t.x1 - t.x0), q = loopPt(u), r = lane(p.lane), onRing = u > LOOP_IN && u < 1 - LOOP_IN;
-    const x = onRing ? LOOP_CX + r * Math.sin(q[2]) : q[0], y = onRing ? LOOP_CY + r * Math.cos(q[2]) : q[1] - 56 - 16 * (p.lane - 1);
-    return { p, x, y, got: p.done };
-  });
-  const ring = (r, col, w, dash) => `<circle cx="${LOOP_CX}" cy="${LOOP_CY}" r="${r}" fill="none" stroke="${col}" stroke-width="${w}"${dash ? ` stroke-dasharray="${dash}"` : ""}/>`;
-  const sky = mixHex(P.haze, "#ffffff", 0.18), far = mixHex(P.haze, P.ground, 0.45);
-  const scene = `<svg class="loopScene" viewBox="0 0 1200 700">
-    <defs><linearGradient id="loopSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${P.haze}"/><stop offset="1" stop-color="${sky}"/></linearGradient></defs>
-    <rect x="0" y="0" width="1200" height="700" fill="url(#loopSky)"/>
-    <path d="M0 470 Q150 400 300 460 Q450 380 620 450 Q800 390 960 455 Q1100 410 1200 465 V560 H0 Z" fill="${far}"/>
-    <rect x="0" y="${LOOP_GY}" width="1200" height="${700 - LOOP_GY}" fill="${P.ground}"/>
-    <rect x="0" y="${LOOP_GY}" width="1200" height="44" fill="${P.road}"/>
-    <rect x="0" y="${LOOP_GY - 6}" width="1200" height="8" fill="${P.rumA}"/><rect x="0" y="${LOOP_GY + 42}" width="1200" height="8" fill="${P.rumB}"/>
-    <rect x="0" y="${LOOP_GY + 19}" width="1200" height="6" fill="${P.dash}" stroke-dasharray="0" style="mask: none"/>
-    ${ring(LOOP_R + 6, P.ground2, 70)}${ring(LOOP_R, P.road, 58)}${ring(LOOP_R + 29, P.rumA, 12)}${ring(LOOP_R + 29, P.rumB, 12, "40 40")}${ring(LOOP_R - 29, P.rumA, 12)}${ring(LOOP_R - 29, P.rumB, 12, "40 40")}
-    ${ring(LOOP_R, P.dash, 5, "22 30")}
-    <g id="loopStars">${loopStars.map((st, i) => `<g class="loopStar${st.got ? " got" : ""}" data-i="${i}" transform="translate(${(st.x - 22).toFixed(1)},${(st.y - 22).toFixed(1)})"><svg viewBox="0 0 64 64" width="44" height="44"><path d="M32 2 L40 22 L62 24 L45 39 L51 61 L32 48 L13 61 L19 39 L2 24 L24 22 Z" fill="#ffd60a" stroke="#fb8500" stroke-width="3"/></svg></g>`).join("")}</g>
-    <g id="loopPuffs"></g>
-  </svg>`;
-  loopView.querySelectorAll("svg.loopScene").forEach(e => e.remove());
-  loopView.insertAdjacentHTML("afterbegin", scene);
-  loopCar.innerHTML = vehicleSVG(state);
-  loopView.classList.add("on");
-  loopOn = true; loopT = t;
+/* ---- the chomper (13.15): the monster across the road, the bite and the spit ---- */
+const chompView = document.getElementById("chompView");
+let chomp = null;   /* the bite in progress: { t, at } */
+(function fillTeeth() {
+  const row = [...Array(12)].map((_, i) => `<path d="M${i * 100} 0 H${i * 100 + 100} L${i * 100 + 50} 150 Z" fill="#fff"/>`).join("");
+  chompView.querySelectorAll(".teeth svg").forEach(sv => { sv.innerHTML = row; });
+})();
+/* the monster: a round purple beast sitting across the road, its mouth the archway (880 wide, ground at y 0 like an arch) */
+const chomperSVG = `<svg width="880" height="620" viewBox="0 -620 880 620">
+  <g class="body">
+    <ellipse cx="440" cy="-280" rx="420" ry="300" fill="#8338ec"/>
+    <ellipse cx="440" cy="-300" rx="380" ry="250" fill="#9d4edd"/>
+    <circle cx="150" cy="-470" r="26" fill="#6a2fc0"/><circle cx="740" cy="-440" r="34" fill="#6a2fc0"/><circle cx="330" cy="-560" r="18" fill="#6a2fc0"/><circle cx="560" cy="-575" r="22" fill="#6a2fc0"/>
+    <path d="M120 -560 Q150 -660 210 -600 Z M760 -560 Q730 -660 670 -600 Z" fill="#8338ec"/>
+    <circle cx="330" cy="-470" r="58" fill="#fff"/><circle cx="550" cy="-470" r="58" fill="#fff"/>
+    <circle cx="340" cy="-462" r="26" fill="#212529"/><circle cx="560" cy="-462" r="26" fill="#212529"/>
+    <circle cx="350" cy="-472" r="9" fill="#fff"/><circle cx="570" cy="-472" r="9" fill="#fff"/>
+    <path class="lidL" d="M272 -470 A58 58 0 0 1 388 -470 Z" fill="#9d4edd"/><path class="lidR" d="M492 -470 A58 58 0 0 1 608 -470 Z" fill="#9d4edd"/>
+    <path d="M280 -540 Q330 -570 380 -540" stroke="#5a189a" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M500 -540 Q550 -570 600 -540" stroke="#5a189a" stroke-width="12" fill="none" stroke-linecap="round"/>
+    <g class="cheeks" opacity="0"><circle cx="150" cy="-330" r="70" fill="#c77dff"/><circle cx="730" cy="-330" r="70" fill="#c77dff"/></g>
+    <path d="M110 -380 Q440 -440 770 -380 L770 -20 Q440 40 110 -20 Z" fill="#2a0b3b"/>
+    <path d="M330 -60 Q440 -140 550 -60 Q440 10 330 -60 Z" fill="#e5527d"/>
+    <path d="M130 -380 Q440 -430 750 -380 L750 -330 Q440 -300 130 -330 Z" fill="#f8f9fa"/>
+    ${[0, 1, 2, 3, 4, 5].map(i => `<path d="M${150 + i * 100} -340 L${200 + i * 100} -340 L${175 + i * 100} -270 Z" fill="#fff"/>`).join("")}
+  </g>
+  <g class="jaw">
+    <path d="M90 -120 Q440 -180 790 -120 L790 0 Q440 20 90 0 Z" fill="#8338ec"/>
+    <path d="M120 -120 Q440 -160 760 -120 L760 -70 Q440 -40 120 -70 Z" fill="#f8f9fa"/>
+    ${[0, 1, 2, 3, 4, 5].map(i => `<path d="M${160 + i * 100} -80 L${210 + i * 100} -80 L${185 + i * 100} -150 Z" fill="#fff"/>`).join("")}
+    <path d="M90 -20 Q440 0 790 -20" stroke="#5a189a" stroke-width="10" fill="none"/>
+  </g>
+</svg>`;
+function addChomper(t) {
+  const p = makeSprite("scenery", t.x0 + CHOMP_MOUTH, 0, 0, chomperSVG, -440, -620, 1, 0);   /* no blob: it sits on the road */
+  p.arch = true; p.chomper = t; t.p = p;
+  scenery.push(p);
 }
-function loopClose() {
-  loopView.classList.remove("on");
-  loopView.querySelectorAll("svg.loopScene").forEach(e => e.remove());
-  loopCar.innerHTML = "";
-  loopOn = false; loopT = null; loopStars = [];
-}
-function loopTick(carX) {
-  const t = rollOK ? TWISTS.find(tw => carX > tw.x0 && carX < tw.x1) : null;
-  if (!t) { if (loopOn) loopClose(); return; }
-  if (!loopOn || loopT !== t) loopOpen(t);
-  const u = (carX - t.x0) / (t.x1 - t.x0), q = loopPt(u);
-  loopCar.style.transform = `translate(${(q[0] - LOOP_CAR_W / 2).toFixed(1)}px,${(q[1] - LOOP_CAR_H).toFixed(1)}px) rotate(${(-q[2]).toFixed(4)}rad)`;
-  const stars = loopView.querySelectorAll(".loopStar");
-  loopStars.forEach((st, i) => { if (st.p.done && !st.got) { st.got = true; if (stars[i]) stars[i].classList.add("got"); } });
-  /* exhaust puffs off the tail while it climbs, a few a second */
-  const now = performance.now();
-  if (v > 60 && now - loopPuffAt > 140) {
-    loopPuffAt = now;
-    const g = loopView.querySelector("#loopPuffs");
-    if (g) {
-      const tx = q[0] - Math.cos(q[2]) * 100, ty = q[1] + Math.sin(q[2]) * 100 - 20;   /* 100 behind the contact point along the heading */
-      g.insertAdjacentHTML("beforeend", `<circle class="loopPuff" cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="12" fill="#fff" opacity=".7"/>`);
-      while (g.childNodes.length > 8) g.firstChild.remove();
-    }
+function chompTick(carX, now) {
+  for (const t of CHOMPS) {
+    if (!t.p) continue;
+    const d = t.x0 + CHOMP_MOUTH - carX;
+    const open = !t.ate && d > 0 && d < 1100;
+    if (open && !t.growled) { t.growled = true; sfx.growl(); }
+    t.p.el.classList.toggle("open", open);
+    if (!t.ate && d <= 40 && d > -400 && v > 20) chompStart(t, now);
   }
 }
-function drawHoops(c, carX) {
-  for (const t of TWISTS) {
-    if (t.x1 - carX < 140 || t.x0 - carX > DRAW_FAR) continue;
-    for (let x = t.x1; x >= t.x0; x -= 150) {
-      const z = x - carX;
-      if (z < 140 || z > DRAW_FAR) continue;
-      const s = CAM_D / (z + CAM_D), fade = z > DRAW_FAR - FADE ? (DRAW_FAR - z) / FADE : 1;
-      c.globalAlpha = fade;
-      c.lineWidth = Math.max(1.5, 30 * s);
-      const SEGS = 8, a0 = -HOOP_A, a1 = Math.PI + HOOP_A;
-      occClip(c, z, () => {
-        for (let j = 0; j < SEGS; j++) {
-          c.strokeStyle = j % 2 ? "#ffd60a" : roadPal.rumA;
-          c.beginPath();
-          for (let q = 0; q <= 4; q++) {
-            const f = a0 + (a1 - a0) * (j + q / 4) / SEGS;
-            const pt = proj(z, Math.cos(f) * HOOP_R, HOOP_C + Math.sin(f) * HOOP_R);
-            q ? c.lineTo(pt[0], pt[1]) : c.moveTo(pt[0], pt[1]);
-          }
-          c.stroke();
-        }
-      });
-    }
+/* the bite: jaws shut over the stage, the car held in the dark for CHOMP_HOLD ms (a hit-stop, like a crash), chewing
+   sounds, a few of the run's stars tossed out onto the road ahead, then the spit: the car flies out in a high arc */
+const CHOMP_HOLD = 900;
+function chompStart(t, now) {
+  t.ate = true; chomp = { t, at: now };
+  sfx.gulp();
+  t.p.el.classList.remove("open"); t.p.el.classList.add("bite");
+  chompView.classList.add("on");
+  requestAnimationFrame(() => chompView.classList.add("shut"));
+  v = 0; airborne = false; jumpY = 0; vy = 0;
+  freezeUntil = now + CHOMP_HOLD;
+  gagTimer(() => { chompView.classList.add("chew"); sfx.munch(); }, 260);
+  gagTimer(() => { sfx.munch(); chompDrop(t); }, 520);
+  gagTimer(() => sfx.munch(), 740);
+  gagTimer(() => chompSpit(t), CHOMP_HOLD);
+}
+function chompDrop(t) {
+  const n = Math.min(CHOMP_DROP, runStars);
+  const lane = Math.max(0, Math.min(2, Math.round(laneVis)));
+  for (let i = 0; i < n; i++) {
+    const p = addProp("star", t.x0 + CHOMP_STAR_X[i], lane, LOW_STAR_H, starSVG, -32, -32);   /* back on the road, in the kid's own lane */
+    p.spat = true;
   }
-  c.globalAlpha = 1;
+  if (n) { runStars -= n; renderHudStars(true); }
+}
+function chompSpit(t) {
+  chompView.classList.remove("shut", "chew");
+  gagTimer(() => chompView.classList.remove("on"), 260);
+  t.p.el.classList.remove("bite"); t.p.el.classList.add("spit");
+  gagTimer(() => t.p.el.classList.remove("spit"), 600);
+  sfx.spit();
+  v = Math.max(v, 560);
+  airborne = true; jumpY = 70; vy = 470 * springK();   /* a high arc that lands past the spat stars */
+  buddyReact("duck");
+  chomp = null;
 }
 /* the deep sea's glass tunnel (13.13): a pale rib arches over the road every 320 units, on any palette with a
    tunnel colour (world 11). Each rib is one stroke in world space about the road's axis, clipped to the crest in
-   front and fading with the far fade; about a dozen are on screen. A corkscrew stretch keeps its striped hoops
-   instead, so no rib goes down within a twist. tunnelRibN counts the ribs a frame put down, for the suite. */
+   front and fading with the far fade; about a dozen are on screen. A chomper's stretch is skipped, the
+   monster owns it. tunnelRibN counts the ribs a frame put down, for the suite. */
 const TUN_R = ROAD_HALF + 40, TUN_C = 300, TUN_A = Math.asin(TUN_C / TUN_R), TUN_GAP = 320;
 let tunnelRibN = 0;
 function drawTunnel(c, carX) {
@@ -8323,7 +8334,7 @@ function drawTunnel(c, carX) {
   c.strokeStyle = col;
   c.lineCap = "round";
   for (let x = Math.ceil((carX + 100) / TUN_GAP) * TUN_GAP; x - carX < DRAW_FAR; x += TUN_GAP) {
-    if (inTwist(x, 150)) continue;
+    if (inChomp(x, 150)) continue;
     const z = x - carX, s = CAM_D / (z + CAM_D);
     tunnelRibN++;
     c.globalAlpha = z > DRAW_FAR - FADE ? (DRAW_FAR - z) / FADE : 1;
@@ -8429,7 +8440,6 @@ function drawRoad(carX) {
       }
     });
   }
-  drawHoops(c, carX);
   drawTunnel(c, carX);
   /* opaque crests: hidden ground is veiled (it only shows where it projects above the visible crest line, so one
      veil per hidden band over the finished ground is enough), and the strip from the visible ground's top to the
@@ -8462,15 +8472,13 @@ function drawRoad(carX) {
   const lx = (laneVis - 1) * LANE_W, sh = Math.max(0.3, 1 - jumpY / 320), w = (carHalf + 22) * sh;
   quad(c, 4, carLen * sh, lx - w, lx + w, `rgba(0,0,0,${(0.2 * sh).toFixed(3)})`);
 }
-/* the ground canvas: the 1200x700 stage at 2x backing (the 13.4 to 13.11 corkscrew rolled #view and grew this to a
-   1500 px square while a twist was live; the loop keeps the camera level, so neither comes back) */
+/* the ground canvas: the 1200x700 stage at 2x backing */
 const viewEl = document.getElementById("view");
 const canvasOX = 0, canvasOY = 0, canvasW = 1200, canvasH = 700;
 function renderWorld() {
   const carX = pos + CAR_SCREEN_X - CAR_HIT_Z;   /* z=0 is the car's rear bumper; camX was stepped by camTick */
   CAM_D = CAM_D0 / fovK;   /* the throttle punch: a nearer camera is a wider lens; put back below so the car builder never sees it */
   curCarX = carX; camElev = elevAt(carX);
-  twistLive = rollOK && inTwist(carX);   /* inside a corkscrew: the side-view cutaway is up (loopTick); never under reduced motion */
   camWX = camX; camWY = CAM_H;
   buildOffsets(carX);
   buildOcc();
@@ -8491,7 +8499,7 @@ let pos = 0, v = 0, jumpY = 0, vy = 0, airborne = false, finished = false;
 let rafId = null, lastT = 0, wheelAngle = 0;
 let targetLane = 1, laneVis = 1, idleT = 0, nearFinish = false;
 let bodyTilt = 0, prevV = 0, freezeUntil = 0, starCombo = 0, lastStarT = 0, lastShownTime = -1;
-let wheelEls = [], drumEls = [], drumAngle = 0, inTwistNow = false, mudEl = null;
+let wheelEls = [], drumEls = [], drumAngle = 0, mudEl = null;
 let celebrateTimer = null, tallyTimer = null, rateTimers = [];
 const roadPointers = new Map();   /* pointerId -> last x (for swipe lane changes) */
 const gasPointers = new Set(), brakePointers = new Set();
@@ -8711,7 +8719,7 @@ function startDrive() {
   gasKey = false; brakeKey = false;
   targetLane = 1; laneVis = 1; carYaw = 0; runStars = 0; runDamage = 0; runTime = 0; idleT = 0; nearFinish = false;
   bodyTilt = 0; prevV = 0; freezeUntil = 0; starCombo = 0; lastStarT = 0; lastShownTime = -1;
-  rollOK = !reducedMotion(); inTwistNow = false; drumAngle = 0;
+  rollOK = !reducedMotion(); drumAngle = 0;
   camReset();   /* camera springs at rest, no dip, no shake, lens at 1 */
   laneShown = -1; tickLane(); showSwipeHint(!freeMode && !paradeMode);
   speedLines.style.opacity = 0;
@@ -9097,10 +9105,9 @@ const PROP_HIT = {
     /* forgiving magnet for small hands: near-lane counts, and close stars drift in.
        the magnet upgrade widens every window */
     const mag = progress.upgrades.magnet;
-    const inLoop = inTwist(p.x);   /* in a corkscrew the side view has no lanes: every star on the loop is the car's */
-    const near = inLoop || Math.abs(laneVis - p.lane) <= 0.65 + mag * 0.15;
+    const near = Math.abs(laneVis - p.lane) <= 0.65 + mag * 0.15;
     const dy = p.h - LOW_STAR_H - jumpY;   /* star height vs. car body center */
-    if (near && Math.abs(d) < 75 + mag * 20 && (inLoop || Math.abs(dy) < 125 + mag * 15)) {
+    if (near && Math.abs(d) < 75 + mag * 20 && Math.abs(dy) < 125 + mag * 15) {
       p.el.style.transform = "";
       p.done = true; p.el.classList.add("collected");   /* a quick pop (starPop keyframes), then it is gone */
       starSparks(p.el);                                 /* three little stars streak off to the HUD chip */
@@ -9401,10 +9408,7 @@ function tick(now) {
     drumAngle = (drumAngle + dt * (40 + v * 0.95)) % 360;
     drumEls.forEach(d => d.style.transform = `rotate(${drumAngle.toFixed(1)}deg)`);
   }
-  /* into a corkscrew: a rising swirl; through a hard turn at speed: the tires howl */
-  const twNow = inTwist(carX);
-  if (twNow && !inTwistNow) sfx.corkscrew();
-  inTwistNow = twNow;
+  /* through a hard turn at speed: the tires howl */
   if (!airborne && v > 450 && Math.abs(curvAt(carX)) >= HARD_K) sfxSquealThrottle();
 
   /* body dynamics: lean back on the gas, dive on the brake, bank through lane changes */
@@ -9426,7 +9430,7 @@ function tick(now) {
   setCarView(laneViewQ(), yawStep());   /* inner flank in a side lane; nose toward the lane it is heading for */
   const cdx = carScreenX() - 600;
   carWrap.style.transform = `translate(${cdx.toFixed(1)}px,${(squat - jumpY).toFixed(1)}px)`;
-  loopTick(carX);   /* the corkscrew cutaway: on while the car is inside a twist (this carX is the hit point, the one the stars pop against) */
+  chompTick(carX, now);   /* the chompers: jaws open on approach, the bite at the mouth */
 
   rafId = requestAnimationFrame(tick);
 }
@@ -9711,7 +9715,7 @@ function ambTick(dt) {   /* re-read quiet mode every ~0.3s so a mid-drive toggle
    Each MUSIC entry is a loop of 8th-note steps (one char per step, NOTE_CH = semitones above `root`, "." a rest):
    `bass` sets the loop length, `arp` and `perc` repeat inside it ("k" kick, "s" snare, "h" hat, "K" kick+hat).
    Three buses under one master: bass always plays (thinner when slow), arp + perc fade in above ~60% speed,
-   a riser swells through a corkscrew or a jump. The pump runs every MUSIC_PUMP_MS and books every note that
+   a riser swells through a chomper's bite or a jump. The pump runs every MUSIC_PUMP_MS and books every note that
    falls inside the next MUSIC_LOOKAHEAD seconds, so timing never depends on frames. Finish = duck to
    MUSIC_DUCK; quiet mode = silent; stopDrive tears the whole thing down. The note vocab mirrors the jingles. */
 const MUSIC_LEVEL = 0.08, AMB_UNDER_MUSIC = 0.7, MUSIC_DUCK = 0.3;
@@ -9836,7 +9840,7 @@ function musicStop() {
     setTimeout(() => { try { m.master.disconnect(); } catch (e) {} }, 600);
   } catch (e) {}
 }
-/* the riser: a sine sweeping up two octaves while the car is in a corkscrew or in the air */
+/* the riser: a sine sweeping up two octaves while the car is in a chomper's mouth or in the air */
 function musicRiser(m, on) {
   const t = actx.currentTime;
   if (on && !m.riser) {
@@ -9854,7 +9858,7 @@ function musicRiser(m, on) {
 function musicTick(dt) {
   const m = music;
   if (!m) return;
-  musicRiser(m, airborne || inTwist(pos + CAR_SCREEN_X));
+  musicRiser(m, airborne || !!chomp);
   m.tickT += dt;
   if (m.tickT < 0.1) return;
   m.tickT = 0;
@@ -10711,8 +10715,8 @@ function eventFinish(n) {
   PROP_HIT.rollingDonut = softBonk;
 
   /* ---- roads: drag strips into tight hairpins / swoopy esses ---- */
-  WORLD_ROAD[9]  = { k: CURVE.tight * 0.95, hp: 1.2, len: 0.85, gap: 0.75, order: ["drag", "hairpins", "chicanes", "switchback", "hairpins", "roller", "spiral", "corkscrew", "hairpins", "tour"] };
-  WORLD_ROAD[10] = { k: CURVE.medium * 1.15, hp: 0.8, len: 1.2, gap: 1.0, order: ["esses", "wiggle", "roller", "zigzag", "spiral", "corkscrew", "chicanes", "esses", "hairpins", "tour"] };
+  WORLD_ROAD[9]  = { k: CURVE.tight * 0.95, hp: 1.2, len: 0.85, gap: 0.75, order: ["drag", "hairpins", "chicanes", "switchback", "hairpins", "roller", "spiral", "chomper", "hairpins", "tour"] };
+  WORLD_ROAD[10] = { k: CURVE.medium * 1.15, hp: 0.8, len: 1.2, gap: 1.0, order: ["esses", "wiggle", "roller", "zigzag", "spiral", "chomper", "chicanes", "esses", "hairpins", "tour"] };
 
   /* ---- beats ---- */
   defBeat("lavaHop", "world9", 81, (b, x) => {   /* the cool ridge steps one lane at a time (stars mark it); lava domes fill the lanes it
@@ -11107,8 +11111,8 @@ function eventFinish(n) {
   };
 
   /* ---- courses ---- */
-  WORLD_ROAD[11] = { k: CURVE.gentle * 1.5, hp: 0.6, len: 1.5, gap: 1.1, order: ["esses", "sweeper", "twin", "corkscrew", "spiral", "zigzag", "roller", "bookends", "hairpins", "tour"] };   /* deep sea: long lazy esses through the tunnel */
-  WORLD_ROAD[12] = { k: CURVE.medium * 1.1, hp: 1.1, len: 0.9, gap: 0.8, order: ["chicanes", "spiral", "hairpins", "zigzag", "chicanes", "corkscrew", "spiral", "switchback", "chicanes", "tour"] };   /* sky kingdom: everything, tight */
+  WORLD_ROAD[11] = { k: CURVE.gentle * 1.5, hp: 0.6, len: 1.5, gap: 1.1, order: ["esses", "sweeper", "twin", "chomper", "spiral", "zigzag", "roller", "bookends", "hairpins", "tour"] };   /* deep sea: long lazy esses through the tunnel */
+  WORLD_ROAD[12] = { k: CURVE.medium * 1.1, hp: 1.1, len: 0.9, gap: 0.8, order: ["chicanes", "spiral", "hairpins", "zigzag", "chicanes", "chomper", "spiral", "switchback", "chicanes", "tour"] };   /* sky kingdom: everything, tight */
 
   /* ---- world beats ---- */
   defBeat("jellyBloom", "world11", 101, (b, x) => {   /* jellies drift between lanes, stars on the clear sides */

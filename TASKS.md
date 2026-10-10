@@ -261,6 +261,11 @@
 
 - [x] T36.1: The corkscrew cutaway. The rolled ribbon, its level-camera follow, the glass deck and the counter-roll are gone: on the chase cam a twist is flat road with its star helix in the hoop tunnel. While the car is inside one, `loopTick` keeps `#loopView` up: a side-view scene from the world's palette with a drawn loop (ring, rumble edges, centre dashes), the kid's own side-view car riding the ring's inner surface by `loopPt(u)` (flat run-in, a full turn at the pace of the straights, upside down at the top, flat run-out), wheels turning, puffs off the tail, and every twist star drawn on the loop, popping as the real simulation collects it; the star pickup ignores lanes inside a twist. Closes on the far side; reduced motion never opens it. course-check rewritten (loop maths, the cutaway mid-twist with the HUD on top, a full drive collecting every star lane-free); 24 -> 23, battery 457 -> 456. [SPID]
 
+## v13.15.0 (2026-10-10, user-directed: "forget the corkscrews: a monster eats the vehicle and spits it back out and you lose some stars"; the play button smaller and lifted)
+
+- [x] T37.1: The chomper replaces the corkscrew on every world. A purple monster sits across the road with its mouth for an archway (`addChomper`, arch-style scenery); a trail of stars leads in and the stretch past the mouth stays clear (`chompClear`). The jaws open with a growl within 1100; at the mouth the bite: `#chompView` clips shut over the stage under the HUD, the car is held by the crash hit-stop for 900 ms, munch sounds and a chew shake, `chompDrop` tosses min(3, run stars) back onto the road ahead in the kid's lane (`p.spat`), then `chompSpit` opens the jaws with a ptooey and launches the car in a high arc over them. The wallet never drops (CLAUDE.md records the wrinkle). The loop cutaway, the hoops and every rolled-ribbon remnant are gone; `sfx.growl/gulp/munch/spit` replace the swirl. course-check rewritten (23 -> 20), worlds-check ribs probe moved to CHOMPS, docs/chomper.png replaces corkscrew.png. [SPID]
+- [x] T33.4: The play pill at 240x88, lifted to 566 so its base and shadow sit inside the stage, centred on the verge row. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

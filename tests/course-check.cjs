@@ -1,9 +1,9 @@
 /* course-check: the wild courses (v12.9, T21) and the speed-linked mixer drum (T2.3).
-   Corkscrews are a helix of stars through a tunnel of hoops; inside one the stage cuts to a side-view loop with the
-   kid's car on it (13.14) and every star on the loop is the car's; hard turns get chevron boards on their
+   Chompers (13.15, the corkscrew's replacement): a monster across the road with a star trail leading in; it bites,
+   chews, spits a few run stars onto the road ahead and spits the car out over them; hard turns get chevron boards on their
    outside; roller levels run a train of big hills; mega ramps and hop chains launch by their own numbers
    through the one launch rule the fairness bots share; the chase-cam mixer drum turns with the road speed.
-   Reduced motion keeps the hoops and skips the cutaway. */
+   Reduced motion keeps the bite and drops the chew shake. */
 const pw = require('playwright-core');
 const os = require('os');
 const EXE = process.env.CHROMIUM || os.homedir() + '/Library/Caches/ms-playwright/chromium-1117/chrome-mac/Chromium.app/Contents/MacOS/Chromium';
@@ -34,9 +34,11 @@ function check(name, ok, detail) {
     const out = [];
     for (let n = 1; n <= MAX_LEVEL; n++) {
       buildLevel(n);
-      const tw = TWISTS.map(t => ({ ...t,
-        stars: props.filter(p => p.type === 'star' && p.x > t.x0 && p.x < t.x1).length,
-        blockers: props.filter(p => BLOCKER_T(p.type) && inTwist(p.x, 150)).length }));
+      const tw = CHOMPS.map(t => ({ x0: t.x0, x1: t.x1,
+        stars: props.filter(p => p.type === 'star' && p.x > t.x0 && p.x < t.x0 + CHOMP_MOUTH).length,
+        after: props.filter(p => p.type === 'star' && p.x > t.x0 + CHOMP_MOUTH && p.x < t.x1).length,
+        blockers: props.filter(p => BLOCKER_T(p.type) && inChomp(p.x, 150)).length,
+        monster: scenery.filter(p => p.chomper === t && p.x === t.x0 + CHOMP_MOUTH && p.lx === 0).length }));
       const hard = COURSE.filter(c => c.hard);
       const chev = scenery.filter(p => p.chevron);
       /* each board belongs to the hard stretch it is nearest: it must stand on that stretch's outside verge */
@@ -48,32 +50,26 @@ function check(name, ok, detail) {
       const sorted = RAMPS.slice().sort((p, q) => p.x - q.x);
       const lastLand = RAMPS.length ? Math.max(...RAMPS.map(rp => rp.x + rp.w + (rp.tail || 420))) : 0;
       const rampsApart = sorted.every((p, i) => !i || p.x >= sorted[i - 1].x + sorted[i - 1].w + (sorted[i - 1].tail || 420));
-      const rampInTwist = RAMPS.some(rp => TWISTS.some(t => rp.x - 250 < t.x1 + 150 && rp.x + rp.w + (rp.tail || 420) > t.x0 - 150));
+      const rampInTwist = RAMPS.some(rp => CHOMPS.some(t => rp.x - 250 < t.x1 + 150 && rp.x + rp.w + (rp.tail || 420) > t.x0 - 150));
       const flightFits = RAMPS.filter(r => r.kick).every(r => rampFlight(r, worldOf(n)) <= r.w + r.tail);
       out.push({ n, shape: (WORLD_ROAD[worldOf(n)] || WORLD_ROAD[8]).order[(n - 1) % 10], tw, hard: hard.length, chevOutside, chev: chev.length,
         bigHills: HILLS.filter(h => Math.abs(h.amp) >= 110).length, kinds, landClear, flightFits, rampInTwist, rampsApart, lastLand, len: LEVEL_LEN, beats: lastBeats.slice(),
-        archInTwist: scenery.some(p => !p.chevron && p.lx === 0 && inTwist(p.x, 300)) });
+        archInTwist: scenery.some(p => !p.chevron && !p.chomper && p.lx === 0 && inChomp(p.x, 300)) });
     }
     return out;
   });
   const by = n => scan[n - 1];
   const twistLvls = scan.filter(r => r.tw.length);
-  check('corkscrews: every world has a corkscrew level, finales from world 2 carry one, level 9 is the first',
-    [...Array(12)].every((_, w) => scan.slice(w * 10, w * 10 + 10).some(r => r.shape === 'corkscrew' && r.tw.length)) &&
+  check('chompers: every world has a chomper level, finales from world 2 carry one, level 9 is the first',
+    [...Array(12)].every((_, w) => scan.slice(w * 10, w * 10 + 10).some(r => r.shape === 'chomper' && r.tw.length)) &&
       [...Array(11)].every((_, w) => by((w + 2) * 10).tw.length >= 1) && twistLvls[0].n === 9 && !by(10).tw.length,
-    'levels with twists: ' + twistLvls.map(r => r.n).join(','));
-  check('corkscrews: two opposite twists on corkscrew levels from world 3', scan.filter(r => r.shape === 'corkscrew' && r.n > 20).every(r => r.tw.length === 2 && r.tw[0].dir === -r.tw[1].dir),
-    scan.filter(r => r.shape === 'corkscrew').map(r => r.n + ':' + r.tw.length).join(' '));
-  check('corkscrews: stars only inside a twist (no blockers within 150), a helix of >= 8 stars each, no overhead arch in one',
-    twistLvls.every(r => r.tw.every(t => !t.blockers && t.stars >= 8) && !r.archInTwist),
-    twistLvls.filter(r => r.tw.some(t => t.blockers || t.stars < 8) || r.archInTwist).map(r => 'L' + r.n + JSON.stringify(r.tw.map(t => [t.stars, t.blockers]))).join(' '));
-  check('corkscrews: the helix is its own beat in the level sequence', twistLvls.every(r => r.beats.includes('corkscrew')));
-  const hardLvls = scan.filter(r => r.shape === 'switchback' || r.shape === 'zigzag');
-  check('hard turns: thirteen switchback / zigzag levels, each with >= 3 hard stretches, none before world 3',
-    hardLvls.length === 13 && hardLvls.every(r => r.hard >= 3) && scan.slice(0, 20).every(r => !r.hard),
-    hardLvls.map(r => `L${r.n}:${r.hard}`).join(' '));
-  check('hard turns: chevron boards (>= 2 per turn) on the outside verge of every hard stretch, none on soft roads',
-    scan.every(r => r.chevOutside) && scan.filter(r => !r.hard).every(r => !r.chev), scan.filter(r => !r.chevOutside).map(r => 'L' + r.n).join(','));
+    'levels with chompers: ' + twistLvls.map(r => r.n).join(','));
+  check('chompers: two monsters on chomper levels from world 3', scan.filter(r => r.shape === 'chomper' && r.n > 20).every(r => r.tw.length === 2),
+    scan.filter(r => r.shape === 'chomper').map(r => r.n + ':' + r.tw.length).join(' '));
+  check('chompers: each one is a monster across the road at its mouth with a trail of >= 5 stars leading in, nothing past the mouth, no blockers within 150, no other arch in it',
+    twistLvls.every(r => r.tw.every(t => t.monster === 1 && t.stars >= 5 && t.after === 0 && !t.blockers) && !r.archInTwist),
+    twistLvls.filter(r => r.tw.some(t => t.monster !== 1 || t.stars < 5 || t.after || t.blockers) || r.archInTwist).map(r => 'L' + r.n + JSON.stringify(r.tw.map(t => [t.monster, t.stars, t.after, t.blockers]))).join(' '));
+  check('chompers: the monster is its own beat in the level sequence', twistLvls.every(r => r.beats.includes('chomper')));
   const rollers = scan.filter(r => r.shape === 'roller');
   check('roller: nine roller levels, each a train of >= 3 big hills, even in the flat worlds (construction, rain, beach)',
     rollers.length === 9 && rollers.every(r => r.bigHills >= 3), rollers.map(r => `L${r.n}:${r.bigHills}`).join(' '));
@@ -109,7 +105,7 @@ function check(name, ok, detail) {
   check('jumps: mega ramps and three-kicker hop chains appear across the 120 levels, standard ramps still lead (a chain counts once)',
     kinds.filter(k => k === 'mega').length >= 8 && hopRuns.length >= 8 && kinds.filter(k => k === 'std').length > kinds.filter(k => k === 'mega').length + kinds.filter(k => k === 'hop').length / 3 && scan.slice(0, 2).every(r => r.kinds.every(k => k === 'std')),
     `mega ${kinds.filter(k => k === 'mega').length}, hop chains on ${hopRuns.length} levels, std ${kinds.filter(k => k === 'std').length}/${kinds.length}`);
-  check('jumps: every level keeps at least one jump, and no ramp (run-up to touchdown) crosses a corkscrew',
+  check('jumps: every level keeps at least one jump, and no ramp (run-up to touchdown) crosses a chomper',
     scan.every(r => r.kinds.length >= 1 && !r.rampInTwist), scan.filter(r => !r.kinds.length || r.rampInTwist).map(r => 'L' + r.n).join(','));
   check('jumps: no ramp starts inside another ramp\'s deck or flight (decks never stack)', scan.every(r => r.rampsApart), scan.filter(r => !r.rampsApart).map(r => 'L' + r.n).join(','));
   check('jumps: every ramp (deck and flight) is behind the car before the last 600 units: no ramp past the flags, no finish on a slope or in the air',
@@ -117,67 +113,50 @@ function check(name, ok, detail) {
   check('jumps: every landing zone is clear of blockers and every special flight fits its tail',
     scan.every(r => r.landClear && r.flightFits), scan.filter(r => !r.landClear || !r.flightFits).map(r => 'L' + r.n).join(','));
 
-  /* ---- 2. the loop maths and the one launch rule ---- */
+  /* ---- 2. the chomp numbers and the one launch rule ---- */
   const math = await page.evaluate(() => {
     buildLevel(9);
     const megaFast = rampLaunch({ x: 0, ...RAMP_KIND.mega }, 940), stdFast = rampLaunch({ x: 0, w: 250, h: 95 }, 940);
     const ramp = rampLaunch({ x: 0, w: 250, h: 95 }, 700), mega = rampLaunch({ x: 0, ...RAMP_KIND.mega }, 700), hop = rampLaunch({ x: 0, ...RAMP_KIND.hop }, 700), none = rampLaunch(null, 700);
-    let mono = true, prev = -1;
-    for (let u = 0; u <= 1.0001; u += 0.01) { const a = loopPt(u)[2]; if (a < prev - 1e-9) mono = false; prev = a; }
-    const g0 = loopPt(0), gIn = loopPt(LOOP_IN), top = loopPt(0.5), gOut = loopPt(1 - LOOP_IN), g1 = loopPt(1);
-    return { g0, gIn, top, gOut, g1, mono, ramp, mega, hop, none, megaFast, stdFast, R: LOOP_RIDE, cy: LOOP_CY, gy: LOOP_GY };
+    return { len: CHOMP_LEN, mouth: CHOMP_MOUTH, drop: CHOMP_DROP, starX: CHOMP_STAR_X, ramp, mega, hop, none, megaFast, stdFast };
   });
-  check('loop: on the ground at both ends, angle 0 at the run-in, pi (upside down at the top of the ring) halfway, 2pi at the run-out, never backwards',
-    math.g0[1] === math.gy && math.g0[2] === 0 && math.g1[1] === math.gy && Math.abs(math.gIn[2]) < 1e-9 && Math.abs(math.top[2] - Math.PI) < 1e-9
-      && Math.abs(math.top[1] - (math.cy - math.R)) < 1e-6 && Math.abs(math.gOut[2] - Math.PI * 2) < 1e-9 && Math.abs(math.g1[2] - Math.PI * 2) < 1e-9 && math.mono,
-    JSON.stringify({ g0: math.g0, gIn: math.gIn, top: math.top, gOut: math.gOut, g1: math.g1, mono: math.mono }));
-  check('launch rule: standard ramp unchanged (95 high, 0.9 of the speed, any engine), mega 150 / 1.1 capped at 740 speed, kicker 45 / 0.55',
-    math.ramp.y === 95 && math.ramp.vy === 630 && math.none.y === 95 && math.none.vy === 630 && math.mega.y === 150 && Math.abs(math.mega.vy - 770) < 1e-9 && math.hop.y === 45 && Math.abs(math.hop.vy - 385) < 1e-9
-      && Math.abs(math.megaFast.vy - 814) < 1e-9 && Math.abs(math.stdFast.vy - 846) < 1e-9,
-    JSON.stringify({ ramp: math.ramp, mega: math.mega, hop: math.hop, megaFast: math.megaFast, stdFast: math.stdFast }));
-
-  /* ---- 3. driving through a corkscrew: the cutaway (13.14). The chase cam stays flat and level; while the car is
-     inside the twist the side view is up with the kid's own car on the drawn loop (upside down at the midpoint), its
-     stars popping as the simulation collects them in every lane; it cuts away on the far side ---- */
-  const roll = await page.evaluate(async () => {
-    window.__cork = 0; const o = sfx.corkscrew; sfx.corkscrew = () => { window.__cork++; o(); };
+  check('chomp: the spat stars land past the mouth and inside the stretch, three of them at most', math.starX.length === math.drop && math.drop === 3 && math.starX.every((x, i) => x > math.mouth + 60 && x < math.len && (!i || x > math.starX[i - 1] + 100)), JSON.stringify(math));
+  /* ---- 3. driving into a chomper (13.15): the jaws open on approach; at the mouth the stage goes into the mouth
+     (#chompView shut), the car is held, the chew tosses up to three run stars onto the road ahead in the kid's lane,
+     the spit launches the car over them, and driving on gets them straight back ---- */
+  const bite = await page.evaluate(async () => {
+    window.__growl = 0; window.__spit = 0; const og = sfx.growl, os = sfx.spit; sfx.growl = () => { window.__growl++; og(); }; sfx.spit = () => { window.__spit++; os(); };
     drive(9);
-    const t = TWISTS[0];
-    pos = t.x0 - CAR_SCREEN_X - 400; v = 0;
-    await new Promise(r => setTimeout(r, 900));   /* let the scene iris finish before any screenshot */
-    const env = document.getElementById('env');
-    const before = { on: loopView.classList.contains('on'), view: viewEl.style.transform, carRot: /rotate/.test(carWrap.style.transform), stars: props.filter(p => p.type === 'star' && p.x > t.x0 && p.x < t.x1).length };
-    pos = (t.x0 + t.x1) / 2 - CAR_SCREEN_X; v = 0;   /* the cutaway runs on the hit point (pos + CAR_SCREEN_X), the one the stars pop against */
-    await new Promise(r => setTimeout(r, 200));
-    const m = /rotate\((-?[\d.]+)rad\)/.exec(loopCar.style.transform), ty = /translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/.exec(loopCar.style.transform);
-    const chips = ['hudLevel', 'hudStars'].map(id => { const r = document.getElementById(id).getBoundingClientRect(); const st = document.getElementById('stage').getBoundingClientRect(); const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!el && document.getElementById(id).contains(el) && st.width > 0; });
-    const mid = { on: loopView.classList.contains('on'), display: getComputedStyle(loopView).display, car: !!loopCar.querySelector('svg'), carAngle: m ? +m[1] : 0, carY: ty ? +ty[2] : 0,
-      loopStars: loopStars.length, drawn: loopView.querySelectorAll('.loopStar').length, view: viewEl.style.transform, env: env.style.transform, carRot: /rotate/.test(carWrap.style.transform), hudOnTop: chips.every(Boolean), canvas: [roadCanvas.width, roadCanvas.height] };
-    return { before, mid, cork: window.__cork };
-  });
-  await page.screenshot({ path: SHOT + 'course-corkscrew.png' });
-  for (const f of [-0.25, 0.25, 0.75]) {
-    await page.evaluate(async f => { const t = TWISTS[0]; pos = t.x0 + (t.x1 - t.x0) * f - CAR_SCREEN_X + CAR_HIT_Z; await new Promise(r => setTimeout(r, 120)); }, f);
-    await page.screenshot({ path: SHOT + `course-corkscrew-${Math.round(f * 100)}.png` });
-  }
-  check('corkscrew: chase cam before it (no cutaway, no roll); mid-twist the side view is up with the car on the loop upside down at the top, every twist star drawn on it, the HUD still on top, the chase cam flat and level beneath',
-    !roll.before.on && !roll.before.carRot && roll.before.view === '' && roll.mid.on && roll.mid.display !== 'none' && roll.mid.car && Math.abs(Math.abs(roll.mid.carAngle) - Math.PI) < 0.05 && roll.mid.carY < 250
-      && roll.mid.loopStars === roll.before.stars && roll.mid.drawn === roll.before.stars && roll.before.stars >= 8 && roll.mid.view === '' && roll.mid.env === '' && !roll.mid.carRot && roll.mid.hudOnTop && roll.mid.canvas[0] === 2400,
-    JSON.stringify(roll));
-  /* drive the whole twist at speed: every star on the loop is collected whatever its lane, and the view cuts back */
-  const run = await page.evaluate(async () => {
-    const t = TWISTS[0];
-    pos = t.x0 - CAR_SCREEN_X - 200; v = 0; targetLane = 1; laneVis = 1;
-    const before = runStars, n = props.filter(p => p.type === 'star' && p.x > t.x0 && p.x < t.x1 && !p.done).length;
-    gasKey = true;
-    const t0 = performance.now();
-    while (pos + CAR_SCREEN_X - CAR_HIT_Z < t.x1 + 300 && performance.now() - t0 < 9000) await new Promise(r => setTimeout(r, 50));
+    const t = CHOMPS[0], mouthX = t.x0 + CHOMP_MOUTH;
+    pos = mouthX - 1400 - CAR_SCREEN_X; v = 0;
+    await new Promise(r => setTimeout(r, 900));   /* let the scene iris finish */
+    const far = { open: t.p.el.classList.contains('open'), growl: window.__growl };
+    pos = mouthX - 800 - CAR_SCREEN_X; v = 0;
+    await new Promise(r => setTimeout(r, 150));
+    const near = { open: t.p.el.classList.contains('open'), growl: window.__growl, on: chompView.classList.contains('on') };
+    /* drive in at speed from just before the trail */
+    pos = t.x0 - 100 - CAR_SCREEN_X; targetLane = 1; laneVis = 1; gasKey = true;
+    const t0 = performance.now(); let shut = null, held = null, dropped = null;
+    while (performance.now() - t0 < 7000) {
+      await new Promise(r => setTimeout(r, 40));
+      if (!shut && chompView.classList.contains('shut')) shut = { pos, runStars, v, bite: !!chomp, display: getComputedStyle(chompView).display, hudOnTop: (() => { const r = hudStars.getBoundingClientRect(); const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!el && hudStars.contains(el); })() };
+      if (shut && !held && chompView.classList.contains('chew')) held = { pos, moved: Math.abs(pos - shut.pos) };
+      if (shut && !dropped && props.some(p => p.spat)) dropped = { runStars, spat: props.filter(p => p.spat).map(p => [p.x - t.x0, p.lane, p.h]) };
+      if (dropped && pos + CAR_SCREEN_X > t.x1 + 200) break;
+    }
     gasKey = false;
-    await new Promise(r => setTimeout(r, 200));
-    return { n, gained: runStars - before, left: props.filter(p => p.type === 'star' && p.x > t.x0 && p.x < t.x1 && !p.done).length, on: loopView.classList.contains('on'), scene: loopView.querySelectorAll('svg.loopScene').length, view: viewEl.style.transform, carRot: /rotate/.test(carWrap.style.transform), lanes: new Set(props.filter(p => p.type === 'star' && p.x > t.x0 && p.x < t.x1).map(p => p.lane)).size };
+    await new Promise(r => setTimeout(r, 300));
+    return { far, near, shut, held, dropped, after: { on: chompView.classList.contains('on'), runStars, spatLeft: props.filter(p => p.spat && !p.done).length, spit: window.__spit, ate: t.ate, open: t.p.el.classList.contains('open') } };
   });
-  check('corkscrew: a whoosh on the way in; driven through in one lane every star on the loop (laid across lanes) is collected and the cutaway is gone on the far side',
-    roll.cork >= 1 && run.n >= 8 && run.lanes >= 2 && run.gained === run.n && run.left === 0 && !run.on && run.scene === 0 && run.view === '' && !run.carRot, JSON.stringify({ cork: roll.cork, run }));
+  await page.evaluate(async () => { const t = CHOMPS[0]; t.ate = false; t.p.el.classList.remove('spit', 'bite'); pos = t.x0 + CHOMP_MOUTH - 700 - CAR_SCREEN_X; v = 0; await new Promise(r => setTimeout(r, 150)); });
+  await page.screenshot({ path: SHOT + 'course-chomper.png' });
+  check('chomper: the jaws open (with a growl) once the car is within 1100, not before; at the mouth the stage goes into the mouth under the HUD and the car is held still through the chew',
+    !bite.far.open && bite.far.growl === 0 && bite.near.open && bite.near.growl === 1 && !bite.near.on && !!bite.shut && bite.shut.bite && bite.shut.v === 0 && bite.shut.display !== 'none' && bite.shut.hudOnTop && !!bite.held && bite.held.moved < 3,
+    JSON.stringify({ far: bite.far, near: bite.near, shut: bite.shut, held: bite.held }));
+  check('chomper: the chew tosses min(3, run stars) onto the road ahead in the kid\'s lane, the spit sends the car flying out, and driving on gets every star back with the jaws at rest',
+    !!bite.dropped && bite.dropped.spat.length === Math.min(3, bite.shut.runStars) && bite.dropped.spat.length >= 1 && bite.dropped.runStars === bite.shut.runStars - bite.dropped.spat.length
+      && bite.dropped.spat.every(([x, lane]) => x > math.mouth && x < math.len && lane === 1) && bite.after.spit === 1 && bite.after.spatLeft === 0 && bite.after.runStars >= bite.shut.runStars && !bite.after.on && bite.after.ate && !bite.after.open,
+    JSON.stringify({ shut: bite.shut, dropped: bite.dropped, after: bite.after }));
 
   /* ---- 4. hard turn: squeal at speed ---- */
   const hardTurn = await page.evaluate(async () => {
@@ -237,19 +216,22 @@ function check(name, ok, detail) {
   check('mixer drum (T2.3): one JS-driven drum on the chase-cam mixer, a lazy turn parked, much faster at speed',
     drum.n === 1 && !drum.cssSpin && drum.slow > 10 && drum.slow < 90 && drum.fast > drum.slow * 4, JSON.stringify(drum));
 
-  /* ---- 7. reduced motion: hoops stay, the roll and the drum stop ---- */
+  /* ---- 7. reduced motion: the bite still happens, the chew shake and the drum stop ---- */
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const rm = await page.evaluate(async () => {
     state.body = 'mixer'; drive(9);
-    const t = TWISTS[0];
-    pos = (t.x0 + t.x1) / 2 - CAR_SCREEN_X + CAR_HIT_Z; v = 0;
+    const t = CHOMPS[0];
+    pos = t.x0 + CHOMP_MOUTH - 500 - CAR_SCREEN_X; v = 0;
     await new Promise(r => setTimeout(r, 200));
     const a = drumEls[0] && drumEls[0].style.transform;
-    return { live: twistLive, env: viewEl.style.transform, drum: a || '', carRot: /rotate/.test(carWrap.style.transform), cut: loopView.classList.contains('on') };
+    chompView.classList.add('on', 'shut', 'chew');
+    const shake = getComputedStyle(chompView).animationName, breathe = getComputedStyle(t.p.el.querySelector('.body')).animationName;
+    chompView.classList.remove('on', 'shut', 'chew');
+    return { rollOK, env: viewEl.style.transform, drum: a || '', shake, breathe, open: t.p.el.classList.contains('open') };
   });
-  await page.screenshot({ path: SHOT + 'course-corkscrew-reduced.png' });
+  await page.screenshot({ path: SHOT + 'course-chomper-reduced.png' });
   await page.emulateMedia({ reducedMotion: null });
-  check('reduced motion: no cutaway, no roll and a still drum', !rm.live && !rm.cut && rm.env === '' && rm.drum === '' && !rm.carRot, JSON.stringify(rm));
+  check('reduced motion: the jaws still open, no chew shake, no breathing, a still drum', !rm.rollOK && rm.open && rm.shake === 'none' && rm.breathe === 'none' && rm.env === '' && rm.drum === '', JSON.stringify(rm));
 
   check('no page errors', errors.length === 0, errors.join(' | ').slice(0, 300));
   const passed = results.filter(r => r.ok).length;

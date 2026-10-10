@@ -44,7 +44,7 @@ const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); retu
       logo: logo.width > 200 && !!document.querySelector('#titleLogo svg'), words, textEls, prof: Math.min(prof.width, prof.height),
       buddyBob: !!document.querySelector('#titleCar .buddyBob') || !state.buddy };
   });
-  check('boot: the title scene is the active scene, the play pill >= 85px tall rendered (100 stage), car + sign drawn, avatar >= 64px', boot.active === 'title' && boot.go >= 85 && boot.car && boot.logo && boot.idle && boot.prof >= 64, JSON.stringify(boot));
+  check('boot: the title scene is the active scene, the play pill >= 72px tall rendered (88 stage, over the 76 stage px floor), car + sign drawn, avatar >= 64px', boot.active === 'title' && boot.go >= 72 && boot.car && boot.logo && boot.idle && boot.prof >= 64, JSON.stringify(boot));
   check('boot: zero text on the title (no letters or numerals; the wordmark is paths, no SVG text)', boot.words.length === 0 && boot.textEls === 0, boot.words.join(' | ') + ' textEls=' + boot.textEls);
   await page.screenshot({ path: SHOT + 'title-boot.png' });
 
