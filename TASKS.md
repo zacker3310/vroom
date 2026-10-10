@@ -195,6 +195,10 @@
 
 - [x] T30.4: Transfer collapsed to a QR and two buttons. Share (the share sheet with the hosted link plus the code, the clipboard on a desktop) and Scan (the in-app camera; its viewfinder keeps the picture picker). The receiver sheet, the clipboard-read button, the paste box and the send / receive panes are gone; a shared link still lands in the preview through the `#save=` hash. profile-check 30. 23 suites, 439/439.
 
+## v13.8.2 (2026-10-10, user-directed: "a tap on the avatar should open one simple card: stats, play, delete, and paste a save in")
+
+- [x] T30.5: The slot card. A tap on any face opens one card (`openSlotCard`): the kid, their car (`carOfSave`), stars and flags, play (switch; hidden for the active kid; starts a new kid on an empty slot), scan a save into this slot (`importSaveCode(code, slot)`, `pendingSlot`; `importYes` writes that slot, gives an empty slot a free face and makes it active), close, and the hold-to-erase ring. The trash badges and the panel's scan button are gone; the panel is the QR, share and sound. profile-check 32. 23 suites, 441/441.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

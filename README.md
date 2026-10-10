@@ -74,8 +74,8 @@ scrollable strip of big picture tiles; tap a tile to equip it, swipe or use the 
 
 ## For grown-ups
 
-- **Profiles.** The avatar button (top left of the garage) holds up to three kids, each with their own save. No typing, just faces. The small red bin on a face opens a card showing that kid's stars and flags; press and hold the red button until the ring fills (about a second) to erase that save, so a stray tap can never do it, and erasing the only kid just starts them over.
-- **Save codes and QR.** The same panel shows a QR of the save and two buttons. Share hands the share sheet the hosted link plus the plain code (the clipboard on a desktop); tapping that link opens the game with the save ready to load. Scan opens the camera inside the game and reads another device's QR, so the save lands in this app's own storage (a picture picker reads a screenshot of a QR too). Every incoming save shows a wordless preview first (the car, its stars, its beaten levels, the kid, and a warning triangle when the profile here has beaten more) before the tick; the loaded car then honks in with confetti.
+- **Profiles.** The avatar button (top left of the garage) holds up to three kids, each with their own save. No typing, just faces. Tap a face for that kid's card: their car, stars and flags, a play button to switch to them, a camera button to scan a save into that slot, and a red button you press and hold until the ring fills (about a second) to erase the save, so a stray tap can never do it. Erasing the only kid just starts them over. An empty face opens the same card with a plus.
+- **Save codes and QR.** The same panel shows a QR of the current kid's save and a share button that hands the share sheet the hosted link plus the plain code (the clipboard on a desktop); tapping that link opens the game with the save ready to load. To receive, tap a face and then its camera button: the game reads the other device's QR inside the app, so the save lands in this app's own storage (a picture picker reads a screenshot of a QR too). Every incoming save shows a wordless preview first (the car, its stars, its beaten levels, the kid, and a warning triangle when that slot has beaten more) before the tick; the loaded car then honks in with confetti.
 - **Quiet mode.** The speaker toggle in the profile panel drops every sound to car-friendly volume. It sticks.
 - **Offline and home screen.** From Safari, Share, then Add to Home Screen. It installs with its own icon, launches full-screen in landscape and runs with no connection.
 - **Updates.** When a new version is live, a green refresh badge appears beside the avatar in the garage. Press and hold it until the ring fills (about a second and a half, so stray toddler taps do nothing) and the game reloads into the new version. Progress is kept. The version number sits in the corner of the profile panel.
@@ -114,7 +114,7 @@ python3 -m http.server 4173     # then open http://localhost:4173/
 
 There is no build. Edit `index.html`, reload.
 
-The test suite is 23 Playwright suites (439 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the race number, the title screen and daily gift, the ghost race, garage life, the map surprises, the update gate, and the fairness bots that drive all 120 levels.
+The test suite is 23 Playwright suites (441 checks) that drive the real game in headless Chromium: economy, physics, worlds, album, profiles, save codes, the wash, fuel and tires, the race number, the title screen and daily gift, the ghost race, garage life, the map surprises, the update gate, and the fairness bots that drive all 120 levels.
 
 ```bash
 npm ci                                   # playwright-core + jsqr, test-only

@@ -261,6 +261,11 @@ function check(name, ok, detail) {
   await page.evaluate(() => {
     document.querySelectorAll('.profileSlot')[1].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
   });
+  await page.waitForTimeout(200);
+  const blankCard = await page.evaluate(() => ({ show: deleteConfirm.classList.contains('show'), blank: deleteCard.classList.contains('blank'), plus: !!document.querySelector('#deleteAvatar .plus'),
+    holdHidden: getComputedStyle(deleteHold).display === 'none', play: getComputedStyle(slotPlay).display !== 'none' }));
+  check('slot card: an empty face opens a card with a plus, play and no erase ring', blankCard.show && blankCard.blank && blankCard.plus && blankCard.holdHidden && blankCard.play, JSON.stringify(blankCard));
+  await tap('#slotPlay');
   await page.waitForTimeout(700);   /* switch triggers reload */
   const fresh = await page.evaluate(() => ({ active: meta.active, wallet: progress.wallet, avatar: meta.avatars[1] }));
   check('profiles: new profile starts fresh with its own avatar', fresh.active === 1 && fresh.wallet === 0 && !!fresh.avatar && fresh.avatar !== 'pup', JSON.stringify(fresh));
@@ -270,6 +275,11 @@ function check(name, ok, detail) {
   await page.evaluate(() => {
     document.querySelectorAll('.profileSlot')[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
   });
+  await page.waitForTimeout(200);
+  const usedCard = await page.evaluate(() => ({ show: deleteConfirm.classList.contains('show'), car: !!document.querySelector('#slotCar svg'),
+    stars: document.getElementById('deleteStars').textContent.trim(), play: getComputedStyle(slotPlay).display !== 'none', hold: getComputedStyle(deleteHold).display !== 'none' }));
+  check('slot card: a used face shows the kid, their car, stars and flags, play and the erase ring', usedCard.show && usedCard.car && usedCard.stars === '77' && usedCard.play && usedCard.hold, JSON.stringify(usedCard));
+  await tap('#slotPlay');
   await page.waitForTimeout(700);
   const back = await page.evaluate(() => ({ active: meta.active, wallet: progress.wallet, body: state.body }));
   check('profiles: switching back restores the first kid intact', back.active === 0 && back.wallet === 77 && back.body === 'fire', JSON.stringify(back));
@@ -278,16 +288,16 @@ function check(name, ok, detail) {
   const p0Json = await page.evaluate(() => localStorage.getItem('vroom.v2.p0'));   /* put back after the deletes so the import checks below see the same kid */
   await tap('#profileBtn');
   await page.waitForTimeout(200);
-  const badges = await page.evaluate(() => {
-    const cells = [...document.querySelectorAll('.profileCell')];
-    const r = document.querySelector('.slotTrash').getBoundingClientRect();
-    return { cells: cells.length, used: cells.filter(c => !c.querySelector('.profileSlot.empty')).length,
-      badged: cells.map(c => !!c.querySelector('.slotTrash')), size: Math.min(r.width, r.height) };
+  const faces = await page.evaluate(() => {
+    document.querySelectorAll('.profileSlot')[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    const here = { here: deleteCard.classList.contains('here'), playHidden: getComputedStyle(slotPlay).display === 'none' };
+    closeDeleteConfirm();
+    return { cells: document.querySelectorAll('.profileCell').length, badges: document.querySelectorAll('.slotTrash').length, ...here };
   });
-  check('delete: used slots carry a trash badge (64px+), the empty slot does not', badges.cells === 3 && badges.used === 2 && badges.badged.join() === 'true,true,false' && badges.size >= 64, JSON.stringify(badges));
+  check('slot card: no trash badges on the faces; the active kid\'s card hides play (they are already playing)', faces.cells === 3 && faces.badges === 0 && faces.here && faces.playHidden, JSON.stringify(faces));
 
   /* a short tap on the hold button changes nothing */
-  await page.evaluate(() => document.querySelectorAll('.slotTrash')[1].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
+  await page.evaluate(() => document.querySelectorAll('.profileSlot')[1].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
   await page.waitForTimeout(300);
   const card = await page.evaluate(() => ({ show: deleteConfirm.classList.contains('show'), target: deleteTarget,
     stars: document.getElementById('deleteStars').textContent.trim(), flags: document.getElementById('deleteFlags').textContent.trim() }));
@@ -307,8 +317,8 @@ function check(name, ok, detail) {
     p1: localStorage.getItem('vroom.v2.p1'), avatar: meta.avatars[1], metaStored: JSON.parse(localStorage.getItem('vroom.meta')).avatars[1],
     empty: document.querySelectorAll('.profileSlot')[1].classList.contains('empty'), badges: document.querySelectorAll('.slotTrash').length,
     active: meta.active, wallet: progress.wallet, p0: JSON.parse(localStorage.getItem('vroom.v2.p0')).wallet }));
-  check('delete: a full hold erases the other kid (key gone, slot shows the plus, one badge left); the active kid is untouched', !gone.show && gone.overlay && gone.p1 === null && gone.avatar === null && gone.metaStored === null
-    && gone.empty && gone.badges === 1 && gone.active === 0 && gone.wallet === 77 && gone.p0 === 77, JSON.stringify(gone));
+  check('delete: a full hold erases the other kid (key gone, slot shows the plus, no badges anywhere); the active kid is untouched', !gone.show && gone.overlay && gone.p1 === null && gone.avatar === null && gone.metaStored === null
+    && gone.empty && gone.badges === 0 && gone.active === 0 && gone.wallet === 77 && gone.p0 === 77, JSON.stringify(gone));
 
   /* deleting the ACTIVE kid hops to the lowest remaining one and reloads into the garage */
   await page.evaluate(() => {
@@ -319,7 +329,7 @@ function check(name, ok, detail) {
   });
   await tap('#profileBtn');
   await page.waitForTimeout(200);
-  await page.evaluate(() => document.querySelectorAll('.slotTrash')[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
+  await page.evaluate(() => document.querySelectorAll('.profileSlot')[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
   await page.waitForTimeout(300);
   const activeCard = await page.evaluate(() => ({ target: deleteTarget, stars: document.getElementById('deleteStars').textContent.trim() }));
   const holdBox2 = await page.locator('#deleteHold').boundingBox();
@@ -334,8 +344,8 @@ function check(name, ok, detail) {
   /* deleting the last kid resets to a fresh default save on slot 0 */
   await tap('#profileBtn');
   await page.waitForTimeout(200);
-  const lastBadges = await page.evaluate(() => document.querySelectorAll('.slotTrash').length);
-  await page.evaluate(() => document.querySelector('.slotTrash').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
+  const lastBadges = await page.evaluate(() => meta.avatars.filter(Boolean).length);
+  await page.evaluate(() => document.querySelectorAll('.profileSlot')[meta.active].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
   await page.waitForTimeout(300);
   const holdBox3 = await page.locator('#deleteHold').boundingBox();
   await page.mouse.move(holdBox3.x + holdBox3.width / 2, holdBox3.y + holdBox3.height / 2);
@@ -351,27 +361,28 @@ function check(name, ok, detail) {
   await page.reload();
   await page.waitForTimeout(700);
 
-  /* ---- receive (13.8.1): one button, the camera. Hidden when canScanQR says no; a dismissed scan (null) leaves the
-     panel up; a scanned URL raises the preview and closes the panel ---- */
+  /* ---- receive (13.8.2): the slot card's scan button reads a QR into THAT slot. Hidden when canScanQR says no;
+     a dismissed scan (null) leaves the panel up; a scanned URL raises the preview aimed at the chosen slot ---- */
   await tap('#profileBtn');
   await page.waitForTimeout(200);
-  await page.evaluate(() => { window.__canScan = canScanQR; window.__scan = scanSaveQR; window.canScanQR = () => false; syncScanBtn(); });
-  const noCam = await page.evaluate(() => ({ hidden: scanBtn.hidden, share: copyCodeBtn.getBoundingClientRect().width >= 64 }));
-  await page.evaluate(() => { window.canScanQR = () => true; window.scanSaveQR = () => Promise.resolve(null); syncScanBtn(); });
-  const cam = await page.evaluate(() => ({ shown: !scanBtn.hidden, big: scanBtn.getBoundingClientRect().width >= 64 }));
-  await tap('#scanBtn');
+  await page.evaluate(() => { window.__canScan = canScanQR; window.__scan = scanSaveQR; window.canScanQR = () => false; openSlotCard(2); });
+  const noCam = await page.evaluate(() => ({ hidden: getComputedStyle(slotScan).display === 'none', share: copyCodeBtn.getBoundingClientRect().width >= 64 }));
+  await page.evaluate(() => { closeDeleteConfirm(); window.canScanQR = () => true; window.scanSaveQR = () => Promise.resolve(null); openSlotCard(2); });
+  await page.waitForTimeout(450);   /* the card pops in over .35 s: measure it settled */
+  const cam = await page.evaluate(() => ({ shown: getComputedStyle(slotScan).display !== 'none', big: slotScan.getBoundingClientRect().width >= 64 }));
+  await tap('#slotScan');
   await page.waitForTimeout(200);
-  const scanCancel = await page.evaluate(() => ({ overlay: profileOverlay.classList.contains('show'), confirm: document.getElementById('importConfirm').classList.contains('show') }));
-  await page.evaluate(() => { window.scanSaveQR = () => Promise.resolve(SAVE_URL_PREFIX + packCompact()); });
-  await tap('#scanBtn');
+  const scanCancel = await page.evaluate(() => ({ overlay: profileOverlay.classList.contains('show'), card: deleteConfirm.classList.contains('show'), confirm: document.getElementById('importConfirm').classList.contains('show') }));
+  await page.evaluate(() => { window.scanSaveQR = () => Promise.resolve(SAVE_URL_PREFIX + packCompact()); openSlotCard(2); });
+  await tap('#slotScan');
   await page.waitForTimeout(300);
   const scanned = await page.evaluate(() => ({
-    overlay: profileOverlay.classList.contains('show'), confirm: document.getElementById('importConfirm').classList.contains('show'), pending: !!pendingImport
+    overlay: profileOverlay.classList.contains('show'), confirm: document.getElementById('importConfirm').classList.contains('show'), pending: !!pendingImport, slot: pendingSlot
   }));
   await tap('#importNo');
   await page.evaluate(() => { window.canScanQR = window.__canScan; window.scanSaveQR = window.__scan; });   /* the real scanner back for its own checks */
-  check('receive: one scan button (hidden without a camera), a dismissed scan keeps the panel, a scanned URL raises the preview and closes it',
-    noCam.hidden && noCam.share && cam.shown && cam.big && scanCancel.overlay && !scanCancel.confirm && !scanned.overlay && scanned.confirm && scanned.pending,
+  check('receive: the slot card scans a save into the chosen slot (scan hidden without a camera), a dismissed scan keeps the panel, a scanned URL raises the preview aimed at that slot',
+    noCam.hidden && noCam.share && cam.shown && cam.big && scanCancel.overlay && !scanCancel.card && !scanCancel.confirm && scanned.overlay && scanned.confirm && scanned.pending && scanned.slot === 2,
     JSON.stringify({ noCam, cam, scanCancel, scanned }));
 
   /* ---- the preview card: the incoming car, its stars and beaten levels, no warning when it brings as much
@@ -420,7 +431,7 @@ function check(name, ok, detail) {
     const ok = await importSaveCode('VROOM1.!!!notbase64!!!');
     const ok2 = await importSaveCode('hello');
     const ok3 = await importSaveCode('VROOM1.' + b64url.enc(new Uint8Array([1, 2, 3])));   /* truncated: valid version byte, short payload */
-    return { ok, ok2, ok3, confirm: document.getElementById('importConfirm').classList.contains('show'), shake: scanBtn.classList.contains('deny') };
+    return { ok, ok2, ok3, confirm: document.getElementById('importConfirm').classList.contains('show'), shake: document.getElementById('profileBtn').classList.contains('deny') };
   });
   check('import: garbage + truncated codes rejected, no overlay, the receive button shakes', !garbage.ok && !garbage.ok2 && !garbage.ok3 && !garbage.confirm && garbage.shake, JSON.stringify(garbage));
 

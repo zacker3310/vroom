@@ -133,11 +133,6 @@
   .profileSlot .plus { font: 900 64px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #b08968; }
   /* a used slot wears a small trash badge (bottom-right); it opens the delete card, never deletes by itself */
   .profileCell { position: relative; }
-  .slotTrash {
-    position: absolute; right: -14px; bottom: -14px; width: 76px; height: 76px; padding: 0;
-    border-radius: 50%; background: #e63946; border: 5px solid #fff; z-index: 2;
-  }
-  .slotTrash svg { width: 40px; height: 40px; }
   /* delete card: who is going (avatar, stars, flags), a big cross to keep, a press-and-hold to erase
      (same gate as the update badge: a stray toddler tap fills nothing) */
   #deleteConfirm {
@@ -154,10 +149,21 @@
   #deleteAvatar svg { width: 96px; height: 96px; }
   #deleteFacts { display: flex; flex-direction: column; gap: 14px; }
   #deleteFacts .chip { position: static; min-width: 150px; }
-  #deleteBtns { display: flex; align-items: center; gap: 44px; }
-  #deleteNo { width: 170px; height: 170px; border-radius: 50%; background: #219ebc; border: 10px solid #bde0fe; }
-  #deleteNo svg { width: 80px; height: 80px; }
-  #deleteHold { width: 150px; height: 150px; padding: 0; border-radius: 50%; background: #e63946; border: 10px solid #fff; touch-action: none; }
+  #slotCar { width: 210px; height: 150px; display: flex; align-items: flex-end; justify-content: center; }
+  #slotCar svg { width: 210px; height: auto; }
+  #deleteAvatar .plus { font: 900 72px/1 -apple-system, "Arial Rounded MT Bold", sans-serif; color: #b08968; }
+  #deleteCard.blank #slotCar, #deleteCard.blank #deleteFacts, #deleteCard.blank #deleteHold { display: none; }
+  #deleteCard.here #slotPlay { display: none; }
+  #deleteCard.noCam #slotScan { display: none; }
+  #deleteBtns { display: flex; align-items: center; gap: 30px; }
+  #slotPlay { width: 140px; height: 140px; border-radius: 50%; background: #38b000; border: 10px solid #d8f3dc; }
+  #slotPlay svg { width: 80px; height: 80px; }
+  #slotScan { width: 140px; height: 140px; border-radius: 50%; background: #219ebc; border: 10px solid #bde0fe; }
+  #slotScan svg { width: 84px; height: 84px; }
+  #slotScan.deny { animation: denyShake .4s ease; }
+  #deleteNo { width: 140px; height: 140px; border-radius: 50%; background: #219ebc; border: 10px solid #bde0fe; }
+  #deleteNo svg { width: 70px; height: 70px; }
+  #deleteHold { width: 140px; height: 140px; padding: 0; border-radius: 50%; background: #e63946; border: 10px solid #fff; touch-action: none; }
   #deleteHold svg { width: 100%; height: 100%; }
   #deleteHold .ring { transition: stroke-dashoffset .1s linear; }
   #deleteHold.holding { transform: scale(.94); }
@@ -168,10 +174,8 @@
   #saveBtns { display: flex; flex-direction: column; gap: 18px; }
   #qrBox { width: 230px; height: 230px; background: #fff; border-radius: 12px; border: 5px solid #023047; display: flex; align-items: center; justify-content: center; }
   #qrBox canvas { image-rendering: pixelated; width: 212px; height: 212px; }
-  #copyCodeBtn, #scanBtn { width: 106px; height: 106px; border-radius: 30px; background: #219ebc; border: 6px solid #bde0fe; }
-  #copyCodeBtn svg, #scanBtn svg { width: 68px; height: 68px; }
-  #scanBtn[hidden] { display: none; }
-  #scanBtn.deny { animation: denyShake .4s ease; }
+  #copyCodeBtn { width: 106px; height: 106px; border-radius: 30px; background: #219ebc; border: 6px solid #bde0fe; }
+  #copyCodeBtn svg { width: 68px; height: 68px; }
   /* the code went out: a green check rides over the copy icon for a beat */
   #copyCodeBtn { position: relative; }
   #copyCodeBtn::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--v-green, #2a9d5c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M24 52 L42 70 L76 32' fill='none' stroke='%23fff' stroke-width='12' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 60% no-repeat; opacity: 0; pointer-events: none; }
@@ -826,16 +830,16 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 }
 
 /* --- blue chrome --- */
-#mapBtn, #copyCodeBtn, #scanBtn, #replayBtn, #celebrateHomeBtn {
+#mapBtn, #copyCodeBtn, #slotScan, #replayBtn, #celebrateHomeBtn {
   background: var(--v-accent-blue);
   border: 6px solid var(--v-blue-line);
   box-shadow: 0 6px 0 var(--v-blue-down);
 }
 #copyCodeBtn { border-radius: var(--v-r-lg); }
-#scanBtn { border-radius: var(--v-r-xl); }
+#slotScan { border-radius: var(--v-r-round); }
 
 /* --- green = GO --- */
-#goBtn, #freeBtn, #nextBtn, #importYes {
+#goBtn, #freeBtn, #nextBtn, #importYes, #slotPlay {
   background: var(--v-accent-green);
   border-color: var(--v-green-line);
   box-shadow: 0 7px 0 var(--v-green-down);
@@ -1026,12 +1030,6 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 }
 .profileSlot.activeP { outline: 7px solid var(--v-accent-green); }
 .profileSlot .plus { color: var(--v-ink-soft); }
-.slotTrash {
-  background: var(--v-accent-red);
-  border: 5px solid var(--v-surface);
-  border-radius: var(--v-r-round);
-  box-shadow: 0 4px 0 var(--v-red-down);
-}
 #deleteAvatar { background: var(--v-surface); border: 7px solid var(--v-surface-line); box-shadow: 0 4px 0 var(--v-surface-down); }
 #deleteNo {
   background: var(--v-accent-blue);
@@ -1165,7 +1163,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 
 
 /* copy / paste glyphs: old sky-blue strokes and cold gray -> toybox blue ink */
-#copyCodeBtn [stroke="#219ebc"], #scanBtn [stroke="#219ebc"] { stroke: var(--v-blue-down); }
+#copyCodeBtn [stroke="#219ebc"], #slotScan [stroke="#219ebc"] { stroke: var(--v-blue-down); }
 #celebrateHomeBtn [fill="#219ebc"] { fill: var(--v-blue-down); }
 
 /* ---- one panel style: profile, wash bay, results card, import dialog ---- */
@@ -1786,9 +1784,6 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
           <button class="bigBtn" id="copyCodeBtn" aria-label="share this save">
             <svg viewBox="0 0 100 100"><rect x="18" y="40" width="64" height="46" rx="9" fill="#fff"/><path d="M50 60 V12 M32 30 L50 12 L68 30" stroke="#219ebc" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <button class="bigBtn" id="scanBtn" aria-label="scan a save QR with the camera" hidden>
-            <svg viewBox="0 0 100 100"><rect x="10" y="28" width="80" height="56" rx="12" fill="#fff"/><path d="M34 28 L40 16 H60 L66 28" fill="#fff"/><circle cx="50" cy="56" r="17" fill="none" stroke="#219ebc" stroke-width="7"/><circle cx="50" cy="56" r="6" fill="#219ebc"/><rect x="18" y="36" width="10" height="7" rx="3" fill="#219ebc"/></svg>
-          </button>
         </div>
         <button class="bigBtn" id="quietBtn" aria-label="quiet mode for the car" aria-pressed="false"></button>
       </div>
@@ -1823,13 +1818,20 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     <div id="deleteCard">
       <div id="deleteWho">
         <div id="deleteAvatar" aria-label="this player"></div>
+        <div id="slotCar" aria-label="this player's car"></div>
         <div id="deleteFacts">
           <div class="chip" id="deleteStars" aria-label="stars this player has"></div>
           <div class="chip" id="deleteFlags" aria-label="levels this player has beaten"></div>
         </div>
       </div>
       <div id="deleteBtns">
-        <button class="bigBtn" id="deleteNo" aria-label="keep this player">
+        <button class="bigBtn" id="slotPlay" aria-label="play as this player">
+          <svg viewBox="0 0 100 100"><path d="M32 22 L76 50 L32 78 Z" fill="#fff"/></svg>
+        </button>
+        <button class="bigBtn" id="slotScan" aria-label="scan a save QR into this player">
+          <svg viewBox="0 0 100 100"><rect x="10" y="28" width="80" height="56" rx="12" fill="#fff"/><path d="M34 28 L40 16 H60 L66 28" fill="#fff"/><circle cx="50" cy="56" r="17" fill="none" stroke="#219ebc" stroke-width="7"/><circle cx="50" cy="56" r="6" fill="#219ebc"/><rect x="18" y="36" width="10" height="7" rx="3" fill="#219ebc"/></svg>
+        </button>
+        <button class="bigBtn" id="deleteNo" aria-label="close">
           <svg viewBox="0 0 100 100"><path d="M26 26 L74 74 M74 26 L26 74" stroke="#fff" stroke-width="14" stroke-linecap="round"/></svg>
         </button>
         <button class="bigBtn" id="deleteHold" aria-label="press and hold to erase this player">
@@ -1920,7 +1922,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.8.1";
+const APP_VERSION = "13.8.2";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -5009,7 +5011,7 @@ async function decodeSaveCode(code) {
 let pendingImport = null;
 /* a code that will not decode: the receive button shakes and the deny plays, nothing else */
 function receiveDeny() {
-  restartAnim(document.getElementById("scanBtn"), "deny");
+  restartAnim(document.getElementById(deleteConfirm.classList.contains("show") ? "slotScan" : "profileBtn"), "deny");
   sfx.deny();
 }
 /* ---- the import preview: what the incoming save holds, drawn wordlessly ----
@@ -5040,13 +5042,16 @@ function renderImportPreview(data) {
   const incoming = levelsBeaten(data.levels);
   document.getElementById("importLevels").innerHTML = flagIcon + `<b>${incoming}</b>`;
   document.getElementById("importAvatar").innerHTML = data.avatar && BUDDY_SVG[data.avatar] ? `<svg viewBox="-6 -58 76 72">${BUDDY_SVG[data.avatar]}</svg>` : "";
-  document.getElementById("importWarn").classList.toggle("show", levelsBeaten(progress.levels) > incoming);
+  const here = meta.avatars[pendingSlot] ? profileFacts(pendingSlot).beaten : 0;
+  document.getElementById("importWarn").classList.toggle("show", here > incoming);
 }
-async function importSaveCode(code) {
+let pendingSlot = 0;   /* the profile slot an incoming save will land in (13.8.2: the slot card picks it; a link lands in the active one) */
+async function importSaveCode(code, slot) {
   let data = null;
   try { data = await decodeSaveCode(code); } catch (e) {}
   if (!data || !data.owned || !Number.isFinite(data.wallet)) { receiveDeny(); return false; }
   pendingImport = data;
+  pendingSlot = Number.isInteger(slot) && slot >= 0 && slot < MAX_PROFILES ? slot : meta.active;
   renderImportPreview(data);
   document.getElementById("importConfirm").classList.add("show");
   sfx.chime();
@@ -5056,10 +5061,14 @@ document.getElementById("importYes").addEventListener("pointerdown", () => {
   if (!pendingImport) return;
   sfx.pop();
   try {
-    localStorage.setItem(saveKey(), JSON.stringify(pendingImport));
-    /* the kid's avatar comes along when the code carries one and no other slot wears it already */
+    save();   /* the kid who was playing keeps everything before the switch */
+    localStorage.setItem("vroom.v2.p" + pendingSlot, JSON.stringify(pendingImport));
+    /* the kid's avatar comes along when the code carries one and no other slot wears it already; an empty slot gets a free face */
     const av = pendingImport.avatar;
-    if (av && BUDDY_SVG[av] && !meta.avatars.some((a, i) => a === av && i !== meta.active)) { meta.avatars[meta.active] = av; saveMeta(); }
+    if (av && BUDDY_SVG[av] && !meta.avatars.some((a, i) => a === av && i !== pendingSlot)) meta.avatars[pendingSlot] = av;
+    else if (!meta.avatars[pendingSlot]) meta.avatars[pendingSlot] = AVATAR_IDS.find(a => !meta.avatars.includes(a)) || "pup";
+    meta.active = pendingSlot;
+    saveMeta();
   } catch (e) {}
   try { sessionStorage.setItem("vroom.toGarage", "1"); sessionStorage.setItem("vroom.welcome", "1"); } catch (e) {}   /* straight to the garage, where the car says hello */
   location.reload();
@@ -5645,53 +5654,74 @@ function renderProfiles() {
     slot.style.setProperty("--i", i);
     slot.innerHTML = avatar ? `<svg viewBox="-6 -58 76 72">${BUDDY_SVG[avatar]}</svg>` : `<span class="plus">+</span>`;
     slot.setAttribute("aria-label", avatar ? "player " + (i + 1) : "new player");
-    slot.addEventListener("pointerdown", () => {
-      sfx.pop();
-      if (!avatar) {
-        meta.avatars[i] = AVATAR_IDS.find(a => !meta.avatars.includes(a)) || "pup";
-        saveMeta();
-      }
-      if (i !== meta.active) switchProfile(i);
-      else renderProfiles();
-    });
+    slot.addEventListener("pointerdown", () => { sfx.pop(); openSlotCard(i); });   /* every slot opens its card (13.8.2) */
     const cell = document.createElement("div");
     cell.className = "profileCell";
     cell.appendChild(slot);
-    if (avatar) {   /* the trash badge: opens the delete card (the active kid's badge is the "start this kid over" path) */
-      const trash = document.createElement("button");
-      trash.className = "bigBtn slotTrash";
-      trash.setAttribute("aria-label", "erase player " + (i + 1));
-      trash.innerHTML = TRASH_ICON;
-      trash.addEventListener("pointerdown", e => { e.stopPropagation(); sfx.pop(); openDeleteConfirm(i); });
-      cell.appendChild(trash);
-    }
     slots.appendChild(cell);
   }
 }
 /* ---- delete card: avatar + stars + beaten levels of the slot, a cross to keep, a hold-to-erase ring ----
    Mirrors the update gate (section 31): the ring fills over DELETE_HOLD_MS, an early release cancels with a
    pop, a full hold plays a wordless swoosh and erases. deleteHoldT / deleteHoldEnd are the test seam. */
-const TRASH_ICON = `<svg viewBox="0 0 100 100" fill="#fff"><path d="M24 30 H76 V38 H24 Z M40 22 H60 V30 H40 Z"/><path d="M30 42 H70 L66 80 H34 Z"/><path d="M42 50 V72 M50 50 V72 M58 50 V72" stroke="#ef7d6d" stroke-width="4" stroke-linecap="round"/></svg>`;
 const FLAG_ICON = `<svg viewBox="0 0 64 64"><path d="M14 6 V60" stroke="#023047" stroke-width="6" stroke-linecap="round"/><path d="M18 8 H54 L44 22 L54 36 H18 Z" fill="#fff" stroke="#023047" stroke-width="4" stroke-linejoin="round"/><path d="M18 8 H30 V15 H18 Z M30 15 H42 V22 H30 Z M18 22 H30 V29 H18 Z M30 29 H42 V36 H30 Z M42 8 H54 V15 H42 Z M42 29 H52 V36 H42 Z" fill="#023047"/></svg>`;
 const deleteConfirm = document.getElementById("deleteConfirm"), deleteHoldBtn = document.getElementById("deleteHold");
 const deleteRing = deleteHoldBtn.querySelector(".ring");
 const DELETE_HOLD_MS = 1200;
 let deleteTarget = -1, deleteHoldT = null, deleteHoldStart = 0, deleteHoldRaf = null;
-function profileFacts(i) {   /* what a parent is about to erase: the wallet and the beaten-level count */
-  if (i === meta.active) return { wallet: progress.wallet, beaten: Object.keys(progress.levels).length };
+function profileFacts(i) {   /* a slot's save at a glance: the wallet, the beaten-level count and the build */
+  if (i === meta.active) return { wallet: progress.wallet, beaten: Object.keys(progress.levels).length, build: state, data: progress };
   let s = null;
   try { s = JSON.parse(localStorage.getItem("vroom.v2.p" + i)); } catch (e) {}
-  return { wallet: s && Number.isFinite(s.wallet) ? Math.max(0, Math.floor(s.wallet)) : 0, beaten: s && s.levels ? Object.keys(s.levels).length : 0 };
+  return { wallet: s && Number.isFinite(s.wallet) ? Math.max(0, Math.floor(s.wallet)) : 0, beaten: s && s.levels ? Object.keys(s.levels).length : 0, build: s && s.build, data: s };
 }
-function openDeleteConfirm(i) {
+/* a side-view car drawn from another save's build (vehicleSVG reads the live progress for buddies, mud and scuffs:
+   borrow that save's for one render) */
+function carOfSave(build, data) {
+  const st = importBuild({ build: build || {}, ...(data || {}) });
+  const keep = { buddy: progress.owned.buddy, muddy: progress.muddy, damage: progress.damage };
+  progress.owned.buddy = st.buddy ? [st.buddy] : []; progress.muddy = !!(data && data.muddy); progress.damage = data && Number.isFinite(data.damage) ? Math.min(MAX_DAMAGE, Math.max(0, data.damage)) : 0;
+  let car = "";
+  try { car = vehicleSVG(st); } catch (e) { car = ""; }
+  progress.owned.buddy = keep.buddy; progress.muddy = keep.muddy; progress.damage = keep.damage;
+  return car;
+}
+/* ---- the slot card (13.8.2): one tap on a face opens it. A used slot shows the kid, their car, stars and flags,
+   with play (switch to them; hidden when they are already the one playing), scan a save into this slot, close,
+   and the hold-to-erase ring. An empty slot shows a plus with play (start a new kid) and scan. ---- */
+const slotCard = document.getElementById("deleteCard");
+function openSlotCard(i) {
   deleteTarget = i;
-  const f = profileFacts(i);
-  document.getElementById("deleteAvatar").innerHTML = `<svg viewBox="-6 -58 76 72">${BUDDY_SVG[meta.avatars[i] || "pup"]}</svg>`;
-  document.getElementById("deleteStars").innerHTML = starIcon + `<span>${f.wallet}</span>`;
-  document.getElementById("deleteFlags").innerHTML = FLAG_ICON + `<span>${f.beaten}</span>`;
+  const avatar = meta.avatars[i], f = avatar ? profileFacts(i) : null;
+  document.getElementById("deleteAvatar").innerHTML = avatar ? `<svg viewBox="-6 -58 76 72">${BUDDY_SVG[avatar]}</svg>` : `<span class="plus">+</span>`;
+  document.getElementById("slotCar").innerHTML = f ? carOfSave(f.build, f.data) : "";
+  document.getElementById("deleteStars").innerHTML = f ? starIcon + `<span>${f.wallet}</span>` : "";
+  document.getElementById("deleteFlags").innerHTML = f ? FLAG_ICON + `<span>${f.beaten}</span>` : "";
+  slotCard.classList.toggle("blank", !avatar);
+  slotCard.classList.toggle("here", !!avatar && i === meta.active);
+  slotCard.classList.toggle("noCam", !(typeof canScanQR === "function" && canScanQR()));
   deleteHoldEnd();
   deleteConfirm.classList.add("show");
 }
+document.getElementById("slotPlay").addEventListener("pointerdown", e => {
+  e.stopPropagation();
+  const i = deleteTarget;
+  if (i < 0) return;
+  sfx.pop();
+  if (!meta.avatars[i]) { meta.avatars[i] = AVATAR_IDS.find(a => !meta.avatars.includes(a)) || "pup"; saveMeta(); }
+  if (i !== meta.active) switchProfile(i);
+  else { closeDeleteConfirm(); renderProfiles(); }
+});
+document.getElementById("slotScan").addEventListener("pointerdown", e => {
+  e.stopPropagation();
+  const i = deleteTarget;
+  if (i < 0) return;
+  sfx.pop();
+  closeDeleteConfirm();
+  let p;
+  try { p = Promise.resolve(scanSaveQR()); } catch (err) { p = Promise.reject(err); }
+  p.then(text => { if (text !== null && text !== undefined) importSaveCode(String(text), i); }, () => receiveDeny());   /* null: the scanner was dismissed */
+});
 function closeDeleteConfirm() {
   deleteHoldEnd();
   deleteTarget = -1;
@@ -5731,7 +5761,6 @@ document.getElementById("profileBtn").addEventListener("pointerdown", () => {
   sfx.pop();
   renderProfiles();
   renderQR();
-  syncScanBtn();
   cachedCode = "";
   exportFullCode().then(c => { cachedCode = c; });
   profileOverlay.classList.add("show");
@@ -5772,23 +5801,6 @@ function copyToClipboard(code) {
 }
 copyCodeBtn.addEventListener("click", sendSaveCode);
 copyCodeBtn.addEventListener("pointerdown", () => sfx.pop());
-/* ---- receive (13.8.1): one button, the camera. scanSaveQR() reads the other device's QR inside the app (so the
-   save lands in this app's own storage, which the iOS camera app cannot do) and the result feeds importSaveCode.
-   A shared link opens the game with the code in its hash and lands in the same preview. No sheet, no paste box. ---- */
-const scanBtn = document.getElementById("scanBtn");
-function syncScanBtn() { scanBtn.hidden = !(typeof canScanQR === "function" && canScanQR()); }
-/* a code arrived: a good one raises the preview over the garage, a bad one leaves the panel up with the scan button shaking */
-async function receiveCode(text) {
-  const ok = await importSaveCode(text || "");
-  if (ok) profileOverlay.classList.remove("show");
-  return ok;
-}
-scanBtn.addEventListener("pointerdown", () => {
-  sfx.pop();
-  let p;
-  try { p = Promise.resolve(scanSaveQR()); } catch (e) { p = Promise.reject(e); }
-  p.then(text => { if (text !== null && text !== undefined) receiveCode(String(text)); }, () => receiveDeny());   /* null: the scanner was dismissed */
-});
 /* a save code in the URL (e.g. scanned QR that opened the hosted game) offers an import */
 if (location.hash.startsWith("#save=")) {
   let hashCode = "";
