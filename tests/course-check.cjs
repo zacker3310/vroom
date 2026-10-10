@@ -148,7 +148,7 @@ function check(name, ok, detail) {
     let groundPx = 0, n = 0;
     for (let x = 20; x < 1200; x += 20, n++) { const cx = Math.round((x + canvasOX) * bk); if (hexAt(cx * 4) === roadPal.ground || hexAt(cx * 4) === roadPal.ground2) groundPx++; }
     const hex = (groundPx / n).toFixed(2);
-    const weatherOut = document.getElementById('weather').parentElement.id === 'road';
+    const weatherOut = document.getElementById('weather').parentElement.id === 'view';   /* 13.7: the rain falls in the world, so it rolls with the view */
     const car = carWrap.style.transform, m = /rotate\((-?[\d.]+)rad\)/.exec(car);
     const vm = /rotate\((-?[\d.]+)rad\)/.exec(viewEl.style.transform);
     return { before, weatherOut, live: twistLive, roll: rollCar, env: env.style.transform, view: viewEl.style.transform, viewAngle: vm ? +vm[1] : 0, star: star && star.wrap.style.transform, top: hex, ground: roadPal.ground, ground2: roadPal.ground2, cork: window.__cork,
@@ -159,7 +159,7 @@ function check(name, ok, detail) {
     await page.evaluate(async f => { const t = TWISTS[0]; pos = t.x0 + (t.x1 - t.x0) * f - CAR_SCREEN_X + CAR_HIT_Z; await new Promise(r => setTimeout(r, 120)); }, f);
     await page.screenshot({ path: SHOT + `course-corkscrew-${Math.round(f * 100)}.png` });
   }
-  check('corkscrew: level before it (no view roll), rolling mid-twist (roll ~pi): the whole view is turned ~pi about the vanishing point, weather stays outside over the road',
+  check('corkscrew: level before it (no view roll), rolling mid-twist (roll ~pi): the whole view is turned ~pi about the vanishing point, the weather rolls with it',
     !roll.before.live && !roll.before.carRot && roll.before.view === '' && roll.live && roll.weatherOut && Math.abs(Math.abs(roll.roll) - Math.PI) < 0.05 && Math.abs(Math.abs(roll.viewAngle) - Math.PI) < 0.05 && roll.overscan === 1500, JSON.stringify({ before: roll.before, weatherOut: roll.weatherOut, live: roll.live, roll: roll.roll, view: roll.view, overscan: roll.overscan }));
   check('corkscrew: upside down the ground fills the top of the screen, the road ahead rides the ribbon (its stars turn with it) and the car is counter-rolled so it stays upright',
     +roll.top > 0.3 && /rotate\(/.test(roll.star || '') && roll.carRot && Math.abs(Math.abs(roll.carAngle) - Math.PI) < 0.05, JSON.stringify({ groundShareOfTopRow: roll.top, star: roll.star, car: roll.car }));

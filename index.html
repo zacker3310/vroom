@@ -1582,8 +1582,8 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
     </div>
     <canvas id="roadCanvas" width="2400" height="1400"></canvas>
     <div id="world"><div id="carWrap"></div></div>
-    </div>
     <div id="weather"></div>
+    </div>
     <div id="speedLines"><div></div><div></div><div></div><div></div><div></div><div></div></div>
     <button class="bigBtn" id="homeBtn" aria-label="back to garage">
       <svg viewBox="0 0 100 100"><path d="M50 12 L92 50 H78 V88 H22 V50 H8 Z" fill="#023047"/><rect x="40" y="58" width="20" height="30" fill="#ffb703"/></svg>
@@ -1749,7 +1749,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.6.1";
+const APP_VERSION = "13.7.0";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -7132,9 +7132,10 @@ function buildScenery(len, world = 1, seed = 0) {
 /* ============ 23. ROAD: RENDER ============ */
 /* ---- projection: one sprite onto the stage ---- */
 const FLAT_PROPS = new Set(["puddle", "oil", "ice", "finish", "fan", "trophy", "scenery"]);
+const TWIST_BEHIND = -40;   /* in a corkscrew the rolled near field would swing anything behind the car into the frame, huge */
 function placeSprite(p, carX) {
   const z = p.x - carX;
-  if (z > DRAW_FAR || z < DRAW_NEAR) {
+  if (z > DRAW_FAR || z < DRAW_NEAR || (twistLive && z < TWIST_BEHIND)) {
     if (p.vis) { p.wrap.style.display = "none"; p.vis = false; }
     return;
   }
@@ -7331,15 +7332,19 @@ function drawRoad(carX) {
   for (let k = Math.floor((carX + 2400) / SEG); k >= first; k--) {
     const z0 = Math.max(nearZ, k * SEG - carX), z1 = (k + 1) * SEG - carX;
     const odd = k & 1;
+    /* corkscrew lighting (13.7): the ribbon is lit from the sky, so a band darkens as its surface turns away
+       (upside down at the top of the loop it sits at 70%); quantised so the shade memo stays small */
+    const lit = twistLive ? -Math.round((1 - Math.cos(rollAt(k * SEG + SEG / 2))) * 0.15 * 20) / 20 : 0;
+    const L = col => lit ? shade(col, lit) : col;
     groundSpace = true;
     if (odd) quad(c, z0, z1, -4000, 4000, P.ground2);
     fieldStrips(c, z0, z1, T);
     groundSpace = false;
-    quadPair(c, z0, z1, ROAD_HALF + 26, ROAD_HALF + 26 + SHOULDER_W, T.shoulder);
-    quad(c, z0, z1, -ROAD_HALF, ROAD_HALF, P.bands ? P.bands[((k % 6) + 6) % 6] : odd ? P.road2 : P.road);
+    quadPair(c, z0, z1, ROAD_HALF + 26, ROAD_HALF + 26 + SHOULDER_W, L(T.shoulder));
+    quad(c, z0, z1, -ROAD_HALF, ROAD_HALF, L(P.bands ? P.bands[((k % 6) + 6) % 6] : odd ? P.road2 : P.road));
     if (T.crown) {
-      quad(c, z0, z1, -CROWN_HALF, CROWN_HALF, T.crown[odd]);
-      c.fillStyle = T.wear[odd];
+      quad(c, z0, z1, -CROWN_HALF, CROWN_HALF, L(T.crown[odd]));
+      c.fillStyle = L(T.wear[odd]);
       c.beginPath();
       for (const t of WEAR) { qpath(c, z0, z1, t[0], t[1]); qpath(c, z0, z1, -t[1], -t[0]); }
       c.fill();

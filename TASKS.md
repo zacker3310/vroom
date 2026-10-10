@@ -177,6 +177,10 @@
 
 - [x] T28.4: Solid horizon. The canvas painted a 46 px full-strength haze band under the horizon line; against the far hills (which end exactly on that line) it read as a bright gap under their feet, as if the hills were translucent at the base. The band is now 26 px at half strength, so the hills meet the ground. Checked on rain, farm and night worlds at 2x.
 
+## v13.7.0 (2026-10-10, user-directed: "surely you can make this cork better")
+
+- [x] T29.1: Corkscrew polish. Sprites behind the car are hidden while the view rolls (`TWIST_BEHIND` -40: the ghost twin and roadside signs used to be rolled and magnified into the bottom of the frame); the ribbon is lit from the sky, each band shaded by how far its surface has turned (70% upside down) so the tube reads as a tube; `#weather` moved inside `#view` so the rain falls in the world and rolls with it. course-check's weather assertion updated. 23 suites, 424/424.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

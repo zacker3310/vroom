@@ -178,15 +178,25 @@ every board stands nearest its own turn, and the tires squeal through it above 4
 ### Corkscrews
 
 `TWISTS` is a list of `{x0, x1, dir}` (`TWIST_LEN = 2200`); `rollAt(x)` is the road's roll,
-`dir·2π·smootherstep`. The camera rides the road, so the stretch ahead is drawn turned by
-`rollAt(x) − rollAt(car)` about the hoop axis (`HOOP_C` above the deck) in car space: `proj()`
-and `placeSprite()` run road points and road props through `rollPt()`, so the ribbon climbs one
-wall, goes over the top inside the hoops and comes down the other side, a real twist in
-perspective. The ground plane, the roadside scenery, the hills and the `#env` sky layers never
-move, and `rollNear()` holds the deck flat for the first 120 units ahead of the car (fully twisted
-by 420) so the car always sits on a level slab. The earlier version rolled the whole world about
-the vanishing point; it tilted some layers and not others (two horizons, a seam) and put a wall of
-road a car-length ahead. `drawHoops()` rings the twist with
+`dir·2π·smootherstep`. The road itself twists (13.4): every road-space point (the tarmac bands,
+shoulders, dashes, road props, the ghost) goes through `rollPt(rollAt(x), lx, h)`, a turn about the
+hoop axis `HOOP_C` above the deck, so the ribbon ahead climbs the wall, goes over the top inside the
+hoops and comes back down. The ground plane, fields, hoops and roadside are painted in flat world
+space (`groundSpace` flag in `proj`). The camera rides the car around the tube: `camWX / camWY` are
+the car's spot on the rolled road plus the usual lateral and height offset turned with it. The
+scene is rendered with the camera unrolled, and the camera's own roll is one CSS rotation of
+`#view` (sky, ground canvas, sprites and the weather layer, so rain falls in the world) about the
+vanishing point (600, 290), which is exact for a roll about the forward axis; the car is
+counter-rolled inside the view (`tick`) so it stays upright at the bottom while the world turns
+around it. While a twist is live the ground canvas becomes a 1500 px square centred on the
+vanishing point at 1x backing (`setOverscan`) so the rolled frame never shows a corner, the canvas
+near plane moves from -260 to -80 and sprites behind the car are hidden past `TWIST_BEHIND` (-40),
+because the rolled near field would otherwise sweep the road behind the camera, the ghost twin and
+roadside signs across the frame, crest occlusion is off, and each road band is shaded by how far its
+surface has turned from the sky (`lit` in `drawRoad`, down to 70% upside down) so the ribbon reads
+as a tube. The three earlier versions (12.9 rolled layers separately, 13.0 twisted only the road,
+13.2 barrel-rolled the car on a flat road) all failed because the camera did not roll with the car.
+`drawHoops()` rings the twist with
 striped hoops every 150 units (only the arc above the deck). Twists carry stars only: the helix
 (three stars a lane, `[1, 2, 1, 0]`) is laid before any formation, `put` and `spotFor` refuse
 blockers within 150, overhead arches stay 700 away, and a ramp beat whose run-up-to-touchdown
