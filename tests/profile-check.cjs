@@ -351,55 +351,28 @@ function check(name, ok, detail) {
   await page.reload();
   await page.waitForTimeout(700);
 
-  /* ---- the receiver sheet: one button on the RECEIVE half opens it; it offers the clipboard, the paste box,
-     and the camera scan only when the scanner section answers canScanQR(); a scan that resolves to a code
-     feeds the same import flow, a dismissed scan (null) leaves the sheet up ---- */
+  /* ---- receive (13.8.1): one button, the camera. Hidden when canScanQR says no; a dismissed scan (null) leaves the
+     panel up; a scanned URL raises the preview and closes the panel ---- */
   await tap('#profileBtn');
   await page.waitForTimeout(200);
-  await page.evaluate(() => { window.__canScan = canScanQR; window.canScanQR = () => false; });   /* no scanner: the scan button must hide */
-  await tap('#receiveBtn');
-  await page.waitForTimeout(200);
-  const sheet1 = await page.evaluate(() => ({
-    shown: receiveSheet.classList.contains('show'), clip: !clipBtn.hidden, scanHidden: scanBtn.hidden,
-    big: Math.min(receiveBtn.getBoundingClientRect().width, clipBtn.getBoundingClientRect().width, pasteBox.getBoundingClientRect().height) >= 64
-  }));
-  await tap('#receiveClose');
-  await page.evaluate(() => { window.__scan = scanSaveQR; window.canScanQR = () => true; window.scanSaveQR = () => Promise.resolve(null); });
-  await tap('#receiveBtn');
-  await page.waitForTimeout(100);
-  const sheet2 = await page.evaluate(() => ({ closed1: true, scanShown: !scanBtn.hidden }));
+  await page.evaluate(() => { window.__canScan = canScanQR; window.__scan = scanSaveQR; window.canScanQR = () => false; syncScanBtn(); });
+  const noCam = await page.evaluate(() => ({ hidden: scanBtn.hidden, share: copyCodeBtn.getBoundingClientRect().width >= 64 }));
+  await page.evaluate(() => { window.canScanQR = () => true; window.scanSaveQR = () => Promise.resolve(null); syncScanBtn(); });
+  const cam = await page.evaluate(() => ({ shown: !scanBtn.hidden, big: scanBtn.getBoundingClientRect().width >= 64 }));
   await tap('#scanBtn');
   await page.waitForTimeout(200);
-  const scanCancel = await page.evaluate(() => ({ sheet: receiveSheet.classList.contains('show'), confirm: document.getElementById('importConfirm').classList.contains('show') }));
+  const scanCancel = await page.evaluate(() => ({ overlay: profileOverlay.classList.contains('show'), confirm: document.getElementById('importConfirm').classList.contains('show') }));
   await page.evaluate(() => { window.scanSaveQR = () => Promise.resolve(SAVE_URL_PREFIX + packCompact()); });
   await tap('#scanBtn');
   await page.waitForTimeout(300);
   const scanned = await page.evaluate(() => ({
-    sheet: receiveSheet.classList.contains('show'), overlay: profileOverlay.classList.contains('show'),
-    confirm: document.getElementById('importConfirm').classList.contains('show'), pending: !!pendingImport
+    overlay: profileOverlay.classList.contains('show'), confirm: document.getElementById('importConfirm').classList.contains('show'), pending: !!pendingImport
   }));
   await tap('#importNo');
-  await page.evaluate(() => { delete window.canScanQR; delete window.scanSaveQR; });
   await page.evaluate(() => { window.canScanQR = window.__canScan; window.scanSaveQR = window.__scan; });   /* the real scanner back for its own checks */
-  check('receive: the sheet opens with clipboard + paste box (scan only when canScanQR says so); a cancelled scan keeps the sheet, a scanned URL raises the preview',
-    sheet1.shown && sheet1.clip && sheet1.scanHidden && sheet1.big && sheet2.scanShown && scanCancel.sheet && !scanCancel.confirm
-    && !scanned.sheet && !scanned.overlay && scanned.confirm && scanned.pending, JSON.stringify({ sheet1, sheet2, scanCancel, scanned }));
-
-  /* ---- the paste box: a code wrapped in message text lands through a paste event ---- */
-  await tap('#profileBtn');
-  await page.waitForTimeout(200);
-  await tap('#receiveBtn');
-  await page.waitForTimeout(100);
-  await page.evaluate(() => {
-    const dt = new DataTransfer(); dt.setData('text', 'look at my car!! ' + packCompact() + ' (sent from Vroom)');
-    pasteTarget.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true }));
-  });
-  await page.waitForTimeout(300);
-  const pasted = await page.evaluate(() => ({
-    sheet: receiveSheet.classList.contains('show'), overlay: profileOverlay.classList.contains('show'),
-    confirm: document.getElementById('importConfirm').classList.contains('show'), box: pasteTarget.value
-  }));
-  check('receive: the paste box imports a wrapped code (sheet + panel close, preview up)', !pasted.sheet && !pasted.overlay && pasted.confirm && pasted.box === '', JSON.stringify(pasted));
+  check('receive: one scan button (hidden without a camera), a dismissed scan keeps the panel, a scanned URL raises the preview and closes it',
+    noCam.hidden && noCam.share && cam.shown && cam.big && scanCancel.overlay && !scanCancel.confirm && !scanned.overlay && scanned.confirm && scanned.pending,
+    JSON.stringify({ noCam, cam, scanCancel, scanned }));
 
   /* ---- the preview card: the incoming car, its stars and beaten levels, no warning when it brings as much
      as the profile has; the triangle when the profile here has beaten MORE; the avatar from a full code ---- */
@@ -447,7 +420,7 @@ function check(name, ok, detail) {
     const ok = await importSaveCode('VROOM1.!!!notbase64!!!');
     const ok2 = await importSaveCode('hello');
     const ok3 = await importSaveCode('VROOM1.' + b64url.enc(new Uint8Array([1, 2, 3])));   /* truncated: valid version byte, short payload */
-    return { ok, ok2, ok3, confirm: document.getElementById('importConfirm').classList.contains('show'), shake: receiveBtn.classList.contains('deny') };
+    return { ok, ok2, ok3, confirm: document.getElementById('importConfirm').classList.contains('show'), shake: scanBtn.classList.contains('deny') };
   });
   check('import: garbage + truncated codes rejected, no overlay, the receive button shakes', !garbage.ok && !garbage.ok2 && !garbage.ok3 && !garbage.confirm && garbage.shake, JSON.stringify(garbage));
 

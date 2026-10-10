@@ -191,6 +191,10 @@
 - [x] T30.3: In-app QR scanner (section 17b). `scanSaveQR()` opens a viewfinder (rear camera, brackets, scan line, cross, a picture picker that also reads a screenshot of a QR) and resolves the raw text; BarcodeDetector when a browser has it, otherwise a pure-JS decoder for the game's own QRs (byte mode, ECC L, v1 to v10: finder location, homography sampling, format BCH, Reed-Solomon) since WebKit never shipped the native one. A scanned code lands in the home-screen app's own storage, which the iOS camera could not do. A refused camera keeps the picker open.
 - Three worktree agents, squash-merged with the hold-to-delete round. profile-check 31. 23 suites, 440/440.
 
+## v13.8.1 (2026-10-10, user-directed: "way too complicated now, simplify it")
+
+- [x] T30.4: Transfer collapsed to a QR and two buttons. Share (the share sheet with the hosted link plus the code, the clipboard on a desktop) and Scan (the in-app camera; its viewfinder keeps the picture picker). The receiver sheet, the clipboard-read button, the paste box and the send / receive panes are gone; a shared link still lands in the preview through the `#save=` hash. profile-check 30. 23 suites, 439/439.
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.

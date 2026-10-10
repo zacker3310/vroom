@@ -384,14 +384,14 @@ Three code formats share the `VROOMn.` prefix plus base64url:
 
 ### Moving a save (13.8)
 
-The profile panel is a send half and a receive half. `sendSaveCode()` hands the share sheet the
+The profile panel shows the QR and two buttons, share and scan. `sendSaveCode()` hands the share sheet the
 hosted link (`SAVE_URL_PREFIX + code`) and the plain code, or writes the clipboard on a desktop,
 always inside the tap (WebKit grants neither after an await), with the gzip code pre-built when the
-panel opens and a synchronous plain code as the fallback. `openReceiveSheet()` offers a camera scan
-(`scanSaveQR()`, section 17b: a viewfinder with `BarcodeDetector` where a browser has it and
-`qrDecodeImage`, a pure-JS decoder for the game's own byte-mode ECC-L v1 to v10 symbols, since WebKit
-never shipped the native detector; a picture picker reads a screenshot of a QR), the clipboard, and a
-paste box. Every path ends in `importSaveCode`, which decodes (`decodeSaveCode` picks the `VROOM`
+panel opens and a synchronous plain code as the fallback. The scan button (13.8.1: the only way in
+besides a shared link) calls `scanSaveQR()`, section 17b: a viewfinder with `BarcodeDetector` where a
+browser has it and `qrDecodeImage`, a pure-JS decoder for the game's own byte-mode ECC-L v1 to v10
+symbols, since WebKit never shipped the native detector; a picture picker reads a screenshot of a QR.
+Both paths end in `importSaveCode`, which decodes (`decodeSaveCode` picks the `VROOM`
 token out of any surrounding text) and shows the preview card: the incoming car via `vehicleSVG`,
 its wallet, its beaten levels, the avatar a full code carries, and a warning triangle when the
 profile here has beaten more. Scanning inside the app matters on iOS: a Home Screen app has its own

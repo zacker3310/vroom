@@ -163,35 +163,15 @@
   #deleteHold.holding { transform: scale(.94); }
   #deleteHold.holding .lid { animation: lidLift .5s ease infinite alternate; transform-origin: 50px 36px; }
   @keyframes lidLift { to { transform: translateY(-5px) rotate(-8deg); } }
-  /* save transfer: two halves, SEND (the QR + one share button) and RECEIVE (one button that opens the receiver sheet) */
-  #saveTools { display: flex; gap: 22px; align-items: stretch; }
-  .savePane {
-    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
-    padding: 18px 22px; border-radius: 34px; background: rgba(90, 70, 52, .07);
-  }
-  .paneMark { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); width: 48px; height: 48px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; }
-  .paneMark svg { width: 34px; height: 34px; }
+  /* save transfer: the QR and two buttons, share out and scan in */
+  #saveTools { display: flex; gap: 26px; align-items: center; }
+  #saveBtns { display: flex; flex-direction: column; gap: 18px; }
   #qrBox { width: 230px; height: 230px; background: #fff; border-radius: 12px; border: 5px solid #023047; display: flex; align-items: center; justify-content: center; }
   #qrBox canvas { image-rendering: pixelated; width: 212px; height: 212px; }
-  #copyCodeBtn { width: 96px; height: 96px; border-radius: 26px; background: #219ebc; border: 6px solid #bde0fe; }
-  #copyCodeBtn svg { width: 58px; height: 58px; }
-  #receiveBtn { width: 176px; height: 176px; border-radius: 40px; background: #219ebc; border: 6px solid #bde0fe; }
-  #receiveBtn svg { width: 120px; height: 120px; }
-  #receiveBtn.deny { animation: denyShake .4s ease; }
-  /* the receiver sheet: scan / clipboard / a paste box, one cross */
-  #receiveSheet { position: absolute; inset: 0; z-index: 90; display: none; align-items: center; justify-content: center; }
-  #receiveSheet.show { display: flex; }
-  #receiveCard { display: flex; align-items: center; gap: 28px; padding: 36px 44px; }
-  #scanBtn, #clipBtn { width: 150px; height: 150px; border-radius: 40px; background: #219ebc; border: 6px solid #bde0fe; }
-  #scanBtn svg, #clipBtn svg { width: 100px; height: 100px; }
-  #scanBtn[hidden], #clipBtn[hidden] { display: none; }
-  #pasteBox { position: relative; width: 190px; height: 150px; border-radius: 30px; background: #fff; border: 6px dashed #b08968; display: flex; align-items: center; justify-content: center; }
-  #pasteBox svg { width: 100px; height: 100px; pointer-events: none; }
-  #pasteTarget { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; resize: none; border: 0; outline: 0; font-size: 16px; caret-color: transparent; }
-  #pasteBox:focus-within { border-style: solid; border-color: #219ebc; }
-  #pasteBox.nudge { animation: pulse 1.1s ease 3; }
-  #receiveClose { width: 96px; height: 96px; border-radius: 50%; background: #e63946; border: 8px solid #fff; }
-  #receiveClose svg { width: 56px; height: 56px; }
+  #copyCodeBtn, #scanBtn { width: 106px; height: 106px; border-radius: 30px; background: #219ebc; border: 6px solid #bde0fe; }
+  #copyCodeBtn svg, #scanBtn svg { width: 68px; height: 68px; }
+  #scanBtn[hidden] { display: none; }
+  #scanBtn.deny { animation: denyShake .4s ease; }
   /* the code went out: a green check rides over the copy icon for a beat */
   #copyCodeBtn { position: relative; }
   #copyCodeBtn::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--v-green, #2a9d5c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M24 52 L42 70 L76 32' fill='none' stroke='%23fff' stroke-width='12' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 60% no-repeat; opacity: 0; pointer-events: none; }
@@ -846,19 +826,13 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 }
 
 /* --- blue chrome --- */
-#mapBtn, #copyCodeBtn, #receiveBtn, #scanBtn, #clipBtn, #replayBtn, #celebrateHomeBtn {
+#mapBtn, #copyCodeBtn, #scanBtn, #replayBtn, #celebrateHomeBtn {
   background: var(--v-accent-blue);
   border: 6px solid var(--v-blue-line);
   box-shadow: 0 6px 0 var(--v-blue-down);
 }
 #copyCodeBtn { border-radius: var(--v-r-lg); }
-#receiveBtn, #scanBtn, #clipBtn { border-radius: var(--v-r-xl); }
-#pasteBox { background: var(--v-surface); border-color: var(--v-blue-line); border-radius: var(--v-r-xl); }
-#pasteBox:focus-within { border-color: var(--v-blue-down); background: #fff; }
-.savePane { background: rgba(90, 70, 52, .07); border-radius: var(--v-r-xl); }
-.paneMark { background: var(--v-surface); border: 4px solid var(--v-surface-line); }
-.paneMark [stroke="#219ebc"] { stroke: var(--v-blue-down); }
-.paneMark [fill="#219ebc"] { fill: var(--v-blue-down); }
+#scanBtn { border-radius: var(--v-r-xl); }
 
 /* --- green = GO --- */
 #goBtn, #freeBtn, #nextBtn, #importYes {
@@ -876,7 +850,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 }
 
 /* --- red = stop / careful --- */
-#importNo, #receiveClose {
+#importNo {
   background: var(--v-accent-red);
   border: 8px solid var(--v-red-line);
   box-shadow: 0 7px 0 var(--v-red-down);
@@ -1191,9 +1165,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 
 
 /* copy / paste glyphs: old sky-blue strokes and cold gray -> toybox blue ink */
-#copyCodeBtn [stroke="#219ebc"], #receiveBtn [stroke="#219ebc"], #scanBtn [stroke="#219ebc"], #clipBtn [stroke="#219ebc"], #pasteBox [stroke="#219ebc"] { stroke: var(--v-blue-down); }
-#receiveBtn [fill="#adb5bd"], #clipBtn [fill="#adb5bd"], #pasteBox [fill="#adb5bd"] { fill: var(--v-blue-down); }
-#pasteBox [stroke="#b08968"] { stroke: var(--v-ink-soft); }
+#copyCodeBtn [stroke="#219ebc"], #scanBtn [stroke="#219ebc"] { stroke: var(--v-blue-down); }
 #celebrateHomeBtn [fill="#219ebc"] { fill: var(--v-blue-down); }
 
 /* ---- one panel style: profile, wash bay, results card, import dialog ---- */
@@ -1206,10 +1178,10 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
   box-shadow: 0 8px 0 rgba(74, 53, 35, .25);
 }
 #importCard { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 34px 56px 40px; }
-#importConfirm.show #importCard, #receiveSheet.show #receiveCard { animation: popIn .35s cubic-bezier(.2, 1.4, .4, 1) both; }
+#importConfirm.show #importCard { animation: popIn .35s cubic-bezier(.2, 1.4, .4, 1) both; }
 #deleteConfirm.show #deleteCard { animation: popIn .35s cubic-bezier(.2, 1.4, .4, 1) both; }
 #importConfirm.show #importYes, #importConfirm.show #importNo { animation: none; }
-#profileOverlay, #celebrate, #washOverlay, #importConfirm, #deleteConfirm, #receiveSheet, #numOverlay, #peekOverlay { background: var(--v-scrim); }
+#profileOverlay, #celebrate, #washOverlay, #importConfirm, #deleteConfirm, #numOverlay, #peekOverlay { background: var(--v-scrim); }
 /* --- in-app QR scanner: a viewfinder over the scrim, corner brackets, a sweeping line, a cross, a picture picker --- */
 #scanOverlay { position: absolute; inset: 0; z-index: 88; display: none; align-items: center; justify-content: center; background: var(--v-scrim); }
 #scanOverlay.show { display: flex; }
@@ -1556,7 +1528,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
    accessory flutter); the functional ones (scene iris, chip pops, deny shakes, road hits) stay but short --- */
 @media (prefers-reduced-motion: reduce) {
   #updateBtn, #nextBtn, #goBtn.nudge, #gasPedal.nudge, .catTab.needs .alert, .tile.urgent, #previewLock, #priceTag:not(.deny),
-  .enter, .tile.enter, .tile.justSel.enter, #celebrate.active #resultsCard, #importConfirm.show #importCard, #deleteConfirm.show #deleteCard, #deleteHold.holding .lid, #receiveSheet.show #receiveCard, #pasteBox.nudge, #numCard, #peekCard, #stickerToast.show,
+  .enter, .tile.enter, .tile.justSel.enter, #celebrate.active #resultsCard, #importConfirm.show #importCard, #deleteConfirm.show #deleteCard, #deleteHold.holding .lid, #numCard, #peekCard, #stickerToast.show,
   .confetti, .buddyBob, .buddyPop, .hoverBob, .hoverGlow, .hoverTrail, .spinner, .rearFlame, .flapWing, .boosterFlame, .antennaSway, .bubbleDrift,
   .lavaGlow, .maneWave, .lightFlashA, .lightFlashB, .jetPuff, .discoGlint, .decalShimmer, .decalStomp, .decalSpin, .decalFlicker, .decalTwinkle,
   .decalBeat, .decalCrackle .sparks, .decalPupil, .decalPupilB, .fanBounce, .prop.trophy svg, #preview.blink .vEye, #preview.bounce, #sun.cool,
@@ -1809,40 +1781,18 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
       <!-- save transfer, two halves: SEND (left: the scan-to-open QR is the hero, one share button under it)
            and RECEIVE (right: one button that opens the receiver sheet). The speaker sits beside them. -->
       <div id="saveTools">
-        <div class="savePane" id="sendPane" aria-label="send this save">
-          <div class="paneMark" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M10 38 V52 H54 V38" fill="none" stroke="#219ebc" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 40 V10 M20 22 L32 10 L44 22" fill="none" stroke="#219ebc" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div id="qrBox"><canvas id="qrCanvas"></canvas></div>
-          <button class="bigBtn" id="copyCodeBtn" aria-label="send save code">
+        <div id="qrBox"><canvas id="qrCanvas"></canvas></div>
+        <div id="saveBtns">
+          <button class="bigBtn" id="copyCodeBtn" aria-label="share this save">
             <svg viewBox="0 0 100 100"><rect x="18" y="40" width="64" height="46" rx="9" fill="#fff"/><path d="M50 60 V12 M32 30 L50 12 L68 30" stroke="#219ebc" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-        </div>
-        <div class="savePane" id="recvPane" aria-label="receive a save">
-          <div class="paneMark" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M10 38 V52 H54 V38" fill="none" stroke="#219ebc" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 10 V40 M20 28 L32 40 L44 28" fill="none" stroke="#219ebc" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <button class="bigBtn" id="receiveBtn" aria-label="receive a save code">
-            <svg viewBox="0 0 100 100"><path d="M14 56 V80 a8 8 0 0 0 8 8 H78 a8 8 0 0 0 8 -8 V56 H66 l-6 10 H40 l-6 -10 Z" fill="#fff"/><path d="M50 8 V50 M32 32 L50 50 L68 32" stroke="#219ebc" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <button class="bigBtn" id="scanBtn" aria-label="scan a save QR with the camera" hidden>
+            <svg viewBox="0 0 100 100"><rect x="10" y="28" width="80" height="56" rx="12" fill="#fff"/><path d="M34 28 L40 16 H60 L66 28" fill="#fff"/><circle cx="50" cy="56" r="17" fill="none" stroke="#219ebc" stroke-width="7"/><circle cx="50" cy="56" r="6" fill="#219ebc"/><rect x="18" y="36" width="10" height="7" rx="3" fill="#219ebc"/></svg>
           </button>
         </div>
         <button class="bigBtn" id="quietBtn" aria-label="quiet mode for the car" aria-pressed="false"></button>
       </div>
       <div id="appVersion" aria-label="game version" style="margin-top:-16px; align-self:flex-end; font: 700 15px/1 var(--v-font, -apple-system, sans-serif); font-variant-numeric: tabular-nums; letter-spacing: .08em; color: var(--v-ink-soft, #8a7360); opacity: .8; pointer-events: none;"></div>
-    </div>
-  </div>
-  <!-- the receiver sheet: scan a QR (when the camera scanner is in), read the clipboard, or paste into the box -->
-  <div id="receiveSheet">
-    <div id="receiveCard">
-      <button class="bigBtn" id="scanBtn" aria-label="scan a save QR with the camera" hidden>
-        <svg viewBox="0 0 100 100"><rect x="10" y="28" width="80" height="56" rx="12" fill="#fff"/><path d="M34 28 L40 16 H60 L66 28" fill="#fff"/><circle cx="50" cy="56" r="17" fill="none" stroke="#219ebc" stroke-width="7"/><circle cx="50" cy="56" r="6" fill="#219ebc"/><rect x="18" y="36" width="10" height="7" rx="3" fill="#219ebc"/></svg>
-      </button>
-      <button class="bigBtn" id="clipBtn" aria-label="paste the save code from the clipboard">
-        <svg viewBox="0 0 100 100"><rect x="22" y="16" width="56" height="72" rx="8" fill="#fff"/><rect x="38" y="8" width="24" height="16" rx="5" fill="#adb5bd"/><path d="M50 38 V66 M38 54 L50 66 L62 54" stroke="#219ebc" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div id="pasteBox">
-        <svg viewBox="0 0 100 100" aria-hidden="true"><rect x="14" y="30" width="72" height="56" rx="10" fill="none" stroke="#b08968" stroke-width="6" stroke-dasharray="10 8"/><path d="M50 8 V58 M34 42 L50 58 L66 42" stroke="#219ebc" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <textarea id="pasteTarget" aria-label="paste a save code here" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
-      </div>
-      <button class="bigBtn" id="receiveClose" aria-label="close">
-        <svg viewBox="0 0 100 100"><path d="M26 26 L74 74 M74 26 L26 74" stroke="#fff" stroke-width="14" stroke-linecap="round"/></svg>
-      </button>
     </div>
   </div>
   <!-- import preview: what the incoming code holds, then the check and the cross -->
@@ -1970,7 +1920,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.8.0";
+const APP_VERSION = "13.8.1";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 /* ============ 1. STAGE ============ */
@@ -5059,7 +5009,7 @@ async function decodeSaveCode(code) {
 let pendingImport = null;
 /* a code that will not decode: the receive button shakes and the deny plays, nothing else */
 function receiveDeny() {
-  restartAnim(document.getElementById("receiveBtn"), "deny");
+  restartAnim(document.getElementById("scanBtn"), "deny");
   sfx.deny();
 }
 /* ---- the import preview: what the incoming save holds, drawn wordlessly ----
@@ -5781,6 +5731,7 @@ document.getElementById("profileBtn").addEventListener("pointerdown", () => {
   sfx.pop();
   renderProfiles();
   renderQR();
+  syncScanBtn();
   cachedCode = "";
   exportFullCode().then(c => { cachedCode = c; });
   profileOverlay.classList.add("show");
@@ -5821,62 +5772,22 @@ function copyToClipboard(code) {
 }
 copyCodeBtn.addEventListener("click", sendSaveCode);
 copyCodeBtn.addEventListener("pointerdown", () => sfx.pop());
-/* ---- receive: one button opens the receiver sheet; its three doors all feed importSaveCode ----
-   scan (only when the camera scanner section is in: canScanQR / scanSaveQR), the clipboard (read inside the tap,
-   as iOS demands), and a paste box for browsers that will not hand the clipboard over: a focused textarea under
-   a paste pictogram, so a long-press or ctrl+V lands the code */
-const receiveSheet = document.getElementById("receiveSheet");
-const receiveBtn = document.getElementById("receiveBtn");
+/* ---- receive (13.8.1): one button, the camera. scanSaveQR() reads the other device's QR inside the app (so the
+   save lands in this app's own storage, which the iOS camera app cannot do) and the result feeds importSaveCode.
+   A shared link opens the game with the code in its hash and lands in the same preview. No sheet, no paste box. ---- */
 const scanBtn = document.getElementById("scanBtn");
-const clipBtn = document.getElementById("clipBtn");
-const pasteBox = document.getElementById("pasteBox");
-const pasteTarget = document.getElementById("pasteTarget");
-function openReceiveSheet() {
-  scanBtn.hidden = !(typeof canScanQR === "function" && canScanQR());
-  clipBtn.hidden = !(navigator.clipboard && navigator.clipboard.readText);
-  pasteTarget.value = "";
-  receiveSheet.classList.add("show");
-}
-function closeReceiveSheet() { receiveSheet.classList.remove("show"); pasteTarget.blur(); }
-/* a code arrived through one of the doors: the sheet closes; a good one raises the preview over the garage,
-   a bad one leaves the profile panel up with the receive button shaking */
+function syncScanBtn() { scanBtn.hidden = !(typeof canScanQR === "function" && canScanQR()); }
+/* a code arrived: a good one raises the preview over the garage, a bad one leaves the panel up with the scan button shaking */
 async function receiveCode(text) {
-  closeReceiveSheet();
   const ok = await importSaveCode(text || "");
   if (ok) profileOverlay.classList.remove("show");
   return ok;
 }
-/* the clipboard would not open (permission, or an empty board): the paste box takes over */
-function pasteFallback() {
-  sfx.pop();
-  restartAnim(pasteBox, "nudge");
-  try { pasteTarget.focus(); } catch (e) {}
-}
-receiveBtn.addEventListener("pointerdown", () => { sfx.pop(); openReceiveSheet(); });
-receiveSheet.addEventListener("pointerdown", e => { if (e.target === receiveSheet) { closeReceiveSheet(); sfx.pop(); } });
-document.getElementById("receiveClose").addEventListener("pointerdown", () => { closeReceiveSheet(); sfx.pop(); });
 scanBtn.addEventListener("pointerdown", () => {
   sfx.pop();
   let p;
   try { p = Promise.resolve(scanSaveQR()); } catch (e) { p = Promise.reject(e); }
   p.then(text => { if (text !== null && text !== undefined) receiveCode(String(text)); }, () => receiveDeny());   /* null: the scanner was dismissed */
-});
-clipBtn.addEventListener("pointerdown", () => sfx.pop());
-clipBtn.addEventListener("click", () => {
-  let p;
-  try { p = navigator.clipboard.readText(); } catch (e) { p = Promise.reject(e); }
-  p.then(text => { if (text && text.trim()) receiveCode(text); else pasteFallback(); }, pasteFallback);
-});
-pasteBox.addEventListener("pointerdown", () => { sfx.pop(); try { pasteTarget.focus(); } catch (e) {} });
-pasteTarget.addEventListener("paste", e => {
-  const text = (e.clipboardData || window.clipboardData || { getData: () => "" }).getData("text");
-  e.preventDefault();
-  pasteTarget.value = "";
-  receiveCode(text);
-});
-pasteTarget.addEventListener("input", () => {   /* a paste menu that fills the box without a paste event */
-  const v = pasteTarget.value;
-  if (/VROOM[123]\./.test(v)) { pasteTarget.value = ""; receiveCode(v); }
 });
 /* a save code in the URL (e.g. scanned QR that opened the hosted game) offers an import */
 if (location.hash.startsWith("#save=")) {
