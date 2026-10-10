@@ -41,7 +41,11 @@ function check(name, ok, detail) {
       let t = 0, hits = 0, lastChange = -1e9, changes = 0, drops = 0; const hitLog = [];
       /* a gap in the road (13.16) is dodged like a hard prop; the full-width one is jumped from the ramp before it */
       const gapAhead = (lane, carX, far) => GAPS.some(g => gapHas(g, lane) && g.x - carX > -40 && g.x - carX < far);
-      const hardAhead = (lane, carX, far) => gapAhead(lane, carX, far) || props.some(p => !p.done && HARD(p.type) && p.lane === lane && p.x - carX > -40 && p.x - carX < far);
+      /* a chomper's mouth (13.21) is dodged like a hard prop; a car that enters it is held, loses up to 3 run stars onto the road
+         behind, is thrown 560 back and shoved into the open lane (the game's chompStart/chompSpit, modelled here without timers) */
+      const mouthAhead = (lane, carX, far) => CHOMPS.some(t => lane >= t.l0 && lane <= t.l1 && t.x0 + CHOMP_MOUTH - carX > -40 && t.x0 + CHOMP_MOUTH - carX < far);
+      const hardAhead = (lane, carX, far) => gapAhead(lane, carX, far) || mouthAhead(lane, carX, far) || props.some(p => !p.done && HARD(p.type) && p.lane === lane && p.x - carX > -40 && p.x - carX < far);
+      let bites = 0;
       while (!finished && t < 150) {
         v = Math.min(vmaxEff(), v + ACCEL * dt); pos += v * dt; t += dt;
         const carX = pos + CAR_SCREEN_X;
@@ -49,7 +53,7 @@ function check(name, ok, detail) {
           let want = targetLane;
           if (hardAhead(targetLane, carX, 500)) {
             /* the clearest adjacent lane: furthest first hard obstacle, stars break ties */
-            const clear = l => { let d = 1e9; for (const p of props) if (!p.done && HARD(p.type) && p.lane === l && p.x - carX > -40) d = Math.min(d, p.x - carX); for (const g of GAPS) if (gapHas(g, l) && g.x - carX > -40) d = Math.min(d, g.x - carX); return Math.min(d, 900); };
+            const clear = l => { let d = 1e9; for (const p of props) if (!p.done && HARD(p.type) && p.lane === l && p.x - carX > -40) d = Math.min(d, p.x - carX); for (const t of CHOMPS) if (l >= t.l0 && l <= t.l1 && t.x0 + CHOMP_MOUTH - carX > -40) d = Math.min(d, t.x0 + CHOMP_MOUTH - carX); for (const g of GAPS) if (gapHas(g, l) && g.x - carX > -40) d = Math.min(d, g.x - carX); return Math.min(d, 900); };
             const score = l => clear(l) * 10 + props.filter(p => !p.done && p.type === 'star' && p.lane === l && p.x - carX > 0 && p.x - carX < 900).length;
             const opts = [targetLane - 1, targetLane + 1].filter(l => l >= 0 && l <= 2).sort((a, b) => score(b) - score(a));
             if (opts.length && clear(opts[0]) > clear(targetLane)) want = opts[0];
@@ -79,12 +83,22 @@ function check(name, ok, detail) {
           PROP_HIT[p.type](p, carX - p.x);
           if (wasHard && p.done) { hits++; hitLog.push(p.type + '@' + p.x + (RAMPS.some(rp => p.x > rp.x - 200 && p.x < rp.x + rp.w + (rp.tail || 420)) ? '(rampzone)' : '') + ' jy' + Math.round(jumpY)); }
         }
+        for (const ch of CHOMPS) {
+          const d = ch.x0 + CHOMP_MOUTH - carX, lane = Math.round(laneVis), inMouth = lane >= ch.l0 && lane <= ch.l1;
+          if (d > 1100) ch.botSnapped = false;
+          if (d <= -60 && !inMouth) ch.botSnapped = true;   /* slipped past: the jaws snap shut behind the car and stay shut (chompMiss) */
+          if (d <= 40 && d > -400 && inMouth && !airborne && !ch.botSnapped) {
+            /* the bite: hold, lose up to three stars, get flung back out and shoved into the open lane */
+            bites++; t += 2.2; runStars = Math.max(0, runStars - 3);
+            pos -= 560; v = 0; targetLane = chompFreeLane(ch); laneVis = targetLane; lastChange = pos + CAR_SCREEN_X;
+          }
+        }
         const hitGaps = GAPS.filter(g => g.hit).length;
         gapTick(carX);   /* the game's own gap pass: a drop into a hole is a soft hit, counted apart from the hard ones */
         if (GAPS.filter(g => g.hit).length > hitGaps) drops++;
       }
       const got = props.filter(p => p.type === 'star' && p.done).length;   /* star props only (capsules add bonus stars to runStars) */
-      return { n, finished, t: Math.round(t * 10) / 10, stars: got, total: totalStars, pct: Math.round(100 * got / totalStars), hits, drops, changes, hitLog };
+      return { n, finished, t: Math.round(t * 10) / 10, stars: got, total: totalStars, pct: Math.round(100 * got / totalStars), hits, drops, bites, changes, hitLog };
     };
     const out = { smart: [], lazy: [] };
     for (let n = 1; n <= MAX_LEVEL; n++) { out.smart.push(sim(n, true)); out.lazy.push(sim(n, false)); }
@@ -92,10 +106,10 @@ function check(name, ok, detail) {
   });
 
   if (table) {
-    console.log(' L   smart: fin   t  stars  pct hits drp chg | lazy: fin   t  stars  pct hits drp');
+    console.log(' L   smart: fin   t  stars  pct hits drp chg bit | lazy: fin   t  stars  pct hits drp bit');
     for (let i = 0; i < runs.smart.length; i++) {
       const s = runs.smart[i], l = runs.lazy[i];
-      console.log(`L${String(s.n).padStart(2)}        ${s.finished ? ' ok' : 'NO '} ${String(s.t).padStart(5)} ${String(s.stars).padStart(3)}/${String(s.total).padEnd(3)} ${String(s.pct).padStart(3)}% ${String(s.hits).padStart(3)} ${String(s.drops).padStart(3)} ${String(s.changes).padStart(3)} |      ${l.finished ? ' ok' : 'NO '} ${String(l.t).padStart(5)} ${String(l.stars).padStart(3)}/${String(l.total).padEnd(3)} ${String(l.pct).padStart(3)}% ${String(l.hits).padStart(3)} ${String(l.drops).padStart(3)}`);
+      console.log(`L${String(s.n).padStart(2)}        ${s.finished ? ' ok' : 'NO '} ${String(s.t).padStart(5)} ${String(s.stars).padStart(3)}/${String(s.total).padEnd(3)} ${String(s.pct).padStart(3)}% ${String(s.hits).padStart(3)} ${String(s.drops).padStart(3)} ${String(s.changes).padStart(3)} ${String(s.bites).padStart(3)} |      ${l.finished ? ' ok' : 'NO '} ${String(l.t).padStart(5)} ${String(l.stars).padStart(3)}/${String(l.total).padEnd(3)} ${String(l.pct).padStart(3)}% ${String(l.hits).padStart(3)} ${String(l.drops).padStart(3)} ${String(l.bites).padStart(3)}`);
     }
   }
   if (process.argv.includes('--hits')) for (const r of runs.smart) if (r.hits) console.log('L' + r.n + ' smart hits: ' + r.hitLog.join(', '));

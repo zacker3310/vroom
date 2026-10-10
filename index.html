@@ -733,9 +733,6 @@
   .prop.chomper.spit .jaw { transform: translateY(90px); transition-duration: .1s; }
   .prop.chomper.spit .cheeks { animation: cheekPuff .5s ease-out; transform-box: fill-box; transform-origin: center; }
   @keyframes cheekPuff { 0% { transform: scale(1.5); opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
-  .prop.chomper.full .lidL, .prop.chomper.full .lidR { transform: scaleY(1); }
-  .prop.chomper.full .jaw { transform: translateY(0); }
-  .prop.chomper.full .body { animation-duration: 4s; }
   .prop.chomper .body { animation: chomperBreathe 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center bottom; }
   @keyframes chomperBreathe { 50% { transform: scale(1.015, .985); } }
   @media (prefers-reduced-motion: reduce) { #chompView.chew, #chompView.chew .uvula, .prop.chomper .body, .prop.chomper.bite .body { animation: none !important; } }
@@ -2095,7 +2092,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.20.0";
+const APP_VERSION = "13.21.0";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -6308,10 +6305,12 @@ let chompFling = 0;   /* the backward throw in progress: pos runs on it while th
 /* sizes (13.16): a chomper fills one lane, two or all three (l0..l1, inclusive lane indexes). chompLanes deals
    [l0, l1] from the level's own seed (a separate mulberry32 off the level number, so the road itself never
    moves) and never hands a level the same size twice, so a two-monster level is always two different beasts */
+/* one lane or two, never all three (13.21): the beast bites every time it is entered and spits the car back into
+   the open lane, so a lane the kid can pass in has to exist */
 function chompLanes(rng, prev) {
-  let size = 1 + Math.floor(rng() * 3);
-  if (prev && size === prev) size = 1 + (size + Math.floor(rng() * 2)) % 3;
-  const l0 = size === 3 ? 0 : Math.floor(rng() * (4 - size));
+  let size = 1 + Math.floor(rng() * 2);
+  if (prev && size === prev) size = 3 - size;
+  const l0 = Math.floor(rng() * (4 - size));
   return [l0, l0 + size - 1];
 }
 function addChomp(x0, len, dir, l0 = 0, l1 = 2) { CHOMPS.push({ x0, x1: x0 + len, dir, l0, l1 }); return x0 + len; }
@@ -7570,6 +7569,9 @@ function buildLevel(n) {
     for (const p of props.slice()) if (p.type === "star" && p.x > t.x0 - 100 && p.x < t.x0 + CHOMP_MOUTH) { p.wrap.remove(); props.splice(props.indexOf(p), 1); totalStars--; }   /* the opening run's stars make way */
     const n = t.l1 - t.l0 + 1, seq = n === 3 ? [1, 0, 1, 2] : n === 2 ? [t.l0, t.l1] : [t.l0], step = n === 1 ? 100 : 80;
     for (let sx = t.x0 + (n === 1 ? 20 : 40), j = 0; sx < t.x0 + CHOMP_MOUTH - 180; sx += step, j++) b.star(sx, seq[j % seq.length]);
+    /* and a consolation run past the beast in the open lane (13.21): the lane the spit shoves a bitten kid into, and the
+       lane a gas-only toddler has to live in from here, so neither drives on along a bare lane */
+    for (let sx = t.x1 + 200, j = 0; j < 5; sx += 90, j++) b.star(sx, chompFreeLane(t));
   }
   while (x < loopEnd && guard++ < 60) {
     /* a formation that would start within 700 of a chomper waits until after it (the gap is the run-up) */
@@ -8423,20 +8425,24 @@ function addChomper(t) {
   scenery.push(p);
 }
 const inChompLanes = t => { const l = Math.round(laneVis); return l >= t.l0 && l <= t.l1; };
+const chompFreeLane = t => t.l0 > 0 ? t.l0 - 1 : t.l1 + 1;   /* the nearest lane the mouth does not cover (one always exists) */
+/* every approach is a fresh one (13.21): the jaws gape whenever the car is coming, a car in the mouth's lanes is
+   bitten every single time (after the spit's own flight has landed), a car in another lane gets the snap behind it */
 function chompTick(carX, now) {
   for (const t of CHOMPS) {
     if (!t.p) continue;
     const d = t.x0 + CHOMP_MOUTH - carX;
-    const open = !t.ate && !t.missed && d > 0 && d < 1100;
+    if (d > 1100) { t.growled = false; t.snapped = false; }
+    const open = !chomp && d > 0 && d < 1100 && !t.snapped && !t.p.el.classList.contains("bite");
     if (open && !t.growled) { t.growled = true; sfx.growl(); }
     t.p.el.classList.toggle("open", open);
-    if (t.ate || t.missed || d > 40 || d <= -400) continue;
-    if (inChompLanes(t)) { if (v > 20) chompStart(t, now); }
-    else if (d <= -60) chompMiss(t);   /* the car slipped past in another lane: the jaws snap shut behind it, nothing more */
+    if (chomp || d > 40 || d <= -400 || chompFling || airborne) continue;
+    if (inChompLanes(t)) { if (v > 20 && !t.snapped) chompStart(t, now); }   /* jaws that snapped shut behind a miss stay shut: no bite from a swerve back in past them */
+    else if (d <= -60 && !t.snapped) chompMiss(t);   /* the car slipped past in another lane: the jaws snap shut behind it, nothing more */
   }
 }
 function chompMiss(t) {
-  t.missed = true; sfx.munch();
+  t.snapped = true; t.missed = true; sfx.munch();
   t.p.el.classList.remove("open"); t.p.el.classList.add("bite");
   gagTimer(() => t.p.el.classList.remove("bite"), 360);
 }
@@ -8444,7 +8450,7 @@ function chompMiss(t) {
    sounds, a few of the run's stars tossed out onto the road ahead, then the spit: the car flies out in a high arc */
 const CHOMP_HOLD = 900;
 function chompStart(t, now) {
-  t.ate = true; chomp = { t, at: now };
+  t.ate = true; t.bites = (t.bites || 0) + 1; chomp = { t, at: now };
   sfx.gulp();
   t.p.el.classList.remove("open"); t.p.el.classList.add("bite");
   chompView.classList.add("on");
@@ -8459,9 +8465,9 @@ function chompStart(t, now) {
 }
 function chompDrop(t) {
   const n = Math.min(CHOMP_DROP, runStars);
-  const lane = Math.max(0, Math.min(2, Math.round(laneVis)));
+  const lane = chompFreeLane(t);   /* the open lane the spit shoves the car into, so driving back up collects them without a second bite */
   for (let i = 0; i < n; i++) {
-    const p = addProp("star", t.x0 + CHOMP_STAR_X[i], lane, LOW_STAR_H, starSVG, -32, -32);   /* back on the road, in the kid's own lane */
+    const p = addProp("star", t.x0 + CHOMP_STAR_X[i], lane, LOW_STAR_H, starSVG, -32, -32);
     p.spat = true;
   }
   if (n) { runStars -= n; renderHudStars(true); }
@@ -8472,11 +8478,11 @@ function chompSpit(t) {
   t.p.el.classList.remove("bite"); t.p.el.classList.add("spit");
   gagTimer(() => t.p.el.classList.remove("spit"), 600);
   sfx.spit();
-  /* spat out the way the car came: a high backward arc that lands behind the spat stars, so the kid drives back
-     up past them; the beast is full and dozes off (lids down, jaws at rest), and the road through it is open */
+  /* spat out the way the car came, into the open lane beside the mouth: a high backward arc that lands behind
+     the spat stars, so the kid drives back up past them (steer back into the mouth and it bites again) */
   v = 0; chompFling = CHOMP_FLING;
   airborne = true; jumpY = 70; vy = 420 * springK();
-  t.p.el.classList.add("full");
+  targetLane = chompFreeLane(t);
   buddyReact("duck");
   chomp = null;
 }

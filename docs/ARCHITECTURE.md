@@ -186,7 +186,7 @@ replace went through four renderers (13.4 rolled the view, 13.12 rolled the ribb
 13.12.2 made it glass, 13.14 cut to a side view) and never read right: the 2D projector cannot draw a road
 leaving its plane. A chomper is a set piece the projector can draw. `addChomper` sits a monster at
 `x0 + CHOMP_MOUTH` as arch-style scenery (`p.chomper`, no blob): the one piece of art (880 wide, three
-lanes) scaled by the sprite's `k` (`CHOMP_K`: 0.36 for one lane, 0.64 for two, 1 for the full one) and
+lanes) scaled by the sprite's `k` (`CHOMP_K`: 0.36 for one lane, 0.64 for two) and
 centred on its lanes (`lx`), so the CSS states scale with it; only the full one carries `p.arch` (the flag
 that keeps other overheads away), a small one still owns its stretch through `inChomp`. A trail of stars
 (`b.star`) leads in through the monster's lanes only (lanes 1 0 1 2 under a full one, alternating under a
@@ -200,17 +200,24 @@ other lane the car drives past: 60 past the mouth `chompMiss` snaps the jaws shu
 360 ms, a munch, `t.missed`), no hold, no stars. The bite: `#chompView` (dark mouth, two tooth rows, a uvula, under the HUD at z 18) clips shut over the stage,
 the car is held by `freezeUntil` for `CHOMP_HOLD` ms (the crash hit-stop, so nothing moves), munch sounds
 and a chew shake (`.chew`, off under reduced motion), then `chompDrop` takes `min(CHOMP_DROP, runStars)`
-off the run tally and puts them back on the road at `CHOMP_STAR_X` in the kid's own lane (`p.spat`, not
+off the run tally and puts them back on the road at `CHOMP_STAR_X` (`p.spat`, not
 counted in `totalStars`), and `chompSpit` opens the jaws, spits (cheeks puff) and launches the car in a
 high arc (`airborne`, `vy` 420 by the springs) that lands past the stars, so driving on gets them straight
 back. The wallet never drops: only the run tally dips, and only until the kid drives on. The music riser
 runs through the bite.
 
-The bite hurts and throws you back (13.18): `chompStart` applies `CHOMP_DMG` (3) with the crash shake before
-setting the hold, the spat stars go down at `CHOMP_STAR_X` before the mouth in the kid's lane, and `chompSpit`
-throws the car backwards (`chompFling`, `CHOMP_FLING` px/s applied to `pos` while airborne, gas dead until
-touchdown) in a high arc that lands behind them; the beast is then `.full` (lids down, jaws at rest) and
-never bites again, so the kid drives back up through it, collecting the stars on the way.
+The bite hurts and throws you back (13.18, 13.21): `chompStart` applies `CHOMP_DMG` (3) with the crash shake
+before setting the hold, the spat stars go down at `CHOMP_STAR_X` before the mouth in the open lane beside it
+(the one the spit shoves the car into, so driving back up collects them without a second bite), and
+`chompSpit` throws the car backwards (`chompFling`, `CHOMP_FLING` px/s applied to `pos` while airborne, gas
+dead until touchdown) in a high arc that lands behind them and shoves it into the open lane beside the mouth
+(`chompFreeLane`). The beast never sleeps: every approach re-arms the jaws (`chompTick`), a car back in the
+mouth's lanes is bitten again and loses stars again, every single time, and a car in another lane gets the
+snap behind it (`t.snapped`: jaws that snapped shut stay shut until the next approach, so a swerve into the
+mouth's lane past them is not a bite). That is why a chomper covers one lane or two, never all three
+(`chompLanes`): an open lane always exists, and `buildLevel` lays a consolation run of five stars in it past
+the beast, for the bitten kid shoved there and the gas-only toddler who now lives there. The fairness bots
+model the bite (held, stars dropped, thrown 560 back, shoved aside) and the snap.
 
 ### A clean line is faster
 

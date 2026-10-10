@@ -96,10 +96,10 @@ function check(name, ok, detail) {
   check('chompers: the monster is its own beat in the level sequence', twistLvls.every(r => r.beats.includes('chomper')));
   /* sizes (13.16): one-lane, two-lane and full monsters across the 120 levels, a fair share of each, two different on a two-monster level */
   const allTw = twistLvls.flatMap(r => r.tw), sizeN = [1, 2, 3].map(n => allTw.filter(t => t.n === n).length);
-  check('chompers: one-lane, two-lane and three-lane monsters each take at least a fifth of the 120 levels\' chompers, and a level with two has two different sizes',
-    sizeN.every(c => c >= allTw.length / 5) && allTw.every(t => t.l0 >= 0 && t.l1 <= 2 && t.l1 >= t.l0 && t.n === t.l1 - t.l0 + 1) && twistLvls.filter(r => r.tw.length === 2).every(r => r.tw[0].n !== r.tw[1].n),
+  check('chompers: one-lane and two-lane monsters each take at least a third of the 120 levels\' chompers, never all three lanes (13.21: it bites every time, so an open lane must exist), and a level with two has two different sizes',
+    sizeN[0] >= allTw.length / 3 && sizeN[1] >= allTw.length / 3 && sizeN[2] === 0 && allTw.every(t => t.l0 >= 0 && t.l1 <= 2 && t.l1 >= t.l0 && t.n === t.l1 - t.l0 + 1) && twistLvls.filter(r => r.tw.length === 2).every(r => r.tw[0].n !== r.tw[1].n),
     'sizes 1/2/3: ' + sizeN.join('/') + ' of ' + allTw.length + '; ' + twistLvls.map(r => 'L' + r.n + ':' + r.tw.map(t => t.l0 + '-' + t.l1).join(',')).join(' '));
-  check('chompers: the star trail runs in the monster\'s lanes only (every one of them under a two- or three-lane monster), the monster sits centred on its lanes at its size, only the full one is an arch',
+  check('chompers: the star trail runs in the monster\'s lanes only (every one of them under a two- or three-lane monster), the monster sits centred on its lanes at its size',
     allTw.every(t => t.lanes.length === t.n && t.lanes.every(l => l >= t.l0 && l <= t.l1) && t.monster === 1),
     twistLvls.filter(r => r.tw.some(t => t.lanes.length !== t.n || t.lanes.some(l => l < t.l0 || l > t.l1) || t.monster !== 1)).map(r => 'L' + r.n + JSON.stringify(r.tw.map(t => [t.l0, t.l1, t.lanes, t.monster]))).join(' '));
   const rollers = scan.filter(r => r.shape === 'roller');
@@ -172,7 +172,7 @@ function check(name, ok, detail) {
   });
   check('chomp: the spat stars land before the mouth, inside the stretch, three of them at most', math.starX.length === math.drop && math.drop === 3 && math.starX.every((x, i) => x > 0 && x < math.mouth - 20 && (!i || x > math.starX[i - 1] + 100)), JSON.stringify(math));
   /* ---- 3. driving into a chomper (13.15): the jaws open on approach; at the mouth the stage goes into the mouth
-     (#chompView shut), the car is held, the chew tosses up to three run stars onto the road ahead in the kid's lane,
+     (#chompView shut), the car is held, the chew tosses up to three run stars onto the road behind, in the open lane,
      the spit launches the car over them, and driving on gets them straight back ---- */
   const miss = await page.evaluate(async () => {
     /* a one-lane monster whose stretch is the first on its level (level 9 is one); the car drives past it in another lane */
@@ -217,22 +217,41 @@ function check(name, ok, detail) {
       if (shut && !dropped && props.some(p => p.spat)) dropped = { runStars, spat: props.filter(p => p.spat).map(p => [p.x - t.x0, p.lane, p.h]), damage: progress.damage - dmg0 };
       if (dropped && !flung && airborne && chompFling < 0) flung = { pos, back: chompFling, air: airborne };
       if (flung && !flung.landed && !airborne && !chompFling) flung.landed = { pos, backBy: flung.pos - pos };
+      if (flung && flung.landed && !flung.shoved) flung.shoved = { lane: targetLane, free: chompFreeLane(t) };
       if (dropped && pos + CAR_SCREEN_X > t.x1 + 200) break;
     }
     gasKey = false;
     await new Promise(r => setTimeout(r, 300));
-    return { far, near, shut, held, dropped, flung, lane: t.l0, after: { full: t.p.el.classList.contains('full'), on: chompView.classList.contains('on'), runStars, spatLeft: props.filter(p => p.spat && !p.done).length, spit: window.__spit, ate: t.ate, open: t.p.el.classList.contains('open') } };
+    /* steer back into the mouth: it bites again, every single time (13.21) */
+    const after = { lane: targetLane, free: chompFreeLane(t), on: chompView.classList.contains('on'), runStars, spatLeft: props.filter(p => p.spat && !p.done).length, spit: window.__spit, ate: t.ate, open: t.p.el.classList.contains('open') };
+    const bites1 = t.bites, stars1 = runStars, spat1 = props.filter(p => p.spat).length;
+    const trail = props.filter(p => p.type === 'star' && !p.spat && p.lane === chompFreeLane(t) && p.x > t.x1 + 150 && p.x < t.x1 + 800).length;
+    /* a fresh approach from beyond 1100 (the jaws re-arm there), then straight back into the mouth's lane */
+    pos = t.x0 + CHOMP_MOUTH - 1300 - CAR_SCREEN_X; v = 0; await new Promise(r => setTimeout(r, 120));
+    pos = t.x0 + CHOMP_MOUTH - 700 - CAR_SCREEN_X; targetLane = t.l0; laneVis = t.l0; v = 0; gasKey = true;
+    const t1 = performance.now(); let again = null;
+    while (performance.now() - t1 < 5000) {
+      await new Promise(r => setTimeout(r, 40));
+      if (t.bites > bites1 && props.filter(p => p.spat).length > spat1) { again = { bites: t.bites, runStars, spat: props.filter(p => p.spat).length - spat1, open: t.p.el.classList.contains('open') }; break; }
+    }
+    gasKey = false; await new Promise(r => setTimeout(r, 2500));
+    const after2 = { lane: targetLane, free: chompFreeLane(t), on: chompView.classList.contains('on') };
+    return { far, near, shut, held, dropped, flung, lane: t.l0, again: again && Object.assign(again, { bites1, stars1 }), after, after2, trail };
   });
-  await page.evaluate(async () => { const t = CHOMPS[0]; t.ate = false; t.p.el.classList.remove('spit', 'bite'); pos = t.x0 + CHOMP_MOUTH - 700 - CAR_SCREEN_X; v = 0; await new Promise(r => setTimeout(r, 150)); });
+  await page.evaluate(async () => { const t = CHOMPS[0]; t.p.el.classList.remove('spit', 'bite'); pos = t.x0 + CHOMP_MOUTH - 700 - CAR_SCREEN_X; v = 0; targetLane = t.l0; laneVis = t.l0; await new Promise(r => setTimeout(r, 150)); });
   await page.screenshot({ path: SHOT + 'course-chomper.png' });
   check('chomper: the jaws open (with a growl) once the car is within 1100, not before; at the mouth the stage goes into the mouth under the HUD and the car is held still through the chew',
     !bite.far.open && bite.far.growl === 0 && bite.near.open && bite.near.growl === 1 && !bite.near.on && !!bite.shut && bite.shut.bite && bite.shut.v === 0 && bite.shut.display !== 'none' && bite.shut.hudOnTop && !!bite.held && bite.held.moved < 3,
     JSON.stringify({ far: bite.far, near: bite.near, shut: bite.shut, held: bite.held }));
-  check('chomper: the bite does 3 damage; the chew tosses min(3, run stars) back onto the road the car came up, in its lane; the spit throws the car backwards through the air and it lands well behind; the beast dozes off and driving back up gets every star',
+  check('chomper: the bite does 3 damage; the chew tosses min(3, run stars) back onto the road the car came up, in the open lane; the spit throws the car backwards through the air into the open lane and it lands well behind; driving back up gets every star',
     !!bite.dropped && bite.dropped.damage === 3 && bite.dropped.spat.length === Math.min(3, bite.shut.runStars) && bite.dropped.spat.length >= 1 && bite.dropped.runStars === bite.shut.runStars - bite.dropped.spat.length
-      && bite.dropped.spat.every(([x, lane]) => x > 0 && x < math.mouth && lane === bite.lane) && !!bite.flung && bite.flung.back < 0 && !!bite.flung.landed && bite.flung.landed.backBy > 250
-      && bite.after.spit === 1 && bite.after.spatLeft === 0 && bite.after.runStars >= bite.shut.runStars && !bite.after.on && bite.after.ate && bite.after.full && !bite.after.open,
+      && bite.dropped.spat.every(([x, lane]) => x > 0 && x < math.mouth && lane === bite.flung.shoved.free) && !!bite.flung && bite.flung.back < 0 && !!bite.flung.landed && bite.flung.landed.backBy > 250
+      && bite.after.spit >= 1 && bite.flung.shoved && bite.flung.shoved.lane === bite.flung.shoved.free && bite.after.spatLeft === 0 && bite.after.runStars >= bite.shut.runStars - 3 && !bite.after.on && bite.after.ate,
     JSON.stringify({ shut: bite.shut, dropped: bite.dropped, flung: bite.flung, after: bite.after }));
+  check('chomper: a consolation run of stars waits past the beast in the open lane (the one the spit shoves the kid into)',
+    bite.trail >= 3, JSON.stringify({ trail: bite.trail, free: bite.after.free }));
+  check('chomper: steer back into the mouth and it bites again, every single time, and takes stars again',
+    !!bite.again && bite.again.bites === bite.again.bites1 + 1 && bite.again.spat >= 1 && bite.again.runStars <= Math.max(0, bite.again.stars1 - 1) && !bite.after2.on && bite.after2.lane === bite.after2.free, JSON.stringify({ again: bite.again, after: bite.after2 }));
 
   /* ---- 4. hard turn: squeal at speed ---- */
   const hardTurn = await page.evaluate(async () => {

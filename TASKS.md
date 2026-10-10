@@ -293,6 +293,10 @@
 
 - [x] T40.1: Launches cut hard: the standard kick 0.9 -> 0.6 (`KICK_STD`, also the flight-star arc), mega 1.1 -> 0.75, hop 0.55 -> 0.4, the springs ladder +18% -> +8% a pip (1.24 at the top, was 1.54), the chomper's spit 470 -> 420. Flight tables, tails and landing zones unchanged (they were generous), so every landing stays clear. [SPID]
 
+## v13.21.0 (2026-10-10, user-directed: "drove into the chomper again and went straight through him: needs to spit out and eat stars every single time")
+
+- [x] T41.1: The beast never sleeps. Every approach re-arms the jaws; a car back in the mouth's lanes is bitten again (damage, stars, the backward throw) every time, and the spit shoves it into the open lane beside the mouth. Chompers now cover one lane or two, never all three, so an open lane always exists; the spat stars land in that open lane too, a consolation run of five stars waits past the beast in it, and jaws that snapped shut behind a miss stay shut for that approach. The fairness bots model the bite and the snap, the smart bot dodges the mouth. course-check: sizes, the shove, the trail, a second bite (30 -> 32). [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
