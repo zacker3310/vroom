@@ -230,6 +230,10 @@
 - [x] T34.1: The loop. The corkscrew no longer rolls the view: the camera stays level and the car follows the twisting ribbon, placed at its lane spot turned by `rollAt(carX)` (`carRibDX`, `carRibY`) and turned about its own contact point, so it climbs the wall, hangs upside down under the ribbon at the top and comes back down while sky, ground, hoops and roadside stay the right way up; the camera follows 60% of the climb (`LOOP_FOLLOW`) so the rise is visible. `setViewRoll`, `setOverscan`, the 1500 px canvas, `TWIST_BEHIND` and the counter-roll are gone. course-check 3 rewritten: no view roll, camWY above CAM_H mid-twist, the car at rotate ~pi and 264 px above its line, sideways on the wall, stars turning with the ribbon, canvas 1200x700 throughout. [SPID]
 - [x] T34.2: Opaque crests. `buildOcc` marks ground beyond a back-facing step that lies lower than the highest crest ahead (`OCCH`), `drawRoad` veils it and the strip up to the horizon with haze (`mixHex`, `occTop`, `occA`), fading over the last 280..60 units to the crest so the far side unfolds instead of popping; sprites, ramps and hoops on hidden ground stay out until the veil is under 0.15. Dips keep their far side, taller hills behind keep their head. course-check: the run-up veil (lower ground beyond the crest hidden, haze above the crest line, nothing in front clipped) and the crest (veil gone, far side back); 23 -> 24, battery 450 -> 451. [SPID]
 
+## v13.12.1 (2026-10-10, user-directed: "the corkscrews still need massive amounts of work")
+
+- [x] T34.3: Loop rendering pass. Inside a twist the ribbon is painted in half-bands (80 units) so it curves instead of kinking, drops its shoulders so it reads as a bare tube of tarmac and rumble rather than a wide deck turned on its side, and the stretch behind the car dissolves over 120 units (tarmac alpha, no dashes) so the rolled near field never sweeps a giant slab across the frame. [SPID]
+
 ## Backlog (v2 candidates, from kid-testing)
 
 - [ ] T2.1: Real-device iOS pass: audio unlock, multi-touch, add-to-home-screen icon.
