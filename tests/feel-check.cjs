@@ -69,7 +69,7 @@ function check(name, ok, detail) {
     jumpY = 60; airborne = true; vy = -300;
     await new Promise(r => setTimeout(r, 400));
     return {
-      squash: carWrap.classList.contains('land') || (carWrap.querySelector('svg') && carWrap.querySelector('svg').classList.contains('land')),
+      squash: carWrap.classList.contains('land') || (carWrap.querySelector('.carView.on svg') && carWrap.querySelector('.carView.on svg').classList.contains('land')),
       dust: document.querySelectorAll('.dust').length > 0
     };
   });
@@ -285,6 +285,26 @@ function check(name, ok, detail) {
   check('feel: medal has its own beat (time chip), damage only when relevant', chips.hasMedal, JSON.stringify(chips));
 
   /* ---- regressions guard ---- */
+  /* ---- 13.29: steering never rebuilds the car. Its views stay mounted; a lane change only switches which one is on,
+     and the car's animations (the buddy's bob here) keep their clocks across the switch instead of restarting ---- */
+  const views = await page.evaluate(async () => {
+    state.buddy = 'pup'; if (!progress.owned.buddy.includes('pup')) progress.owned.buddy.push('pup');
+    drive(3); await new Promise(r => setTimeout(r, 700));
+    for (const c of props) if (c.type === 'capsule') c.done = true;   /* a capsule prize changes the build and rebuilds the car on purpose: keep the sweep clear of them */
+    const clock = () => { const b = carWrap.querySelector('.carView.on .buddyRe'); const a = b ? b.getAnimations({ subtree: true }).find(x => x.animationName === 'buddyBob') : null; return a ? a.currentTime : null; };
+    gasKey = true;
+    for (let i = 0; i < 6; i++) { setLane((targetLane + 1) % 3); await new Promise(r => setTimeout(r, 450)); }   /* warm up: every view this run steers through gets mounted */
+    const mounted = carViewEls.size;
+    let added = 0; const mo = new MutationObserver(ms => { for (const m of ms) if (m.target === carWrap) added += m.addedNodes.length; }); mo.observe(carWrap, { childList: true });
+    const t0 = clock(); let resets = 0, last = t0;
+    for (let i = 0; i < 6; i++) { setLane((targetLane + 1) % 3); for (let j = 0; j < 9; j++) { await new Promise(r => setTimeout(r, 50)); const t = clock(); if (t != null && last != null && t < last - 5) resets++; last = t; } }
+    gasKey = false; mo.disconnect();
+    const r = { mounted, after: carViewEls.size, added, on: carWrap.querySelectorAll('.carView.on').length, svgs: carWrap.querySelectorAll('svg').length, t0: Math.round(t0), t1: Math.round(last), resets, hiddenPaused: [...carWrap.querySelectorAll('.carView:not(.on) *')].some(e => getComputedStyle(e).animationName !== 'none' && getComputedStyle(e).animationPlayState === 'paused'), height: carWrap.style.height };
+    stopDrive(); return r;
+  });
+  check('steer (13.29): the car\'s views stay mounted (one on, the rest paused and hidden); six more lane changes never rebuild or flush them (at most a new step combination mounts) and the buddy\'s bob never restarts',
+    views.mounted >= 5 && views.after >= views.mounted && views.added <= 3 && views.added === views.after - views.mounted && views.on === 1 && views.svgs === views.after && views.resets === 0 && views.t1 > views.t0 && views.hiddenPaused && views.height.endsWith('px'), JSON.stringify(views));
+
   check('no console errors', errors.length === 0, errors.join(' | ').slice(0, 300));
 
   await browser.close();

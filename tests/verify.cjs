@@ -188,10 +188,10 @@ function check(name, ok, detail) {
   /* steering yaw (13.3): mid lane change the car heads for its target lane (a yaw step is active and the mounted
      view differs from the settled one); once it arrives the yaw step is 0 and the settled quarter-lane view is back */
   const yawRun = await page.evaluate(() => new Promise(res => {
-    const settled = carWrap.innerHTML, k0 = laneViewKey;
+    const live = () => carWrap.querySelector('.carView.on').innerHTML; const settled = live(), k0 = laneViewKey;
     setLane(1);
     const seen = []; let n = 0;
-    const f = () => { seen.push([laneViewYaw, laneViewKey, carWrap.innerHTML !== settled]); if (++n < 12) requestAnimationFrame(f); else res({ k0, seen }); };
+    const f = () => { seen.push([laneViewYaw, laneViewKey, live() !== settled]); if (++n < 12) requestAnimationFrame(f); else res({ k0, seen }); };
     requestAnimationFrame(f);
   }));
   await page.waitForTimeout(600);
@@ -200,7 +200,7 @@ function check(name, ok, detail) {
        mud opacity, damage displays) are stripped from both sides */
     const d = document.createElement('div'); d.innerHTML = laneViews.get(viewKey(0, 0));
     const geo = h => h.replace(/ style="[^"]*"/g, '').replace(/<svg[^>]*>/, '<svg>');   /* the root also carries transient classes (land, lit) */
-    return { step: laneViewYaw, key: laneViewKey, vis: laneVis, t: targetLane, same: geo(carWrap.innerHTML) === geo(d.innerHTML), views: laneViews.size };
+    return { step: laneViewYaw, key: laneViewKey, vis: laneVis, t: targetLane, same: geo(carWrap.querySelector('.carView.on').innerHTML) === geo(d.innerHTML), views: laneViews.size };
   });
   const yawMid = yawRun.seen.filter(x => x[0] !== 0);
   check('steer: a lane change yaws the car toward its lane (yaw step active mid change, view differs), then squares up (step 0, settled view)',
@@ -208,7 +208,7 @@ function check(name, ok, detail) {
     JSON.stringify({ k0: yawRun.k0, steps: yawRun.seen.map(x => x[0]).join(''), end: yawEnd }));
   /* the loop's bindings survive the swaps: tread rolls, mud, damage overlays, and the mixer's drum */
   const bind = await page.evaluate(() => {
-    const out = { wheels: wheelEls.length, mud: !!mudEl, scuff: !!carWrap.querySelector('.dmgScuff'), crack: !!carWrap.querySelector('.dmgCrack'), lit: carWrap.querySelector('svg').classList.contains('lit') === !!worldMeta(curWorld()).dark };
+    const out = { wheels: wheelEls.length, mud: !!mudEl, scuff: !!carWrap.querySelector('.dmgScuff'), crack: !!carWrap.querySelector('.dmgCrack'), lit: carWrap.querySelector('.carView.on svg').classList.contains('lit') === !!worldMeta(curWorld()).dark };
     const body = state.body; state.body = 'mixer'; mountCar();
     out.drum = drumEls.length; out.mixerWheels = wheelEls.length;
     state.body = body; mountCar();

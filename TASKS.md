@@ -293,6 +293,10 @@
 
 - [x] T40.1: Launches cut hard: the standard kick 0.9 -> 0.6 (`KICK_STD`, also the flight-star arc), mega 1.1 -> 0.75, hop 0.55 -> 0.4, the springs ladder +18% -> +8% a pip (1.24 at the top, was 1.54), the chomper's spit 470 -> 420. Flight tables, tails and landing zones unchanged (they were generous), so every landing stays clear. [SPID]
 
+## v13.29.0 (2026-10-11, user-directed: "level 117 the vehicle is getting glitchy, flickering and fluttering with each move")
+
+- [x] T49.1: Steering never rebuilds the car. Every quarter-lane / yaw step swapped the car's whole SVG (46 rebuilds in six lane changes, measured), re-rasterizing it and snapping every animation on it back to frame zero: the flutter, worst where a floaty world and spread stars mean constant steering. The views now stay mounted as `.carView` layers (the whole 9 x 5 grid fits) and a steer switches `.on`; hidden views are unpainted with paused animations and a dead hitbox, and the live view takes over the last one's animation clocks by name (lists read once at mount), so a switch never snaps a bob or a flicker. A mount is about 3 ms and a switch 0.06 ms (measured); views mount on demand over a run's first lane changes (pre-warming cost more frames than it saved), and damage left the build key so a hit no longer flushes them. feel-check: six lane changes after warm-up add nothing to the DOM and the buddy's bob never restarts (19 -> 20). [SPID]
+
 ## v13.28.0 (2026-10-11, user-directed: "I can still see the yellow lines through, what the fuck")
 
 - [x] T48.1: Nothing from behind a crest paints over its face. The lane dashes went down in one pass after all the ground, so far-side dashes that project below the crest line landed on top of the near face and curled back down the hill (the frames showed it; the checks only looked above the crest line). The dashes now go down with their band, back to front, so nearer ground covers them like everything else. polish-check: a face-leak probe (every dash pixel under the crest line must belong to a near-side dash; it reported 49 leaks on the old code, 0 now). Far field strips stop at 6000 to keep the painter under its quad budget. [SPID]

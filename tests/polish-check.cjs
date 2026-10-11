@@ -228,7 +228,7 @@ function check(name, ok, detail) {
   /* night headlights */
   await page.evaluate(() => { progress.levels[24] = { best: 1, rating: 1 }; drive(25); });
   await page.waitForTimeout(250);
-  const beams = await page.evaluate(() => carWrap.querySelector('svg').innerHTML.includes('#fff9c4'));
+  const beams = await page.evaluate(() => carWrap.querySelector('.carView.on svg').innerHTML.includes('#fff9c4'));
   check('night: headlights attached to the car', beams);
   await page.screenshot({ path: SHOT + 'p-night.png' });
 

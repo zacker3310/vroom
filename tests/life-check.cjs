@@ -154,7 +154,7 @@ function check(name, ok, detail) {
     progress.wallet = 0; progress.damage = 0; progress.upgrades.armor = 0; progress.tread = 8; progress.fuel = 8;
     drive(1);
     await new Promise(r => setTimeout(r, 300));
-    const b = () => carWrap.querySelector('.buddyRe');
+    const b = () => carWrap.querySelector('.carView.on .buddyRe');
     const present = !!b() && !!b().querySelector('.buddyBob');
     /* star hook: a third star inside 1.5 s is a streak */
     starCombo = 1; lastStarT = performance.now(); laneVis = 1; jumpY = 0;
@@ -174,7 +174,7 @@ function check(name, ok, detail) {
     pos = LEVEL_LEN - 350; gasKey = true;
     await new Promise(r => setTimeout(r, 1400));
     gasKey = false;
-    const b = carWrap.querySelector('.buddyRe');
+    const b = carWrap.querySelector('.carView.on .buddyRe');
     return { cls: b.classList.contains('wave'), celebrating: roadScene.classList.contains('celebrating') };
   });
   const t6 = await tones();

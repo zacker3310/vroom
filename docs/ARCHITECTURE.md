@@ -146,7 +146,18 @@ under reduced motion it snaps the follow and zeroes the rest. The car itself yaw
 lane it heads for while `laneVis` glides (`tickYaw`, `carYaw` up to `YAW_MAX = 0.18`): `vp`
 rotates car-space x/z about the rear axle (`vrot`) before the perspective, `faceVis` picks the
 visible side faces from the real camera position, and the front tires steer with it;
-`setCarView(q, ys)` caches views on a quarter-lane x yaw-step grid. No tilt, skew or roll.
+`setCarView(q, ys)` caches views on a quarter-lane x yaw-step grid, and (13.29) keeps every view the run
+has used mounted as its own `.carView` layer (up to `CAR_VIEWS_MAX`, the whole grid): a steer only switches
+which one is `.on`. Swapping the SVG for every step used to rebuild the car about eight times a lane change,
+re-rasterizing it and snapping every animation on it (buddy bob, lights, puffs) back to frame zero, the
+flutter on a busy level. Hidden views are unpainted with their animations paused and their hitbox dead; each view's animation
+list is read once at mount and `syncCarAnims` copies the old live view's clocks onto the new one by name on a
+switch, so a bob or a flicker never snaps. A mount costs about 3 ms (the build, the DOM, the animation list), a
+switch 0.06 ms; a run mounts the twenty-odd views it steers through over its first lane changes and only
+switches after that (pre-warming them behind the drive's first seconds was tried and cost more frames than it
+saved). Damage is not part of the view build: its overlays toggle live, so a hit never flushes the views. The tread and drum roll on
+the live view only (the loop writes them every frame), `setMud` paints every view's mud, `carSvg()` is the
+live SVG the gags act on. No tilt, skew or roll.
 
 ### Curves
 

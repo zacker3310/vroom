@@ -207,7 +207,7 @@ function check(name, ok, detail) {
     pos = b.x - 300 - 150; gasKey = true;
     for (let i = 0; i < 60 && !b.done; i++) await new Promise(r => setTimeout(r, 50));   /* wait for the hit itself, not a fixed 650 ms: under load the car was still short of the barrel */
     gasKey = false;
-    const held = { hit: b.done, damage: progress.damage, armorLvl: progress.upgrades.armor, flash: !!carWrap.querySelector('svg.shieldHit') };
+    const held = { hit: b.done, damage: progress.damage, armorLvl: progress.upgrades.armor, flash: !!carWrap.querySelector('.carView.on svg.shieldHit') };
     /* the shield is not perfect: a miss lets the point through; odds are 50 / 65 / 80% per pip; a TNT (2) can be half-blocked */
     armorRoll = () => 0.99; applyDamage(1);
     const missed = progress.damage;

@@ -1,6 +1,6 @@
 # Vroom test suites
 
-Twenty-three Playwright regression suites (476 checks) that drive the real game in headless
+Twenty-three Playwright regression suites (477 checks) that drive the real game in headless
 Chromium. They are the gate for every change: CI runs them on each push and pull request.
 
 ## Run everything
@@ -68,7 +68,7 @@ click stability check.
 | `polish-check.cjs` | 22 | kid-UX round: locks, price tags, magnet, headlights, celebrate choreography, the road reaching the horizon (13.22), the crest veil and ridge (13.25, 13.27), no dash leaks over the crest face (13.28) |
 | `damage-check.cjs` | 20 | damage tiers, repair, upgrades, keyboard controls |
 | `free-check.cjs` | 15 | capsules and prizes, free drive, time-medal tiers |
-| `feel-check.cjs` | 19 | game feel: body dynamics, hit-stop, the lane change and landing speed scrubs, celebrate pacing, iPad shell metas |
+| `feel-check.cjs` | 20 | game feel: body dynamics, hit-stop, the lane change, mounted car views that never rebuild on a steer (13.29) and landing speed scrubs, celebrate pacing, iPad shell metas |
 | `worlds-check.cjs` | 31 | 12 worlds: level invariants, world hazards, movers, gravity, map, unlock chain, world bonus, golden capsule, premium shop, free-drive tour, ground painter (shoulder and field tones, crowned road on every world, ramp side walls, quad budget), the deep sea rebuild (glass tunnel ribs, caustics, whale, second roadside set, palette, roller swells, reduced motion) |
 | `album-check.cjs` | 20 | sticker album: buddies, badges, the per-world photo wall and its keep rule, tab counts, fresh stars, peek card, muddy flag |
 | `profile-check.cjs` | 33 | the in-app QR scanner (viewfinder, BarcodeDetector or the pure-JS decoder, the picture picker), the slot card (play, scan into the slot, hold-to-erase), 3 kid profiles, save codes, scan-to-open QR decoded byte-exact with jsQR across version boundaries, the send / receive flow: receiver sheet (clipboard, paste box, camera scan when stubbed), the import preview card with its warning triangle, the welcome pop after a confirmed import |

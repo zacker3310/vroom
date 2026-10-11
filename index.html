@@ -493,6 +493,14 @@
   /* 400x500 box; svg origin (the rear bumper's ground point) lands on stage 600,650 */
   #carWrap { position: absolute; left: 400px; top: 190px; width: 400px; will-change: transform; cursor: pointer; touch-action: none; transform-origin: 50% 92%; pointer-events: none; }
   #carWrap svg { width: 100%; height: auto; overflow: visible; transform-origin: 50% 92%; }
+  /* the car's views (13.29): every quarter-lane / yaw view the run has used stays mounted in its own layer, and a
+     steer only switches which one is opaque. Swapping the car's SVG for every step used to rebuild it ~8 times a
+     lane change, re-rasterizing it and snapping every animation on it back to frame zero (the flutter). Hidden views
+     keep their animations paused and their hitbox dead; the live one is synced to the last one's clocks on switch. */
+  #carWrap .carView { position: absolute; left: 0; top: 0; width: 100%; visibility: hidden; pointer-events: none; }   /* hidden views are never painted or hit-tested (no forced layers: two dozen would be too much GPU memory on a phone) */
+  #carWrap .carView.on { visibility: visible; z-index: 1; }
+  #carWrap .carView:not(.on) * { animation-play-state: paused !important; }   /* a hidden view's animations cost frame time even unpainted: paused, and re-synced on switch */
+  #carWrap .carView:not(.on) .hitbox { pointer-events: none; }
   #carWrap .hitbox { pointer-events: all; }
   #carWrap.flat svg { animation: carLimp .46s linear infinite; }   /* a blown tire (13.22): listing to one side, limping */
   @keyframes carLimp { 0%, 100% { transform: rotate(-2.6deg) translateY(3px); } 50% { transform: rotate(-1.4deg) translateY(0); } }
@@ -2080,7 +2088,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.28.0";
+const APP_VERSION = "13.29.0";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -8974,7 +8982,7 @@ const BEAMS_SVG = `<g class="beams"><path d="M-80 -80 L80 -80 L42 -300 L-42 -300
        <path d="M-46 -86 L46 -86 L24 -250 L-24 -250 Z" fill="#fff9c4" opacity=".18"/>
        <circle cx="-34" cy="-92" r="5" fill="#fff9c4"/><circle cx="34" cy="-92" r="5" fill="#fff9c4"/></g>`;
 function setHeadlights(on) {
-  const svg = carWrap.querySelector("svg");
+  const svg = carSvg();
   if (!svg) return;
   const b = svg.querySelector(".beams");
   if (on && !b) svg.insertAdjacentHTML("afterbegin", BEAMS_SVG);
@@ -8998,26 +9006,69 @@ function tickYaw(dt) {
   carYaw += (to - carYaw) * Math.min(1, dt * 20);
   if (!to && Math.abs(carYaw) < 0.004) carYaw = 0;
 }
+/* the mounted views (13.29): key -> { el, used }. CAR_VIEWS_MAX of them stay in the DOM; a steer switches .on and
+   the least recently used view goes when the cap is hit. carSvg() is the live view's SVG, the one gags act on. */
+const CAR_VIEWS_MAX = 45, carViewEls = new Map();   /* the whole quarter-lane x yaw grid (9 x 5): a long sweep uses about 32, so nothing churns */
+let mudEls = [];
+const carSvg = () => carWrap.querySelector(".carView.on svg");
 function mountCar() {
-  const buildKey = JSON.stringify(state) + "|" + progress.damage;
+  const buildKey = JSON.stringify(state);   /* damage is not part of the build: its overlays are toggled live (updateDamageVisuals), so a hit never flushes the mounted views (13.29) */
   if (buildKey !== laneViewBuild) { laneViews.clear(); laneViewBuild = buildKey; }
+  for (const v of carViewEls.values()) v.el.remove();   /* a fresh build: every mounted view goes */
+  carViewEls.clear(); carViewOn = null;
   laneViewKey = null;
   setCarView(laneViewQ(), yawStep());
+}
+/* the new live view takes over the old one's animation clocks (same build, same animations by name), so a bobbing
+   buddy or a flickering light carries on mid-cycle instead of snapping to frame zero. Each view's animation list is
+   read once at mount (getAnimations is the costly call); a switch only copies currentTime across the two lists. */
+let carViewOn = null;
+function syncCarAnims(from, to) {
+  const byName = new Map();
+  for (const a of from.anims) if (a.animationName && !byName.has(a.animationName)) byName.set(a.animationName, a);
+  for (const a of to.anims) { const src = byName.get(a.animationName); if (src && src.currentTime != null) a.currentTime = src.currentTime; }
+}
+/* mount one view (about 3 ms: the build, the DOM and its animation list) without switching to it; a run mounts the
+   twenty-odd views it steers through on demand over its first lane changes, then switches for the rest of it */
+function mountCarView(q, ys) {
+  const key = viewKey(q, ys);
+  let view = carViewEls.get(key);
+  if (view) return view;
+  let svg = laneViews.get(key);
+  if (!svg) { svg = vehicleRearSVG(state, laneViewOff(q), ys * YAW_MAX / YAW_STEPS); laneViews.set(key, svg); }
+  const el = document.createElement("div");
+  el.className = "carView";
+  el.innerHTML = svg;
+  carWrap.appendChild(el);
+  view = { el, used: 0, anims: el.getAnimations ? el.getAnimations({ subtree: true }) : [] };
+  carViewEls.set(key, view);
+  const vb = el.querySelector("svg"), box = vb && vb.viewBox.baseVal;
+  if (box && box.width) carWrap.style.height = (400 * box.height / box.width).toFixed(1) + "px";   /* the views are out of flow: the wrapper keeps the art's height so its pivot (50% 92%) holds */
+  if (carViewEls.size > CAR_VIEWS_MAX) {
+    let old = null;
+    for (const [k, v] of carViewEls) if (k !== key && v !== carViewOn && (!old || v.used < old.v.used)) old = { k, v };
+    if (old) { old.v.el.remove(); carViewEls.delete(old.k); }
+  }
+  return view;
 }
 function setCarView(q, ys = 0) {
   const key = viewKey(q, ys);
   if (key === laneViewKey) return;
   laneViewKey = key; laneViewYaw = ys;
-  let svg = laneViews.get(key);
-  if (!svg) { svg = vehicleRearSVG(state, laneViewOff(q), ys * YAW_MAX / YAW_STEPS); laneViews.set(key, svg); }
-  carWrap.innerHTML = svg;
-  wheelEls = carWrap.querySelectorAll(".treadRoll");
-  drumEls = carWrap.querySelectorAll(".drum");
-  mudEl = carWrap.querySelector(".mudSpots");
-  if (mudEl) mudEl.style.opacity = progress.muddy ? 1 : 0;   /* a view composed before the splash would hide this run's mud */
+  const prev = carViewOn;
+  const view = mountCarView(q, ys);
+  view.used = performance.now();
+  if (prev && prev !== view) { syncCarAnims(prev, view); prev.el.classList.remove("on"); }
+  view.el.classList.add("on"); carViewOn = view;
+  wheelEls = view.el.querySelectorAll(".treadRoll");   /* the live view's only: the loop writes these every frame, and two dozen hidden views' worth of style writes cost real frame time; the next frame catches a fresh view up (a sub-pixel tread step) */
+  drumEls = view.el.querySelectorAll(".drum");
+  mudEls = carWrap.querySelectorAll(".mudSpots");
+  mudEl = view.el.querySelector(".mudSpots");
+  setMud(progress.muddy ? 1 : 0);   /* a view composed before the splash would hide this run's mud */
   setHeadlights(worldMeta(curWorld()).dark);
   updateDamageVisuals();
 }
+function setMud(op) { for (const m of mudEls) m.style.opacity = op; }
 function startDrive() {
   stopDrive();
   pos = 0; v = 0; jumpY = 0; vy = 0; airborne = false; finished = false; chompFling = 0; chomp = null;
@@ -9329,7 +9380,7 @@ function openCapsule(p) {
       sfx.squeak(); gagTimer(() => sfx.tada(), 400);
       const muddy = mudEl && mudEl.style.opacity === "1";   /* keep this run's mud through the rebuild */
       mountCar();
-      if (muddy) mudEl.style.opacity = 1;
+      if (muddy) setMud(1);
       return;
     }
     /* every buddy found: consolation stars */
@@ -9402,7 +9453,7 @@ const PROP_HIT = {
     if (Math.round(laneVis) !== p.lane) return;
     if (d > -80 && d < 80 && v > 30) {
       p.done = true; p.el.classList.add("splashing"); sfx.splash();
-      if (mudEl) mudEl.style.opacity = 1;
+      setMud(1);
       if (!progress.muddy) { progress.muddy = true; save(); }
       setTimeout(() => p.el.classList.remove("splashing"), 600);
     }
@@ -9590,7 +9641,7 @@ function applyDamage(n) {
   renderHudUpkeep(true);
 }
 function shieldFlash() {
-  const svg = carWrap.querySelector("svg");
+  const svg = carSvg();
   if (svg) restartAnim(svg, "shieldHit");
 }
 function updateDamageVisuals() {
@@ -9686,7 +9737,7 @@ function tick(now) {
       chompFling = 0;
       /* landing: suspension squash + a kick of dust; the body squats by the fall (recovers through bodyTilt's ease, ~120 ms)
          and the camera dips with it */
-      const svg = carWrap.querySelector("svg");
+      const svg = carSvg();
       if (svg) { svg.classList.remove("land"); void carWrap.offsetWidth; svg.classList.add("land"); gagTimer(() => svg.classList.remove("land"), 450); }
       bodyTilt += Math.min(8, fall * 0.012);
       landCam(fall);
@@ -9824,7 +9875,7 @@ carWrap.addEventListener("pointerdown", () => {
    waves at the finish. One-shot classes on the .buddyRe group; the hooks are one-line calls at the three sites. ---- */
 let lastCheerT = 0;
 function buddyReact(kind) {
-  const b = carWrap.querySelector(".buddyRe");
+  const b = carWrap.querySelector(".carView.on .buddyRe");
   if (!b) return;
   restartAnim(b, kind, "cheer", "duck", "wave");
   const now = performance.now();
