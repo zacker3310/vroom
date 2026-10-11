@@ -186,14 +186,16 @@ function check(name, ok, detail) {
       const pt = proj(z, 0, 0); if (pt[1] >= occAt(z) - 2 || pt[1] <= HORIZON + 2) continue;
       const c = px(pt[0], pt[1]); samples++;
       if (near(c, hex(roadPal.road), 6) || near(c, hex(roadPal.dash), 6)) roady++;
-      if (near(c, mist, 8) || near(c, hex(roadPal.haze), 8) || (c[0] >= Math.min(mist[0], hex(roadPal.haze)[0]) - 8 && c[0] <= Math.max(mist[0], hex(roadPal.haze)[0]) + 8)) hazy++;
+      if (near(c, mist, 8) || near(c, hex(roadPal.haze), 8) || near(c, hex(window.occRidgeTone), 8) || (c[0] >= Math.min(mist[0], hex(roadPal.haze)[0]) - 8 && c[0] <= Math.max(mist[0], hex(roadPal.haze)[0]) + 8)) hazy++;   /* mist, haze or the ridge's own tone (13.27) */
     }
     const face = px(...proj(crest - 60 - (pos + CAR_SCREEN_X - CAR_HIT_Z), -600, 0).slice(0, 2));   /* the near face, off the road */
-    const r = { hid: occHid, a: +occA.toFixed(2), head: OCC_HEAD, samples, roady, hazy, faceGround: near(face, hex(roadPal.ground), 10) || near(face, hex(roadPal.ground2), 10) || near(face, hex(roadPal.field || roadPal.ground), 14), face };
+    /* the ridge (13.27): humps in a hazier ground tone sit on the crest line; the pixel just above the line at the road's centre is the ridge, not mist */
+    const ridge = px(600, occTop - 6), ridgeOn = near(ridge, hex(window.occRidgeTone), 8), ridgeDiffers = !near(hex(window.occRidgeTone), mist, 10);
+    const r = { hid: occHid, a: +occA.toFixed(2), head: OCC_HEAD, samples, roady, hazy, ridgeOn, ridgeDiffers, ridge, faceGround: near(face, hex(roadPal.ground), 10) || near(face, hex(roadPal.ground2), 10) || near(face, hex(roadPal.field || roadPal.ground), 14), face };
     stopDrive(); return r;
   });
-  check('veil (13.25): on the run-up every see-through spot behind the crest reads as mist or haze, never tarmac or a dash; the crest\'s own face stays ground; a hill behind keeps its head only 60 clear of the crest',
-    veil.hid && veil.a === 1 && veil.head === 60 && veil.samples >= 3 && veil.roady === 0 && veil.hazy === veil.samples && veil.faceGround, JSON.stringify(veil));
+  check('veil (13.25, ridge 13.27): on the run-up every see-through spot behind the crest reads as mist, haze or the ridge, never tarmac or a dash; the crest\'s own face stays ground; the ridge humps sit on the crest line in their own tone; a hill behind keeps its head only 60 clear',
+    veil.hid && veil.a === 1 && veil.head === 60 && veil.samples >= 3 && veil.roady === 0 && veil.hazy === veil.samples && veil.faceGround && veil.ridgeOn && veil.ridgeDiffers, JSON.stringify(veil));
 
   /* night headlights */
   await page.evaluate(() => { progress.levels[24] = { best: 1, rating: 1 }; drive(25); });

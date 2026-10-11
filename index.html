@@ -2080,7 +2080,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.26.0";
+const APP_VERSION = "13.27.0";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -8325,7 +8325,10 @@ const OCC_STEP = 40, OCC_N = Math.ceil((ROAD_FAR - DRAW_NEAR) / OCC_STEP) + 2, O
    ground stay out until the haze is nearly gone (occA 0.15). A dip keeps its far side (same height as the near lip) and a
    taller hill behind keeps its head. */
 const OCCH = new Uint8Array(OCC_N), OCC_HEAD = 60;
-let occTop = Infinity, occHid = false, occA = 0;
+/* the ridge humps on a hiding crest: world lateral centre, half width, height (world units at the crest's depth) */
+const OCC_RIDGE = [[-3300, 900, 240], [-2100, 760, 300], [-1150, 620, 240], [-350, 700, 280], [500, 640, 220], [1350, 820, 320], [2300, 700, 240], [3300, 900, 290]];
+window.occRidgeTone = "";   /* the tone the humps were painted in this frame (the suite reads it) */
+let occTop = Infinity, occHid = false, occA = 0, occCrest = 0;   /* occCrest: depth of the crest that hides (the ridge is drawn at its scale) */
 function buildOcc() {
   let m = Infinity, maxE = -Infinity, prevY = Infinity, zTurn = Infinity, zCrest = 0;
   occTop = Infinity; occHid = false; occA = 0;
@@ -8338,6 +8341,7 @@ function buildOcc() {
     if (y < m) m = y;
   }
   occTop = m;
+  occCrest = zCrest;
   occA = occHid ? Math.max(0, Math.min(1, (zCrest - 30) / 150)) : 0;   /* keyed to the crest itself, not the drop past it; full to 180 before it, gone at 30 (13.25: was 280..60, the far side ghosted in too early) */
   if (occA === 0) { occHid = false; OCCH.fill(0); }
 }
@@ -8739,6 +8743,18 @@ function drawRoad(carX) {
       const hg = c.createLinearGradient(0, HORIZON, 0, occTop);
       hg.addColorStop(0, P.haze); hg.addColorStop(1, mist);
       c.fillStyle = hg; c.fillRect(-canvasOX, HORIZON, canvasW, occTop - HORIZON);
+      /* the ridge (13.27): a hill is extruded across the whole world, so its crest projects as one dead-straight line
+         and the veil above it read as a cliff edge into fog. A row of rounded humps in a hazier ground tone sits on
+         that line, fixed in the world (they slide with the camera and bend with the road) and scaled by the crest's
+         depth, so the crest reads as a soft hilltop with land behind it. Only the part above the line shows. */
+      const sc = CAM_D / (occCrest + CAM_D), ox = offAt(occCrest) - camWX;
+      c.save(); c.beginPath(); c.rect(-canvasOX, 0, canvasW, occTop + 0.5); c.clip();
+      c.fillStyle = window.occRidgeTone = mixHex(shade(P.ground2, -0.25), P.haze, 0.5);   /* a darker ground shade through the haze: apart from the near face below and the mist above on every palette */
+      c.beginPath();
+      const sk = Math.min(sc, 0.35);   /* the humps grow as the crest nears, but never past a third of their world size: a close crest is a hilltop, not a mountain range */
+      for (const [lx, w, h] of OCC_RIDGE) { const rx = w * sk, ry = h * sk; c.ellipse(600 + (lx + ox) * sc, occTop + ry * 0.35, rx, ry, 0, 0, Math.PI * 2); }
+      c.fill();
+      c.restore();
     }
     c.globalAlpha = 1;
   }

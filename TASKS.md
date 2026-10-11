@@ -293,6 +293,10 @@
 
 - [x] T40.1: Launches cut hard: the standard kick 0.9 -> 0.6 (`KICK_STD`, also the flight-star arc), mega 1.1 -> 0.75, hop 0.55 -> 0.4, the springs ladder +18% -> +8% a pip (1.24 at the top, was 1.54), the chomper's spit 470 -> 420. Flight tables, tails and landing zones unchanged (they were generous), so every landing stays clear. [SPID]
 
+## v13.27.0 (2026-10-11, user-directed: "yo wtf is this, did we have a failed build" (a crest drawn as a flat wall of fog))
+
+- [x] T47.1: The ridge. A hill is extruded across the whole world, so its crest projects as one dead-straight line, and with the valley veiled the crest read as a cliff edge into fog with stars hovering over it. A row of rounded humps (`OCC_RIDGE`) in a hazier ground tone now sits on the crest line, fixed in the world and scaled by the crest's depth, clipped to above the line, so the crest reads as a soft hilltop with land behind. polish-check's veil probe reads the ridge. [SPID]
+
 ## v13.26.0 (2026-10-10, user-directed: "move the hold-to-reload button to the home screen and make it replace PLAY; implement what you think is best")
 
 - [x] T46.1: The PLAY pill is the update gate. When a new version is on the server the pill goes amber and swaps its face for the update one (a tray with an arrow dropping in, the hold ring round it, three sparkles: pictograms, no third word on screen); press and hold fills the ring and loads the new version, a quick tap lets go and stays put. The two round gate buttons (title and garage) are gone. update-check rewritten (8 -> 6), title-check follows. [SPID]

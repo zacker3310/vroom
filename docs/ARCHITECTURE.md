@@ -226,7 +226,11 @@ of the crest in front, otherwise its road poked a stub through the horizon. `dra
 hidden steps over in mist (`mixHex(haze, ground, .55)`): one quad per run of hidden steps with the same
 crest in front (runs capped at ten steps), each clipped to above that crest's line (`OCC[i]`), so only the
 part of hidden ground that would show over the crest is veiled and the crest's own face stays ground. Above
-the visible ground a haze-to-mist gradient runs from the horizon to `occTop`. Both ride `occA`, full until
+the visible ground a haze-to-mist gradient runs from the horizon to `occTop`, and on that line sits the ridge
+(13.27, `OCC_RIDGE`): a row of rounded humps in a hazier ground tone (`occRidgeTone`), fixed in the world (they
+slide with the camera and bend with the road) and scaled by the crest's depth (`occCrest`), clipped to above the
+line. A hill is extruded across the whole world, so its crest projects as one dead-straight line; the humps make
+it read as a hilltop with land behind instead of a cliff edge into fog. All of it rides `occA`, full until
 180 before the crest and gone at 30. (13.25 restored the veil quads: the loop had lost its body, and the
 valley behind every crest showed through wherever a taller head behind lifted `occTop` above the crest.)
 
