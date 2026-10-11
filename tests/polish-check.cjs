@@ -197,6 +197,34 @@ function check(name, ok, detail) {
   check('veil (13.25, ridge 13.27): on the run-up every see-through spot behind the crest reads as mist, haze or the ridge, never tarmac or a dash; the crest\'s own face stays ground; the ridge humps sit on the crest line in their own tone; a hill behind keeps its head only 60 clear',
     veil.hid && veil.a === 1 && veil.head === 60 && veil.samples >= 3 && veil.roady === 0 && veil.hazy === veil.samples && veil.faceGround && veil.ridgeOn && veil.ridgeDiffers, JSON.stringify(veil));
 
+  /* 13.28: nothing from behind a crest paints over its face. The lane dashes used to go down in one pass after the
+     ground, so far-side dashes that project below the crest line landed on top of the near face. Scan the face just
+     under the crest line for dash-coloured pixels and demand every one of them lies inside a dash the near side owns. */
+  const leak = await page.evaluate(async () => {
+    drive(5); await new Promise(r => setTimeout(r, 900));
+    const h = HILLS[0], crest = (h.x0 + h.x1) / 2;
+    pos = crest - 900 - CAR_SCREEN_X + CAR_HIT_Z; v = 0; await new Promise(r => setTimeout(r, 250));
+    const k = roadCanvas.width / 1200, img = rctx.getImageData(0, 0, roadCanvas.width, roadCanvas.height).data, W = roadCanvas.width;
+    const hex = c => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
+    const dash = hex(roadPal.dash), isDash = (x, y) => { const i = (Math.round(y * k) * W + Math.round(x * k)) * 4; return Math.abs(img[i] - dash[0]) <= 8 && Math.abs(img[i + 1] - dash[1]) <= 8 && Math.abs(img[i + 2] - dash[2]) <= 8; };
+    /* the dashes the near side owns: every 60-on segment from the car to the crest, as projected quads (a 2 px margin) */
+    const polys = [];
+    const carX = curCarX;
+    for (let d = Math.floor((carX - 260) / 120) * 120; d < crest; d += 120) for (const lx of [-LANE_W / 2, LANE_W / 2]) {
+      const z0 = Math.max(-260, d - carX), z1 = Math.min(crest - carX, d + 60 - carX); if (z1 <= z0) continue;
+      polys.push([proj(z0, lx - 8, 0), proj(z0, lx + 8, 0), proj(z1, lx + 8, 0), proj(z1, lx - 8, 0)]);
+    }
+    const inside = (x, y, pg) => { let c = false; for (let i = 0, j = pg.length - 1; i < pg.length; j = i++) { const [xi, yi] = pg[i], [xj, yj] = pg[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
+    let dashPx = 0, leaks = 0; const where = [];
+    for (let y = Math.ceil(occTop) + 2; y < occTop + 90; y += 2) for (let x = 300; x < 900; x += 2) {
+      if (!isDash(x, y)) continue; dashPx++;
+      if (!polys.some(pg => inside(x, y, pg))) { leaks++; if (where.length < 6) where.push([x, y]); }
+    }
+    const r = { occTop: Math.round(occTop), hid: occHid, dashPx, leaks, where };
+    stopDrive(); return r;
+  });
+  check('crest face (13.28): no dash from behind the crest paints over the hill\'s face (every dash pixel under the crest line belongs to a near-side dash)', leak.hid && leak.dashPx > 0 && leak.leaks === 0, JSON.stringify(leak));
+
   /* night headlights */
   await page.evaluate(() => { progress.levels[24] = { best: 1, rating: 1 }; drive(25); });
   await page.waitForTimeout(250);

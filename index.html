@@ -2080,7 +2080,7 @@ html, body { background: #2f241a; }               /* warm dark letterbox, was na
 /* ===== 0. VERSION ===== */
 /* Bumped with each release alongside package.json; shown as a tiny numeral row in the
    grown-ups (profile) panel. The update gate fingerprints the code itself, not this. */
-const APP_VERSION = "13.27.0";
+const APP_VERSION = "13.28.0";
 /* the game's name as the OS sees it (share sheets). The <title>, the apple-mobile-web-app-title meta and
    manifest.webmanifest carry the same word; storage keys and save-code prefixes keep "vroom" forever. */
 const GAME_NAME = "Zoomies";
@@ -8584,7 +8584,7 @@ function drawRoad(carX) {
     const z0 = Math.max(nearZ, z - (z > 4800 ? Math.round(z * 0.3) : 400));
     quad(c, z0, z, -7000, 7000, P.ground);
     if (z >= 2400) {
-      if (z0 < 8000) fieldStrips(c, z0, z, T);   /* the field strips are a pixel wide out there: the painter's quad budget (worlds-check) buys the road instead */
+      if (z0 < 6000) fieldStrips(c, z0, z, T);   /* the field strips are a pixel wide out there: the painter's quad budget (worlds-check) buys the road instead */
       quadPair(c, z0, z, ROAD_HALF + 26, ROAD_HALF + 26 + SHOULDER_W, T.shoulder);
       quad(c, z0, z, -ROAD_HALF, ROAD_HALF, P.road);
       if (T.crown) quad(c, z0, z, -CROWN_HALF, CROWN_HALF, T.crown[0]);
@@ -8610,17 +8610,18 @@ function drawRoad(carX) {
       c.fill();
     }
     quadPair(c, z0, z1, ROAD_HALF, ROAD_HALF + 26, odd ? P.rumA : P.rumB);
+    /* lane dashes: 60 on, 60 off, this band's share in one fill. 13.28: they go down with their band, back to front,
+       so nearer ground covers the dashes behind a crest (one pass after the ground painted them over the hill's face) */
+    c.fillStyle = P.dash;
+    c.beginPath();
+    for (let d = Math.floor((k * SEG) / 120) * 120; d < (k + 1) * SEG; d += 120) {
+      const a = Math.max(z0, d - carX), b = Math.min(z1, d + 60 - carX);
+      if (b <= a) continue;
+      qpath(c, a, b, -LANE_W / 2 - 6, -LANE_W / 2 + 6);
+      qpath(c, a, b, LANE_W / 2 - 6, LANE_W / 2 + 6);
+    }
+    c.fill();
   }
-  /* lane dashes: 60 on, 60 off, every dash in one fill */
-  c.fillStyle = P.dash;
-  c.beginPath();
-  for (let d = Math.floor((carX + nearZ) / 120) * 120; d < carX + 3000; d += 120) {
-    const z0 = Math.max(nearZ, d - carX), z1 = d + 60 - carX;
-    if (z1 <= z0) continue;
-    qpath(c, z0, z1, -LANE_W / 2 - 6, -LANE_W / 2 + 6);
-    qpath(c, z0, z1, LANE_W / 2 - 6, LANE_W / 2 + 6);
-  }
-  c.fill();
   /* finish line: a checkered band across the road, a dark edge on its near side so it sits on the tarmac */
   if (!freeMode) {
     const zf = LEVEL_LEN - carX;

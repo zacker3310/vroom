@@ -230,7 +230,9 @@ the visible ground a haze-to-mist gradient runs from the horizon to `occTop`, an
 (13.27, `OCC_RIDGE`): a row of rounded humps in a hazier ground tone (`occRidgeTone`), fixed in the world (they
 slide with the camera and bend with the road) and scaled by the crest's depth (`occCrest`), clipped to above the
 line. A hill is extruded across the whole world, so its crest projects as one dead-straight line; the humps make
-it read as a hilltop with land behind instead of a cliff edge into fog. All of it rides `occA`, full until
+it read as a hilltop with land behind instead of a cliff edge into fog. Everything on the ground goes down back to
+front inside the band loop, the lane dashes included (13.28: they used to go down in one pass afterwards, and the
+far side's dashes landed on top of the near face), so nearer ground covers whatever lies behind a crest. All of it rides `occA`, full until
 180 before the crest and gone at 30. (13.25 restored the veil quads: the loop had lost its body, and the
 valley behind every crest showed through wherever a taller head behind lifted `occTop` above the crest.)
 

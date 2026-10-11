@@ -1,6 +1,6 @@
 # Vroom test suites
 
-Twenty-three Playwright regression suites (475 checks) that drive the real game in headless
+Twenty-three Playwright regression suites (476 checks) that drive the real game in headless
 Chromium. They are the gate for every change: CI runs them on each push and pull request.
 
 ## Run everything
@@ -65,7 +65,7 @@ click stability check.
 |---|---|---|
 | `verify.cjs` | 40 | core loop: garage inventory and 64 px touch floor, shop/economy, level invariants, map, persistence, steering yaw views and bindings |
 | `garage-check.cjs` | 19 | redesigned garage: control budget, category tabs and the shuffle at the tab row end, workbench strip order (wash first), GO and map, gift on the rhythm |
-| `polish-check.cjs` | 21 | kid-UX round: locks, price tags, magnet, headlights, celebrate choreography, the road reaching the horizon (13.22), the crest veil (13.25) |
+| `polish-check.cjs` | 22 | kid-UX round: locks, price tags, magnet, headlights, celebrate choreography, the road reaching the horizon (13.22), the crest veil and ridge (13.25, 13.27), no dash leaks over the crest face (13.28) |
 | `damage-check.cjs` | 20 | damage tiers, repair, upgrades, keyboard controls |
 | `free-check.cjs` | 15 | capsules and prizes, free drive, time-medal tiers |
 | `feel-check.cjs` | 19 | game feel: body dynamics, hit-stop, the lane change and landing speed scrubs, celebrate pacing, iPad shell metas |
